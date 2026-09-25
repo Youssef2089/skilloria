@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -234,6 +235,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
   const orgId = auth.organization?.id
   if (!orgId) {
     return json({ error: 'No organization', code: 'org_required' }, 403)
@@ -362,9 +365,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
     after(async () => {
       try {
         const { runMatchingForPublication } = await import('@/lib/matching')
+        // La pièce du geste, capturée par la fermeture : c'est ainsi qu'elle traverse after() (§D.26).
         const v = await runMatchingForPublication({
           supabaseAdmin: auth.supabaseAdmin,
           publicationId: id,
+          journal,
         })
         console.log('[publications:PATCH] matching done', { id, status: v.status, proposals: v.proposals.length })
       } catch (err) {

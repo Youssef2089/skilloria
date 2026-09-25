@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import { capaciteActive } from '@/lib/interrupteurs'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { budgetDisponible, enregistrerDepenseIA, type ActeurIA } from '@/lib/ai-budget'
@@ -332,6 +333,8 @@ export async function rerankerTout(args: {
    * ce module ne le devine pas.
    */
   acteur: ActeurIA
+  /** Le geste qui classe (§D.26) — le run, sa pièce. */
+  journal: ContexteJournal
   contexte?: Record<string, unknown>
   /**
    * Appelé après CHAQUE lot réussi, avec les notes de ce lot seul.
@@ -404,7 +407,7 @@ export async function rerankerTout(args: {
     const budget = await budgetDisponible(args.supabaseAdmin, 'rerank', {
       acteur: args.acteur,
       action: 'matching_pool',
-    })
+    }, args.journal)
     if (!budget.ok) {
       arret = budget.raison
       arretCode = 'plafond_atteint'
@@ -446,6 +449,7 @@ export async function rerankerTout(args: {
         provider: 'rerank',
         action: 'matching_pool',
         acteur: args.acteur,
+        journal: args.journal,
         // ⚠️ CE QU'ON PAIE, ET PLUS CE QU'ON A ENVOYÉ. Cette ligne portait
         //    `unites: lot.length` — le nombre de DOCUMENTS — multiplié par un
         //    prix au document. Le fournisseur facture à la RECHERCHE, et il

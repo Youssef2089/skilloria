@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { checkRateLimit } from '@/lib/rate-limit'
@@ -105,6 +106,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
 
   const { supabaseAdmin, user } = auth
 
@@ -255,7 +258,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     await marquerTentativeRelance(supabaseAdmin, prof.id)
     // ON ATTEND LE BAIL, parce que quelqu'un regarde l'écran (§D.22). Une
     // tâche de fond, elle, passe son tour et rattrape au passage suivant.
-    const verdict = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id })
+    const verdict = await runMatchingForExpert({ supabaseAdmin, profileId: prof.id, journal })
     // Une relance en attente porterait sur un profil qu'on vient de noter : la
     // solder évite de repayer le même travail dans l'heure. `debutRun` protège
     // un déclenchement arrivé PENDANT le run — il ne sera pas soldé.

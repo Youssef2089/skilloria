@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -94,6 +95,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
 
   // ── LES DURÉES SONT LUES ICI, PAR LA ROUTE ───────────────────────────────
   //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
@@ -332,6 +335,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     verdict = await runPublicationVerification({
       supabaseAdmin: auth.supabaseAdmin,
       publication_id: id,
+      journal,
       // Déjà vérifié non nul plus haut (403 org_required sinon).
       organization_id: orgId,
       input: aiInput,
@@ -423,9 +427,11 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   if (verdict.status === 'published') {
     after(async () => {
       try {
+        // La pièce du geste de publication, capturée par la fermeture d'after() (§D.26).
         const matchingVerdict = await runMatching({
           supabaseAdmin: auth.supabaseAdmin,
           publicationId: id,
+          journal,
         })
         console.log('[publications:publish] matching done', {
           publicationId: id,

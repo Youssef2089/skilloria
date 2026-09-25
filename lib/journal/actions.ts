@@ -112,7 +112,7 @@ export const CLES_DETAIL = {
   membre_parti: [],
   role_membre_change: [],
   paiement_recu: [],
-  plafond_atteint: [],
+  plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd', 'mois'],
   reglage_modifie: [
     'avant.vie_annonce_jours', 'avant.fenetre_echange_jours', 'avant.invitation_jours', 'avant.conservation_ip_mois',
     'apres.vie_annonce_jours', 'apres.fenetre_echange_jours', 'apres.invitation_jours', 'apres.conservation_ip_mois',
@@ -124,7 +124,7 @@ export const CLES_DETAIL = {
   compte_purge_admin: [],
   ip_effacees: ['mois', 'limite', 'audit_logs', 'session_logs', 'cause', 'sqlstate'],
   journal_nettoye: [],
-  refus_plafond_atteint: [],
+  refus_plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd'],
   refus_expert_inapte: [],
   refus_garde_eligibilite: [],
   refus_quota_cv: [],

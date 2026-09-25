@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -156,6 +157,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     console.error('[profile PATCH] auth error', err)
     return json({ error: 'Auth failed', code: 'auth_error' }, 500)
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
 
   let body: PatchBody
   try {
@@ -715,7 +718,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     //  pendant ce temps. Cf. lib/verification/expert-verification.ts.
     try {
       const { runExpertVerification } = await import('@/lib/verification/expert-verification')
-      await runExpertVerification({ supabaseAdmin, profile_id: cp.id })
+      await runExpertVerification({ supabaseAdmin, profile_id: cp.id, journal })
     } catch (err) {
       console.error('[profile PATCH] expert verification threw', err)
       // Fail-safe : marquer pending_admin_review explicitement si rien n'a été écrit
@@ -865,7 +868,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       const etaitApprouve = (cp.verification_status ?? null) === 'approved'
       if (!etaitApprouve) {
         const { runMatchingForExpert } = await import('@/lib/matching')
-        const v = await runMatchingForExpert({ supabaseAdmin, profileId: cp.id })
+        const v = await runMatchingForExpert({ supabaseAdmin, profileId: cp.id, journal })
         console.log('[profile:PATCH] approbation — mise en relation IMMÉDIATE', {
           profileId: cp.id,
           status: v.status,

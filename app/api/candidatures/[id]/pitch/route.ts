@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
   const orgId = auth.organization?.id
   if (!orgId) return json({ error: 'No organization', code: 'org_required' }, 403)
 
@@ -177,6 +180,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const resultat = await redigerPitchOrg({
     supabaseAdmin: auth.supabaseAdmin,
     domainId: cand.domain_id,
+    journal,
     matchId: cand.match_id,
     // L organisation qui demande le pitch : deja verifiee proprietaire de
     // l annonce plus haut (404 sinon).

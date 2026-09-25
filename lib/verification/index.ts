@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   SireneData,
@@ -128,8 +129,10 @@ export async function runVerification(args: {
   supabaseAdmin: SupabaseClient
   organization_id: string
   input: VerificationInput
+  /** Le geste qui déclenche la vérification (§D.26). */
+  journal: ContexteJournal
 }): Promise<VerificationVerdict> {
-  const { supabaseAdmin, organization_id, input } = args
+  const { supabaseAdmin, organization_id, input, journal } = args
 
   // ── Charger les providers configurés pour ce pays ───────────────────────
   const { data: providers, error: provErr } = await supabaseAdmin
@@ -221,7 +224,7 @@ export async function runVerification(args: {
   const budget = await budgetDisponible(supabaseAdmin, 'claude', {
     acteur: { type: 'organization', id: organization_id },
     action: 'org_verification',
-  })
+  }, journal)
   if (!budget.ok) {
     console.error('[verification:index] vérification refusée — budget', budget.raison)
     return {
@@ -251,6 +254,7 @@ export async function runVerification(args: {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'org_verification',
+      journal,
       // L'organisation demande SA vérification : c'est elle qui déclenche.
       acteur: { type: 'organization', id: organization_id },
       consommation: aiOutput.usage,

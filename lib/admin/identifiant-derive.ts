@@ -38,7 +38,7 @@ import { createHash } from 'node:crypto'
  */
 
 /** Les espaces connus. Fermer la liste : un espace inventé ne se regroupe avec rien. */
-export type EspaceDerive = 'cron_job' | 'reglage' | 'catalogue'
+export type EspaceDerive = 'cron_job' | 'reglage' | 'catalogue' | 'plafond'
 
 export function identifiantDerive(espace: EspaceDerive, cle: string): string {
   const h = createHash('md5').update(`${espace}:${cle}`).digest('hex')

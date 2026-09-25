@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import { memoriserNotes, notesDejaAcquises, solderBrouillon } from '@/lib/matching/reprise'
 import { empreinteDeNote } from '@/lib/matching/empreinte'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -208,8 +209,10 @@ async function acheverRun(
 export async function runMatchingForPublication(args: {
   supabaseAdmin: SupabaseClient
   publicationId: string
+  /** Le geste qui déclenche ce run (§D.26) : sa pièce relie toutes les étapes. */
+  journal: ContexteJournal
 }): Promise<MatchingVerdict> {
-  const { supabaseAdmin, publicationId } = args
+  const { supabaseAdmin, publicationId, journal } = args
 
   // ── 1. L'annonce ─────────────────────────────────────────────────────────
   const { data: pubData, error: pubErr } = await supabaseAdmin
@@ -397,6 +400,7 @@ export async function runMatchingForPublication(args: {
     // SENS ANNONCE → EXPERTS : l'organisation a publié, elle déclenche la
     // notation de tout le vivier. C'est le poste le plus cher du moteur.
     acteur: { type: 'organization', id: pub.organization_id },
+    journal,
     contexte: { publication_id: publicationId },
     memoriser: (notes) =>
       memoriserNotes(supabaseAdmin, publicationId, s.rerank_model, notes, empreintes),

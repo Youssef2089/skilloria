@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   verifyAiPublicationQuality,
@@ -95,8 +96,10 @@ export async function runPublicationVerification(args: {
    */
   organization_id: string
   input: PublicationQualityInput
+  /** Le geste qui publie (§D.26). */
+  journal: ContexteJournal
 }): Promise<PublicationVerdict> {
-  const { supabaseAdmin, input } = args
+  const { supabaseAdmin, input, journal } = args
 
   // 1. Provider lookup ─────────────────────────────────────────────────────
   const reglage = await loadProviderThreshold(supabaseAdmin)
@@ -127,7 +130,7 @@ export async function runPublicationVerification(args: {
   const budget = await budgetDisponible(supabaseAdmin, 'claude', {
     acteur: { type: 'organization', id: args.organization_id },
     action: 'publication_quality',
-  })
+  }, journal)
   if (!budget.ok) {
     console.error('[publication-verification] contrôle refusé — budget', budget.raison)
     return {
@@ -145,6 +148,7 @@ export async function runPublicationVerification(args: {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'publication_quality',
+      journal,
       acteur: { type: 'organization', id: args.organization_id },
       consommation: ai.usage,
       context: { publication_id: args.publication_id },

@@ -87,7 +87,9 @@ section('B. REPORTÉ ENSUITE — ET RIEN N EST PERDU')
 //     dans les deux sens : approbation → run direct, tout le reste → report.
 {
   const iBranche = PROFIL.indexOf("const etaitApprouve = (cp.verification_status ?? null) === 'approved'")
-  const iRun = PROFIL.indexOf('runMatchingForExpert({ supabaseAdmin, profileId: cp.id })')
+  // Le geste porte aussi sa pièce de journal (`journal`, §D.26) : on s'ancre
+  // sur le profil passé au moteur, pas sur la liste exacte des champs (§E.65).
+  const iRun = PROFIL.search(/runMatchingForExpert\(\{ supabaseAdmin, profileId: cp\.id(, journal)? \}\)/)
   const iProg = PROFIL.indexOf("programmerRelance(supabaseAdmin, cp.id, 'profil_modifie')")
 
   ok(iBranche !== -1,
@@ -110,7 +112,7 @@ section('B. REPORTÉ ENSUITE — ET RIEN N EST PERDU')
 //     produit AUCUNE rafale — la temporisation d'une heure n'y absorbait rien,
 //     et l'écran affichait « analyse en cours » sur un travail qui ne
 //     commencerait pas avant soixante minutes.
-ok(/runMatchingForExpert\(\{ supabaseAdmin, profileId: prof\.id \}\)/.test(SYNC),
+ok(/runMatchingForExpert\(\{ supabaseAdmin, profileId: prof\.id(, journal)? \}\)/.test(SYNC),
   'la bascule de disponibilité EXÉCUTE le moteur',
   'la reponse existe au clic : la faire attendre une heure etait le defaut')
 ok(!/programmerRelance\(supabaseAdmin, prof\.id/.test(SYNC),

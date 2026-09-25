@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
@@ -222,6 +223,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     throw err
   }
   const admin = auth.supabaseAdmin
+  // LE REJEU EST UN NOUVEAU GESTE (§D.26) : pièce neuve. Elle référencera la
+  // pièce du dépôt d'origine dès que candidature_depots la portera (étape 2b).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { id?: unknown }
   try {
@@ -262,6 +266,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     publicationId: ligne.publication_id,
     coverMessage: ligne.cover_message,
     origine: 'relance_admin',
+    journal,
   })
 
   // ── L'AUDIT DE **L'ADMINISTRATEUR**, distinct de celui du dépôt ─────────

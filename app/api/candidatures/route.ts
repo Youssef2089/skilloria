@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { deposerCandidature, REFUS_DEPOT, type CodeRefus } from '@/lib/candidatures/depot'
@@ -83,6 +84,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
 
   // ── Body ────────────────────────────────────────────────────────────────
   let body: Body
@@ -129,6 +132,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     publicationId,
     coverMessage: coverRaw,
     origine: 'expert',
+    journal,
   })
 
   switch (issue.issue) {

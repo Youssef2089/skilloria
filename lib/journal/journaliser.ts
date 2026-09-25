@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Piece } from './piece'
 import type { TypeAction } from './actions'
+import type { ContexteJournal } from './contexte'
 
 /**
  * LA SEULE PORTE TYPESCRIPT VERS LE GRAND LIVRE (§D.26).
@@ -76,4 +77,25 @@ export async function journaliser(admin: SupabaseClient, e: EcritureJournal): Pr
     throw new JournalError(`grand livre : écriture refusée (${e.type}) — ${error.message}`, error.code ?? null)
   }
   return Number(data)
+}
+
+/**
+ * La même porte, depuis un CONTEXTE de journal (§D.26) : la pièce, l'origine,
+ * l'acteur, l'écosystème et la pièce d'origine viennent du geste ; l'appelant
+ * ne donne que ce qui est propre à SA ligne — le type, le statut, le sujet,
+ * le détail, le coût.
+ */
+export async function journaliserDans(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  e: Pick<EcritureJournal, 'type' | 'statut' | 'sujet' | 'detail' | 'cout'>,
+): Promise<number> {
+  return journaliser(admin, {
+    piece: journal.piece,
+    origine: journal.origine,
+    acteur: journal.acteur,
+    ecosystemeId: journal.ecosystemeId,
+    pieceOrigine: journal.pieceOrigine,
+    ...e,
+  })
 }

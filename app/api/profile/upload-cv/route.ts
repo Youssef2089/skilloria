@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { capaciteActive } from '@/lib/interrupteurs'
 import { NextRequest, after } from 'next/server'
 import crypto from 'node:crypto'
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     console.error('[upload-cv] auth error', err)
     return json({ error: 'Auth failed', code: 'auth_error' }, 500)
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(ctx)
 
   // Convention unique, fail-closed (cf. lib/interrupteurs.ts).
   if (!capaciteActive('ENABLE_AI_CV_PARSING')) {
@@ -338,7 +341,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const budget = await budgetDisponible(supabaseAdmin, 'claude', {
     acteur: { type: 'profile', id: profile.id },
     action: 'cv_parsing',
-  })
+  }, journal)
   if (!budget.ok) {
     console.error('[upload-cv] analyse refusée — budget', budget.raison)
     return json({ error: 'AI budget exhausted', code: 'ai_budget_exhausted', detail: budget.raison }, 503)
@@ -354,6 +357,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'cv_parsing',
+      journal,
       // L'expert dépose SON CV : c'est lui qui déclenche la dépense.
       acteur: { type: 'profile', id: profile.id },
       consommation: result.usage,
@@ -641,7 +645,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         postUpd?.cv_parsing_status !== 'done'
       ) return
       const { runMatchingForExpert } = await import('@/lib/matching')
-      const v = await runMatchingForExpert({ supabaseAdmin, profileId: profile.id })
+      const v = await runMatchingForExpert({ supabaseAdmin, profileId: profile.id, journal })
       console.log('[upload-cv] matching done', { profileId: profile.id, status: v.status, proposals: v.proposals.length })
     } catch (err) {
       console.error('[upload-cv] matching threw (after)', err)

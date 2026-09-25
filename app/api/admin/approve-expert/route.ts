@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
@@ -74,6 +75,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
 
   let body: Body
   try {
@@ -240,6 +243,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       const v = await runMatchingForExpert({
         supabaseAdmin: auth.supabaseAdmin,
         profileId,
+        journal,
       })
       // Une relance était peut-être en attente pour ce profil : elle vient
       // d'être satisfaite. Ne pas la solder ferait tourner le moteur une

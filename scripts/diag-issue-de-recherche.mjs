@@ -148,7 +148,9 @@ ok(/etat: 'indisponible'/.test(MOTEUR),
 section('B. Le moteur tourne DANS la requête')
 // ══════════════════════════════════════════════════════════════════════════
 
-ok(/runMatchingForExpert\(\{ supabaseAdmin, profileId: prof\.id \}\)/.test(ROUTE),
+// Le geste porte aussi sa pièce de journal (`journal`, §D.26) : le motif
+// s'ancre sur le profil passé au moteur, pas sur la liste exacte des champs (§E.65).
+ok(/runMatchingForExpert\(\{ supabaseAdmin, profileId: prof\.id(, journal)? \}\)/.test(ROUTE),
   'la route exécute le moteur elle-même')
 ok(!/programmerRelance/.test(ROUTE),
   'et elle ne programme plus rien à soixante minutes',

@@ -117,15 +117,19 @@ exigerAutorisationEcriture({
 // 3. Importer runMatchingForExpert et exécuter sérialement (rate-limit IA)
 console.log('Exécution runMatchingForExpert sérialement (rate-limit IA)...')
 const { runMatchingForExpert } = await import('../lib/matching/index')
+const { contexteSysteme } = await import('../lib/journal/contexte')
 
 let okCount = 0, errCount = 0, emptyCount = 0
 for (const c of candidates) {
   process.stdout.write(`  ▶ ${c.email}... `)
   try {
+    // Un rattrapage lancé à la main, hors de toute route : la plateforme agit
+    // d'elle-même — une pièce par expert rejoué (§D.26).
     const verdict = await runMatchingForExpert({
       supabaseAdmin,
       profileId: c.id,
       locale: c.locale,
+      journal: contexteSysteme(),
     })
     if (verdict.status === 'ok') {
       okCount++

@@ -1,3 +1,4 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -171,6 +172,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26) — elle traverse tout ce qui suit, after() compris.
+  const journal = contexteDepuisAuth(auth)
 
   const org = auth.organization
   if (!org) {
@@ -301,6 +304,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     verdict = await runVerification({
       supabaseAdmin: auth.supabaseAdmin,
       organization_id: org.id,
+      journal,
       input: {
         country_code: paysOrg,
         company_name: orgRow.company_name as string,

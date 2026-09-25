@@ -1,3 +1,4 @@
+import { contexteDeTache } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -110,7 +111,7 @@ async function handle(request: NextRequest): Promise<Response> {
     // tué en plein run laisserait sinon un compteur immobile, et la même
     // relance repartirait indéfiniment sans jamais approcher son plafond.
     await marquerTentativeRelance(admin, file.profileId)
-    const verdict = await runMatchingForExpert({ supabaseAdmin: admin, profileId: file.profileId })
+    const verdict = await runMatchingForExpert({ supabaseAdmin: admin, profileId: file.profileId, journal: contexteDeTache(JOB) })
 
     // ⚠️ ON NE SOLDE QUE CE QUI A ABOUTI. Solder un run en échec pose le jalon
     //    et rien ne reprend : la modification de profil qui avait déclenché la

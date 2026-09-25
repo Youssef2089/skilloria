@@ -52,6 +52,7 @@
 //   Refusé par Youssef : « ça tournerait en boucle et ça coûterait. » Une
 //   relance est un geste d'administrateur, sur une ligne qu'il a lue.
 
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import { after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -247,6 +248,8 @@ export async function deposerCandidature(args: {
    * cesserait d'être le même chemin.
    */
   origine: 'expert' | 'relance_admin'
+  /** Le geste (§D.26) : la pièce du dépôt — ou, pour un rejeu, une pièce neuve qui référence l'originale. */
+  journal: ContexteJournal
 }): Promise<IssueDepot> {
   const { supabaseAdmin, profileId, publicationId, coverMessage } = args
 
@@ -461,6 +464,7 @@ export async function deposerCandidature(args: {
     supabaseAdmin,
     domainId: pubRow.domain_id,
     candidatureId,
+    journal: args.journal,
     // L'expert qui dépose : c'est lui qui déclenche le jugement.
     profileId: profileRow.id,
     entree: {

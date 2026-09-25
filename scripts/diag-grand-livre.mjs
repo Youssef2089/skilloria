@@ -120,12 +120,14 @@ function listesBlanchesSql() {
 
 // ═══ A. LA LISTE FERMÉE — une seule, dans les deux sens ═════════════════════
 section('A. La liste fermée des actions — SQL et TypeScript disent la même chose')
+let codesSqlGlobal = new Set()
 {
   const iSeed = SQL.indexOf('insert into public.grand_livre_actions (code, famille, statut_impose, libelle_key) values')
   const seed = iSeed < 0 ? '' : SQL.slice(iSeed, SQL.indexOf('on conflict (code)', iSeed))
   const lignes = [...seed.matchAll(/\(\s*'([a-z0-9_]+)',\s*'([a-z]+)',\s*(null|'[a-z]+'),\s*'([a-z0-9_.]+)'\s*\)/g)]
     .map((m) => ({ code: m[1], famille: m[2], impose: m[3] === 'null' ? null : m[3].slice(1, -1), cle: m[4] }))
   const codesSql = new Set(lignes.map((l) => l.code))
+  codesSqlGlobal = codesSql
   const ts = stripTs(read('lib/journal/actions.ts'))
   const listeTs = blocApres(ts, 'ACTIONS_JOURNAL = [', '[', ']') ?? ''
   const codesTs = new Set([...listeTs.matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]))
@@ -299,6 +301,85 @@ section('D. Deux actions réelles passent par le socle — une par route, une en
   ok(/left\(sqlerrm, 200\)/.test(corpsKo), 'l’échec porte la CLASSE de la panne, bornée — pas un texte entier')
 }
 
+// ═══ D bis. UN ÉCRIVAIN PAR ACTION — ni zéro pour une action branchée, ni deux ═
+section('D bis. Chaque action branchée a UN écrivain, et un seul')
+{
+  // Les sites TypeScript : un bloc journaliserDans(admin, journal, { type: '…' })
+  // ou journaliser(admin, { type: '…' }). Les sites SQL : journaliser(…, '<code>', …)
+  // dans un corps de fonction, hors journaliser() elle-même.
+  // Un site TypeScript est identifié par son FICHIER ; un site SQL par sa
+  // FONCTION (redéfinie par plusieurs migrations, elle compte pour un). Une
+  // campagne de mutation a montré qu'identifier les sites TS par le seul nom
+  // de la porte (« journaliserDans ») fusionnait deux fichiers en un.
+  const sites = new Map()
+  const noter = (code, site) => { if (!sites.has(code)) sites.set(code, new Set()); sites.get(code).add(site) }
+  for (const f of [...fichiers('app'), ...fichiers('lib'), ...fichiers('components')]) {
+    if (f === 'lib/journal/journaliser.ts') continue
+    const src = stripTs(read(f))
+    for (const nom of ['journaliserDans(', 'journaliser(']) {
+      for (const bloc of appelsDe(src, nom)) {
+        const m = /\btype:\s*'([a-z0-9_]+)'/.exec(bloc)
+        if (m) noter(m[1], `ts:${f}`)
+      }
+    }
+  }
+  for (const f of TOUTES_MIGRATIONS) {
+    const src = SQL_PAR_MIGRATION.get(f)
+    for (const m of src.matchAll(/create or replace function public\.(\w+)\(/g)) {
+      if (m[1] === 'journaliser') continue
+      const corps = corpsSql(src.slice(m.index), `public.${m[1]}(`)
+      for (const c of corps.matchAll(/journaliser\(\s*[^,()]+,\s*'([a-z0-9_]+)'/g)) noter(c[1], `sql:${m[1]}()`)
+    }
+  }
+  const parCode = [...sites.entries()].map(([code, l]) => [code, [...l]])
+  const branchees = parCode.filter(([, l]) => l.length >= 1).map(([c]) => c).sort()
+  const doubles = parCode.filter(([, l]) => l.length > 1)
+  const inconnues = branchees.filter((c) => !codesSqlGlobal.has(c))
+  ok(inconnues.length === 0, 'aucun écrivain ne cite un code hors de la liste fermée', inconnues.join(', ') || undefined)
+  ok(doubles.length === 0,
+    `ni deux : aucune action n’a deux écrivains (${branchees.length} action(s) branchée(s) : ${branchees.join(', ')})`,
+    doubles.map(([c, l]) => `${c} ← ${l.join(' | ')}`).join('\n         ') || undefined)
+  const restantes = [...codesSqlGlobal].filter((c) => !branchees.includes(c)).sort()
+  console.log(`  ·    ${restantes.length} action(s) sans écrivain encore — étape 2 en cours : ${restantes.join(', ') || 'aucune'}`)
+}
+
+// ═══ D ter. LA PREUVE PAR ACTION — le bloc qui écrit, pas la fonction qui existe ═
+section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancré sur le bloc (§E.8)')
+{
+  // Une fonction écrivain qui existe ne prouve pas qu'elle est APPELÉE là où
+  // il faut : `refus_plafond_atteint` a deux chemins de refus, et l'un des
+  // deux pourrait cesser d'appeler l'écrivain sans que D bis ne bouge. Chaque
+  // action branchée déclare donc ses PREUVES : un fichier, un bloc, un motif.
+  const PREUVES = [
+    { code: 'refus_plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'if (arret.arrete) {', motif: /journaliserRefusPlafond\(/, quoi: 'le refus par le plafond de l’ACTEUR journalise' },
+    { code: 'refus_plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'if (etat.au_plafond) {', motif: /journaliserRefusPlafond\(/, quoi: 'le refus par le plafond GLOBAL journalise' },
+    { code: 'refus_plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'async function journaliserRefusPlafond(', motif: /statut: 'refuse'/, quoi: 'au statut refuse, que la base impose' },
+    { code: 'plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await enregistrerDepense\(supabaseAdmin, \{[\s\S]*?\}\)\s*\n\s*await signalerPlafondAtteint\(/, quoi: 'le fait est cherché APRÈS chaque enregistrement de dépense' },
+    { code: 'plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'async function signalerPlafondAtteint(', motif: /\.eq\('type_action', 'plafond_atteint'\)[\s\S]*?\.gte\('horodatage'/, quoi: 'une fois par acteur et par mois : le journal est relu avant d’écrire' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/durees/route.ts', bloc: 'export async function PATCH(', motif: /\.rpc\('regler_durees_place',\s*\{[\s\S]{0,400}?p_piece: piece,/, quoi: 'la route écrit par la RPC métier, avec sa pièce' },
+  ]
+  // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
+  // signature — le premier `{` après le nom serait celui d'un type de paramètre.
+  const corpsFonctionTs = (src, debut) => {
+    const i = src.indexOf(debut)
+    if (i < 0) return null
+    const o = src.indexOf('(', i)
+    let p = 0
+    let fermante = -1
+    for (let k = o; k < src.length; k++) {
+      if (src[k] === '(') p++
+      else if (src[k] === ')') { p--; if (p === 0) { fermante = k; break } }
+    }
+    if (fermante < 0) return null
+    return blocApres(src.slice(fermante), '{')
+  }
+  for (const p of PREUVES) {
+    const src = stripTs(read(p.fichier))
+    const bloc = (p.bloc.endsWith('(') ? corpsFonctionTs(src, p.bloc) : blocApres(src, p.bloc)) ?? ''
+    ok(bloc.length > 0 && p.motif.test(bloc), `${p.code} — ${p.quoi} (${p.fichier} · ${p.bloc.trim().slice(0, 40)})`)
+  }
+}
+
 // ═══ E. LE DÉRIVEUR SQL EST LE DÉRIVEUR TYPESCRIPT ══════════════════════════
 section('E. identifiant_derive() rend ce que rend lib/admin/identifiant-derive.ts')
 {
@@ -358,10 +439,12 @@ section('G. Un détail passé au grand livre ne porte ni clé ni valeur personne
   for (const f of [...fichiers('app'), ...fichiers('lib'), ...fichiers('components')]) {
     if (f === 'lib/journal/journaliser.ts') continue
     const src = stripTs(read(f))
-    for (const bloc of appelsDe(src, 'journaliser(')) {
-      appels++
-      const d = detecteurDetail(bloc, src)
-      if (d) defauts.push(`${f} · journaliser — ${d}`)
+    for (const nom of ['journaliser(', 'journaliserDans(']) {
+      for (const bloc of appelsDe(src, nom)) {
+        appels++
+        const d = detecteurDetail(bloc, src)
+        if (d) defauts.push(`${f} · ${nom.slice(0, -1)} — ${d}`)
+      }
     }
     for (const nom of [".rpc('journaliser'", ".rpc('regler_durees_place'"]) {
       for (const bloc of appelsDe(src, nom)) {

@@ -1,3 +1,6 @@
+import { journaliserDans } from '@/lib/journal/journaliser'
+import type { ContexteJournal } from '@/lib/journal/contexte'
+import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   coutUsd,
@@ -148,12 +151,19 @@ export async function budgetDisponible(
   supabaseAdmin: SupabaseClient,
   provider: Fournisseur,
   pour: { acteur: ActeurIA; action: ActionIA },
+  /** Le geste qui dépense (§D.26) : chaque refus s'écrit au grand livre, sous sa pièce. */
+  journal: ContexteJournal,
 ): Promise<{ ok: true; etat: EtatDepense } | { ok: false; raison: string }> {
   // ── ① LE PLAFOND DE L'ACTEUR, D'ABORD — le plus spécifique ──────────────
   const acteurEtat = await etatDeLActeur(supabaseAdmin, pour.acteur)
   if (!acteurEtat.ok) return { ok: false, raison: acteurEtat.raison }
   const arret = arretParPlafondActeur(pour.action, acteurEtat.etat)
   if (arret.arrete) {
+    await journaliserRefusPlafond(supabaseAdmin, journal, pour, provider, {
+      portee: 'acteur',
+      depense_mois_usd: arret.depense_mois_usd,
+      plafond_mensuel_usd: arret.plafond_mensuel_usd,
+    })
     return {
       ok: false,
       raison: `plafond mensuel de l'acteur atteint (${arret.depense_mois_usd.toFixed(2)} $ / ${arret.plafond_mensuel_usd.toFixed(2)} $) — le compte reste utilisable, seul le classement s'arrête`,
@@ -188,12 +198,128 @@ export async function budgetDisponible(
     au_plafond: l.au_plafond === true,
   }
   if (etat.au_plafond) {
+    await journaliserRefusPlafond(supabaseAdmin, journal, pour, provider, {
+      portee: 'global',
+      depense_mois_usd: etat.depense_mois_usd,
+      plafond_mensuel_usd: etat.plafond_usd,
+    })
     return {
       ok: false,
       raison: `plafond mensuel atteint (${etat.depense_mois_usd.toFixed(2)} $ / ${etat.plafond_usd.toFixed(2)} $)`,
     }
   }
   return { ok: true, etat }
+}
+
+/** Le sujet d'une ligne de plafond : l'acteur imputé, par sa table. Non imputable ⇒ pas de sujet. */
+function sujetDeLActeur(acteur: ActeurIA): { type: string; id: string } | null {
+  if (acteur.type === 'organization') return { type: 'organizations', id: acteur.id }
+  if (acteur.type === 'profile') return { type: 'profiles', id: acteur.id }
+  return null
+}
+
+/**
+ * ── LE REFUS S'ÉCRIT — c'est la moitié de « où ça a cassé » (§D.26) ─────────
+ *  Un refus n'insère rien ailleurs : sans cette ligne, un classement qui ne
+ *  part pas ou une analyse de CV refusée ne laisseraient AUCUNE trace. Le seul
+ *  écrivain de `refus_plafond_atteint` ; les deux plafonds (acteur, global)
+ *  passent par lui, avec leur portée.
+ *  ⚠️ Il LÈVE si le journal refuse : un refus qu'on ne peut pas journaliser
+ *     remonte comme une panne, jamais comme un refus silencieux.
+ */
+async function journaliserRefusPlafond(
+  supabaseAdmin: SupabaseClient,
+  journal: ContexteJournal,
+  pour: { acteur: ActeurIA; action: ActionIA },
+  provider: Fournisseur,
+  plafond: { portee: 'acteur' | 'global'; depense_mois_usd: number; plafond_mensuel_usd: number },
+): Promise<void> {
+  await journaliserDans(supabaseAdmin, journal, {
+    type: 'refus_plafond_atteint',
+    statut: 'refuse',
+    sujet: sujetDeLActeur(pour.acteur),
+    detail: {
+      action: pour.action,
+      fournisseur: provider,
+      portee: plafond.portee,
+      depense_mois_usd: plafond.depense_mois_usd,
+      plafond_mensuel_usd: plafond.plafond_mensuel_usd,
+    },
+  })
+}
+
+/**
+ * ── LE FAIT : UN PLAFOND VIENT DE MORDRE ────────────────────────────────────
+ *  Écrit UNE fois par acteur (ou par fournisseur) et par mois, au moment où la
+ *  dépense enregistrée franchit la ligne — avant le premier refus. Best-effort
+ *  comme l'enregistrement qui l'entoure (§D.24 : ne lève sur aucun chemin) :
+ *  une ligne de fait manquée se voit au premier refus, qui lui n'est pas
+ *  best-effort. La lecture « déjà écrit ce mois-ci » précède l'écriture ;
+ *  deux dépenses strictement simultanées pourraient doubler la ligne — la
+ *  clé (pièce, action, sujet) ferme le cas dans le même geste, pas entre deux
+ *  gestes. Assumé, et dit.
+ */
+async function signalerPlafondAtteint(
+  supabaseAdmin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { provider: Fournisseur; action: ActionIA; acteur: ActeurIA },
+): Promise<void> {
+  try {
+    const mois = new Date().toISOString().slice(0, 7)
+    const candidats: Array<{ portee: 'acteur' | 'global'; sujet: { type: string; id: string }; depense: number; plafond: number }> = []
+    if (args.acteur.type !== 'non_imputable') {
+      const etat = await etatDeLActeur(supabaseAdmin, args.acteur)
+      const sujet = sujetDeLActeur(args.acteur)
+      if (etat.ok && etat.etat && etat.etat.au_plafond && sujet) {
+        candidats.push({ portee: 'acteur', sujet, depense: etat.etat.depense_mois_usd, plafond: etat.etat.plafond_mensuel_usd })
+      }
+    }
+    const { data: global, error: globalErr } = await supabaseAdmin.rpc('ai_spend_status')
+    // Une lecture en panne n'est pas « pas au plafond » (§E.22) : on lève, le
+    // gestionnaire le dit, et rien n'est écrit.
+    if (globalErr) throw new Error(`état de dépense global illisible : ${globalErr.message}`)
+    const l = ((global ?? []) as Array<{ provider: string; monthly_cap_usd: number | string; depense_mois: number | string; au_plafond: boolean }>)
+      .find((x) => x.provider === args.provider)
+    if (l && l.au_plafond === true) {
+      candidats.push({
+        portee: 'global',
+        sujet: { type: 'ai_spend_caps', id: identifiantDerive('plafond', `${args.provider}:${mois}`) },
+        depense: Number(l.depense_mois),
+        plafond: Number(l.monthly_cap_usd),
+      })
+    }
+    for (const c of candidats) {
+      const { data: deja, error } = await supabaseAdmin
+        .from('grand_livre')
+        .select('id')
+        .eq('type_action', 'plafond_atteint')
+        .eq('sujet_id', c.sujet.id)
+        .gte('horodatage', `${mois}-01T00:00:00Z`)
+        .limit(1)
+      // Une lecture en panne n'est pas « rien d'écrit » (§E.22) : on lève, et
+      // le gestionnaire ci-dessous le dit avec sa cause — sans rien écrire.
+      if (error) throw new Error(`lecture du journal en échec : ${error.message}`)
+      if ((deja ?? []).length > 0) continue
+      await journaliserDans(supabaseAdmin, journal, {
+        type: 'plafond_atteint',
+        statut: 'reussi',
+        sujet: c.sujet,
+        detail: {
+          action: args.action,
+          fournisseur: args.provider,
+          portee: c.portee,
+          depense_mois_usd: c.depense,
+          plafond_mensuel_usd: c.plafond,
+          mois,
+        },
+      })
+    }
+  } catch (err) {
+    console.error('[budget] PLAFOND ATTEINT NON JOURNALISÉ', {
+      provider: args.provider,
+      cause: err instanceof Error ? err.message : String(err),
+    })
+  }
 }
 
 /**
@@ -365,6 +491,8 @@ export async function enregistrerDepenseIA(
     action: ActionIA
     /** OBLIGATOIRE, sans défaut : cf. `ActeurIA`. */
     acteur: ActeurIA
+    /** Le geste qui a dépensé (§D.26) : le fait « plafond atteint » s'écrit sous sa pièce. */
+    journal: ContexteJournal
     consommation: ConsommationIA
     domain_id?: string | null
     context?: Record<string, unknown>
@@ -430,6 +558,8 @@ export async function enregistrerDepenseIA(
         ...(args.context ?? {}),
       },
     })
+    // LE FAIT, s'il vient d'arriver : le plafond mord (§D.26).
+    await signalerPlafondAtteint(supabaseAdmin, args.journal, { provider: args.provider, action: args.action, acteur: args.acteur })
   } catch (err) {
     console.error('[budget] DÉPENSE NON ENREGISTRÉE (exception) — le plafond va dériver', {
       action: args.action,

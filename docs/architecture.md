@@ -1576,6 +1576,42 @@ l'oublie.
 d'origine, ce qui ferait une histoire où un expert a postulé deux fois. Et il vit dans le grand livre,
 pas dans `candidature_depots`, qui écrase au rejeu.
 
+### C.21 — LES ACTIONS BRANCHÉES SUR LE GRAND LIVRE, une par une (étape 2)
+
+**Le contexte de journal, et pourquoi il est un paramètre.** [lib/journal/contexte.ts](../lib/journal/contexte.ts) :
+un objet immuable — pièce, origine, acteur, écosystème, pièce d'origine, tâche — créé à l'**entrée**
+du geste (`contexteDepuisAuth(auth)` après l'authentification d'une route ; `contexteDeTache(job,
+pieceRecue)` au début d'un passage planifié ; `contexteSysteme()` pour ce que la plateforme fait
+d'elle-même, à justifier) et passé en **paramètre obligatoire** à tout ce qui en découle. Le
+compilateur a nommé chaque site : le moteur dans ses deux sens, le reranker, le jugement et le pitch,
+le dépôt, les trois vérifications, le budget et l'enregistrement de la dépense, dix routes et deux
+tâches. À travers `after()`, la pièce est capturée par la fermeture — rien d'autre à faire, rien
+d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOrigine)`.
+
+**Deux motifs d'écriture, et lequel s'applique se dit.**
+· **RPC métier + journal** : la ligne métier et la ligne du grand livre dans la **même transaction**
+  (`regler_durees_place()`). C'est le motif par défaut pour un changement d'état simple.
+· **Journal après écriture, même pièce** : quand l'écriture métier est un enchaînement TypeScript
+  qu'on ne peut pas mettre dans une transaction (un appel à Stripe, un appel au modèle, un fichier
+  dans le Storage), ou quand la ligne est un **fait** sur un geste (un refus, un plafond qui mord).
+  L'écrivain est une fonction TypeScript unique, et il **lève** si le journal refuse — sauf là où le
+  code environnant a pour contrat de ne jamais lever (§D.24 : l'enregistrement d'une dépense), et
+  c'est écrit.
+
+| Action | Écrivain — un seul | Motif | Le détail (liste blanche) | Ce que la preuve vérifie |
+|---|---|---|---|---|
+| `reglage_modifie` (durées) | `regler_durees_place()` (SQL) | RPC métier + journal | `avant.*`, `apres.*`, `retroactivite.*` | la route crée sa pièce avant toute écriture et appelle la RPC avec elle |
+| `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
+| `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
+| `plafond_atteint` | `signalerPlafondAtteint()` dans `lib/ai-budget.ts` | fait, après enregistrement | idem + `mois` | cherché après **chaque** dépense enregistrée ; le journal est relu avant d'écrire (une fois par acteur et par mois) |
+
+> ⚠️ **`plafond_atteint` est best-effort, et c'est le seul.** Il vit dans `enregistrerDepenseIA()`,
+> dont le contrat est de **ne jamais lever** (§D.24 : l'appel au fournisseur a déjà eu lieu). Une ligne
+> de fait manquée se voit au premier refus, qui lui lève. Et deux dépenses strictement simultanées
+> pourraient doubler la ligne : la clé (pièce, action, sujet) ferme le cas dans le **même** geste, pas
+> entre deux gestes. Assumé, et dit — le sujet est l'acteur (ou, pour le plafond global, un
+> identifiant dérivé `plafond:<fournisseur>:<mois>`).
+
 ### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
 
 **LA CONTRAINTE, MESURÉE.** Les clients de messagerie **ne lisent pas les propriétés
@@ -2897,8 +2933,9 @@ supprimées ne sont **plus citées nulle part** — code, types générés, SQL.
 
 **H.3 — LE GRAND LIVRE N'EST BRANCHÉ QUE SUR DEUX ACTIONS. Les étapes 2 à 4 attendent l'accord de Youssef.**
 Le socle est posé (§D.26, §C.20) : la table, le verrou, `journaliser()`, la première RPC métier, la
-pièce des deux côtés. Deux actions réelles journalisent — `reglage_modifie` et `ip_effacees`. **Tout le
-reste de la liste fermée n'écrit encore rien** : cinquante-trois codes existent en base sans appelant.
+pièce des deux côtés. Les actions branchées sont recensées en **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre`
+compte à chaque passage celles qui n'ont **pas encore** d'écrivain. **Tout le reste de la liste
+fermée n'écrit encore rien.**
 Ce n'est pas un oubli, c'est l'ordre du lot — le socle se valide sur une base locale jetable puis sur
 staging **avant** qu'on y branche quoi que ce soit. À venir, dans cet ordre : **étape 2**, brancher les
 actions une par une avec la preuve que chacune écrit **une** fois (les dix routes qui changent un état

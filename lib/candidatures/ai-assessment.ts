@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import { capaciteActive } from '@/lib/interrupteurs'
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -278,6 +279,8 @@ async function appeler(args: {
    */
   acteur: ActeurIA
   contexte: Record<string, unknown>
+  /** Le geste qui appelle le modèle (§D.26). */
+  journal: ContexteJournal
 }): Promise<
   { ok: true; charge: Record<string, unknown> } | { ok: false; cause: CausePanne; raison: string }
 > {
@@ -308,7 +311,7 @@ async function appeler(args: {
   const budget = await budgetDisponible(args.supabaseAdmin, 'claude', {
     acteur: args.acteur,
     action: args.action,
-  })
+  }, args.journal)
   if (!budget.ok) {
     console.warn('[jugement] non rendu', { ...args.contexte, raison: budget.raison })
     return { ok: false, cause: 'plafond', raison: budget.raison }
@@ -336,6 +339,7 @@ async function appeler(args: {
     provider: 'claude',
     action: args.action,
     acteur: args.acteur,
+    journal: args.journal,
     consommation: consommationJetons(MODELE, reponse.usage),
     domain_id: args.domainId,
     context: { ...args.contexte },
@@ -360,6 +364,8 @@ export async function jugerCandidature(args: {
    * fait monter la facture », pas à « qui en bénéficie ».
    */
   profileId: string
+  /** Le dépôt qui demande ce jugement (§D.26). */
+  journal: ContexteJournal
 }): Promise<ResultatJugement> {
   const appel = await appeler({
     supabaseAdmin: args.supabaseAdmin,
@@ -368,6 +374,7 @@ export async function jugerCandidature(args: {
     action: 'candidature_assessment',
     acteur: { type: 'profile', id: args.profileId },
     contexte: { candidature_id: args.candidatureId },
+    journal: args.journal,
   })
   if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }
 
@@ -436,6 +443,8 @@ export async function redigerPitchOrg(args: {
   /** Le pitch déjà écrit, s'il existe. Fourni par l'appelant, qui l'a déjà lu. */
   pitchExistant: string | null
   entree: EntreeJugement
+  /** Le geste de l'organisation qui demande le pitch (§D.26). */
+  journal: ContexteJournal
 }): Promise<ResultatPitch> {
   const dejaEcrit = lireTexte(args.pitchExistant)
   if (dejaEcrit) return { ok: true, pitch: dejaEcrit, deja: true }
@@ -447,6 +456,7 @@ export async function redigerPitchOrg(args: {
     action: 'pitch',
     acteur: { type: 'organization', id: args.organizationId },
     contexte: { match_id: args.matchId },
+    journal: args.journal,
   })
   if (!appel.ok) return { ok: false, cause: appel.cause, raison: appel.raison }
 

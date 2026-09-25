@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import { memoriserNotesParAnnonce, notesDejaAcquisesPourAnnonces } from '@/lib/matching/reprise'
 import { empreinteDeNote } from '@/lib/matching/empreinte'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -184,7 +185,10 @@ export async function runMatchingForExpert(args: {
   supabaseAdmin: SupabaseClient
   profileId: string
   locale?: string
+  /** Le geste qui déclenche ce run (§D.26) : sa pièce relie toutes les étapes. */
+  journal: ContexteJournal
 }): Promise<VerdictExpert> {
+  // `journal` voyage dans `args`, que le bail transmet tel quel à `executerRunExpert`.
   const { supabaseAdmin, profileId } = args
 
   // ── 0. LE BAIL — au plus une recherche à la fois pour cet expert ─────────
@@ -236,8 +240,9 @@ async function executerRunExpert(args: {
   supabaseAdmin: SupabaseClient
   profileId: string
   locale?: string
+  journal: ContexteJournal
 }): Promise<VerdictExpert> {
-  const { supabaseAdmin, profileId } = args
+  const { supabaseAdmin, profileId, journal } = args
 
   // ── 1. Le profil ─────────────────────────────────────────────────────────
   const { data: profData, error: profErr } = await supabaseAdmin
@@ -419,6 +424,7 @@ async function executerRunExpert(args: {
     // les organisations dont les annonces sont notées. L'acteur est l'inverse
     // de l'autre sens — d'où l'argument obligatoire côté rerank.
     acteur: { type: 'profile', id: profileId },
+    journal,
     contexte: { profile_id: profileId },
     // Ici l'identifiant noté est celui de l'ANNONCE, et le profil est fixe :
     // c'est l'inverse de l'autre sens, mais la même clé de brouillon.

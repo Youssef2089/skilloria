@@ -1,3 +1,4 @@
+import type { ContexteJournal } from '@/lib/journal/contexte'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   runExpertCoherenceCheck,
@@ -388,8 +389,10 @@ async function notifyExpertResult(args: {
 export async function runExpertVerification(args: {
   supabaseAdmin: SupabaseClient
   profile_id: string
+  /** Le geste qui déclenche la vérification (§D.26). */
+  journal: ContexteJournal
 }): Promise<ExpertVerificationVerdict> {
-  const { supabaseAdmin, profile_id } = args
+  const { supabaseAdmin, profile_id, journal } = args
 
   // 1. Config
   const config = await loadConfig(supabaseAdmin)
@@ -556,7 +559,7 @@ export async function runExpertVerification(args: {
   const budget = await budgetDisponible(supabaseAdmin, 'claude', {
     acteur: { type: 'profile', id: profile_id },
     action: 'expert_verification',
-  })
+  }, journal)
   if (!budget.ok) {
     console.error('[expert-verification] vérification refusée — budget', budget.raison)
     await supabaseAdmin
@@ -601,6 +604,7 @@ export async function runExpertVerification(args: {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'expert_verification',
+      journal,
       // L'expert demande SA vérification : c'est lui qui déclenche la dépense.
       acteur: { type: 'profile', id: profile_id },
       consommation: aiOut.usage,

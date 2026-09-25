@@ -1,3 +1,4 @@
+import { contexteDeTache } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
@@ -102,7 +103,9 @@ async function handle(request: NextRequest): Promise<Response> {
       return json({ ok: true, rejoue: null, note: 'Aucun run inachevé à rejouer.' }, 200)
     }
 
-    const verdict = await runMatchingForPublication({ supabaseAdmin: admin, publicationId })
+    // Une pièce par run rejoué : c'est un geste à part entière (§D.26). Le pilote
+    // SQL la transmettra dans le corps HTTP à l'étape 3 ; d'ici là elle naît ici.
+    const verdict = await runMatchingForPublication({ supabaseAdmin: admin, publicationId, journal: contexteDeTache(JOB) })
 
     // On rend le verdict TEL QUEL, y compris quand il a échoué. Un pilote qui
     // répond toujours « ok » rend la supervision aveugle : c'est exactement le
