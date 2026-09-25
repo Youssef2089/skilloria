@@ -98,6 +98,13 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_compte_suspendu` (25/09/2026) — SUSPENDRE ET RÉACTIVER : UNE FONCTION, DEUX FACES.**
+> `changer_statut_compte(contexte, compte, statuts admis, nouveau statut, suspend)` : `select … for update`,
+> transition rejouée, `update users.status`, puis `journaliser(case when p_suspend then 'compte_suspendu' else
+> 'compte_reactive' end)`. Liste blanche posée sur les **deux** codes. **Ordre : AVANT le déploiement.**
+> Postcondition exécutée sur un compte réel (sautée, et dite, sinon) : suspendu et **relu**, rejeu `null` sans
+> seconde ligne, réactivé par la même fonction et relu ; une adresse refusée (GL004).
+
 > **`journal_devoilement_ferme` (25/09/2026) — LE SECOND CONSTAT : UNE COLONNE-MARQUEUR, UNE FONCTION, LA RÈGLE EN
 > TYPESCRIPT.** `candidatures.fermeture_constatee_at` (index partiel `candidatures_fermeture_a_constater_idx`) ;
 > `constater_devoilement_ferme(pièce, candidature, fin d'échange)` : fin future refusée (22023), marqueur sur une
@@ -1817,6 +1824,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `profil_modifie` | `profilModifie()` dans `lib/profil/journal-profil.ts` | journal après écriture, même pièce | `champs[]`, `blocs[]` | les **noms** des champs scalaires et des blocs (expériences, formations, langues) touchés, jamais leur contenu ; écrite **après** l'écriture des scalaires et des blocs, avant la publication et l'audit ; **hors** `visible` et hors le champ de disponibilité de la voie (`CHAMP_DISPONIBILITE`, une table pour les deux voies) — ces deux gestes ont leur ligne ; rien n'est écrit si le geste n'était que l'un des deux |
 | `disponibilite_basculee` | `disponibiliteBasculee()` dans `lib/profil/journal-profil.ts` | journal après écriture, même pièce | `champ` (`availability_status` · `cdi_status`), `de`, `vers` | le champ de disponibilité de la **voie** (`CHAMP_DISPONIBILITE`, §D.14), l'état d'**avant** lu avec le profil et l'état d'après — des codes ; écrite seulement quand la valeur **change** (renvoyée inchangée, rien) ; après l'écriture, avant l'audit ; exclue de `profil_modifie` |
 | `devoilement_ferme` | `constater_devoilement_ferme()` (SQL), appelée par la **tâche de constat** `constats_trigger` | constat, marqueur + ligne dans la même transaction | `publication_id`, `profile_id`, `unlocked_at`, `fin_echange` | la fermeture n'est **pas un geste** (§D.5) : l'état de vie est **dérivé** à la lecture par `deriveCandidatureLifecycle()`, la **seule** expression de « échange refermé » — la tâche lit les candidatures encore dévoilées et jamais constatées avec leur fil, laisse cette source décider (`exchange_expired` ; `selected` reste active sans limite), et la base pose `candidatures.fermeture_constatee_at` puis écrit la ligne, une fois, sous la pièce du passage ; **aucun jumeau SQL** de la règle ; une fin d'échange future est refusée par la fonction |
+| `compte_suspendu` · `compte_reactive` | `changer_statut_compte()` (SQL) — **une fonction, deux faces d'une bascule** | RPC métier + journal | `de`, `vers`, `type_de_compte` | le code n'est **pas un paramètre** : la fonction le **dérive** du geste (`p_suspend`) ; la ligne est **verrouillée** et la transition **rejouée** — le seul statut admis est celui que la route vient de lire, donc un autre administrateur qui a bougé entre-temps fait échouer l'écriture au lieu de l'écraser ; zéro ligne rend `null` → 409 `wrong_status` ; l'écosystème de la ligne est celui de la **cible** (l'administrateur est plateforme) ; la **rotation du jeton** de session n'entre pas dans la ligne — elle a lieu après, hors transaction, et l'audit la porte |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3178,7 +3186,7 @@ moteur dans les deux sens, une ligne par étape — **fait** : un seul module é
 `_abandonnee`), jamais une ligne par lot ni par profil, le contrôle comptant les fins et énumérant les sorties ; (d) l'annonce, le profil,
 le CV, la disponibilité — **fait** : `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree` et
 `devoilement_ferme` (par la **tâche de constat** `constats_trigger`, à colonne-marqueur, une pièce par passage),
-`cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
+`cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` ; (e) la sécurité des comptes et la gouvernance d'organisation — **en cours** : `compte_suspendu`, `compte_reactive` ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
 n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :

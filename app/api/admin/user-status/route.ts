@@ -1,3 +1,4 @@
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
@@ -79,6 +80,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     throw err
   }
 
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26).
+  const journal = contexteDepuisAuth(auth)
+
   // Ré-auth AVANT toute lecture de la cible : on ne renseigne pas un appelant
   // qui n'a pas re-prouvé son identité.
   const reauthFail = requireReauth(request, auth.user.id)
@@ -154,13 +158,28 @@ export async function POST(request: NextRequest): Promise<Response> {
     nextStatus = 'suspended'
   }
 
-  const { error: upErr } = await auth.supabaseAdmin
-    .from('users')
-    .update({ status: nextStatus, updated_at: new Date().toISOString() })
-    .eq('id', t.id)
+  // ── LA BASCULE ET SA LIGNE DE GRAND LIVRE, EN UN SEUL APPEL (§D.26) ─────
+  //  `changer_statut_compte` verrouille la ligne, rejoue la transition (le
+  //  statut ADMIS est celui qu'on vient de lire : un autre administrateur qui
+  //  a bougé entre-temps fait échouer l'écriture au lieu de l'écraser), écrit
+  //  le statut et journalise `compte_suspendu` ou `compte_reactive` dans la
+  //  même transaction. L'écosystème de la ligne est celui de la CIBLE.
+  const { data: bascule, error: upErr } = await auth.supabaseAdmin.rpc('changer_statut_compte', {
+    ...parametresJournal(journal),
+    p_user_id: t.id,
+    p_statuts_admis: [t.status],
+    p_nouveau_statut: nextStatus,
+    p_suspend: action === 'suspend',
+  })
   if (upErr) {
     console.error('[admin:user-status] update failed', upErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+  if (!bascule) {
+    // Le statut a changé entre la lecture et l'écriture : rien n'a été touché,
+    // rien n'est journalisé — et on le DIT, plutôt qu'un 200 sur une bascule
+    // qui n'a pas eu lieu (§E.27).
+    return json({ error: 'Status changed meanwhile', code: 'wrong_status' }, 409)
   }
 
   // ── ROTATION (suspension uniquement) ─────────────────────────────────────

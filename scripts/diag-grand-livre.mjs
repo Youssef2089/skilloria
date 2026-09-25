@@ -188,6 +188,31 @@ function argumentsVersLeJournal(nom) {
   }
   return out
 }
+/**
+ * Les arguments d'un appel `f(…)` rendu par `appelsDe` — découpés à la VIRGULE
+ * DE PREMIER NIVEAU. Parenthèses et littéraux imbriqués ne coupent pas :
+ * `journaliser(p, case when x then 'a' else 'b' end, …)` rend bien trois
+ * arguments, et le deuxième porte les deux codes.
+ */
+function decouperArguments(bloc) {
+  const corps = bloc.startsWith('(') ? bloc.slice(1, -1) : bloc
+  const out = []
+  let cur = ''
+  let prof = 0
+  let chaine = false
+  for (let i = 0; i < corps.length; i++) {
+    const c = corps[i]
+    if (chaine) { cur += c; if (c === "'") chaine = false; continue }
+    if (c === "'") { chaine = true; cur += c; continue }
+    if (c === '(') prof++
+    else if (c === ')') prof--
+    if (c === ',' && prof === 0) { out.push(cur.trim()); cur = ''; continue }
+    cur += c
+  }
+  if (cur.trim()) out.push(cur.trim())
+  return out
+}
+
 /** Les listes blanches posées en base, action par action — la dernière écriture gagne. */
 function listesBlanchesSql() {
   const listes = new Map()
@@ -392,6 +417,13 @@ section('D. Deux actions réelles passent par le socle — une par route, une en
 // ═══ D bis. UN ÉCRIVAIN PAR ACTION — ni zéro pour une action branchée, ni deux ═
 section('D bis. Chaque action branchée a UN écrivain, et un seul')
 {
+  // TÉMOIN du découpage : un `case` porte bien DEUX codes dans son deuxième
+  // argument, et une parenthèse imbriquée ne coupe pas l'argument en deux.
+  {
+    const t = decouperArguments("(p_piece, case when x then 'compte_suspendu' else 'compte_reactive' end, 'reussi', f(a, b))")
+    ok(t.length === 4 && /'compte_suspendu'[\s\S]*'compte_reactive'/.test(t[1]) && t[3] === 'f(a, b)',
+      'témoin : le deuxième argument de journaliser() est lu même quand un `case` choisit le code')
+  }
   // Les sites TypeScript : un bloc journaliserDans(admin, journal, { type: '…' })
   // ou journaliser(admin, { type: '…' }). Les sites SQL : journaliser(…, '<code>', …)
   // dans un corps de fonction, hors journaliser() elle-même.
@@ -415,9 +447,31 @@ section('D bis. Chaque action branchée a UN écrivain, et un seul')
   // elle qui vit en base. L'ancienne `regler_durees_place()` écrivait le code
   // elle-même ; recréée pour passer par `journaliser_reglage()`, elle ne doit
   // plus compter comme écrivain — sinon « un seul » rougirait sur un fantôme.
+  //
+  // ⚠️ LE CODE SE LIT DANS LE DEUXIÈME ARGUMENT, PAS DANS UNE FORME D'ÉCRITURE.
+  //    Le motif d'avant exigeait un littéral collé : `journaliser(p, 'code'`.
+  //    Une fonction qui CHOISIT son code — `case when … then 'a' else 'b' end`,
+  //    ce que fait la bascule de compte — devenait INVISIBLE : « ni deux » ne
+  //    tenait plus sur ces codes, et le compteur les annonçait sans écrivain,
+  //    c'est-à-dire qu'il MENTAIT dans le sens rassurant (§E.34).
+  //    On découpe donc l'appel et on lit TOUS les codes de la liste fermée que
+  //    son deuxième argument contient : la forme peut changer, la propriété non.
   for (const [nom, def] of DEFINITIONS_COURANTES) {
     if (nom === 'journaliser') continue
-    for (const c of def.corps.matchAll(/journaliser\(\s*[^,()]+,\s*'([a-z0-9_]+)'/g)) noter(c[1], `sql:${nom}()`)
+    // Les appels SQL se délimitent par des PARENTHÈSES — `appelsDe` découpe sur
+    // des accolades (c'est un lecteur de JavaScript), et l'employer ici rendait
+    // TOUS les écrivains SQL invisibles d'un coup. Mesuré au premier passage.
+    for (let from = 0; ; ) {
+      const i = def.corps.indexOf('journaliser(', from)
+      if (i < 0) break
+      from = i + 'journaliser('.length
+      const bloc = blocApres(def.corps.slice(i), 'journaliser(', '(', ')')
+      if (!bloc) continue
+      const args = decouperArguments(bloc)
+      for (const c of (args[1] ?? '').matchAll(/'([a-z0-9_]+)'/g)) {
+        if (codesSqlGlobal.has(c[1])) noter(c[1], `sql:${nom}()`)
+      }
+    }
   }
   const parCode = [...sites.entries()].map(([code, l]) => [code, [...l]])
   const branchees = parCode.filter(([, l]) => l.length >= 1).map(([c]) => c).sort()
@@ -565,6 +619,8 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'disponibilite_basculee', fichier: 'lib/profil/journal-profil.ts', bloc: 'export async function disponibiliteBasculee(', motif: /type: 'disponibilite_basculee',\s*statut: 'reussi',\s*sujet: \{ type: 'profiles', id: args\.profileId \},\s*detail: \{ champ: args\.champ, de: args\.de, vers: args\.vers \},/, quoi: 'l’écrivain : le champ de la voie, l’état d’avant, l’état d’après — des codes' },
     { code: 'disponibilite_basculee', fichier: 'app/api/profile/route.ts', bloc: 'export async function PATCH(', motif: (b) => /const champDispo = CHAMP_DISPONIBILITE\[isCdi \? 'expert_cdi' : 'expert_freelance'\]/.test(b) && /if \(champDispo in patch && patch\[champDispo\] !== cp\[champDispo\]\) \{\s*try \{\s*await disponibiliteBasculee\(supabaseAdmin, journal, \{ profileId: cp\.id, champ: champDispo, de: \(cp\[champDispo\] as string \| null\) \?\? null, vers: \(patch\[champDispo\] as string \| null\) \?\? null \}\)/.test(b) && b.indexOf('await disponibiliteBasculee(') > b.indexOf('.update(patch)') && b.indexOf('await disponibiliteBasculee(') < b.indexOf("action: 'profile_update'"), quoi: 'la route écrit la bascule quand le champ de la voie CHANGE (l’avant lu avec le profil), après l’écriture, avant l’audit' },
     { code: 'devoilement_ferme', fichier: 'app/api/cron/constats/route.ts', bloc: 'async function handle(', motif: /\.from\('candidatures'\)\s*\.select\('id, status, unlocked_at, conversations\(expires_at\)'\)\s*\.eq\('status', 'unlocked'\)\s*\.is\('fermeture_constatee_at', null\)[\s\S]*?const vie = deriveCandidatureLifecycle\([\s\S]*?if \(vie\.reason !== 'exchange_expired'\) continue[\s\S]*?\.rpc\('constater_devoilement_ferme',\s*\{\s*p_piece: journal\.piece,\s*p_candidature_id: c\.id,\s*p_fin_echange: fin\.toISOString\(\),/, quoi: 'la tâche lit les dévoilées jamais constatées avec leur fil, laisse la SOURCE UNIQUE de l’état de vie décider « échange refermé », et constate avec la pièce du passage et la fin d’échange' },
+    // ── E : la sécurité des comptes et la gouvernance d'organisation ──
+    { code: 'compte_suspendu', fichier: 'app/api/admin/user-status/route.ts', bloc: 'export async function POST(', motif: (b) => /const journal = contexteDepuisAuth\(auth\)/.test(b) && /\.rpc\('changer_statut_compte',\s*\{\s*\.\.\.parametresJournal\(journal\),\s*p_user_id: t\.id,\s*p_statuts_admis: \[t\.status\],\s*p_nouveau_statut: nextStatus,\s*p_suspend: action === 'suspend',\s*\}\)/.test(b) && /if \(!bascule\) \{[\s\S]{0,300}?code: 'wrong_status' \}, 409\)/.test(b) && !/\.from\('users'\)[\s\S]{0,120}?\.update\(\{ status:/.test(b), quoi: 'la route bascule par la RPC métier avec le contexte et le statut LU comme seul statut admis ; zéro ligne répond 409 ; plus d’écriture directe du statut' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -587,6 +643,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'cloturer_annonce', code: 'annonce_depubliee', motif: /select p\.status into v_de[\s\S]*?for update;\s*if not found or not \(v_de = any \(p_statuts_admis\)\) then\s*return false;[\s\S]*?update public\.publications p\s*set status = 'archived'[\s\S]*?and p\.status = v_de;\s*get diagnostics v_n = row_count;\s*if v_n = 0 then\s*return false;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'annonce_depubliee', 'reussi', p_origine,[\s\S]*?'de', v_de, 'vers', 'archived'/, quoi: 'statut d’origine lu sous verrou et jugé contre les statuts admis de la ROUTE (aucun littéral de statut ici), transition rejouée, zéro ligne rend false, PUIS la ligne — même transaction' },
     { fn: 'constater_annonces_expirees', code: 'annonce_expiree', motif: /where p\.expiration_constatee_at is null\s*and p\.published_at is not null\s*and p\.status = 'published'\s*and not public\.annonce_active\(p\.status, p\.expires_at, p\.published_at, p_vie_annonce_jours\)[\s\S]*?for update skip locked[\s\S]*?set expiration_constatee_at = now\(\)[\s\S]*?perform public\.journaliser\(\s*p_piece, 'annonce_expiree', 'reussi', 'tache_planifiee',\s*null::uuid, null::text, r\.domain_id,\s*'publications', r\.id,/, quoi: 'jamais constatée, publiée, et plus active selon la SEULE règle du schéma (annonce_active) ; marqueur PUIS ligne, même transaction, sous verrou' },
     { fn: 'constater_devoilement_ferme', code: 'devoilement_ferme', motif: /if p_fin_echange is null or p_fin_echange > now\(\) then[\s\S]*?update public\.candidatures c\s*set fermeture_constatee_at = now\(\)\s*where c\.id = p_candidature_id\s*and c\.fermeture_constatee_at is null\s*and c\.status = 'unlocked'\s*returning[\s\S]*?if not found then\s*return false;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'devoilement_ferme', 'reussi', 'tache_planifiee',/, quoi: 'une fin d’échange future est refusée ; marqueur posé sur une candidature encore dévoilée et jamais constatée, PUIS la ligne — même transaction ; zéro ligne rend false' },
+    { fn: 'changer_statut_compte', code: 'compte_suspendu', motif: /select u\.id, u\.status, u\.domain_id, u\.user_type[\s\S]*?for update;\s*if not found or not \(v_u\.status = any \(p_statuts_admis\)\) then\s*return null;[\s\S]*?update public\.users u\s*set status = p_nouveau_statut,[\s\S]*?perform public\.journaliser\(\s*p_piece,\s*case when p_suspend then 'compte_suspendu' else 'compte_reactive' end,\s*'reussi', p_origine,\s*p_acteur_id, p_acteur_type, v_u\.domain_id,/, quoi: 'verrou de ligne, transition rejouée (zéro ligne rend null), bascule PUIS ligne dont le CODE est dérivé du geste — même transaction, écosystème de la cible' },
     { fn: 'devoiler_candidature', code: 'devoilement_ouvert', motif: /where c\.id = p_candidature_id\s*for update;[\s\S]*?'transition'[\s\S]*?insert into public\.conversations \(candidature_id, domain_id, status, expires_at\)[\s\S]*?on conflict \(candidature_id\) do nothing[\s\S]*?if v_c\.status = 'unlocked' then[\s\S]*?'deja'[\s\S]*?set status\s*=\s*'unlocked',\s*unlocked_at = now\(\)[\s\S]*?perform public\.journaliser\(\s*p_piece, 'devoilement_ouvert', 'reussi', p_origine,[\s\S]*?'auto', p_auto,[\s\S]*?'devoilee'/, quoi: 'verrou de ligne, transition jugée, conversation idempotente, « déjà » sans ligne, bascule PUIS ligne avec l’origine — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
@@ -851,6 +908,16 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
       'dévoilement fermé : constat sur une candidature dévoilée réelle, relu, rejeu false sans seconde ligne, puis annulé (sauté et dit sur base vierge)')
     ok(/now\(\) \+ interval '1 day'\);[\s\S]{0,200}?when sqlstate '22023'/.test(P), 'dévoilement fermé : une fin d’échange FUTURE est refusée (sonde exécutée)')
     ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'dévoilement fermé : un texte libre est REFUSÉ (sonde exécutée)')
+  }
+  {
+    const SUSP = stripSql(read(migration('journal_compte_suspendu')))
+    const P = SUSP.slice(Math.max(0, SUSP.indexOf('do $post$')))
+    ok(/to_regprocedure\('public\.changer_statut_compte\(uuid, uuid, text, uuid, text, uuid, text\[\], text, boolean\)'\) is null/.test(P), 'suspension : la signature est vérifiée par TYPES')
+    ok((P.match(/public\.changer_statut_compte\((v_piece|gen_random_uuid\(\)),/g) || []).length === 3 && /v_res2 is not null or v_lignes <> 1/.test(P),
+      'suspension : la RPC est EXÉCUTÉE trois fois — suspendue, rejouée (null, une ligne), réactivée par la MÊME fonction (sonde annulée)')
+    ok(/g\.type_action = 'compte_reactive'[\s\S]{0,200}?g\.detail ->> 'de' = 'suspended' and g\.detail ->> 'vers' = 'active'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
+      'suspension : les DEUX lignes (suspendue, réactivée) sont RELUES, puis annulées')
+    ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'suspension : une adresse est REFUSÉE (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {
