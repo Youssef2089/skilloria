@@ -633,6 +633,8 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'session_revoquee', fichier: 'lib/comptes/journal-compte.ts', bloc: 'export async function sessionRevoquee(', motif: /type: 'session_revoquee',\s*statut: 'reussi',\s*sujet: \{ type: 'users', id: args\.userId \},\s*detail: \{\},/, quoi: 'l’écrivain : le fait seul, sur le compte — aucun détail, donc rien qui identifie une session' },
     { code: 'session_revoquee', fichier: 'app/api/me/sessions/revoke-others/route.ts', bloc: 'export async function POST(', motif: (b) => /const setRes = await setSessionToken\([\s\S]*?await sessionRevoquee\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{ userId: auth\.user\.id \}\)/.test(b) && /if \(!\(err instanceof JournalError\)\) throw err[\s\S]{0,300}?code: 'journal_error'/.test(b) && b.indexOf('await sessionRevoquee(') < b.indexOf("action: 'sessions_revoked_others'"), quoi: 'la ligne vient APRÈS la rotation et AVANT l’audit ; un journal qui refuse répond journal_error' },
     { code: 'suppression_programmee', fichier: 'app/api/me/account/delete/route.ts', bloc: 'export async function POST(', motif: /\.rpc\('programmer_suppression_compte',\s*\{\s*\.\.\.parametresJournal\(contexteDepuisAuth\(auth\)\),\s*p_user_id: auth\.user\.id,\s*p_scheduled_at: scheduledAt,\s*p_grace_jours: GRACE_DAYS,\s*\}\)/, quoi: 'la route programme par la RPC avec le contexte, l’échéance et la grâce — la ligne naît dans la transaction du transfert de siège' },
+    { code: 'suppression_annulee', fichier: 'lib/comptes/journal-compte.ts', bloc: 'export async function suppressionAnnulee(', motif: /type: 'suppression_annulee',\s*statut: 'reussi',\s*sujet: \{ type: 'users', id: args\.userId \},\s*detail: \{ visibilite_restauree: args\.visibiliteRestauree, avait_un_profil: args\.avaitUnProfil \},/, quoi: 'l’écrivain : le compte revient, et la ligne dit si la visibilité revient avec lui' },
+    { code: 'suppression_annulee', fichier: 'app/api/me/account/reactivate/route.ts', bloc: 'export async function POST(', motif: (b) => /\.from\('users'\)\s*\.update\(\{ deletion_scheduled_at: null \}\)[\s\S]*?await suppressionAnnulee\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{\s*userId: auth\.user\.id,\s*visibiliteRestauree: restoreVisible,\s*avaitUnProfil,\s*\}\)/.test(b) && /if \(!\(err instanceof JournalError\)\) throw err[\s\S]{0,300}?code: 'journal_error'/.test(b) && b.indexOf('await suppressionAnnulee(') < b.indexOf("action: 'account_reactivated'"), quoi: 'la ligne vient APRÈS la réactivation du compte et AVANT l’audit, avec la visibilité réellement restaurée ; un journal qui refuse répond journal_error' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -970,6 +972,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/u\.deletion_scheduled_at is not null/.test(P) && /\(g\.detail ->> 'grace_jours'\)::integer = 90/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'suppression : le jalon et la ligne sont RELUS, puis annulés')
     ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'suppression : une adresse est REFUSÉE (sonde exécutée)')
+  }
+  {
+    const ANN = stripSql(read(migration('journal_suppression_annulee')))
+    const P = ANN.slice(Math.max(0, ANN.indexOf('do $post$')))
+    ok(/jsonb_build_object\('visibilite_restauree', true, 'avait_un_profil', true\)[\s\S]{0,600}?jsonb_build_object\('visibilite_restauree', false, 'avait_un_profil', false\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
+      'annulation : les deux formes (un expert qui redevient visible, un compte sans profil) sont ÉCRITES, puis annulées')
+    ok(/"missing":\["summary","skills"\][\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'annulation : la liste des champs manquants est REFUSÉE (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

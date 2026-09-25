@@ -1,4 +1,7 @@
 import { missingForVisibility, type ExpertKind } from '@/lib/profile-visibility'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { suppressionAnnulee } from '@/lib/comptes/journal-compte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -112,6 +115,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     console.error('[account/reactivate] profile select failed', profSelErr.message)
     return json({ error: 'Could not reactivate', code: 'db_error' }, 500)
   }
+  const avaitUnProfil = profRow !== null
+  let restoreVisible = false
   if (profRow) {
     const p = profRow as unknown as ProfilPourVisibilite
 
@@ -161,7 +166,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // REPLI FERMÉ : un snapshot absent ne vaut PAS « visible ».
     const etaitVisible = p.pre_deletion_visible === true
-    const restoreVisible = etaitVisible && manquants.length === 0
+    restoreVisible = etaitVisible && manquants.length === 0
 
     const { error: profUpdErr } = await auth.supabaseAdmin
       .from('profiles')
@@ -200,6 +205,21 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (userUpdErr) {
     console.error('[account/reactivate] user update failed', userUpdErr.message)
     return json({ error: 'Could not reactivate', code: 'db_error' }, 500)
+  }
+
+  // LA LIGNE DU GRAND LIVRE — après l'écriture, même pièce (§D.26). Le compte
+  // est revenu ; la visibilité du profil, elle, n'est restaurée que si elle
+  // était acquise ET que le profil est encore complet. La ligne dit les deux.
+  try {
+    await suppressionAnnulee(auth.supabaseAdmin, contexteDepuisAuth(auth), {
+      userId: auth.user.id,
+      visibiliteRestauree: restoreVisible,
+      avaitUnProfil,
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[account/reactivate] grand livre en échec après écriture', err.message)
+    return json({ error: 'Journal failed', code: 'journal_error' }, 500)
   }
 
   await logAudit({

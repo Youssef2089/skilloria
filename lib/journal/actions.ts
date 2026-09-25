@@ -100,7 +100,7 @@ export const CLES_DETAIL = {
   compte_reactive: ['de', 'vers', 'type_de_compte'],
   session_revoquee: [], // AUCUN détail : le fait seul, et rien qui identifie une session.
   suppression_programmee: ['echeance', 'grace_jours'],
-  suppression_annulee: [],
+  suppression_annulee: ['visibilite_restauree', 'avait_un_profil'],
   email_change: [],
   mot_de_passe_change: [],
   telephone_verifie: [],

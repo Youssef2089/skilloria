@@ -44,3 +44,25 @@ export async function sessionRevoquee(
     detail: {},
   })
 }
+
+/**
+ * LA SUPPRESSION ANNULÉE — le compte revient toujours ; la VISIBILITÉ du
+ * profil, elle, ne revient que si elle était acquise avant la suppression ET
+ * que le profil est encore complet. Écrire l'un sans l'autre laisserait croire
+ * qu'un expert réactivé est de nouveau visible alors qu'il ne l'est pas.
+ * `avait_un_profil` distingue l'expert de l'organisation : sans lui, une
+ * visibilité « non restaurée » se lirait comme un refus là où il n'y a
+ * simplement pas de profil.
+ */
+export async function suppressionAnnulee(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { userId: string; visibiliteRestauree: boolean; avaitUnProfil: boolean },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'suppression_annulee',
+    statut: 'reussi',
+    sujet: { type: 'users', id: args.userId },
+    detail: { visibilite_restauree: args.visibiliteRestauree, avait_un_profil: args.avaitUnProfil },
+  })
+}
