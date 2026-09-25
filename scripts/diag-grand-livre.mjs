@@ -510,6 +510,11 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'recherche_filtree', fichier: 'lib/matching/journal-de-recherche.ts', bloc: 'async filtree(', motif: /type: 'recherche_filtree',\s*statut: 'reussi',\s*sujet: this\.sujet,\s*ecosystemeId: this\.ecosystemeId,\s*detail: \{\s*eligibles: d\.eligibles,\s*sans_matiere: d\.sans_matiere,\s*a_noter: d\.a_noter,\s*ecartes_deja_decline: d\.ecartes_deja_decline,\s*ecartes_deja_postule: d\.ecartes_deja_postule,\s*chargees: d\.chargees,\s*\},/, quoi: 'l’écrivain : les comptes du filtrage, clé par clé, jamais un objet opaque' },
     { code: 'recherche_filtree', fichier: 'lib/matching/index.ts', bloc: 'export async function runMatchingForPublication(', motif: /const sansMatiere = vivier\.profils\.length - documents\.length[\s\S]*?await recherche\.filtree\(\{\s*eligibles: baseStats\.eligible_after_filters,\s*ecartes_deja_decline: baseStats\.ecartes_deja_decline,\s*ecartes_deja_postule: baseStats\.ecartes_deja_postule,\s*sans_matiere: baseStats\.sans_matiere,\s*a_noter: documents\.length,\s*\}\)\s*if \(documents\.length === 0\) \{/, quoi: 'annonce : filtrée avec les MÊMES comptes que la trace, AVANT la branche « vivier vide »' },
     { code: 'recherche_filtree', fichier: 'lib/matching/run-for-expert.ts', bloc: 'async function executerRunExpert(', motif: /\.filter\(\(d\) => documentUtilisable\(d\.texte\)\)\s*await recherche\.filtree\(\{\s*chargees: annonces\.length,\s*eligibles: retenues\.length,\s*sans_matiere: retenues\.length - documents\.length,\s*a_noter: documents\.length,\s*\}\)\s*if \(documents\.length === 0\) \{/, quoi: 'expert : filtrée sur chargées, éligibles, sans matière, à noter — AVANT la branche « vivier vide »' },
+    { code: 'recherche_classee', fichier: 'lib/matching/journal-de-recherche.ts', bloc: 'async classee(', motif: /type: 'recherche_classee',\s*statut: d\.lots_en_echec > 0 \|\| \(d\.arret !== null && d\.arret !== 'aucun_document'\) \? 'echoue' : 'reussi',[\s\S]*?detail: \{\s*model: d\.model,\s*notes: d\.notes,\s*reprises: d\.reprises,\s*lots_en_echec: d\.lots_en_echec,\s*arret: d\.arret,\s*recherches: d\.facture\.recherches,\s*unites_source: d\.facture\.source,\s*\},\s*cout: d\.facture\.cout_usd === null \? null : \{ usd: d\.facture\.cout_usd, unite: 'recherches' \},/, quoi: 'l’écrivain : le statut de l’ÉTAPE, les comptes, les unités facturées et leur source, le coût dans les colonnes de coût — null si inconnu' },
+    { code: 'recherche_classee', fichier: 'lib/matching/index.ts', bloc: 'export async function runMatchingForPublication(', motif: /for \(const \[profileId, score\] of acquises\) \{[\s\S]*?\}\s*await recherche\.classee\(\{ model: notation\.model, notes: notation\.notes, reprises: acquises\.size, lots_en_echec: notation\.lots_en_echec, arret: notation\.arret_code \?\? null, facture: notation\.facture \}\)/, quoi: 'annonce : classée APRÈS la reprise des notes acquises, avec la facture du run telle que rendue' },
+    { code: 'recherche_classee', fichier: 'lib/matching/run-for-expert.ts', bloc: 'async function executerRunExpert(', motif: /for \(const \[publicationId, score\] of acquises\) \{[\s\S]*?\}\s*await recherche\.classee\(\{ model: notation\.model, notes: notation\.notes, reprises: acquises\.size, lots_en_echec: notation\.lots_en_echec, arret: notation\.arret_code \?\? null, facture: notation\.facture \}\)/, quoi: 'expert : classée APRÈS la reprise des notes acquises, avec la facture du run telle que rendue' },
+    { code: 'recherche_classee', fichier: 'lib/matching/rerank.ts', bloc: 'export async function rerankerTout(', motif: /const depense = await enregistrerDepenseIA\([\s\S]*?recherches \+= r\.facture\.recherches\s*if \(r\.facture\.source === 'plancher'\) auPlancher = true\s*coutUsd = coutUsd === null \|\| depense\.cout_usd === null \? null : coutUsd \+ depense\.cout_usd[\s\S]*?const facture = \{ recherches, source: auPlancher \? 'plancher' : 'fournisseur', cout_usd: coutUsd \} as const\s*return \{ scores, notes, lots_en_echec: lotsEnEchec, arret, arret_code: arretCode, model: args\.model, facture \}/, quoi: 'la facture est CUMULÉE lot par lot sur ce que l’appel a rendu et ce que l’enregistrement a tarifé ; un lot sans tarif rend le coût null, un lot au plancher rend la source plancher' },
+    { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -542,7 +547,16 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
       else if (src[k] === ')') { p--; if (p === 0) { fermante = k; break } }
     }
     if (fermante < 0) return null
-    return blocApres(src.slice(fermante), '{')
+    // Le CORPS commence à la première accolade HORS chevrons : `): Promise<{ a: 1 }> {`
+    // porte une accolade de TYPE avant celle du corps, et la prendre lirait un type.
+    let angle = 0
+    for (let k = fermante + 1; k < src.length; k++) {
+      const c = src[k]
+      if (c === '<') angle++
+      else if (c === '>' && src[k - 1] !== '=') angle = Math.max(0, angle - 1)
+      else if (c === '{' && angle === 0) return blocApres(src.slice(k), '{')
+    }
+    return null
   }
   const tient = (motif, texte) => (typeof motif === 'function' ? motif(texte) : motif.test(texte))
   // Une INSTRUCTION (`const X =`) n'a pas d'accolade : c'est le texte jusqu'à la première ligne vide.
@@ -707,7 +721,7 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const M = stripSql(read(migration(suffixe)))
     const iP = M.indexOf('do $post$')
     const P = iP < 0 ? '' : M.slice(iP)
-    const m = (sujet) => new RegExp(`journaliser\\(gen_random_uuid\\(\\), '${code}', '${statut}', 'tache_planifiee',[\\s\\S]{0,200}?'${sujet}', gen_random_uuid\\(\\),\\s*${forme}[\\s\\S]{0,900}?raise exception 'SONDE_ANNULEE'`)
+    const m = (sujet) => new RegExp(`journaliser\\(gen_random_uuid\\(\\), '${code}', '${statut}', 'tache_planifiee',[\\s\\S]{0,200}?'${sujet}', gen_random_uuid\\(\\),\\s*${forme}[\\s\\S]{0,2000}?raise exception 'SONDE_ANNULEE'`)
     ok(m('publications').test(P) && m('profiles').test(P), `${code} : la forme exacte que le module écrit est ÉCRITE pour les DEUX sujets (annonce, profil), puis annulée`)
     ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), `${code} : un texte libre est REFUSÉ (sonde exécutée)`)
     // Un statut n'est imposé qu'à certaines étapes (terminee, echouee, abandonnee, lancee) ; les autres n'ont rien à refuser.
@@ -715,6 +729,17 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   }
   sondeRecherche('journal_recherche_lancee', 'recherche_lancee', 'reussi', "jsonb_build_object\\('tentative', 1, 'tache', '(match_retry|expert_relance)'\\)", 'refuse')
   sondeRecherche('journal_recherche_filtree', 'recherche_filtree', 'reussi', "jsonb_build_object\\('eligibles', \\d+, 'sans_matiere', \\d+, 'a_noter', \\d+, ('ecartes_deja_decline', \\d+, 'ecartes_deja_postule', \\d+|'chargees', \\d+)\\)", null)
+  sondeRecherche('journal_recherche_classee', 'recherche_classee', '(reussi|echoue)', "jsonb_build_object\\('model', '[^']+', 'notes', \\d+, 'reprises', \\d+, 'lots_en_echec', \\d+, 'arret', (null|'[a-z_]+'), 'recherches', \\d+, 'unites_source', '(fournisseur|plancher)'\\)", null)
+  {
+    const CLASSEE = stripSql(read(migration('journal_recherche_classee')))
+    const P = CLASSEE.slice(Math.max(0, CLASSEE.indexOf('do $post$')))
+    ok(/'recherches', 1, 'unites_source', 'fournisseur'\),\s*null::uuid, 0\.0123::numeric, 'recherches'\)/.test(P) && /g\.cout_usd = 0\.0123 and g\.unite_facturee = 'recherches'/.test(P),
+      'classée : le coût et son unité sont ÉCRITS dans les colonnes de coût, et RELUS (sonde exécutée)')
+    ok(/'unites_source', 'plancher'\),\s*null::uuid, null::numeric, null::text\)/.test(P) && /g\.cout_usd is null and g\.unite_facturee is null/.test(P),
+      'classée : un coût INCONNU s’écrit sans coût ni unité (jamais 0), et c’est relu (sonde exécutée)')
+    ok(/'recherches', 1, 'unites_source', 'fournisseur'\),\s*null::uuid, 0\.0123::numeric, null::text\)[\s\S]{0,400}?when sqlstate '23514'/.test(P),
+      'classée : un coût SANS unité est refusé par la contrainte (sonde exécutée)')
+  }
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

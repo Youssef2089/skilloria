@@ -483,6 +483,11 @@ async function chargerTarif(
  *    rend retrouvable.
  *
  * NE LÈVE JAMAIS, sur aucun chemin.
+ *
+ * REND LE COÛT qu'elle vient de calculer — `null` si le tarif manque ou si
+ * l'enregistrement a levé — pour que le geste qui a dépensé l'écrive sur SA
+ * ligne du grand livre (§D.26) sans le recalculer : un second calcul serait
+ * un second tarif (§E.13). Le classement le cumule sur ses lots.
  */
 export async function enregistrerDepenseIA(
   supabaseAdmin: SupabaseClient,
@@ -497,7 +502,7 @@ export async function enregistrerDepenseIA(
     domain_id?: string | null
     context?: Record<string, unknown>
   },
-): Promise<void> {
+): Promise<{ cout_usd: number | null }> {
   try {
     const tarif = await chargerTarif(supabaseAdmin, args.consommation.model)
     const cout = coutUsd(args.consommation, tarif)
@@ -560,10 +565,12 @@ export async function enregistrerDepenseIA(
     })
     // LE FAIT, s'il vient d'arriver : le plafond mord (§D.26).
     await signalerPlafondAtteint(supabaseAdmin, args.journal, { provider: args.provider, action: args.action, acteur: args.acteur })
+    return { cout_usd: cout }
   } catch (err) {
     console.error('[budget] DÉPENSE NON ENREGISTRÉE (exception) — le plafond va dériver', {
       action: args.action,
       cause: err instanceof Error ? err.message : String(err),
     })
+    return { cout_usd: null }
   }
 }

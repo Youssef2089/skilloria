@@ -98,6 +98,12 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_recherche_classee` (25/09/2026) — LA LISTE BLANCHE DU CLASSEMENT, ET LE COÛT DANS SES COLONNES.** Ordre
+> indifférent : l'écrivain est TypeScript. Postcondition exécutée : la forme du module acceptée pour les deux
+> sujets — avec un coût et son unité **relus** sur la ligne, et un coût inconnu écrit **sans** coût ni unité, relu
+> aussi — puis annulée ; un coût sans unité refusé par la contrainte `grand_livre_cout_coherent` (23514) ; un
+> texte libre refusé (GL004).
+
 > **`journal_recherche_filtree` (25/09/2026) — LA LISTE BLANCHE DU FILTRAGE D'UNE RECHERCHE.** Ordre indifférent :
 > l'écrivain est TypeScript. Postcondition exécutée : la forme du module acceptée pour les deux sujets (les clés
 > propres à chaque sens) puis annulée, un texte libre refusé (GL004).
@@ -1720,6 +1726,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `devoilement_ouvert` | `devoiler_candidature()` (SQL), par le chemin partagé `performUnlock()` | RPC métier + journal | `publication_id`, `profile_id`, `conversation_id`, `auto`, `expires_at` | la candidature est **verrouillée** (`for update`), la conversation posée (idempotente par sa clé), la bascule `unlocked` faite et la ligne écrite ensemble ; **quatre issues fermées** — `devoilee`, `deja` (conversation réconciliée, rien journalisé), `transition`, `introuvable` ; le dévoilement **inclus** au dépôt porte la **même pièce** que le dépôt (`auto: true`), le manuel sa propre pièce ; « déjà dévoilée » est le verdict de la base sous verrou, pas celui de la lecture d'avant |
 | `recherche_lancee` | `JournalDeRecherche.lancee()` dans [lib/matching/journal-de-recherche.ts](../lib/matching/journal-de-recherche.ts) — le **seul** module des huit littéraux `recherche_*` | fait, dans le run | `tentative`, `tache` | écrite au **point de non-retour** — annonce : après `marquerTentative`, tentative = compteur lu + 1 ; expert : après l'éligibilité et les réglages, avant la lecture des annonces, tentative = `matching_relance_tentatives` **lu** avec le profil (incrémenté avant le run par l'appelant qui relance) ; sujet l'objet cherché (le type dit le sens), écosystème **le sien**, pas celui du contexte (une tâche n'en a pas) ; ce qui refuse avant (annonce expirée, inéligible, réglages absents) n'écrit **pas** `lancee` ; un journal qui refuse **lève**, le run reste inachevé donc rejouable |
 | `recherche_filtree` | `JournalDeRecherche.filtree()` | fait, dans le run | `eligibles`, `sans_matiere`, `a_noter` ; annonce : `ecartes_deja_decline`, `ecartes_deja_postule` ; expert : `chargees` | les **mêmes comptes** que `matching_stats`, lus une fois (annonce : `baseStats`) ; écrite **avant** la branche « vivier vide », qui est une issue, pas une absence de filtrage ; une clé absente n'est pas envoyée, le sens ne se répète pas |
+| `recherche_classee` | `JournalDeRecherche.classee()` | fait, dans le run | `model`, `notes`, `reprises`, `lots_en_echec`, `arret`, `recherches`, `unites_source` ; **`cout_usd` + `unite_facturee`** dans les colonnes de coût | **le coût remonte, il n'est pas recalculé** : `enregistrerDepenseIA()` rend le coût qu'elle a tarifé (`null` si tarif manquant ou exception), `rerankerTout()` le **cumule** lot par lot avec les unités rendues par le fournisseur (`facture` sur `ResultatRerank` : `plancher` dès qu'un lot l'est, coût `null` dès qu'un lot n'est pas tarifé — un coût partiel est faux, §D.24) ; écrite après la reprise des notes acquises, `reprises` = ce qui n'a **pas** été repayé ; statut de l'**étape** : `echoue` si un lot a manqué ou si la notation a été arrêtée (sauf `aucun_document`) |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3076,7 +3083,7 @@ et le dévoilement : **fait** — `candidature_deposee` (et la pièce du rejeu),
 **constat** — la fenêtre d'échange ou l'annonce expire, personne n'agit (§D.5) — et qui est livré avec
 `annonce_expiree` en (d), par une tâche de constat à colonne-marqueur, écrite une fois ; (c) le
 moteur dans les deux sens, une ligne par étape — **en cours**, un seul module écrivain
-(`lib/matching/journal-de-recherche.ts`), branché étape par étape : `recherche_lancee`, `recherche_filtree` ; (d) l'annonce, le profil,
+(`lib/matching/journal-de-recherche.ts`), branché étape par étape : `recherche_lancee`, `recherche_filtree`, `recherche_classee` ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
@@ -3085,6 +3092,18 @@ n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'é
 `cron_run_log`, `notifications`, et la pièce transmise par `trigger_purge_cron` dans le corps HTTP ;
 **étape 4**, l'écran et le batch de nettoyage (la seule RPC autorisée à supprimer, reconnue par le
 trigger).
+
+**H.3 bis — VU EN BRANCHANT LE CLASSEMENT, NON CORRIGÉ : UN RUN DONT TOUTES LES NOTES SONT REPRISES NE S'ACHÈVE JAMAIS.**
+Lecture du code, pas une mesure en base. Dans les deux sens, quand toutes les notes sont acquises d'un run
+interrompu (`aNoter` vide), `rerankerTout()` rend `arret_code: 'aucun_document'` sans appeler le fournisseur ;
+`acheve = notation.lots_en_echec === 0 && !notation.arret` est alors **faux** : côté annonce le run reste
+**inachevé** (`matching_completed_at` nul) et se rejoue jusqu'au plafond de cinq tentatives, chaque rejeu
+retombant sur le même cas ; côté expert le verdict est `error`, `runAcheve()` rend faux, la relance échoue
+`lecture_en_panne`. Atteignable : un run qui note tout puis tombe à la réconciliation, rejoué. Le grand livre
+le rendra **visible** (`recherche_classee` réussie avec `arret: aucun_document`, puis `recherche_echouee`). La
+parade probable — ne pas appeler `rerankerTout()` sur zéro document à noter, et ne pas traiter
+`aucun_document` comme un arrêt du run — est **un lot à part** : elle change ce qu'un run achève, donc ce que
+le rattrapage rejoue. À arbitrer.
 
 ---
 

@@ -428,6 +428,8 @@ export async function runMatchingForPublication(args: {
   for (const [profileId, score] of acquises) {
     if (!notation.scores.has(profileId)) notation.scores.set(profileId, score)
   }
+  // La ligne du classement : ce qui a été noté, repris, manqué — et PAYÉ.
+  await recherche.classee({ model: notation.model, notes: notation.notes, reprises: acquises.size, lots_en_echec: notation.lots_en_echec, arret: notation.arret_code ?? null, facture: notation.facture })
 
   const parProfil = new Map(vivier.profils.map((p) => [p.profile_id, p]))
   const scores: number[] = []

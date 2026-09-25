@@ -116,6 +116,16 @@ export type ResultatRerank = {
    */
   arret_code?: ArretDeNotation
   model: string
+  /**
+   * CE QUE LE RUN A PAYÉ, cumulé sur ses lots, dans l'unité FACTURÉE (§D.24).
+   * `source` : `fournisseur` si chaque lot a rendu son compte (vrai aussi de
+   * zéro lot), `plancher` dès qu'UN lot a été compté au minimum structurel —
+   * la somme est alors un plancher. `cout_usd` : la somme des coûts rendus
+   * par l'enregistrement, `null` dès qu'un lot n'a pas pu être tarifé : un
+   * coût partiel est un coût FAUX, et il se lirait comme complet (§E.24).
+   * C'est ce que le grand livre porte sur la ligne du classement (§D.26).
+   */
+  facture: { recherches: number; source: 'fournisseur' | 'plancher'; cout_usd: number | null }
 }
 
 /**
@@ -350,6 +360,7 @@ export async function rerankerTout(args: {
     notes: 0,
     lots_en_echec: 0,
     model: args.model,
+    facture: { recherches: 0, source: 'fournisseur', cout_usd: 0 },
   }
 
   // Convention unique, fail-closed (cf. lib/interrupteurs.ts). Avant,
@@ -380,6 +391,11 @@ export async function rerankerTout(args: {
   let lotsEnEchec = 0
   let arret: string | undefined
   let arretCode: ArretDeNotation | undefined
+  // La facture du run : cumulée lot par lot, sur ce que l'appel a RENDU et ce
+  // que l'enregistrement a TARIFÉ — jamais recalculée ici.
+  let recherches = 0
+  let auPlancher = false
+  let coutUsd: number | null = 0
 
   const lots = enLots(args.documents, args.tailleLot)
 
@@ -445,7 +461,7 @@ export async function rerankerTout(args: {
       notes += lot.length
 
       // Dépense enregistrée APRÈS l'appel, sur ce qui a réellement été consommé.
-      await enregistrerDepenseIA(args.supabaseAdmin, {
+      const depense = await enregistrerDepenseIA(args.supabaseAdmin, {
         provider: 'rerank',
         action: 'matching_pool',
         acteur: args.acteur,
@@ -463,6 +479,9 @@ export async function rerankerTout(args: {
         domain_id: args.domainId,
         context: { ...args.contexte },
       })
+      recherches += r.facture.recherches
+      if (r.facture.source === 'plancher') auPlancher = true
+      coutUsd = coutUsd === null || depense.cout_usd === null ? null : coutUsd + depense.cout_usd
 
       // ── CE QUI EST NOTÉ NE SERA PAS RENOTÉ ────────────────────────────────
       //  C'est ce qui supprime le mur ; la parallélisation ne fait que le
@@ -475,5 +494,6 @@ export async function rerankerTout(args: {
     }
   }
 
-  return { scores, notes, lots_en_echec: lotsEnEchec, arret, arret_code: arretCode, model: args.model }
+  const facture = { recherches, source: auPlancher ? 'plancher' : 'fournisseur', cout_usd: coutUsd } as const
+  return { scores, notes, lots_en_echec: lotsEnEchec, arret, arret_code: arretCode, model: args.model, facture }
 }

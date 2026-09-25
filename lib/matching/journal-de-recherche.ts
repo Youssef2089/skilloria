@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContexteJournal } from '@/lib/journal/contexte'
 import { journaliserDans } from '@/lib/journal/journaliser'
+import type { ArretDeNotation } from './rerank'
 
 /**
  * LE JOURNAL D'UNE RECHERCHE — l'histoire d'un run, écrite au grand livre,
@@ -108,6 +109,41 @@ export class JournalDeRecherche {
         ecartes_deja_postule: d.ecartes_deja_postule,
         chargees: d.chargees,
       },
+    })
+  }
+
+  /**
+   * LE CLASSEMENT — notés (payés ce run), reprises (acquises d'un run
+   * interrompu, non repayées), lots en échec, l'arrêt en CODE ; et ce que le
+   * run a PAYÉ : les unités dans l'unité facturée, leur source, le coût dans
+   * les colonnes de coût du grand livre (§D.24, §D.26). Un coût inconnu
+   * (`null` : un lot sans tarif) ne s'écrit pas — un coût partiel est faux.
+   * Le statut est celui de l'ÉTAPE : `echoue` si un lot a manqué ou si la
+   * notation a été arrêtée — sauf `aucun_document`, qui n'est pas une panne.
+   */
+  async classee(d: {
+    model: string
+    notes: number
+    reprises: number
+    lots_en_echec: number
+    arret: ArretDeNotation | null
+    facture: { recherches: number; source: 'fournisseur' | 'plancher'; cout_usd: number | null }
+  }): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_classee',
+      statut: d.lots_en_echec > 0 || (d.arret !== null && d.arret !== 'aucun_document') ? 'echoue' : 'reussi',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: {
+        model: d.model,
+        notes: d.notes,
+        reprises: d.reprises,
+        lots_en_echec: d.lots_en_echec,
+        arret: d.arret,
+        recherches: d.facture.recherches,
+        unites_source: d.facture.source,
+      },
+      cout: d.facture.cout_usd === null ? null : { usd: d.facture.cout_usd, unite: 'recherches' },
     })
   }
 }

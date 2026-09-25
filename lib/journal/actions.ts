@@ -81,7 +81,7 @@ export const CLES_DETAIL = {
   disponibilite_basculee: [],
   recherche_lancee: ['tentative', 'tache'],
   recherche_filtree: ['eligibles', 'sans_matiere', 'a_noter', 'ecartes_deja_decline', 'ecartes_deja_postule', 'chargees'],
-  recherche_classee: [],
+  recherche_classee: ['model', 'notes', 'reprises', 'lots_en_echec', 'arret', 'recherches', 'unites_source'],
   recherche_correspondances: [],
   recherche_notifiee: [],
   recherche_terminee: [],
