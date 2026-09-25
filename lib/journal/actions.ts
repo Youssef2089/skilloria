@@ -71,7 +71,7 @@ export function estTypeAction(x: unknown): x is TypeAction {
  */
 export const CLES_DETAIL = {
   annonce_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
-  annonce_modifiee: [],
+  annonce_modifiee: ['champs', 'champs[]', 'statut_annonce', 'organization_id'],
   annonce_depubliee: [],
   annonce_expiree: [],
   sous_traitance_publiee: [],

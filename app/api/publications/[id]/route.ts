@@ -1,4 +1,5 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -342,6 +343,24 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   if (updateErr || !updated) {
     console.error('[publications:PATCH] update failed', updateErr?.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+
+  // ── LA LIGNE DU GRAND LIVRE — après l'écriture, même pièce (§D.26, §C.21) ──
+  //  L'édition est un UPDATE dynamique : les NOMS des champs touchés s'écrivent,
+  //  jamais leur contenu (un titre est un texte libre). Un journal qui refuse
+  //  le DIT, avec l'identifiant de ce qui a été écrit : l'annonce est modifiée,
+  //  la trace manque, et l'organisation le sait plutôt qu'un 200 qui ment.
+  try {
+    await journaliserDans(auth.supabaseAdmin, journal, {
+      type: 'annonce_modifiee',
+      statut: 'reussi',
+      sujet: { type: 'publications', id },
+      detail: { champs: Object.keys(u.updates), statut_annonce: updated.status, organization_id: orgId },
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[publications:PATCH] grand livre en échec après écriture', { id, message: err.message })
+    return json({ error: 'Journal failed', code: 'journal_error', publication_id: id }, 500)
   }
 
   await logAudit({

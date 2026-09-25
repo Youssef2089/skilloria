@@ -544,6 +544,8 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     // ── D : l'annonce, le profil, le CV, la disponibilité ──
     { code: 'annonce_publiee', fichier: 'app/api/publications/[id]/publish/route.ts', bloc: 'export async function POST(', motif: /\.rpc\('publier_annonce',\s*\{\s*\.\.\.parametresJournal\(journal\),\s*p_publication_id: id,\s*p_domain_id: activeEcosystemId\(auth\),\s*p_organization_id: orgId,\s*p_statuts_admis: \[\.\.\.PUBLISHABLE_FROM\],\s*p_verdict: verdict\.status,\s*p_score: verdict\.score,\s*p_method: verdict\.method,\s*p_data: verdict\.data,/, quoi: 'la route met en ligne par la RPC métier, avec le contexte, le cloisonnement, l’organisation et les statuts admis' },
     { code: 'annonce_publiee', fichier: 'app/api/publications/[id]/publish/route.ts', bloc: 'export async function POST(', motif: (b) => !/\.from\('publications'\)[\s\S]{0,200}?\.update\(/.test(b) && /if \(!miseEnLigne\) \{[\s\S]{0,400}?rendreLaPlace\([\s\S]{0,200}?409\)/.test(b), quoi: 'plus d’écriture directe du statut ; zéro ligne touchée rend la place et répond 409' },
+    { code: 'annonce_modifiee', fichier: 'app/api/publications/[id]/route.ts', bloc: 'export async function PATCH(', motif: /\.update\(u\.updates\)[\s\S]*?\.single\(\)\s*if \(updateErr \|\| !updated\) \{[\s\S]*?\}\s*try \{\s*await journaliserDans\(auth\.supabaseAdmin, journal, \{\s*type: 'annonce_modifiee',\s*statut: 'reussi',\s*sujet: \{ type: 'publications', id \},\s*detail: \{ champs: Object\.keys\(u\.updates\), statut_annonce: updated\.status, organization_id: orgId \},\s*\}\)\s*\} catch \(err\) \{\s*if \(!\(err instanceof JournalError\)\) throw err[\s\S]{0,300}?code: 'journal_error', publication_id: id \}, 500\)/, quoi: 'la ligne vient APRÈS l’écriture, porte les NOMS des champs (jamais leur contenu), et un journal qui refuse répond journal_error avec l’identifiant' },
+    { code: 'annonce_modifiee', fichier: 'app/api/publications/[id]/route.ts', bloc: 'export async function PATCH(', motif: (b) => b.indexOf("type: 'annonce_modifiee'") < b.indexOf("action: 'publication_edited'"), quoi: 'le grand livre précède l’audit best-effort : c’est lui qui doit survivre (§E.68)' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -756,6 +758,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     'publiée : la RPC est EXÉCUTÉE trois fois — publiée, rejouée (null, une ligne), pending_review (verdict écrit, aucune ligne) — sonde annulée')
   ok(/g\.detail ->> 'organization_id' = v_pub\.organization_id::text/.test(postPb) && /\(v_res ->> 'published_at'\) is null/.test(postPb) && /raise exception 'SONDE_ANNULEE'/.test(postPb),
     'publiée : la ligne est RELUE (sujet, écosystème, organisation, published_at posé), puis annulée')
+  {
+    const MODIFIEE = stripSql(read(migration('journal_annonce_modifiee')))
+    const P = MODIFIEE.slice(Math.max(0, MODIFIEE.indexOf('do $post$')))
+    ok(/journaliser\(gen_random_uuid\(\), 'annonce_modifiee', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('champs', jsonb_build_array\('title', 'skills_required'\), 'statut_annonce', 'draft', 'organization_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
+      'modifiée : la forme exacte que la route envoie (noms de champs) est ÉCRITE, puis annulée')
+    ok(/"champs":\["title"\],"title":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'modifiée : le CONTENU d’un champ est REFUSÉ (sonde exécutée)')
+  }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {
     const M = stripSql(read(migration(suffixe)))
