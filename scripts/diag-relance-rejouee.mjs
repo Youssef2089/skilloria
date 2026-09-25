@@ -310,6 +310,28 @@ section('3. Le plafond vaut la même chose des deux côtés')
     `… et la supervision compte les abandons au même seuil (${mSante?.[1] ?? '?'})`,
     `supervision ${mSante?.[1]}, file ${mSql?.[1]} : deux écrans, deux vérités`,
   )
+  // LE SENS ANNONCE A LES MÊMES JUMEAUX, depuis que le grand livre écrit l'abandon
+  // (recherche_abandonnee, §D.26) : la constante TypeScript, le défaut du rattrapage,
+  // le défaut de la supervision — et la route ne porte plus la sienne.
+  const mRun = lire('lib/matching/run-abouti.ts').match(/RUN_MAX_TENTATIVES\s*=\s*(\d+)/)
+  const mRattrapage = (corps('next_unfinished_matching_run') ?? '').match(/p_max_attempts\s+integer\s+default\s+(\d+)/i)
+  const mInacheves = (corps('matching_runs_inacheves') ?? '').match(/p_max_attempts\s+integer\s+default\s+(\d+)/i)
+  const route = lire('app/api/cron/match-retry/route.ts')
+  ok(!!mRun, '`RUN_MAX_TENTATIVES` existe côté TypeScript (module pur), à côté du plafond de relance')
+  ok(
+    !!mRun && !!mRattrapage && mRun[1] === mRattrapage[1],
+    `annonce : le plafond TypeScript et le défaut du rattrapage valent ${mRun?.[1] ?? '?'} (§E.20)`,
+    `TypeScript ${mRun?.[1]}, rattrapage ${mRattrapage?.[1]} : le grand livre dirait « abandonnée » quand la file reprend encore, ou l’inverse`,
+  )
+  ok(
+    !!mRun && !!mInacheves && mRun[1] === mInacheves[1],
+    `annonce : … et la supervision dit « abandonné » au même plafond (${mInacheves?.[1] ?? '?'})`,
+  )
+  ok(
+    /RUN_MAX_TENTATIVES/.test(route) && !/const MAX_TENTATIVES\s*=/.test(route),
+    'annonce : la route de rattrapage importe le plafond et ne porte plus de constante locale',
+    'une troisième copie que rien ne compare',
+  )
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

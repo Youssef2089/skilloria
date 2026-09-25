@@ -4,6 +4,8 @@ import { journaliserDans } from '@/lib/journal/journaliser'
 import type { ArretDeNotation } from './rerank'
 import type { BilanNotifications } from './shared'
 import type { RaisonIneligible } from './eligibilite'
+// Les plafonds des deux sens — une source, vérifiée contre ses jumeaux SQL.
+import { RELANCE_MAX_TENTATIVES, RUN_MAX_TENTATIVES } from './run-abouti'
 
 /**
  * LE JOURNAL D'UNE RECHERCHE — l'histoire d'un run, écrite au grand livre,
@@ -269,6 +271,13 @@ export class JournalDeRecherche {
    * non-retour) ; pour la notation, l'arrêt en code et les lots manqués.
    * Statut `echoue` imposé par la base. Une recherche échouée côté annonce
    * reste INACHEVÉE (rejouable) ; côté expert, la relance n'est pas soldée.
+   *
+   * ET C'EST ICI QUE L'ABANDON SE DÉCIDE : la tentative consommée a atteint
+   * le plafond du sens, plus rien ne rejouera — le rattrapage (annonce) et la
+   * file de relance (expert) excluent l'un et l'autre au-delà du plafond. Le
+   * moteur est le seul à voir TOUTES les tentatives, les déclenchements
+   * directs compris : il est le seul à pouvoir l'écrire. Même pièce que
+   * l'échec — deux types, un sujet, l'index d'unicité ne les confond pas.
    */
   async echouee(d: {
     etape: EtapeDeRecherche
@@ -283,6 +292,25 @@ export class JournalDeRecherche {
       sujet: this.sujet,
       ecosystemeId: this.ecosystemeId,
       detail: { etape: d.etape, cause: d.cause, tentative: d.tentative, arret: d.arret, lots_en_echec: d.lots_en_echec },
+    })
+    const plafond = this.sujet.type === 'publications' ? RUN_MAX_TENTATIVES : RELANCE_MAX_TENTATIVES
+    if (d.tentative !== null && d.tentative >= plafond) {
+      await this.abandonnee({ tentatives: d.tentative, plafond, cause: d.cause })
+    }
+  }
+
+  /**
+   * L'ABANDON — après la dernière tentative. Privé : seul l'échec le décide,
+   * un appelant ne peut pas « abandonner » de lui-même. Le plafond est écrit
+   * avec la ligne : un plafond qui change ne réécrit pas l'histoire.
+   */
+  private async abandonnee(d: { tentatives: number; plafond: number; cause: CauseDEchec }): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_abandonnee',
+      statut: 'echoue',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: { tentatives: d.tentatives, plafond: d.plafond, cause: d.cause },
     })
   }
 }

@@ -47,6 +47,19 @@
  */
 export const RELANCE_MAX_TENTATIVES = 5
 
+/**
+ * LE PLAFOND DE TENTATIVES D'UN RUN D'ANNONCE — au-delà, le rattrapage ne le
+ * reprend plus (`next_unfinished_matching_run(p_max_attempts)`), et la
+ * supervision le dit « abandonné » (`matching_runs_inacheves`).
+ *
+ * ⚠️ MÊME JUMEAU EN BASE que ci-dessus, même parade : `diag-relance-rejouee`
+ *    compare cette valeur aux DEUX défauts SQL. La route de rattrapage
+ *    l'importe d'ici — elle portait sa propre constante, une troisième copie
+ *    que rien ne comparait. Le grand livre s'en sert pour écrire
+ *    `recherche_abandonnee` au moment exact où plus rien ne rejouera.
+ */
+export const RUN_MAX_TENTATIVES = 5
+
 /** La forme minimale d'un verdict — ce que la décision a besoin de lire. */
 export type VerdictLu = {
   status: string

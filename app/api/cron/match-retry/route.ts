@@ -4,6 +4,9 @@ import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { runMatchingForPublication } from '@/lib/matching'
 import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
+// LE PLAFOND VIT DANS LE MODULE PUR, avec celui du sens expert : une source,
+// vérifiée contre ses jumeaux SQL par diag-relance-rejouee (§E.20).
+import { RUN_MAX_TENTATIVES } from '@/lib/matching/run-abouti'
 
 /** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
 const JOB = 'match_retry'
@@ -36,8 +39,6 @@ export const maxDuration = 300
  *   tentatives, le run reste inachevé donc VISIBLE dans matching_health() : un
  *   trou qui reste ouvert vaut mieux qu'un trou refermé sur une erreur.
  */
-
-const MAX_TENTATIVES = 5
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -90,7 +91,7 @@ async function handle(request: NextRequest): Promise<Response> {
     // Le plus ANCIEN d'abord : une annonce oubliée ne doit pas être doublée par
     // une plus récente à chaque passage.
     const { data, error } = await admin.rpc('next_unfinished_matching_run', {
-      p_max_attempts: MAX_TENTATIVES,
+      p_max_attempts: RUN_MAX_TENTATIVES,
     })
     if (error) {
       console.error('[match-retry] recherche du run à rejouer en échec', error.message)

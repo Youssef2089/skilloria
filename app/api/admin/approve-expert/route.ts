@@ -240,6 +240,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     try {
       const debutRun = new Date()
       const { runMatchingForExpert } = await import('@/lib/matching')
+      const { solderRelance, echouerRelance, marquerTentativeRelance } = await import(
+        '@/lib/matching/relance'
+      )
+      // LA TENTATIVE SE COMPTE AVANT LE RUN, comme les deux autres appelants.
+      // Ce chemin la comptait APRÈS, et sur l'échec seul, pour ne pas consommer
+      // le plafond quand l'approbation réussit — mais `solderRelance` remet le
+      // compteur à zéro sur un succès : l'état final est le même. Ce qui change,
+      // c'est que le moteur LIT le compteur juste, et écrit l'abandon au moment
+      // exact où plus rien ne rejouera (§D.26, recherche_abandonnee).
+      await marquerTentativeRelance(auth.supabaseAdmin, profileId)
       const v = await runMatchingForExpert({
         supabaseAdmin: auth.supabaseAdmin,
         profileId,
@@ -257,18 +267,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       //    contact avec la plateforme » : cet écran restait vide, et pour
       //    toujours. Troisième appelant du même défaut, trouvé par le contrôle
       //    de ce lot et non par une relecture (§E.20).
-      const { solderRelance, echouerRelance, marquerTentativeRelance } = await import(
-        '@/lib/matching/relance'
-      )
       const { runAcheve, codeDEchec } = await import('@/lib/matching/run-abouti')
       if (runAcheve(v)) {
         await solderRelance(auth.supabaseAdmin, profileId, debutRun)
       } else {
-        // La tentative n'est comptée QUE sur un échec ici, et c'est la
-        // différence avec les deux autres chemins : l'approbation n'est pas une
-        // relance de la file — elle ne consomme pas le plafond quand elle
-        // réussit. Ce qu'on veut compter, c'est ce qui devra être rejoué.
-        await marquerTentativeRelance(auth.supabaseAdmin, profileId)
         await echouerRelance(auth.supabaseAdmin, profileId, codeDEchec(v))
       }
       console.log('[admin:approve-expert] matching done', {

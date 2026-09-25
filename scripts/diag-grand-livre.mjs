@@ -537,6 +537,10 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
         const attendues = ['lecture/\'lecture_en_panne\'/null', 'lecture/\'introuvable\'/null', 'reglages/\'reglages_absents\'/p.matching_relance_tentatives', 'reglages/\'durees_illisibles\'/p.matching_relance_tentatives', 'vivier/\'vivier_en_panne\'/p.matching_relance_tentatives', 'vivier/\'decisions_illisibles\'/p.matching_relance_tentatives', 'correspondances/\'reconciliation_en_panne\'/p.matching_relance_tentatives', "notation/notation.arret_code ? 'notation_arretee' : 'lots_en_echec'/p.matching_relance_tentatives"]
         return sorties.length === 8 && attendues.every((a) => sorties.includes(a)) && /if \(acheve\) await recherche\.terminee\(\{ issue: 'ok' \}\)\s*else await recherche\.echouee\(\{ etape: 'notation'/.test(b)
       }, quoi: 'expert : HUIT sorties en échec, chacune avec son étape et sa cause en code ; la tentative est le compteur de relance lu dès que le profil l’est ; la fin est terminee OU echouee' },
+    { code: 'recherche_abandonnee', fichier: 'lib/matching/journal-de-recherche.ts', bloc: 'private async abandonnee(', motif: /type: 'recherche_abandonnee',\s*statut: 'echoue',\s*sujet: this\.sujet,\s*ecosystemeId: this\.ecosystemeId,\s*detail: \{ tentatives: d\.tentatives, plafond: d\.plafond, cause: d\.cause \},/, quoi: 'l’écrivain, PRIVÉ : tentatives, plafond en vigueur, cause du dernier échec — au statut que la base impose' },
+    { code: 'recherche_abandonnee', fichier: 'lib/matching/journal-de-recherche.ts', bloc: 'async echouee(', motif: /journaliserDans\(this\.admin, this\.journal, \{\s*type: 'recherche_echouee',[\s\S]*?\}\)\s*const plafond = this\.sujet\.type === 'publications' \? RUN_MAX_TENTATIVES : RELANCE_MAX_TENTATIVES\s*if \(d\.tentative !== null && d\.tentative >= plafond\) \{\s*await this\.abandonnee\(\{ tentatives: d\.tentative, plafond, cause: d\.cause \}\)/, quoi: 'l’abandon est DÉCIDÉ dans l’écrivain de l’échec, APRÈS la ligne d’échec : tentative consommée ≥ plafond du sens, plafonds importés du module pur' },
+    { code: 'recherche_abandonnee', fichier: 'app/api/cron/match-retry/route.ts', bloc: 'async function handle(', motif: /p_max_attempts: RUN_MAX_TENTATIVES,/, quoi: 'le rattrapage exclut au MÊME plafond que celui qui écrit l’abandon (une source, plus de constante locale)' },
+    { code: 'recherche_abandonnee', fichier: 'app/api/admin/approve-expert/route.ts', bloc: 'export async function POST(', motif: /await marquerTentativeRelance\(auth\.supabaseAdmin, profileId\)\s*const v = await runMatchingForExpert\(\{/, quoi: 'l’approbation compte la tentative AVANT le run, comme les deux autres appelants : le moteur lit un compteur juste' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -744,7 +748,9 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const M = stripSql(read(migration(suffixe)))
     const iP = M.indexOf('do $post$')
     const P = iP < 0 ? '' : M.slice(iP)
-    const m = (sujet) => new RegExp(`journaliser\\(gen_random_uuid\\(\\), '${code}', '${statut}', 'tache_planifiee',[\\s\\S]{0,200}?'${sujet}', gen_random_uuid\\(\\),\\s*${forme}[\\s\\S]{0,2000}?raise exception 'SONDE_ANNULEE'`)
+    // La pièce de la sonde est neuve (gen_random_uuid()) ou celle d'une ligne sœur du même run (v_piece) ;
+    // le sujet, neuf ou partagé avec cette ligne sœur (v_sujet).
+    const m = (sujet) => new RegExp(`journaliser\\((gen_random_uuid\\(\\)|v_piece), '${code}', '${statut}', 'tache_planifiee',[\\s\\S]{0,200}?'${sujet}', (gen_random_uuid\\(\\)|v_sujet),\\s*${forme}[\\s\\S]{0,2000}?raise exception 'SONDE_ANNULEE'`)
     ok(m('publications').test(P) && m('profiles').test(P), `${code} : la forme exacte que le module écrit est ÉCRITE pour les DEUX sujets (annonce, profil), puis annulée`)
     ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), `${code} : un texte libre est REFUSÉ (sonde exécutée)`)
     // Un statut n'est imposé qu'à certaines étapes (terminee, echouee, abandonnee, lancee) ; les autres n'ont rien à refuser.
@@ -757,6 +763,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   sondeRecherche('journal_recherche_notifiee', 'recherche_notifiee', '(reussi|echoue)', "jsonb_build_object\\('demandees', \\d+, 'deja_notifiees', \\d+, 'posees', \\d+, 'paquets_en_echec', \\d+, 'renonce', (true|false)\\)", null)
   sondeRecherche('journal_recherche_terminee', 'recherche_terminee', 'reussi', "jsonb_build_object\\('issue', '(ok|vivier_vide|annonce_expiree|ineligible|sans_matiere)', 'raison', (null|'[a-z_]+')\\)", 'echoue')
   sondeRecherche('journal_recherche_echouee', 'recherche_echouee', 'echoue', "jsonb_build_object\\('etape', '[a-z_]+', 'cause', '[a-z_]+', 'tentative', (null|\\d+), 'arret', (null|'[a-z_]+'), 'lots_en_echec', (null|\\d+)\\)", 'reussi')
+  sondeRecherche('journal_recherche_abandonnee', 'recherche_abandonnee', 'echoue', "jsonb_build_object\\('tentatives', \\d+, 'plafond', \\d+, 'cause', '[a-z_]+'\\)", 'reussi')
+  {
+    const ABANDON = stripSql(read(migration('journal_recherche_abandonnee')))
+    const P = ABANDON.slice(Math.max(0, ABANDON.indexOf('do $post$')))
+    ok(/journaliser\(v_piece, 'recherche_echouee', 'echoue'[\s\S]*?journaliser\(v_piece, 'recherche_abandonnee', 'echoue'[\s\S]*?where g\.piece = v_piece\) <> 2/.test(P),
+      'abandonnée : l’échec et l’abandon d’un même run sont ÉCRITS sous une pièce et RELUS (deux lignes, un sujet — sonde exécutée)')
+  }
   {
     const CLASSEE = stripSql(read(migration('journal_recherche_classee')))
     const P = CLASSEE.slice(Math.max(0, CLASSEE.indexOf('do $post$')))
