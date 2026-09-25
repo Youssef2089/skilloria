@@ -1,3 +1,4 @@
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -229,21 +230,29 @@ export async function POST(request: NextRequest): Promise<Response> {
   const tokenHash = hashInvitationToken(rawToken)
   const expiresAt = invitationExpiryIso({ invitationJours: lectureDurees.durees.invitationJours })
 
-  const { data: inserted, error: insErr } = await admin
-    .from('organization_invitations')
-    .insert({
+  // ── L'INVITATION ET SA LIGNE DE GRAND LIVRE, EN UN SEUL APPEL (§D.26) ───
+  //  L'invitation part en `p_invitation` : c'est la LIGNE à écrire, pas le
+  //  détail du journal. Elle porte l'adresse d'un TIERS et le jeton haché —
+  //  ni l'une ni l'autre ne ressortent dans la ligne du journal, qui vit en
+  //  AJOUT SEUL et qu'aucune purge ne viendrait nettoyer.
+  const { data: insertedBrut, error: insErr } = await admin.rpc('creer_invitation', {
+    ...parametresJournal(contexteDepuisAuth(auth)),
+    p_ecosysteme_id: auth.domain.id,
+    p_invitation: {
       organization_id: org.id,
       email,
       token: tokenHash,
       role_in_org: role,
-      invited_by: auth.user.id,
       expires_at: expiresAt,
       status: 'pending',
       domain_validation_passed: domainValidationPassed,
       email_already_exists: emailAlreadyExists,
-    })
-    .select('id, email, role_in_org, status, expires_at, domain_validation_passed, email_already_exists, created_at')
-    .maybeSingle()
+    },
+  })
+  const inserted = insertedBrut as {
+    id: string; email: string; role_in_org: string; status: string; expires_at: string
+    domain_validation_passed: boolean; email_already_exists: boolean; created_at: string
+  } | null
 
   if (insErr || !inserted) {
     console.error('[me/invitations] insert failed', insErr?.message)

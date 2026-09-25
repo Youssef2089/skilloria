@@ -104,7 +104,7 @@ export const CLES_DETAIL = {
   email_change: ['etape'],
   mot_de_passe_change: [], // AUCUN détail : ni empreinte, ni longueur (elle réduit l'espace de recherche).
   telephone_verifie: ['methode'],
-  membre_invite: [],
+  membre_invite: ['role_in_org', 'domain_validation_passed', 'email_already_exists'],
   invitation_renvoyee: [],
   invitation_acceptee: [],
   invitation_revoquee: [],

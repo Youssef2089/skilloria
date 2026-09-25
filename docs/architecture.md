@@ -98,6 +98,12 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_membre_invite` (25/09/2026) — L'INVITATION ET SA LIGNE, ENSEMBLE.** `creer_invitation(contexte,
+> écosystème, invitation jsonb)` : `insert … returning`, puis `journaliser('membre_invite')` avec le rôle et les
+> deux faits. **Ordre : AVANT le déploiement.** Postcondition exécutée sur une organisation réelle (sautée, et
+> dite, sinon) : invitation créée, adresse **présente** sur l'invitation et **absente** du journal (jeton
+> compris) ; adresse invitée refusée (GL004).
+
 > **`journal_telephone_verifie` (25/09/2026) — LE DRAPEAU, LE NUMÉRO ET LA LIGNE, ENSEMBLE.**
 > `verifier_telephone(contexte, compte, numéro, méthode)` : `update users set phone_verified, phone … returning`,
 > `false` si zéro ligne, puis `journaliser('telephone_verifie')` avec la **méthode seule**. **Ordre : AVANT le
@@ -1869,6 +1875,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `email_change` | `emailChange()` dans `lib/comptes/journal-compte.ts` | journal après écriture, même pièce | `etape` (`demande` · `confirme`) | **la demande, pas la bascule** : la route déclenche l'e-mail de confirmation, l'adresse ne change qu'au clic du lien — écrire « adresse changée » ici annoncerait un fait qui n'est pas arrivé (§E.24) ; le jour où le retour du lien sera branché, il écrira la **même** action avec `confirme`, et l'histoire se lira dans le bon ordre ; ni l'ancienne adresse ni la nouvelle n'entrent dans la ligne (la sonde le vérifie), et l'audit ne les écrivait déjà pas |
 | `mot_de_passe_change` | `motDePasseChange()` dans `lib/comptes/journal-compte.ts` | journal après écriture, même pièce | **aucun** (liste blanche **vide**) | la bascule est **immédiate** (contrairement à l'adresse) : pas d'étape à distinguer ; aucun détail — ni le mot de passe, ni son empreinte, ni sa **longueur**, qui n'a l'air de rien et réduit l'espace de recherche ; la liste vide refuse tout, y compris une clé au nom innocent |
 | `telephone_verifie` | `verifier_telephone()` (SQL) | RPC métier + journal | `methode` | le drapeau, le **numéro** et la ligne dans la même transaction — avant, le drapeau pouvait être posé et la trace manquer ; le numéro va sur le **compte** (c'est sa place, une purge l'y trouve) et **jamais** dans la ligne, où il survivrait à la suppression du compte ; l'unicité reste celle de la base (deux comptes, un numéro : `23505` remonte tel quel, la transaction est annulée, **aucune** ligne n'est écrite, et la route rend son 409) ; la postcondition vérifie l'**absence** du numéro dans la ligne, pas seulement la présence de la méthode |
+| `membre_invite` | `creer_invitation()` (SQL) | RPC métier + journal | `role_in_org`, `domain_validation_passed`, `email_already_exists` | l'**adresse invitée est celle d'un tiers** : la personne n'a peut-être aucun compte, n'a rien accepté, et aucune purge ne viendrait l'effacer d'un journal en **ajout seul** — elle va donc sur la **ligne d'invitation** (qui porte sa propre durée de vie et se révoque) et jamais dans le grand livre ; l'invitation passe en `jsonb` comme la candidature jugée (c'est la **ligne à écrire**, pas le détail), et elle contient l'adresse **et** le jeton haché, qui ne ressortent ni l'un ni l'autre ; la postcondition vérifie l'adresse **présente** sur l'invitation **et absente** du journal — les deux, pas l'une des deux (§E.8) |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3230,8 +3237,10 @@ moteur dans les deux sens, une ligne par étape — **fait** : un seul module é
 `_abandonnee`), jamais une ligne par lot ni par profil, le contrôle comptant les fins et énumérant les sorties ; (d) l'annonce, le profil,
 le CV, la disponibilité — **fait** : `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree` et
 `devoilement_ferme` (par la **tâche de constat** `constats_trigger`, à colonne-marqueur, une pièce par passage),
-`cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` ; (e) la sécurité des comptes et la gouvernance d'organisation — **en cours** : `compte_suspendu`, `compte_reactive`,
-`compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change`, `telephone_verifie` ; (f) la
+`cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` ; (e) la sécurité des comptes et la gouvernance d'organisation — les **dix** actions de compte sont faites
+(`compte_suspendu`, `compte_reactive`, `compte_valide`, `compte_refuse`, `session_revoquee`,
+`suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change`, `telephone_verifie`) ;
+la gouvernance est **en cours** : `membre_invite` ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
 n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :
