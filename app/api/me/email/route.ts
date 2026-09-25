@@ -1,3 +1,6 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { emailChange } from '@/lib/comptes/journal-compte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
@@ -73,6 +76,17 @@ export async function POST(request: NextRequest): Promise<Response> {
         ? 'email_taken'
         : 'email_change_failed'
     return json({ error: 'Could not change email', code }, 400)
+  }
+
+  // LA LIGNE DU GRAND LIVRE — après l'appel qui a déclenché la confirmation,
+  // avant l'audit best-effort (§E.68). `etape: 'demande'` : l'adresse n'a PAS
+  // encore changé, et la ligne ne le prétend pas.
+  try {
+    await emailChange(auth.supabaseAdmin, contexteDepuisAuth(auth), { userId: auth.user.id, etape: 'demande' })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[me/email] grand livre en échec après la demande', err.message)
+    return json({ error: 'Journal failed', code: 'journal_error' }, 500)
   }
 
   await logAudit({

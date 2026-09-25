@@ -101,7 +101,7 @@ export const CLES_DETAIL = {
   session_revoquee: [], // AUCUN détail : le fait seul, et rien qui identifie une session.
   suppression_programmee: ['echeance', 'grace_jours'],
   suppression_annulee: ['visibilite_restauree', 'avait_un_profil'],
-  email_change: [],
+  email_change: ['etape'],
   mot_de_passe_change: [],
   telephone_verifie: [],
   membre_invite: [],

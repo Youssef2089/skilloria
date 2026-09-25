@@ -66,3 +66,25 @@ export async function suppressionAnnulee(
     detail: { visibilite_restauree: args.visibiliteRestauree, avait_un_profil: args.avaitUnProfil },
   })
 }
+
+/**
+ * LE CHANGEMENT D'ADRESSE — LA DEMANDE, PAS LA BASCULE. La route déclenche
+ * l'e-mail de confirmation ; l'adresse ne change que quand la personne clique
+ * le lien. Écrire « adresse changée » ici annoncerait un fait qui n'est pas
+ * arrivé (§E.24) : `etape` dit ce qui EST arrivé. Le jour où le retour du lien
+ * sera branché, il écrira la même action avec `'confirme'`.
+ *
+ * Ni l'ancienne adresse ni la nouvelle n'entrent dans la ligne.
+ */
+export async function emailChange(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { userId: string; etape: 'demande' | 'confirme' },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'email_change',
+    statut: 'reussi',
+    sujet: { type: 'users', id: args.userId },
+    detail: { etape: args.etape },
+  })
+}
