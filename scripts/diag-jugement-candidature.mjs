@@ -201,7 +201,9 @@ ok(ligneInsert > 0, `l ÉCRITURE de la candidature est localisée (ligne ${ligne
 
   const refusApres = []
   for (let i = 0; i < lignesDepot.length; i++) {
-    if (!/return \{ issue: 'refusee'/.test(lignesDepot[i])) continue
+    // Depuis §D.26 un refus de garde passe par `refuser(…)`, qui l'écrit au
+    // grand livre et rend l'issue : les deux formes sont un refus.
+    if (!/return (\{ issue: 'refusee'|refuser\()/.test(lignesDepot[i])) continue
     const ligne = i + 1
     if (ligne <= ligneInsert) continue
     // Exception NOMMÉE : les sorties du bloc `if (insertErr)`. L'écriture a
@@ -216,7 +218,7 @@ ok(ligneInsert > 0, `l ÉCRITURE de la candidature est localisée (ligne ${ligne
       : undefined)
   // Le motif MORD : sans cette preuve, un `0 refus` ne dirait rien de plus
   // qu'un fichier qu'on n'a pas su lire (§E.33).
-  ok(/return \{ issue: 'refusee'/.test(DEPOT),
+  ok(/return (\{ issue: 'refusee'|refuser\()/.test(DEPOT),
     'le motif de refus existe bien dans ce fichier',
     'zero occurrence : le controle ne mesure plus rien et passe au vert')
 }

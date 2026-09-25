@@ -165,7 +165,7 @@ export const CLES_DETAIL = {
   journal_nettoye: [],
   refus_plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd'],
   refus_expert_inapte: ['raison', 'publication_id'],
-  refus_garde_eligibilite: [],
+  refus_garde_eligibilite: ['code', 'profile_id'],
   refus_quota_cv: [],
   refus_depot_sans_jugement: ['publication_id', 'profile_id', 'cause', 'tentative'],
 } as const satisfies Record<TypeAction, readonly string[]>

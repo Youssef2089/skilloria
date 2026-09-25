@@ -98,6 +98,10 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_refus_garde_eligibilite` (25/09/2026) — LA LISTE BLANCHE DES REFUS DE GARDE DU DÉPÔT.** Ordre
+> indifférent : l'écrivain est TypeScript. Postcondition exécutée : la forme du code acceptée au statut imposé
+> puis annulée, un texte libre refusé (GL004).
+
 > **`journal_refus_expert_inapte` (25/09/2026) — LA LISTE BLANCHE DU REFUS « EXPERT INAPTE ».** Ordre indifférent :
 > l'écrivain est TypeScript (motif « fait, après refus »). Postcondition exécutée : la forme exacte que le code
 > envoie est acceptée au statut imposé puis annulée ; un texte libre est refusé (GL004).
@@ -1672,6 +1676,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `candidature_deposee` | `inserer_candidature_jugee()` (SQL) | RPC métier + journal | `publication_id`, `profile_id`, `match_id`, `ai_match_score`, `origine_depot`, `tentative` | jugement PUIS insertion **avec** sa note, journal du dépôt **soldé** et ligne écrite dans la même transaction ; une concurrente pendant le jugement rend `null` (rien d'écrit, ligne du dépôt retirée) ; le journal du dépôt s'ouvre **avec la pièce** avant l'appel au modèle (`candidature_depots.piece`) et le rejeu ouvre une pièce **neuve** qui la référence |
 | `refus_depot_sans_jugement` | `solder_depot_en_echec()` (SQL) | RPC métier + journal | `publication_id`, `profile_id`, `cause`, `tentative` | le journal du dépôt passe en `echec` ET le refus s'écrit (statut `refuse` imposé) dans la même transaction, depuis les **deux** sorties sans jugement (modèle, base) ; la cause est l'une des trois valeurs fermées, jamais le texte de la panne ; sans ligne de dépôt (ouverture best-effort), le refus s'écrit sans sujet et le code le dit |
 | `refus_expert_inapte` | `refuserInapte()` dans `lib/candidatures/depot.ts` | fait, après refus | `raison` (valeur fermée de l'éligibilité), `publication_id` | posé AVANT toute dépense, sujet le **profil** (le refus porte sur lui, §D.21), écosystème celui du **dépôt** (un rejeu d'administrateur agit depuis le sien) ; la seule sortie `inapte` du dépôt passe par l'écrivain |
+| `refus_garde_eligibilite` | `refuserGarde()` dans `lib/candidatures/depot.ts` | fait, après refus | `code` (valeur fermée de `REFUS_DEPOT`), `profile_id` | **aucune** sortie « refusée » littérale ne reste dans le dépôt, toutes passent par le raccourci `refuser(code)` ; seuls les refus de **règle** (statut < 500) s'écrivent — une panne de lecture se réessaie, elle ne refuse rien (§E.22) ; sujet l'annonce visée, écosystème celui du dépôt dès que le profil est lu |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3023,7 +3028,7 @@ actions dans l'ordre arbitré par Youssef — (a) l'argent et les réglages d'ad
 familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `paiement_recu`,
 `plafond_atteint`, `refus_plafond_atteint` et `ip_effacees` — **(a) est fait** ; (b) la candidature
 et le dévoilement — **en cours** : `candidature_deposee`, la pièce du rejeu,
-`refus_depot_sans_jugement` et `refus_expert_inapte` sont faits ; (c) le
+`refus_depot_sans_jugement`, `refus_expert_inapte` et `refus_garde_eligibilite` sont faits ; (c) le
 moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en

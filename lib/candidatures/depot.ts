@@ -203,6 +203,33 @@ async function refuserInapte(
   return { issue: 'inapte', raison: args.raison }
 }
 
+/**
+ * LE REFUS DE GARDE — l'annonce ou le couple : pas mis en relation, déjà
+ * postulé, annonce fermée, son propre besoin… Le SEUL écrivain de
+ * `refus_garde_eligibilite` (§D.26).
+ *
+ * SEULS LES REFUS DE RÈGLE S'ÉCRIVENT (statut HTTP < 500) : une panne de
+ * lecture (5xx) ne refuse rien, elle se réessaie — la journaliser comme un
+ * refus dirait une décision qui n'a pas été prise (§E.22). Sujet l'ANNONCE
+ * visée, l'expert dans le détail, écosystème celui du dépôt quand il est connu.
+ */
+async function refuserGarde(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { code: CodeRefus; profileId: string; publicationId: string; domainId: string | null },
+): Promise<IssueDepot> {
+  if (REFUS_DEPOT[args.code] < 500) {
+    await journaliserDans(admin, journal, {
+      type: 'refus_garde_eligibilite',
+      statut: 'refuse',
+      sujet: { type: 'publications', id: args.publicationId },
+      detail: { code: args.code, profile_id: args.profileId },
+      ecosystemeId: args.domainId ?? journal.ecosystemeId,
+    })
+  }
+  return { issue: 'refusee', code: args.code }
+}
+
 /** Les types de publication auxquels un expert peut candidater. */
 const CANDIDATABLE_TYPES = ['mission', 'offre', 'sous_traitance']
 
@@ -277,6 +304,13 @@ export async function deposerCandidature(args: {
   journal: ContexteJournal
 }): Promise<IssueDepot> {
   const { supabaseAdmin, profileId, publicationId, coverMessage } = args
+  // L'ÉCOSYSTÈME DU DÉPÔT, connu dès que le profil est lu : c'est lui que
+  // porte une ligne de refus, pas celui du geste.
+  let domaineDuDepot: string | null = null
+  // TOUT REFUS DE GARDE PASSE PAR ICI (§D.26) : les refus de RÈGLE s'écrivent
+  // au grand livre, les pannes (5xx) non — elles ne refusent rien.
+  const refuser = (code: CodeRefus): Promise<IssueDepot> =>
+    refuserGarde(supabaseAdmin, args.journal, { code, profileId, publicationId, domainId: domaineDuDepot })
 
   // ── LES DURÉES SONT LUES ICI ────────────────────────────────────────────
   //  Aucun défaut dans le code (cf. lib/durees.ts) : illisibles, on REFUSE en
@@ -286,7 +320,7 @@ export async function deposerCandidature(args: {
   const lectureDurees = await chargerDurees(supabaseAdmin)
   if (!lectureDurees.ok) {
     console.error('[depot] durées de la place illisibles', lectureDurees.raison)
-    return { issue: 'refusee', code: DUREES_ILLISIBLES_CODE }
+    return refuser(DUREES_ILLISIBLES_CODE)
   }
   const durees: Durees = lectureDurees.durees
 
@@ -302,10 +336,11 @@ export async function deposerCandidature(args: {
   // 503 qui se réessaie, jamais le 404 qui se croit.
   if (pErr) {
     console.error('[depot] profil ILLISIBLE', { profileId, message: pErr.message })
-    return { issue: 'refusee', code: 'profil_verification_indisponible' }
+    return refuser('profil_verification_indisponible')
   }
-  if (!profile) return { issue: 'refusee', code: 'profile_missing' }
+  if (!profile) return refuser('profile_missing')
   const profileRow = profile as unknown as ProfilDepot
+  domaineDuDepot = profileRow.domain_id
 
   // ── L'EXPERT EST-IL EN ÉTAT DE POSTULER ? ───────────────────────────────
   //
@@ -356,9 +391,9 @@ export async function deposerCandidature(args: {
     .maybeSingle()
   if (mErr) {
     console.error('[depot] match illisible', mErr.message)
-    return { issue: 'refusee', code: 'db_error' }
+    return refuser('db_error')
   }
-  if (!match) return { issue: 'refusee', code: 'not_matched' }
+  if (!match) return refuser('not_matched')
   const matchRow = match as unknown as { id: string; relevance_score: number | null; status: string }
 
   // ── Vérif publication : publiée + type candidatable + pas son propre besoin ─
@@ -377,14 +412,14 @@ export async function deposerCandidature(args: {
   // postuler (§E.42). La panne sort en 503, l'absence garde son 404.
   if (pubErr) {
     console.error('[depot] annonce ILLISIBLE', { publicationId, message: pubErr.message })
-    return { issue: 'refusee', code: 'objet_verification_indisponible' }
+    return refuser('objet_verification_indisponible')
   }
-  if (!pub) return { issue: 'refusee', code: 'not_found' }
+  if (!pub) return refuser('not_found')
   const pubRow = pub as unknown as AnnonceDepot
 
   // Ouverte = published NON expirée (règle read-time, lib/publications/expiry).
   if (!isActivePublished(pubRow, { vieAnnonceJours: durees.vieAnnonceJours })) {
-    return { issue: 'refusee', code: 'publication_not_published' }
+    return refuser('publication_not_published')
   }
 
   //  L'exigence « candidat = expert » est déjà garantie IDENTIQUEMENT pour les
@@ -392,7 +427,7 @@ export async function deposerCandidature(args: {
   //  n'a PAS de profil (profiles = experts uniquement) — et (b) le match requis
   //  (les matches ne lient que des profils experts).
   if (!CANDIDATABLE_TYPES.includes(pubRow.type)) {
-    return { issue: 'refusee', code: 'type_not_candidatable' }
+    return refuser('type_not_candidatable')
   }
 
   // ── On ne candidate JAMAIS à son propre besoin ──────────────────────────
@@ -402,7 +437,7 @@ export async function deposerCandidature(args: {
   //     l'appelant aurait laissé passer, en relance, exactement ce que cette
   //     garde refuse.
   if (pubRow.created_by && pubRow.created_by === profileRow.user_id) {
-    return { issue: 'refusee', code: 'cannot_apply_own_need' }
+    return refuser('cannot_apply_own_need')
   }
 
   // ── DÉJÀ CANDIDATÉ ? ON REGARDE **AVANT** DE PAYER ──────────────────────
@@ -419,9 +454,9 @@ export async function deposerCandidature(args: {
     .maybeSingle()
   if (dejaErr) {
     console.error('[depot] candidature existante illisible', dejaErr.message)
-    return { issue: 'refusee', code: 'db_error' }
+    return refuser('db_error')
   }
-  if (dejaRow) return { issue: 'refusee', code: 'already_applied' }
+  if (dejaRow) return refuser('already_applied')
 
   // ── L'IDENTIFIANT EST POSÉ ICI, AVANT L'APPEL ───────────────────────────
   //  Le jugement le porte dans sa comptabilité de dépense et dans ses
@@ -605,7 +640,7 @@ export async function deposerCandidature(args: {
       cause: 'reponse_illisible',
       detail: `insertion refusée : ${insertErr.message}`,
     })
-    return { issue: 'refusee', code: 'db_error' }
+    return refuser('db_error')
   }
   if (!insere) {
     // Re-candidature : le test préalable l'a déjà écartée ; rester ici
@@ -616,7 +651,7 @@ export async function deposerCandidature(args: {
       publicationId,
       profileId: profileRow.id,
     })
-    return { issue: 'refusee', code: 'already_applied' }
+    return refuser('already_applied')
   }
   const row = insere as { id: string; status: string; created_at: string }
 

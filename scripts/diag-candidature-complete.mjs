@@ -610,7 +610,7 @@ ok(
   '« aucune ligne écrite » n’est pas « rien à faire » (§E.22)',
 )
 ok(
-  !/return \{ issue: 'refusee'/.test(corpsOuvrir) && !/throw /.test(corpsOuvrir),
+  !/return (\{ issue: 'refusee'|refuser\()/.test(corpsOuvrir) && !/throw /.test(corpsOuvrir),
   '… mais elle ne fait PAS échouer le dépôt',
   'un défaut d’observation ne doit pas devenir une perte de dossier',
 )

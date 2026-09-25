@@ -484,6 +484,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     // ── B3 : l'expert inapte est refusé, et le refus s'écrit ──
     { code: 'refus_expert_inapte', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => (b.match(/return refuserInapte\(supabaseAdmin, args\.journal, \{/g) || []).length === 1 && !/issue: 'inapte'/.test(b), quoi: 'la SEULE sortie « inapte » du dépôt passe par l’écrivain, avec le contexte' },
     { code: 'refus_expert_inapte', fichier: 'lib/candidatures/depot.ts', bloc: 'async function refuserInapte(', motif: /journaliserDans\(admin, journal, \{\s*type: 'refus_expert_inapte',\s*statut: 'refuse',\s*sujet: \{ type: 'profiles', id: args\.profileId \},[\s\S]{0,300}?ecosystemeId: args\.domainId,/, quoi: 'au statut imposé, sujet le PROFIL, écosystème celui du dépôt' },
+    // ── B4 : les refus de garde du dépôt ──
+    { code: 'refus_garde_eligibilite', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => !/issue: 'refusee'/.test(b) && (b.match(/return refuser\(/g) || []).length >= 10, quoi: 'AUCUNE sortie « refusee » littérale dans le dépôt : toutes passent par le raccourci vers l’écrivain' },
+    { code: 'refus_garde_eligibilite', fichier: 'lib/candidatures/depot.ts', bloc: 'async function refuserGarde(', motif: /if \(REFUS_DEPOT\[args\.code\] < 500\) \{\s*await journaliserDans\(admin, journal, \{\s*type: 'refus_garde_eligibilite',\s*statut: 'refuse',\s*sujet: \{ type: 'publications', id: args\.publicationId \},/, quoi: 'seuls les refus de RÈGLE (< 500) s’écrivent, au statut imposé, sujet l’annonce' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -625,6 +628,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   ok(/journaliser\(gen_random_uuid\(\), 'refus_expert_inapte', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('raison', 'ne_pas_deranger', 'publication_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postI),
     'expert inapte : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
   ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postI), 'expert inapte : un texte libre est REFUSÉ (sonde exécutée)')
+  // Les refus de garde : même forme.
+  const GARDE = stripSql(read(migration('journal_refus_garde_eligibilite')))
+  const iPostG = GARDE.indexOf('do $post$')
+  const postG = iPostG < 0 ? '' : GARDE.slice(iPostG)
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_garde_eligibilite', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('code', 'already_applied', 'profile_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postG),
+    'refus de garde : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
+  ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postG), 'refus de garde : un texte libre est REFUSÉ (sonde exécutée)')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════
