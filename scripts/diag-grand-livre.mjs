@@ -494,6 +494,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     // ── B6 : la candidature déclinée ──
     { code: 'candidature_declinee', fichier: 'app/api/candidatures/[id]/reject/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('decliner_candidature',\s*\{\s*\.\.\.parametresJournal\(journal\),[\s\S]{0,400}?p_statuts_admis: \[\.\.\.ALLOWED_PREVIOUS_STATUSES\],[\s\S]{0,400}?if \(declinee !== true\)[\s\S]{0,200}?invalid_transition/, quoi: 'la route décline par la RPC avec le contexte et les statuts admis, et ZÉRO ligne est une transition invalide (409), plus un succès muet' },
     { code: 'candidature_declinee', fichier: 'app/api/candidatures/[id]/reject/route.ts', bloc: 'export async function POST(', motif: (b) => !/\.from\('candidatures'\)[\s\S]{0,120}?\.update\(/.test(b), quoi: 'la route n’écrit PLUS la candidature directement' },
+    // ── B7 : la candidature retenue ──
+    { code: 'candidature_retenue', fichier: 'app/api/candidatures/[id]/select/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?if \(!isAlreadySelected\) \{\s*const \{ data: retenueAt, error: updErr \} = await auth\.supabaseAdmin\.rpc\('retenir_candidature',\s*\{\s*\.\.\.parametresJournal\(journal\),[\s\S]{0,400}?p_statuts_admis: \[\.\.\.ALLOWED_PREVIOUS_STATUSES\],[\s\S]{0,400}?if \(typeof retenueAt !== 'string'\)[\s\S]{0,200}?invalid_transition[\s\S]{0,300}?selectedAtIso = retenueAt/, quoi: 'la route retient par la RPC avec le contexte et les statuts admis ; ZÉRO ligne est une transition invalide (409) ; selected_at vient de la base' },
+    { code: 'candidature_retenue', fichier: 'app/api/candidatures/[id]/select/route.ts', bloc: 'export async function POST(', motif: (b) => !/\.from\('candidatures'\)[\s\S]{0,120}?\.update\(/.test(b), quoi: 'la route n’écrit PLUS la candidature directement' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -510,6 +513,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'ouvrir_depot_candidature', code: 'candidature_deposee', motif: /p_piece\s+uuid[\s\S]*?raise exception 'ouvrir_depot_candidature : la piece est obligatoire' using errcode = 'GL002'[\s\S]*?piece\s*=\s*excluded\.piece/, quoi: 'le journal du dépôt exige la pièce et la pose, à l’ouverture comme à la relance' },
     { fn: 'solder_depot_en_echec', code: 'refus_depot_sans_jugement', motif: /set etat\s*=\s*'echec'[\s\S]*?returning d\.id, d\.tentatives, d\.domain_id[\s\S]*?perform public\.journaliser\(\s*p_piece, 'refus_depot_sans_jugement', 'refuse', p_origine,\s*p_acteur_id, p_acteur_type, v_domaine,[\s\S]*?'cause', p_cause,[\s\S]*?p_piece_origine/, quoi: 'le journal du dépôt est soldé en échec PUIS le refus écrit, au statut imposé, avec la cause fermée et la pièce d’origine — même transaction' },
     { fn: 'decliner_candidature', code: 'candidature_declinee', motif: /set status\s*=\s*'rejected'[\s\S]*?and c\.domain_id = p_domain_id\s*and c\.status = any \(p_statuts_admis\)\s*and exists \(select 1 from public\.publications p\s*where p\.id = c\.publication_id and p\.organization_id = p_organization_id\)[\s\S]*?if v_publication is null then[\s\S]*?return false;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'candidature_declinee', 'reussi', p_origine,/, quoi: 'transition, cloisonnement et propriété rejoués dans l’UPDATE ; zéro ligne rend false sans journaliser ; PUIS la ligne — même transaction' },
+    { fn: 'retenir_candidature', code: 'candidature_retenue', motif: /set status\s*=\s*'selected',\s*selected_at = now\(\)[\s\S]*?and c\.domain_id = p_domain_id\s*and c\.status = any \(p_statuts_admis\)\s*and exists \(select 1 from public\.publications p\s*where p\.id = c\.publication_id and p\.organization_id = p_organization_id\)[\s\S]*?if v_selected_at is null then[\s\S]*?return null;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'candidature_retenue', 'reussi', p_origine,[\s\S]*?return v_selected_at;/, quoi: 'transition, cloisonnement et propriété rejoués dans l’UPDATE ; zéro ligne rend null sans journaliser ; PUIS la ligne, et selected_at rendu — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
   // signature — le premier `{` après le nom serait celui d'un type de paramètre.
@@ -659,6 +663,15 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     'déclinée : la RPC est EXÉCUTÉE deux fois sur la même candidature — le rejeu rend false et n’écrit pas (sonde annulée)')
   ok(/c\.status = 'rejected' and c\.status_reason = 'sonde'/.test(postDc) && /\(g\.detail ->> 'has_reason'\)::boolean/.test(postDc) && /raise exception 'SONDE_ANNULEE'/.test(postDc),
     'déclinée : la transition et la ligne sont RELUES, puis annulées')
+  // La candidature retenue : même forme, selected_at relu tel que rendu.
+  const RETENUE = stripSql(read(migration('journal_candidature_retenue')))
+  const iPostRt = RETENUE.indexOf('do $post$')
+  const postRt = iPostRt < 0 ? '' : RETENUE.slice(iPostRt)
+  ok(/to_regprocedure\('public\.retenir_candidature\(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text\[\]\)'\) is null/.test(postRt), 'retenue : la signature est vérifiée par TYPES')
+  ok((postRt.match(/public\.retenir_candidature\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_quand2 is not null or v_lignes <> 1/.test(postRt),
+    'retenue : la RPC est EXÉCUTÉE deux fois sur la même candidature — le rejeu rend null et n’écrit pas (sonde annulée)')
+  ok(/c\.status = 'selected' and c\.selected_at = v_quand/.test(postRt) && /g\.detail ->> 'publication_type' is not null/.test(postRt) && /raise exception 'SONDE_ANNULEE'/.test(postRt),
+    'retenue : la transition (selected_at tel que rendu) et la ligne sont RELUES, puis annulées')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

@@ -4,6 +4,7 @@ import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -113,6 +114,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { id: candidatureId } = await ctx.params
   if (!candidatureId || !UUID_REGEX.test(candidatureId)) {
@@ -163,23 +166,35 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     )
   }
 
-  // ── UPDATE candidature → selected (idempotent si déjà selected) ────────
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `retenir_candidature` retient la candidature ET écrit `candidature_retenue`
+  //  dans la même transaction. La garde de transition, le cloisonnement
+  //  (défense en profondeur — cf. la lecture cloisonnée plus haut) et la
+  //  propriété sont REJOUÉS dans l'instruction (anti-race) : zéro ligne
+  //  touchée n'est pas un succès, c'est une transition devenue invalide — la
+  //  route la disait 200 en silence (§E.27). `selected_at` est posé par la
+  //  base, et c'est lui qui est rendu. Idempotent si déjà retenue.
   let selectedAtIso: string | null = candRow.selected_at
   let didFlip = false
   if (!isAlreadySelected) {
-    const nowIso = new Date().toISOString()
-    const { error: updErr } = await auth.supabaseAdmin
-      .from('candidatures')
-      .update({ status: 'selected', selected_at: nowIso })
-      // Defense en profondeur — cf. la lecture cloisonnee plus haut.
-      .eq('id', candidatureId)
-      .eq('domain_id', activeEcosystemId(auth))
-      .in('status', ALLOWED_PREVIOUS_STATUSES)   // anti-race : re-check transition
+    const { data: retenueAt, error: updErr } = await auth.supabaseAdmin.rpc('retenir_candidature', {
+      ...parametresJournal(journal),
+      p_candidature_id: candidatureId,
+      p_domain_id: activeEcosystemId(auth),
+      p_organization_id: orgId,
+      p_statuts_admis: [...ALLOWED_PREVIOUS_STATUSES],
+    })
     if (updErr) {
       console.error('[candidatures/[id]/select:POST] candidature flip failed', updErr.message)
       return json({ error: 'Candidature update failed', code: 'db_error' }, 500)
     }
-    selectedAtIso = nowIso
+    if (typeof retenueAt !== 'string') {
+      return json(
+        { error: 'Invalid status transition', code: 'invalid_transition', current: candRow.status },
+        409,
+      )
+    }
+    selectedAtIso = retenueAt
     didFlip = true
   }
 

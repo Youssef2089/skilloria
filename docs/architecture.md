@@ -98,6 +98,14 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_candidature_retenue` (25/09/2026) — RETENIR : MÊME FORME QUE DÉCLINER, `selected_at` POSÉ PAR LA BASE.**
+> `retenir_candidature(…)` : `update … set status = 'selected', selected_at = now() where id, domain_id, status =
+> any(admis), exists(publication de l'organisation) returning selected_at` — zéro ligne rend `null` sans
+> journaliser —, puis `journaliser('candidature_retenue')` avec le type de l'annonce. Liste blanche posée.
+> **Ordre : AVANT le déploiement.** Postcondition exécutée sur une candidature dévoilée (sautée, et dite,
+> sinon) : retenue et **relue** (`selected_at` égal à celui rendu), ligne **relue**, rejeu qui rend `null` sans
+> seconde ligne.
+
 > **`journal_candidature_declinee` (25/09/2026) — DÉCLINER : LA TRANSITION ET SA LIGNE NAISSENT ENSEMBLE, LES GARDES DANS L'INSTRUCTION.**
 > `decliner_candidature(pièce, pièce d'origine, origine, acteur, candidature, écosystème, organisation, raison,
 > statuts admis)` : `update … where id, domain_id, status = any(admis), exists(publication de l'organisation)`
@@ -1691,6 +1699,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `refus_garde_eligibilite` | `refuserGarde()` dans `lib/candidatures/depot.ts` | fait, après refus | `code` (valeur fermée de `REFUS_DEPOT`), `profile_id` | **aucune** sortie « refusée » littérale ne reste dans le dépôt, toutes passent par le raccourci `refuser(code)` ; seuls les refus de **règle** (statut < 500) s'écrivent — une panne de lecture se réessaie, elle ne refuse rien (§E.22) ; sujet l'annonce visée, écosystème celui du dépôt dès que le profil est lu |
 | `refus_quota_cv` | `refuserParQuota()` dans `lib/ai-quotas.ts` | fait, après refus | `quota`, `limite`, `fenetre_heures`, `reset_at`, `compte` | les **deux** routes d'analyse de CV (freelance, CDI — parité §D.14) l'appellent AVANT leur 429 ; la limite et la fenêtre sont celles **lues** au moment du refus, un réglage qui change ne réécrit pas l'histoire ; sujet le profil |
 | `candidature_declinee` | `decliner_candidature()` (SQL) | RPC métier + journal | `publication_id`, `has_reason` | la transition, le cloisonnement (§D.3) et la propriété sont **rejoués dans l'UPDATE** ; zéro ligne rend `false` — la route répond 409 `invalid_transition` là où elle disait 200 en silence (§E.27) ; la raison en texte libre reste sur la candidature, hors du grand livre |
+| `candidature_retenue` | `retenir_candidature()` (SQL) | RPC métier + journal | `publication_id`, `publication_type`, `profile_id` | même forme que la déclinée : gardes rejouées dans l'UPDATE, zéro ligne rend `null` (409 `invalid_transition`), `selected_at` posé par la base et rendu à la route ; idempotent si déjà retenue (rien n'est écrit, rien n'est journalisé) |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3042,8 +3051,8 @@ actions dans l'ordre arbitré par Youssef — (a) l'argent et les réglages d'ad
 familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `paiement_recu`,
 `plafond_atteint`, `refus_plafond_atteint` et `ip_effacees` — **(a) est fait** ; (b) la candidature
 et le dévoilement — **en cours** : `candidature_deposee`, la pièce du rejeu,
-`refus_depot_sans_jugement`, `refus_expert_inapte`, `refus_garde_eligibilite`, `refus_quota_cv` et
-`candidature_declinee` sont faits ; (c) le
+`refus_depot_sans_jugement`, `refus_expert_inapte`, `refus_garde_eligibilite`, `refus_quota_cv`,
+`candidature_declinee` et `candidature_retenue` sont faits ; (c) le
 moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
