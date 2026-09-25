@@ -630,6 +630,8 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
         && !/\.from\('(profiles|organizations)'\)[\s\S]{0,200}?\.update\(\{\s*verification_status:/.test(b)
         && !/verified_at: nowIso/.test(b),
         quoi: `${route} : arbitre par la RPC métier avec le contexte et le statut admis PARTAGÉ ; zéro ligne répond 409 ; plus d’écriture directe du verdict, et la date rendue est celle posée par la base` })),
+    { code: 'session_revoquee', fichier: 'lib/comptes/journal-compte.ts', bloc: 'export async function sessionRevoquee(', motif: /type: 'session_revoquee',\s*statut: 'reussi',\s*sujet: \{ type: 'users', id: args\.userId \},\s*detail: \{\},/, quoi: 'l’écrivain : le fait seul, sur le compte — aucun détail, donc rien qui identifie une session' },
+    { code: 'session_revoquee', fichier: 'app/api/me/sessions/revoke-others/route.ts', bloc: 'export async function POST(', motif: (b) => /const setRes = await setSessionToken\([\s\S]*?await sessionRevoquee\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{ userId: auth\.user\.id \}\)/.test(b) && /if \(!\(err instanceof JournalError\)\) throw err[\s\S]{0,300}?code: 'journal_error'/.test(b) && b.indexOf('await sessionRevoquee(') < b.indexOf("action: 'sessions_revoked_others'"), quoi: 'la ligne vient APRÈS la rotation et AVANT l’audit ; un journal qui refuse répond journal_error' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -945,6 +947,15 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/g\.type_action = 'compte_valide' and g\.sujet_type = 'organizations'[\s\S]{0,120}?g\.ecosysteme_id is null/.test(P),
       'arbitrage : l’organisation écrit sa ligne SANS écosystème, et c’est relu')
     ok(/"review_reason":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'arbitrage : le motif en texte libre est REFUSÉ (sonde exécutée)')
+  }
+  {
+    const SESS = stripSql(read(migration('journal_session_revoquee')))
+    const P = SESS.slice(Math.max(0, SESS.indexOf('do $post$')))
+    ok(/array_length\(v_cles, 1\) is not null then\s*\n?\s*raise exception 'postcondition NON TENUE : session_revoquee devrait avoir une liste blanche VIDE/.test(P),
+      'session : la liste blanche est VÉRIFIÉE VIDE — une liste vide refuse tout, c’est la garde')
+    ok(/journaliser\(gen_random_uuid\(\), 'session_revoquee', 'reussi', 'utilisateur',[\s\S]{0,300}?'\{\}'::jsonb[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
+      'session : la forme exacte du module (aucun détail) est ÉCRITE, puis annulée')
+    ok(/"token":"ss_[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'session : un JETON est REFUSÉ (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

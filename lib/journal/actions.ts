@@ -98,7 +98,7 @@ export const CLES_DETAIL = {
   compte_refuse: ['has_reason', 'de'],
   compte_suspendu: ['de', 'vers', 'type_de_compte'],
   compte_reactive: ['de', 'vers', 'type_de_compte'],
-  session_revoquee: [],
+  session_revoquee: [], // AUCUN détail : le fait seul, et rien qui identifie une session.
   suppression_programmee: [],
   suppression_annulee: [],
   email_change: [],

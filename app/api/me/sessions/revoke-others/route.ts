@@ -1,3 +1,6 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { sessionRevoquee } from '@/lib/comptes/journal-compte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import {
@@ -39,6 +42,21 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!setRes.ok) {
     return new Response(
       JSON.stringify({ error: 'Could not rotate session', code: 'db_error' }),
+      { status: 500, headers: { 'content-type': 'application/json' } },
+    )
+  }
+
+  // LA LIGNE DU GRAND LIVRE — après la rotation (le jeton est déjà changé,
+  // les autres sessions sont déjà tombées), avant l'audit best-effort (§E.68).
+  // Un journal qui refuse le DIT : les sessions SONT révoquées, la trace
+  // manque, et un 200 muet ferait croire l'inverse.
+  try {
+    await sessionRevoquee(auth.supabaseAdmin, contexteDepuisAuth(auth), { userId: auth.user.id })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[me/sessions/revoke-others] grand livre en échec après rotation', err.message)
+    return new Response(
+      JSON.stringify({ error: 'Journal failed', code: 'journal_error' }),
       { status: 500, headers: { 'content-type': 'application/json' } },
     )
   }
