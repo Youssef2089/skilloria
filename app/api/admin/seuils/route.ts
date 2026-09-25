@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { SUJETS, type Sujet, DRAPEAUX_CONNUS } from '@/lib/jugement/sujets'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,6 +37,11 @@ export const dynamic = 'force-dynamic'
  *   La note qui décide, et le NOMBRE DE DOSSIERS ARRIVÉS CE MOIS-CI. Régler
  *   une note sans savoir combien de dossiers elle vous envoie, c'est choisir
  *   un nombre au hasard — le même reproche que pour les filtres du moteur.
+ *
+ * ═══ ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) ════════════════════════
+ *   La ligne du fournisseur et la ligne du grand livre sont écrites par UNE
+ *   fonction, `regler_note_jugement()`, dans la même transaction. La pièce
+ *   naît à l'entrée du geste, avant toute écriture.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -182,6 +188,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     throw err
   }
   const admin = auth.supabaseAdmin
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { sujet?: unknown; note?: unknown; drapeaux?: unknown }
   try {
@@ -218,17 +226,23 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const cfg = (ligne.config ?? {}) as Record<string, unknown>
 
   const patch: Record<string, unknown> = {}
-  const avant: Record<string, unknown> = {}
+  const noteAvant: number | null =
+    meta.cle_decisive === 'auto_approve_threshold'
+      ? typeof cfg.auto_approve_threshold === 'number'
+        ? cfg.auto_approve_threshold
+        : null
+      : ligne.confidence_threshold
 
   if (meta.cle_decisive === 'auto_approve_threshold') {
-    avant.note = typeof cfg.auto_approve_threshold === 'number' ? cfg.auto_approve_threshold : null
     patch.config = { ...cfg, auto_approve_threshold: note }
   } else {
-    avant.note = ligne.confidence_threshold
     patch.confidence_threshold = note
   }
 
   // ── LES CAS QUI FORCENT LE PASSAGE PAR L'HUMAIN ─────────────────────────
+  //  `undefined` = ce sujet ne porte pas de drapeaux : la clé n'est pas envoyée.
+  let drapeauxAvant: unknown[] | null | undefined
+  let drapeauxApres: string[] | undefined
   if (meta.porte_drapeaux && Array.isArray(body.drapeaux)) {
     const demandes = (body.drapeaux as unknown[]).filter(
       (d): d is string => typeof d === 'string' && (DRAPEAUX_CONNUS as readonly string[]).includes(d),
@@ -239,16 +253,32 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (demandes.length === 0) {
       return json({ error: 'At least one case must stay checked', code: 'aucun_drapeau' }, 400)
     }
-    avant.drapeaux = Array.isArray(cfg.blocking_flags) ? cfg.blocking_flags : null
+    drapeauxAvant = Array.isArray(cfg.blocking_flags) ? cfg.blocking_flags : null
+    drapeauxApres = demandes
     patch.config = { ...((patch.config as Record<string, unknown>) ?? cfg), blocking_flags: demandes }
   }
 
-  const { error } = await admin
-    .from('verification_providers')
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq('id', ligne.id)
+  // L'AVANT et l'APRÈS, une fois, pour le grand livre ET le sous-journal —
+  // en littéraux : un objet rempli par programme ne se relit pas.
+  const avant = { note: noteAvant, drapeaux: drapeauxAvant }
+  const apres = { note, drapeaux: drapeauxApres }
+
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `regler_note_jugement` met à jour la ligne du fournisseur ET écrit la
+  //  ligne du grand livre dans la même transaction.
+  const { error } = await admin.rpc('regler_note_jugement', {
+    p_piece: journal.piece,
+    p_acteur_id: auth.user.id,
+    p_ecosysteme_id: auth.domain.id,
+    p_ligne_id: ligne.id,
+    p_config: 'config' in patch ? patch.config : null,
+    p_confidence_threshold: 'confidence_threshold' in patch ? patch.confidence_threshold : null,
+    p_avant: avant,
+    p_apres: apres,
+    p_note_de: meta.sujet,
+  })
   if (error) {
-    console.error('[admin:seuils] update failed', error.message)
+    console.error('[admin:seuils] écriture en échec', error.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
@@ -259,7 +289,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     action: 'note_jugement_updated',
     entity_type: 'verification_provider',
     entity_id: ligne.id,
-    detail: { sujet: meta.sujet, avant, apres: { note, drapeaux: body.drapeaux ?? null } },
+    detail: { sujet: meta.sujet, avant, apres },
     request,
   })
 

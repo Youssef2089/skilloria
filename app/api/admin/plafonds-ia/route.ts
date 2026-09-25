@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { alerteCoherente } from '@/lib/ai-plafonds'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,6 +63,12 @@ export const dynamic = 'force-dynamic'
  * ═══ ET CHAQUE CHANGEMENT LAISSE UNE TRACE ═════════════════════════════════
  *   `audit_logs`, avec la valeur AVANT et la valeur APRÈS. Même discipline que
  *   `/admin/seuils` et `/admin/durees`.
+ *
+ * ═══ ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) ════════════════════════
+ *   Les trois tables et les lignes du grand livre — UNE par famille touchée,
+ *   trois sujets distincts sous la même pièce — sont écrites par UNE fonction,
+ *   `regler_plafonds_ia()`, dans la même transaction : un corps entier passe,
+ *   ou rien ne passe.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -106,6 +113,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     throw err
   }
   const admin = auth.supabaseAdmin
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let corps: CorpsPatch
   try {
@@ -216,40 +225,57 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   }
 
-  // ── LES ÉCRITURES ────────────────────────────────────────────────────────
-  for (const [provider, valeur] of Object.entries(plafonds)) {
-    const { error } = await admin
-      .from('ai_spend_caps')
-      .update({ monthly_cap_usd: Number(valeur), updated_at: new Date().toISOString() })
-      .eq('provider', provider)
-    if (error) {
-      console.error('[admin:plafonds-ia] écriture du plafond en échec', { provider, message: error.message })
-      return json({ error: 'Query failed', code: 'db_error' }, 500)
-    }
+  // ── L'AVANT ET L'APRÈS DE CE QUI EST TOUCHÉ, une fois pour les deux journaux ─
+  //  En littéraux, clé par clé (les listes sont fermées) : un objet construit
+  //  par programme ne se relit pas, et le contrôle du grand livre le refuse.
+  //  `undefined` = famille non touchée : la clé n'est pas envoyée.
+  const montant = (v: unknown): number | undefined => (v === undefined ? undefined : Number(v))
+  const avantDe = (touche: Record<string, unknown>, cle: string, etat: Record<string, number>): number | null | undefined =>
+    cle in touche ? (etat[cle] ?? null) : undefined
+  const apresCaps = { claude: montant(plafonds.claude), rerank: montant(plafonds.rerank) }
+  const apresAlertes = { organization: montant(seuils.organization), profile: montant(seuils.profile) }
+  const apresPlafondsActeur = {
+    organization: montant(plafondsActeur.organization),
+    profile: montant(plafondsActeur.profile),
   }
-  for (const [acteur, valeur] of Object.entries(seuils)) {
-    const { error } = await admin
-      .from('ai_spend_seuils_acteur')
-      .update({ seuil_mensuel_usd: Number(valeur), updated_at: new Date().toISOString() })
-      .eq('acteur', acteur)
-    if (error) {
-      console.error('[admin:plafonds-ia] écriture du seuil en échec', { acteur, message: error.message })
-      return json({ error: 'Query failed', code: 'db_error' }, 500)
-    }
+  const avantCapsTouches = { claude: avantDe(plafonds, 'claude', avantCaps), rerank: avantDe(plafonds, 'rerank', avantCaps) }
+  const avantAlertesTouches = {
+    organization: avantDe(seuils, 'organization', avantSeuils),
+    profile: avantDe(seuils, 'profile', avantSeuils),
   }
+  const avantPlafondsActeurTouches = {
+    organization: avantDe(plafondsActeur, 'organization', avantPlafondsActeur),
+    profile: avantDe(plafondsActeur, 'profile', avantPlafondsActeur),
+  }
+  // Trois sujets DISTINCTS sous la même pièce : un plafond qui bloque, une
+  // alerte qui signale, un plafond d'acteur qui bloque le classement ne se
+  // relisent pas de la même façon (§D.9) — et une action s'écrit une fois par
+  // sujet (GL005).
+  const sujetPlafonds = identifiantDerive('reglage', 'ai_spend_caps')
+  const sujetAlertes = identifiantDerive('reglage', 'ai_spend_seuils_acteur:seuil_mensuel_usd')
+  const sujetPlafondsActeur = identifiantDerive('reglage', 'ai_spend_seuils_acteur:plafond_mensuel_usd')
 
-  for (const [acteur, valeur] of Object.entries(plafondsActeur)) {
-    const { error } = await admin
-      .from('ai_spend_seuils_acteur')
-      .update({ plafond_mensuel_usd: Number(valeur), updated_at: new Date().toISOString() })
-      .eq('acteur', acteur)
-    if (error) {
-      console.error('[admin:plafonds-ia] écriture du plafond d acteur en échec', {
-        acteur,
-        message: error.message,
-      })
-      return json({ error: 'Query failed', code: 'db_error' }, 500)
-    }
+  // ── LES ÉCRITURES ET LEURS LIGNES DE JOURNAL, EN UN SEUL APPEL (§D.26) ───
+  //  `regler_plafonds_ia` écrit les trois tables ET une ligne du grand livre
+  //  par famille touchée, dans la même transaction. Un corps entier passe, ou
+  //  rien ne passe — plus d'état à moitié appliqué.
+  const { error } = await admin.rpc('regler_plafonds_ia', {
+    p_piece: journal.piece,
+    p_acteur_id: auth.user.id,
+    p_ecosysteme_id: auth.domain.id,
+    p_plafonds: apresCaps,
+    p_alertes: apresAlertes,
+    p_plafonds_acteur: apresPlafondsActeur,
+    p_avant_plafonds: avantCapsTouches,
+    p_avant_alertes: avantAlertesTouches,
+    p_avant_plafonds_acteur: avantPlafondsActeurTouches,
+    p_sujet_plafonds: sujetPlafonds,
+    p_sujet_alertes: sujetAlertes,
+    p_sujet_plafonds_acteur: sujetPlafondsActeur,
+  })
+  if (error) {
+    console.error('[admin:plafonds-ia] écriture en échec', error.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
   // ── LA TRACE ─────────────────────────────────────────────────────────────
@@ -267,8 +293,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       request,
       detail: {
         bloque: true,
-        avant: Object.fromEntries(Object.keys(plafonds).map((k) => [k, avantCaps[k] ?? null])),
-        apres: Object.fromEntries(Object.entries(plafonds).map(([k, v]) => [k, Number(v)])),
+        avant: avantCapsTouches,
+        apres: apresCaps,
       },
     })
   }
@@ -283,8 +309,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       request,
       detail: {
         bloque: false,
-        avant: Object.fromEntries(Object.keys(seuils).map((k) => [k, avantSeuils[k] ?? null])),
-        apres: Object.fromEntries(Object.entries(seuils).map(([k, v]) => [k, Number(v)])),
+        avant: avantAlertesTouches,
+        apres: apresAlertes,
       },
     })
   }
@@ -304,19 +330,15 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       detail: {
         bloque: true,
         portee: 'acteur',
-        avant: Object.fromEntries(
-          Object.keys(plafondsActeur).map((k) => [k, avantPlafondsActeur[k] ?? null]),
-        ),
-        apres: Object.fromEntries(Object.entries(plafondsActeur).map(([k, v]) => [k, Number(v)])),
+        avant: avantPlafondsActeurTouches,
+        apres: apresPlafondsActeur,
       },
     })
   }
 
   return json({
-    plafonds_acteur: Object.fromEntries(
-      Object.entries(plafondsActeur).map(([k, v]) => [k, Number(v)]),
-    ),
-    plafonds: Object.fromEntries(Object.entries(plafonds).map(([k, v]) => [k, Number(v)])),
-    seuils_acteur: Object.fromEntries(Object.entries(seuils).map(([k, v]) => [k, Number(v)])),
+    plafonds_acteur: apresPlafondsActeur,
+    plafonds: apresCaps,
+    seuils_acteur: apresAlertes,
   })
 }

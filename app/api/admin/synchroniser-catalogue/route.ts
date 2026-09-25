@@ -6,6 +6,9 @@ import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { resolveCatalogueKey } from '@/lib/billing/config'
 import { modeDeLaCle } from '@/lib/billing/catalogue-stripe'
 import { syncCatalogue } from '@/lib/billing/catalogue'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { journaliserReglage } from '@/lib/journal/reglages'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -62,6 +65,10 @@ export const maxDuration = 60
  * issues sont rendues SÉPARÉMENT (`synchronisees`, `refusees`, `en_echec`).
  * Une offre non vendable n'est pas une panne, et les confondre ferait lire
  * « échec » sur un catalogue parfaitement sain.
+ *
+ * ET LE GRAND LIVRE (§D.26) : une ligne par synchronisation, sous la pièce du
+ * geste — reliées, refusées et en échec par leur slug ; ÉCHOUÉE dès qu'une
+ * offre est en échec ou que Stripe n'a pas répondu, avec sa cause bornée.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -79,6 +86,8 @@ export async function POST(request: NextRequest) {
     if (e instanceof AuthError) return e.toResponse()
     throw e
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // LE VERROU DE CATALOGUE, ET LUI SEUL. Les trois contrôles de clé restent
   // entiers — présence, format, et cohérence clé/environnement DANS LES DEUX
@@ -90,17 +99,48 @@ export async function POST(request: NextRequest) {
   }
   const mode = modeDeLaCle(cle.live)
 
+  // La synchronisation porte sur le catalogue ENTIER, dans un mode : c'est
+  // lui le sujet — du grand livre comme de l'audit.
+  const sujet = { type: 'packages_stripe', id: identifiantDerive('catalogue', `packages:${mode}`) }
+
   let rapport
   try {
     rapport = await syncCatalogue(auth.supabaseAdmin)
   } catch (err) {
-    return json(
-      {
-        error: err instanceof Error ? err.message : String(err),
-        code: 'synchronisation_impossible',
+    const cause = err instanceof Error ? err.message : String(err)
+    // ÉCHOUÉE, ET ÉCRITE : une synchronisation qui n'a pas pu se faire est un
+    // fait du catalogue, pas un silence (§D.26). Le journal lève s'il refuse.
+    await journaliserReglage(auth.supabaseAdmin, journal, {
+      sujet,
+      avant: {},
+      apres: {},
+      statut: 'echoue',
+      complement: { mode, cause: cause.slice(0, 200) },
+    })
+    return json({ error: cause, code: 'synchronisation_impossible' }, 502)
+  }
+
+  // ── LE GRAND LIVRE — journal après écriture, même pièce (§D.26, §C.21) ───
+  //  Les offres reliées, refusées et en échec par leur SLUG seulement — les
+  //  raisons, qui sont du texte, restent dans l'audit. Une offre en échec fait
+  //  de la synchronisation un geste ÉCHOUÉ, même si d'autres ont abouti.
+  try {
+    await journaliserReglage(auth.supabaseAdmin, journal, {
+      sujet,
+      avant: {},
+      apres: {},
+      statut: rapport.failed.length > 0 ? 'echoue' : 'reussi',
+      complement: {
+        mode,
+        synchronisees: rapport.synced.map((r) => r.slug),
+        refusees: rapport.refused.map((r) => r.slug),
+        en_echec: rapport.failed.map((r) => r.slug),
       },
-      502,
-    )
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[admin:synchroniser-catalogue] grand livre en échec', err.message)
+    return json({ error: 'Catalogue synced but the ledger refused the line', code: 'journal_error' }, 500)
   }
 
   await logAudit({
@@ -109,9 +149,7 @@ export async function POST(request: NextRequest) {
     domain_id: auth.domain.id,
     action: 'billing.catalogue.sync',
     entity_type: 'packages',
-    // La synchronisation porte sur le catalogue ENTIER, dans un mode : c'est
-    // lui l'entité. Le détail dit quelles offres ont été reliées.
-    entity_id: identifiantDerive('catalogue', `packages:${mode}`),
+    entity_id: sujet.id,
     request,
     detail: {
       mode,

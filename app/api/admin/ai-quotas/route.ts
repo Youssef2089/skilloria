@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { loadCvParsingQuota, QuotaConfigMissing } from '@/lib/ai-quotas'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -21,6 +22,10 @@ export const dynamic = 'force-dynamic'
  * Les BORNES sont celles de la base (contraintes CHECK de la migration), pas
  * d'autres inventées ici : deux jeux de bornes finissent toujours par diverger,
  * et c'est la base qui a le dernier mot.
+ *
+ * ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) : le quota et la ligne du
+ * grand livre sont écrits par UNE fonction, `regler_quota_ia()`, dans la même
+ * transaction. La pièce naît à l'entrée du geste, avant toute écriture.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -77,6 +82,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { max_per_window?: unknown; window_hours?: unknown }
   try {
@@ -94,27 +101,40 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid window_hours', code: 'invalid_window' }, 400)
   }
 
-  // L'ANCIENNE valeur est lue AVANT l'écriture : sans elle, la trace d'audit
-  // dirait ce que le quota est devenu sans dire d'où il vient — donc sans
-  // permettre de rattacher un pic d'appels au réglage qui l'a permis.
-  let avant: { maxPerWindow: number; windowHours: number } | null = null
+  // L'ANCIENNE valeur est lue AVANT l'écriture : sans elle, la trace dirait ce
+  // que le quota est devenu sans dire d'où il vient — donc sans permettre de
+  // rattacher un pic d'appels au réglage qui l'a permis. Illisible, on REFUSE
+  // (comme le GET) : une ligne de grand livre sans « avant » serait une trace
+  // qui a l'air complète (§E.24).
+  let lu: { maxPerWindow: number; windowHours: number }
   try {
-    avant = await loadCvParsingQuota(auth.supabaseAdmin)
-  } catch {
-    avant = null
+    lu = await loadCvParsingQuota(auth.supabaseAdmin)
+  } catch (err) {
+    if (err instanceof QuotaConfigMissing) {
+      console.error('[admin:ai-quotas]', err.message)
+      return json({ error: 'Quota not configured', code: err.code }, 503)
+    }
+    throw err
   }
+  const avant = { max_per_window: lu.maxPerWindow, window_hours: lu.windowHours }
+  const apres = { max_per_window: max, window_hours: fenetre }
+  const sujetId = identifiantDerive('reglage', 'ai_quotas:cv_parsing')
 
-  const { error } = await auth.supabaseAdmin
-    .from('ai_quotas')
-    .update({
-      max_per_window: max,
-      window_hours: fenetre,
-      updated_at: new Date().toISOString(),
-      updated_by: auth.user.id,
-    })
-    .eq('quota', 'cv_parsing')
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `regler_quota_ia` met à jour le quota ET écrit la ligne du grand livre
+  //  dans la même transaction, par l'écrivain unique `journaliser_reglage()`.
+  const { error } = await auth.supabaseAdmin.rpc('regler_quota_ia', {
+    p_piece: journal.piece,
+    p_acteur_id: auth.user.id,
+    p_ecosysteme_id: auth.domain.id,
+    p_sujet_id: sujetId,
+    p_quota: 'cv_parsing',
+    p_max: max,
+    p_fenetre: fenetre,
+    p_avant: avant,
+  })
   if (error) {
-    console.error('[admin:ai-quotas] update failed', error.message)
+    console.error('[admin:ai-quotas] écriture en échec', error.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
@@ -124,12 +144,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'ai_quota_updated',
     entity_type: 'ai_quota',
-    entity_id: identifiantDerive('reglage', 'ai_quotas:cv_parsing'),
-    detail: {
-      quota: 'cv_parsing',
-      avant: avant ? { max_per_window: avant.maxPerWindow, window_hours: avant.windowHours } : null,
-      apres: { max_per_window: max, window_hours: fenetre },
-    },
+    entity_id: sujetId,
+    detail: { quota: 'cv_parsing', avant, apres },
   })
 
   return json({ ok: true, cv_parsing: { max_per_window: max, window_hours: fenetre } }, 200)

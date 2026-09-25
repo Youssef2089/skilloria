@@ -98,6 +98,21 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_reglages` (25/09/2026) — TOUT RÉGLAGE D'ADMINISTRATION S'ÉCRIT AU GRAND LIVRE, PAR UN ÉCRIVAIN.**
+> `journaliser_reglage()` (le seul littéral `reglage_modifie` ; `reussi` ou `echoue`, GL003 sinon) ;
+> `regler_durees_place()` recréée pour y passer ; cinq RPC métier neuves — `regler_tarif_ia`,
+> `regler_plafonds_ia` (trois familles, trois sujets, une pièce), `regler_quota_ia`, `regler_matching`,
+> `regler_note_jugement` — chacune : `update`, `row_count` compté, puis journal, même transaction ;
+> `set_default_package(uuid)` **supprimée** et recréée à quatre arguments, journalisant sur le sujet
+> `packages_default:<cible>` ; la liste blanche de `reglage_modifie` étendue à l'union des familles.
+> **Ordre : AVANT le déploiement** — onze routes appellent ces RPC dès le même commit.
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** : huit signatures par `to_regprocedure`, l'ancienne porte
+> absente, douze témoins de la liste blanche, puis quatre sondes annulées — l'écrivain écrit et sa
+> ligne est **relue** (avant, après, complément), un texte libre est refusé (GL004), le statut
+> `refuse` est refusé (GL003), et les durées rejouées par la porte recréée (sautée, et dite, sur base
+> vierge).
+
 > **`liste_blanche_par_action` (25/09/2026) — LE DÉTAIL DU GRAND LIVRE EST EN LISTE BLANCHE, ET UNE ACTION S'ÉCRIT UNE FOIS.**
 > `grand_livre_actions.cles_detail text[]` (les chemins autorisés, par action) ; `grand_livre_chemins(jsonb)`
 > (pure, récursive : objets, tableaux, nuls, vides) ; index unique `grand_livre_une_fois_idx`
@@ -1600,7 +1615,17 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 
 | Action | Écrivain — un seul | Motif | Le détail (liste blanche) | Ce que la preuve vérifie |
 |---|---|---|---|---|
-| `reglage_modifie` (durées) | `regler_durees_place()` (SQL) | RPC métier + journal | `avant.*`, `apres.*`, `retroactivite.*` | la route crée sa pièce avant toute écriture et appelle la RPC avec elle |
+| `reglage_modifie` — **toutes familles** | `journaliser_reglage()` (SQL), **seul** littéral du dépôt | — | `avant.*`, `apres.*` (les colonnes de la famille), plus un complément nommé | un seul écrivain, découvert par le contrôle ; `reussi` ou `echoue`, jamais `refuse` (GL003) |
+| · durées | `regler_durees_place()` → l'écrivain | RPC métier + journal | `avant/apres.{vie_annonce_jours, fenetre_echange_jours, invitation_jours, conservation_ip_mois}`, `retroactivite.*` | la route crée son contexte avant toute écriture et appelle la RPC avec sa pièce |
+| · tarifs des modèles | `regler_tarif_ia()` | RPC métier + journal | `model`, `avant/apres.usd_par_*` | écrit, compte la ligne, puis journalise ; sujet dérivé `reglage:ai_model_tarifs:<model>` |
+| · plafonds, alertes, plafonds d'acteur | `regler_plafonds_ia()` | RPC métier + journal | `champ`, `avant/apres.{claude, rerank}`, `avant/apres.{organization, profile}` | **une ligne par famille touchée**, trois sujets dérivés distincts sous la même pièce ; un corps entier passe ou rien |
+| · quota d'analyses de CV | `regler_quota_ia()` | RPC métier + journal | `quota`, `avant/apres.{max_per_window, window_hours}` | l'avant illisible **refuse** (503) : pas de ligne sans avant |
+| · moteur (par écosystème) | `regler_matching()` | RPC métier + journal | `avant/apres.{feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size}` | l'écosystème de la ligne est celui du réglage, pas celui de l'admin ; sujet = la ligne (`domain_id`) |
+| · notes de jugement | `regler_note_jugement()` | RPC métier + journal | `note_de`, `avant/apres.{note, drapeaux[]}` | drapeaux validés seulement — jamais le corps brut ; `config` va dans la table, pas au journal |
+| · offre par défaut | `set_default_package()` (recréée, 4 arguments) | RPC métier + journal | `target_role`, `package_id`, `avant/apres.default_ids[]` | sujet **`packages_default:<cible>`** (dérivé) — le défaut de la cible est un objet à part ; la signature à un argument est **supprimée** |
+| · créer / modifier une offre | `journaliserReglage()` ([lib/journal/reglages.ts](../lib/journal/reglages.ts)) | journal après écriture | `avant/apres.{name, slug, target_role, price_*, currency, active, is_free, is_default, scope}`, `features[].{feature_code, value, reset_period, avant}`, `package_fields[]`, `default_*` | Stripe est au milieu : la ligne vient après, quand tout est connu ; une création par défaut écrit **deux** lignes sous une pièce (l'offre, le défaut) ; la raison en texte libre reste hors du grand livre |
+| · attribuer / migrer des offres | `journaliserReglage()` | journal après écriture | `avant/apres.package_{id, started_at, valid_until}`, `count`, `skipped_subscribed` | l'organisation est **lue** avant (l'écart connu — 200 sur un id inconnu — se ferme en 404) ; une migration = **une** ligne, jamais une par organisation |
+| · synchroniser le catalogue | `journaliserReglage()` | journal après écriture | `mode`, `synchronisees[]`, `refusees[]`, `en_echec[]`, `cause` | slugs seulement ; `echoue` dès qu'une offre est en échec ou que Stripe n'a pas répondu (cause bornée à 200 caractères) |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
 | `plafond_atteint` | `signalerPlafondAtteint()` dans `lib/ai-budget.ts` | fait, après enregistrement | idem + `mois` | cherché après **chaque** dépense enregistrée ; le journal est relu avant d'écrire (une fois par acteur et par mois) |
@@ -1611,6 +1636,15 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 > pourraient doubler la ligne : la clé (pièce, action, sujet) ferme le cas dans le **même** geste, pas
 > entre deux gestes. Assumé, et dit — le sujet est l'acteur (ou, pour le plafond global, un
 > identifiant dérivé `plafond:<fournisseur>:<mois>`).
+
+> **Un journal qui refuse APRÈS une écriture le DIT, avec l'identifiant.** Les sites « journal après
+> écriture » répondent `journal_error` (500) en nommant ce qui a été écrit (`package_id`, `migrated`)
+> — jamais un succès muet, jamais un 500 anonyme. **Et `avant` / `apres` sont des littéraux, clé par
+> clé** (`undefined` = clé non transmise) : un objet construit par programme — `Object.fromEntries`,
+> un `Record` rempli en boucle — est **opaque** pour le détecteur de données personnelles, qui le
+> refuse. Ce qui ne se balaie pas se réécrit (§E.38). Le détecteur, lui, découvre **quels** arguments
+> juger : les paramètres `jsonb` que chaque écrivain SQL passe réellement au journal — `p_config` de
+> `regler_note_jugement()` va dans sa table, pas au journal, et n'est pas jugé (§E.61).
 
 ### C.16 — LES E-MAILS : pourquoi ils n'ont pas de jetons, et d'où viennent leurs couleurs
 
@@ -2583,11 +2617,16 @@ chacun leur sujet. Ce n'est pas le contrôle qui promet « ni zéro, ni deux » 
 les index locaux et élaguera par période sans toucher aux colonnes, à `journaliser()` ni à l'écran.
 Deux index n'ont pas la date en tête et c'est dit : la pièce et le sujet se cherchent sans période.
 
-**Ce qui est branché, ce qui ne l'est pas.** Deux actions réelles passent par le socle :
-`reglage_modifie` (l'écran `/admin/durees`, par la route) et `ip_effacees` (la tâche SQL). Le
-branchement des autres actions, la colonne `piece` des sous-journaux, l'écran et le batch de
-nettoyage sont les étapes 2 à 4 — **§H.3**. `audit_logs` reste, comme premier sous-journal, FK
-intacte.
+**Ce qui est branché, ce qui ne l'est pas.** L'inventaire vit en **§C.21**, action par action, avec
+l'écrivain et la preuve ; `diag-grand-livre` compte à chaque passage ce qui n'a pas encore
+d'écrivain. **Un écrivain par action, et c'est une FONCTION** : `reglage_modifie` — six familles de
+réglages, onze routes — n'a qu'un seul littéral dans le dépôt, `journaliser_reglage()`, que les RPC
+métier appellent dans leur transaction et que le code appelle après une écriture qu'une transaction
+ne peut pas contenir (Stripe au milieu). Deux lignes du même geste sur deux objets — l'offre créée et
+le défaut de sa cible — portent la même pièce et deux sujets : c'est ainsi que « une fois par sujet »
+(GL005) et « un geste, une pièce » tiennent ensemble. La colonne `piece` des sous-journaux, l'écran et
+le batch de nettoyage sont les étapes 3 et 4 — **§H.3**. `audit_logs` reste, comme premier
+sous-journal, FK intacte.
 
 > **LA RÈGLE : toute action nouvelle s'ajoute à la liste fermée — le seed SQL ET
 > `lib/journal/actions.ts` — et passe par `journaliser()` ou par une RPC métier qui l'appelle.
@@ -2931,20 +2970,20 @@ les fonctions. `lib/database.types.ts` est nettoyé. Le verdict reste gardé par
 [`diag-tables-mortes`](../scripts/diag-tables-mortes.mjs) : la vivante a son écrivain SQL, les deux
 supprimées ne sont **plus citées nulle part** — code, types générés, SQL. Un état mesuré (§G.8).
 
-**H.3 — LE GRAND LIVRE N'EST BRANCHÉ QUE SUR DEUX ACTIONS. Les étapes 2 à 4 attendent l'accord de Youssef.**
-Le socle est posé (§D.26, §C.20) : la table, le verrou, `journaliser()`, la première RPC métier, la
-pièce des deux côtés. Les actions branchées sont recensées en **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre`
-compte à chaque passage celles qui n'ont **pas encore** d'écrivain. **Tout le reste de la liste
-fermée n'écrit encore rien.**
-Ce n'est pas un oubli, c'est l'ordre du lot — le socle se valide sur une base locale jetable puis sur
-staging **avant** qu'on y branche quoi que ce soit. À venir, dans cet ordre : **étape 2**, brancher les
-actions une par une avec la preuve que chacune écrit **une** fois (les dix routes qui changent un état
-sans trace, le moteur dans les deux sens — déclenchement, filtrage, classement, correspondances,
-notifications, fin ou échec ou abandon) ; **étape 3**, une colonne `piece` sur `audit_logs`,
-`ai_spend_events`, `stripe_events`, `cron_run_log`, `notifications`, et la pièce transmise par
-`trigger_purge_cron` dans le corps HTTP ; **étape 4**, l'écran et le batch de nettoyage (la seule RPC
-autorisée à supprimer, reconnue par le trigger). La porte TypeScript `journaliser()`
-(`lib/journal/journaliser.ts`) n'a **aucun appelant** aujourd'hui : elle attend les refus de l'étape 2.
+**H.3 — LE GRAND LIVRE : L'ÉTAPE 2 EST EN COURS, ACTION PAR ACTION. Les étapes 3 et 4 suivent.**
+Le socle est posé (§D.26, §C.20), validé sur une base jetable et sur staging. L'étape 2 branche les
+actions dans l'ordre arbitré par Youssef — (a) l'argent et les réglages d'administration : les **six
+familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `plafond_atteint`,
+`refus_plafond_atteint` et `ip_effacees` ; `paiement_recu` est le commit suivant ; (b) la candidature
+et le dévoilement ; (c) le moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
+le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
+collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
+**§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
+n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :
+**étape 3**, une colonne `piece` sur `audit_logs`, `ai_spend_events`, `stripe_events`,
+`cron_run_log`, `notifications`, et la pièce transmise par `trigger_purge_cron` dans le corps HTTP ;
+**étape 4**, l'écran et le batch de nettoyage (la seule RPC autorisée à supprimer, reconnue par le
+trigger).
 
 ---
 

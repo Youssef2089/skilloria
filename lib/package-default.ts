@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ContexteJournal } from './journal/contexte'
+import { JournalError } from './journal/journaliser'
 
 /**
  * INVARIANT DE COUVERTURE du package par défaut — source unique de vérité,
@@ -16,7 +18,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   entre experts est un monde commercial disjoint : son offre par défaut est
  *   toujours une ligne target_role='collaboration' explicite. Cette règle est
  *   écrite à l'identique dans la RPC set_default_package (migration
- *   20260826000000) : toute évolution ici doit y être répercutée.
+ *   `collaboration_default_coverage`, recréée par `journal_reglages`) : toute
+ *   évolution ici doit y être répercutée.
  *
  * Le seul geste possible est le TRANSFERT : on ne décoche jamais un défaut, on
  * en désigne un autre. Conséquences :
@@ -103,16 +106,23 @@ export type TransferResult =
  * Applique le transfert du statut par défaut vers `packageId`.
  *
  * L'ÉCRITURE est déléguée à la RPC Postgres `set_default_package` (migration
- * 20260709000005) : retrait des anciens défauts + pose du nouveau se jouent
- * dans UNE SEULE TRANSACTION, donc aucune fenêtre pendant laquelle une cible
- * serait sans offre par défaut. La RPC réapplique l'invariant côté base et
- * refuse d'elle-même ('target_uncovered') — les vérifications faites ici sont
- * un pré-contrôle, pas la garantie.
+ * `set_default_package_rpc`, recréée par `journal_reglages`) : retrait des
+ * anciens défauts + pose du nouveau se jouent dans UNE SEULE TRANSACTION, donc
+ * aucune fenêtre pendant laquelle une cible serait sans offre par défaut. La
+ * RPC réapplique l'invariant côté base et refuse d'elle-même
+ * ('target_uncovered') — les vérifications faites ici sont un pré-contrôle,
+ * pas la garantie.
+ *
+ * ET ELLE JOURNALISE (§D.26) : la ligne du grand livre — « le défaut de la
+ * cible a changé de main », sujet `packages_default:<cible>` — est écrite dans
+ * la même transaction que le transfert, sous la PIÈCE du geste, que l'appelant
+ * transmet par son contexte de journal. Un transfert sans ligne, ou une ligne
+ * sans transfert, est impossible.
  *
  * ORDRE : (1) lit les défauts actifs courants → (2) pré-valide l'invariant (on
  * évite d'écrire un snapshot pour une opération qui sera refusée) → (3)
  * SNAPSHOT dans package_history de TOUTES les offres touchées AVANT modif →
- * (4) appel de la RPC (atomique) → (5) mapping des exceptions.
+ * (4) appel de la RPC (atomique, journal compris) → (5) mapping des exceptions.
  *
  * L'appelant reste responsable de logAudit (l'action diffère selon le contexte :
  * package_default_changed vs package_created).
@@ -124,11 +134,18 @@ export async function applyDefaultTransfer(
     targetRole: string
     userId: string
     changeReason: string
+    /** Le contexte de journal du geste : la RPC écrit sa ligne sous cette pièce (§D.26). */
+    journal: ContexteJournal
     /** Snapshot de l'offre cible si elle vient d'être créée (déjà en base). */
     includeTargetSnapshot?: boolean
   },
 ): Promise<TransferResult> {
-  const { packageId, targetRole, userId, changeReason } = opts
+  const { packageId, targetRole, userId, changeReason, journal } = opts
+  if (!journal.acteur) {
+    // Un réglage a toujours un auteur — la base le refuserait (GL002) ; le
+    // dire ici évite de l'apprendre après le snapshot.
+    throw new JournalError('transfert du défaut : un réglage a toujours un auteur', null)
+  }
 
   // ── (1) Défauts ACTIFS courants du catalogue ────────────────────────────────
   const { data: currentRows, error: curErr } = await admin
@@ -190,9 +207,12 @@ export async function applyDefaultTransfer(
     }
   }
 
-  // ── (4) Transfert ATOMIQUE côté base (une seule transaction) ────────────────
+  // ── (4) Transfert ATOMIQUE côté base (une seule transaction, journal compris) ─
   const { error: rpcErr } = await admin.rpc('set_default_package', {
     p_package_id: packageId,
+    p_piece: journal.piece,
+    p_acteur_id: journal.acteur.id,
+    p_ecosysteme_id: journal.ecosystemeId,
   })
 
   // ── (5) Mapping des exceptions levées par la RPC ────────────────────────────

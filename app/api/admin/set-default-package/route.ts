@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { applyDefaultTransfer } from '@/lib/package-default'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -14,9 +15,11 @@ export const dynamic = 'force-dynamic'
  * TRANSFERT du statut « offre par défaut » (jamais une décoche).
  *
  * L'ÉCRITURE est atomique : lib/package-default.ts délègue à la RPC Postgres
- * set_default_package (migration 20260709000005), qui joue retrait + pose dans
- * une seule transaction. Le snapshot package_history et le logAudit restent
- * ici : seule la route connaît l'admin à l'origine du geste.
+ * set_default_package (migration `set_default_package_rpc`, recréée par
+ * `journal_reglages`), qui joue retrait + pose ET la ligne du grand livre dans
+ * une seule transaction, sous la pièce du geste (§D.26). Le snapshot
+ * package_history et le logAudit restent ici : seule la route connaît l'admin
+ * à l'origine du geste.
  *
  * INVARIANT DE COUVERTURE (partagé avec create-package, et réappliqué en base
  * par la RPC) : chaque cible (client, cabinet) doit être couverte à tout
@@ -62,6 +65,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { package_id?: unknown }
   try {
@@ -103,6 +108,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     targetRole: pkg.target_role,
     userId: auth.user.id,
     changeReason: `default transfer (${pkg.target_role}) → ${pkg.slug}`,
+    journal,
   })
 
   if (!result.ok) {

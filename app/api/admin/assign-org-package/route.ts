@@ -3,6 +3,9 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { abonnementStripeVivant } from '@/lib/billing/attribution-manuelle'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { journaliserReglage } from '@/lib/journal/reglages'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,11 +35,13 @@ export const dynamic = 'force-dynamic'
  *  - abonnement Stripe VIVANT → 409 'org_has_stripe_subscription' : on ne passe
  *    jamais par-dessus un abonnement payé (cf. lib/billing/attribution-manuelle.ts).
  *
- * L'organisation elle-même n'est PAS vérifiée avant l'écriture : un id inconnu
- * produit un UPDATE à zéro ligne, et la route répond 200. Dit ici plutôt que
- * laissé à découvrir — c'est l'écart connu de cette route.
+ * L'organisation est LUE avant l'écriture — pour l'« avant » de la ligne du
+ * grand livre (§D.26), et par là l'écart connu de cette route est fermé : un id
+ * inconnu est refusé (404 'organization_not_found') au lieu d'un UPDATE à zéro
+ * ligne répondu 200.
  *
- * Écrit package_id, package_started_at=now(), package_valid_until (ou null).
+ * Écrit package_id, package_started_at=now(), package_valid_until (ou null),
+ * puis la ligne du grand livre sous la pièce du geste (journal après écriture).
  * Audit logAudit action 'org_package_assigned'. Garde admin per-route. service_role.
  */
 
@@ -63,6 +68,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Body
   try {
@@ -129,6 +136,23 @@ export async function POST(request: NextRequest): Promise<Response> {
     )
   }
 
+  // ── L'ORGANISATION, LUE AVANT D'ÉCRIRE ──────────────────────────────────
+  //  Pour l'AVANT de la ligne du grand livre — et, par là, l'écart connu de
+  //  cette route se ferme : un identifiant inconnu est refusé au lieu d'un
+  //  UPDATE à zéro ligne répondu 200.
+  const { data: orgAvant, error: orgErr } = await auth.supabaseAdmin
+    .from('organizations')
+    .select('id, package_id, package_started_at, package_valid_until')
+    .eq('id', organizationId)
+    .maybeSingle()
+  if (orgErr) {
+    console.error('[admin:assign-org-package] organisation lookup failed', orgErr.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  if (!orgAvant) {
+    return json({ error: 'Organization not found', code: 'organization_not_found' }, 404)
+  }
+
   // ── Attribution ─────────────────────────────────────────────────────────────
   //  L'ABONNEMENT VIT SUR L'ORGANISATION, plus sur le couple (org, écosystème).
   //  Une organisation accède à TOUS les écosystèmes actifs : le porter sur la
@@ -156,6 +180,25 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (updErr) {
     console.error('[admin:assign-org-package] update failed', updErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+
+  // ── LE GRAND LIVRE — journal après écriture, même pièce (§D.26, §C.21) ───
+  const avant = {
+    package_id: (orgAvant.package_id as string | null) ?? null,
+    package_started_at: (orgAvant.package_started_at as string | null) ?? null,
+    package_valid_until: (orgAvant.package_valid_until as string | null) ?? null,
+  }
+  const apres = { package_id: packageId, package_started_at: nowIso, package_valid_until: validUntilIso }
+  try {
+    await journaliserReglage(auth.supabaseAdmin, journal, {
+      sujet: { type: 'organizations', id: organizationId },
+      avant,
+      apres,
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[admin:assign-org-package] grand livre en échec', err.message)
+    return json({ error: 'Package assigned but the ledger refused the line', code: 'journal_error' }, 500)
   }
 
   await logAudit({

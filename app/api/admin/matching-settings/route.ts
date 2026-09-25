@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,11 @@ export const dynamic = 'force-dynamic'
  *   pour une annonce qu'il ne verrait pas en se connectant. La base porte la
  *   même contrainte ; on refuse ici pour rendre une RAISON lisible plutôt
  *   qu'une erreur Postgres.
+ *
+ * ═══ ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) ════════════════════════
+ *   La ligne de l'écosystème et la ligne du grand livre sont écrites par UNE
+ *   fonction, `regler_matching()`, dans la même transaction. La pièce naît à
+ *   l'entrée du geste, avant toute écriture.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -150,6 +156,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     throw err
   }
   const admin = auth.supabaseAdmin
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: {
     domain_id?: unknown
@@ -173,7 +181,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // au-dessus du filtre de notification sans qu'aucune garde ne le voie.
   const { data: actuel, error: lectureErr } = await admin
     .from('matching_settings')
-    .select('feed_threshold, notify_threshold, rerank_model')
+    .select('feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size')
     .eq('domain_id', domainId)
     .maybeSingle()
   if (lectureErr) {
@@ -267,12 +275,39 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     )
   }
 
-  const { error } = await admin
-    .from('matching_settings')
-    .update({ ...patch, updated_at: new Date().toISOString(), updated_by: auth.user.id })
-    .eq('domain_id', domainId)
+  // L'AVANT porte les cinq colonnes que le corps peut toucher ; l'APRÈS, ce
+  // qu'il touche (`undefined` = non envoyé, la clé n'est pas transmise). Les
+  // deux servent au grand livre ET au sous-journal — en littéraux, clé par
+  // clé : un objet construit par programme ne se relit pas.
+  const avant = {
+    feed_threshold: Number(actuel.feed_threshold),
+    notify_threshold: Number(actuel.notify_threshold),
+    notify_enabled: actuel.notify_enabled === true,
+    rerank_model: actuel.rerank_model,
+    rerank_batch_size: Number(actuel.rerank_batch_size),
+  }
+  const apres = {
+    feed_threshold: patch.feed_threshold,
+    notify_threshold: patch.notify_threshold,
+    notify_enabled: patch.notify_enabled,
+    rerank_model: patch.rerank_model,
+    rerank_batch_size: patch.rerank_batch_size,
+  }
+
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `regler_matching` met à jour la ligne de l'écosystème ET écrit la ligne du
+  //  grand livre dans la même transaction. Le sujet est la ligne elle-même :
+  //  `matching_settings` est clée par l'écosystème.
+  const { error } = await admin.rpc('regler_matching', {
+    p_piece: journal.piece,
+    p_acteur_id: auth.user.id,
+    p_domain_id: domainId,
+    p_sujet_id: domainId,
+    p_patch: apres,
+    p_avant: avant,
+  })
   if (error) {
-    console.error('[admin:matching-settings] update failed', error.message)
+    console.error('[admin:matching-settings] écriture en échec', error.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
@@ -283,15 +318,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     action: 'matching_settings_updated',
     entity_type: 'matching_settings',
     entity_id: domainId,
-    detail: {
-      ecosysteme: domainId,
-      avant: {
-        feed_threshold: Number(actuel.feed_threshold),
-        notify_threshold: Number(actuel.notify_threshold),
-        rerank_model: actuel.rerank_model,
-      },
-      apres: patch,
-    },
+    detail: { ecosysteme: domainId, avant, apres },
   })
 
   return json({ ok: true, domain_id: domainId, ...patch }, 200)

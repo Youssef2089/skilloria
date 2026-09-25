@@ -53,6 +53,7 @@ import {
   arretParPlafondActeur,
   alerteCoherente,
 } from '../lib/ai-plafonds.ts'
+import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
@@ -391,9 +392,15 @@ const ROUTE = SOURCE.get('app/api/admin/plafonds-ia/route.ts')
 //     TYPE du corps et dans la réponse : vider la lecture du corps laissait le
 //     mot partout, et l'assertion verte, pendant que plus aucun réglage
 //     n'arrivait. On ancre sur l'ÉCRITURE — la seule chose qui règle vraiment.
+//  Et depuis §D.26 l'écriture passe par une RPC : on ancre sur le SQL de la
+//  RPC que la route appelle (`set plafond_mensuel_usd =`) et sur l'argument de
+//  la RPC qui le porte — découverts dans les migrations, jamais listés (§E.61).
+const DEFS_SQL = definitionsSql(ROOT)
+const rpcActeur = rpcQuiEcrivent(ROUTE, 'ai_spend_seuils_acteur', DEFS_SQL)
+  .filter((fn) => /set plafond_mensuel_usd = /.test(DEFS_SQL.get(fn)))
 ok(
-  /\.update\(\{ plafond_mensuel_usd:/.test(ROUTE),
-  'le plafond par acteur est ÉCRIT en base (§D.7)',
+  rpcActeur.length > 0 && rpcActeur.some((fn) => new RegExp(`\\.rpc\\('${fn}',\\s*\\{[\\s\\S]{0,900}?p_plafonds_acteur:`).test(ROUTE)),
+  `le plafond par acteur est ÉCRIT en base (§D.7) — par une RPC dont le SQL écrit plafond_mensuel_usd (${rpcActeur.join(', ') || 'aucune'}), à laquelle la route passe p_plafonds_acteur`,
   'un réglage qu\'on saisit et qui n\'atteint pas la base est un réglage mort qui a l\'air vivant (§D.11)',
 )
 ok(

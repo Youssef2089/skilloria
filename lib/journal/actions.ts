@@ -113,10 +113,44 @@ export const CLES_DETAIL = {
   role_membre_change: [],
   paiement_recu: [],
   plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd', 'mois'],
+  // L'union des familles de réglages — chaque route n'en remplit qu'une, la
+  // base refuse le reste (migration `journal_reglages`).
   reglage_modifie: [
+    'avant', 'apres',
+    // durées
     'avant.vie_annonce_jours', 'avant.fenetre_echange_jours', 'avant.invitation_jours', 'avant.conservation_ip_mois',
     'apres.vie_annonce_jours', 'apres.fenetre_echange_jours', 'apres.invitation_jours', 'apres.conservation_ip_mois',
     'retroactivite', 'retroactivite.basculent', 'retroactivite.dont_devoilees', 'retroactivite.confirmee',
+    // tarifs
+    'model',
+    'avant.usd_par_1m_entree', 'avant.usd_par_1m_sortie', 'avant.usd_par_unite', 'avant.usd_par_recherche', 'avant.usd_par_recherche_web',
+    'apres.usd_par_1m_entree', 'apres.usd_par_1m_sortie', 'apres.usd_par_unite', 'apres.usd_par_recherche', 'apres.usd_par_recherche_web',
+    // plafonds et alertes
+    'champ', 'avant.claude', 'avant.rerank', 'apres.claude', 'apres.rerank',
+    'avant.organization', 'avant.profile', 'apres.organization', 'apres.profile',
+    // quotas
+    'quota', 'avant.max_per_window', 'avant.window_hours', 'apres.max_per_window', 'apres.window_hours',
+    // moteur
+    'avant.feed_threshold', 'avant.notify_threshold', 'avant.notify_enabled', 'avant.rerank_model', 'avant.rerank_batch_size',
+    'apres.feed_threshold', 'apres.notify_threshold', 'apres.notify_enabled', 'apres.rerank_model', 'apres.rerank_batch_size',
+    // notes de jugement
+    'note_de', 'avant.note', 'avant.drapeaux', 'avant.drapeaux[]', 'apres.note', 'apres.drapeaux', 'apres.drapeaux[]',
+    // offres
+    'avant.name', 'avant.slug', 'avant.target_role', 'avant.price_monthly', 'avant.price_yearly', 'avant.currency',
+    'avant.active', 'avant.is_free', 'avant.is_default', 'avant.scope',
+    'apres.name', 'apres.slug', 'apres.target_role', 'apres.price_monthly', 'apres.price_yearly', 'apres.currency',
+    'apres.active', 'apres.is_free', 'apres.is_default', 'apres.scope',
+    'features', 'features[].feature_code', 'features[].value', 'features[].reset_period', 'features[].avant',
+    'package_fields', 'package_fields[]',
+    'default_requested', 'default_applied', 'default_refused_code',
+    // le défaut du catalogue
+    'target_role', 'package_id', 'avant.default_ids', 'avant.default_ids[]', 'apres.default_ids', 'apres.default_ids[]',
+    // attribution et migration d'offres
+    'avant.package_id', 'avant.package_started_at', 'avant.package_valid_until',
+    'apres.package_id', 'apres.package_started_at', 'apres.package_valid_until',
+    'count', 'skipped_subscribed',
+    // catalogue Stripe
+    'mode', 'synchronisees', 'synchronisees[]', 'refusees', 'refusees[]', 'en_echec', 'en_echec[]', 'cause',
   ],
   inactivite_avertie: [],
   compte_purge_inactivite: [],

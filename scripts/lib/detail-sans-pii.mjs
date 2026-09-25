@@ -91,16 +91,23 @@ export function fabriquerDetecteur(CLES, champ = 'detail') {
   return function defautDe(bloc, contexte = '') {
     const m = PROP.exec(bloc)
     if (!m) return null
-    if (m[1] !== ':') return `détail OPAQUE (raccourci \`${champ}\`) — un objet qu’on ne lit pas ne se vérifie pas`
-    const apres = bloc.slice(m.index + m[0].length).trimStart()
     let litteral
-    if (apres.startsWith('{')) {
-      litteral = blocApres(bloc.slice(m.index), `${champ}:`)
-    } else {
-      const ident = /^([A-Za-z_$][\w$]*)\s*[,}\n]/.exec(apres)
-      const definition = ident ? blocApres(contexte, `const ${ident[1]} = {`) : null
-      if (!definition) return `détail OPAQUE (\`${champ}: ${apres.slice(0, 24).split('\n')[0]}…\`) — ni littéral, ni \`const\` littéral dans le fichier`
+    if (m[1] !== ':') {
+      // Raccourci `{ avant }` ≡ `{ avant: avant }` : jugé sur son `const`
+      // littéral, s'il existe dans le fichier — sinon opaque, comme une variable.
+      const definition = blocApres(contexte, `const ${champ} = {`)
+      if (!definition) return `détail OPAQUE (raccourci \`${champ}\`, sans \`const ${champ} = {…}\` dans le fichier) — un objet qu’on ne lit pas ne se vérifie pas`
       litteral = definition
+    } else {
+      const apres = bloc.slice(m.index + m[0].length).trimStart()
+      if (apres.startsWith('{')) {
+        litteral = blocApres(bloc.slice(m.index), `${champ}:`)
+      } else {
+        const ident = /^([A-Za-z_$][\w$]*)\s*[,}\n]/.exec(apres)
+        const definition = ident ? blocApres(contexte, `const ${ident[1]} = {`) : null
+        if (!definition) return `détail OPAQUE (\`${champ}: ${apres.slice(0, 24).split('\n')[0]}…\`) — ni littéral, ni \`const\` littéral dans le fichier`
+        litteral = definition
+      }
     }
     if (!litteral) return 'détail illisible'
     if (/\.\.\./.test(litteral)) return 'détail OPAQUE (spread `...`) — les clés viennent d’ailleurs'

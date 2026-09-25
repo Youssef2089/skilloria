@@ -26,6 +26,7 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { definitionsSql, rpcQuiEcrivent, indexDuPremierAppel } from './lib/ecriture-par-rpc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Fins de ligne NORMALISEES : le depot sort les fichiers en CRLF.
@@ -123,7 +124,7 @@ if (iAudit !== -1) {
   // `avant` est passé en RACCOURCI d'objet (`{ …, avant, apres: … }`), donc
   // sans deux-points. Le contrôle exigeait la forme longue : il épinglait une
   // ÉCRITURE, pas la présence de l'information.
-  ok(/\bavant[,:]/.test(bloc) && /\bapres[,:]/.test(bloc),
+  ok(/\bavant\s*[,:}]/.test(bloc) && /\bapres\s*[,:}]/.test(bloc),
     'la trace porte l’AVANT et l’APRES',
     '« seuil modifie » sans l’ancienne valeur ne repond pas a « pourquoi vaut-il ca »')
   ok(/request,/.test(bloc), 'la trace porte la requete (adresse, agent)',
@@ -135,7 +136,14 @@ if (iAudit !== -1) {
 // (`avant` -> `lignes`, dont on tire `avant.note`) ; ce qui compte est
 // l ORDRE : lu apres, la trace enregistrerait deux fois la nouvelle valeur.
 const iLecture = route.search(/const \{ data: (avant|lignes)/)
-const iEcriture = route.search(/\.from\('verification_providers'\)\s*\n?\s*\.update\(/)
+// L'ÉCRITURE PASSE PAR UNE RPC (§D.26) : celle dont le SQL écrit
+// verification_providers — découverte dans les migrations, jamais nommée ici
+// (§E.61). Un `.from().update` dans la route serait un retour en arrière.
+const DEFS = definitionsSql(ROOT)
+const rpcNotes = rpcQuiEcrivent(route, 'verification_providers', DEFS)
+const iEcriture = indexDuPremierAppel(route, rpcNotes)
+ok(rpcNotes.length > 0 && !/\.from\('verification_providers'\)\s*\n?\s*\.update\(/.test(route),
+  `la note est ECRITE par une RPC dont le SQL ecrit verification_providers (${rpcNotes.join(', ') || 'aucune'}) — plus par la route`)
 ok(iLecture !== -1 && iEcriture !== -1 && iLecture < iEcriture,
   'l’etat AVANT est lu avant l’ecriture',
   'lu apres, la trace enregistrerait deux fois la nouvelle valeur')

@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { jugerForme } from '@/lib/ai-tarifs/forme'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -47,6 +48,11 @@ export const dynamic = 'force-dynamic'
  *
  *   ET `usd_par_recherche_web` N'EST PAS UNE FORME, c'est un SUPPLÉMENT : il
  *   s'ajoute aux jetons du même appel, et seule la forme JETONS peut le porter.
+ *
+ * ═══ ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) ════════════════════════
+ *   La grille et la ligne du grand livre sont écrites par UNE fonction,
+ *   `regler_tarif_ia()`, dans la même transaction — par l'écrivain unique de
+ *   `reglage_modifie`. La pièce naît à l'entrée du geste, avant toute écriture.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -136,6 +142,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: {
     model?: unknown
@@ -219,24 +227,42 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return json({ error: 'Unknown model', code: 'unknown_model' }, 404)
   }
 
+  // L'AVANT et l'APRÈS, une fois : ils servent au grand livre ET au sous-journal.
+  const avant = {
+    usd_par_1m_entree: nombreOuNull(avantRow.usd_par_1m_entree as number | string | null),
+    usd_par_1m_sortie: nombreOuNull(avantRow.usd_par_1m_sortie as number | string | null),
+    usd_par_unite: nombreOuNull(avantRow.usd_par_unite as number | string | null),
+    usd_par_recherche: nombreOuNull(avantRow.usd_par_recherche as number | string | null),
+    usd_par_recherche_web: nombreOuNull(avantRow.usd_par_recherche_web as number | string | null),
+  }
+  const apres = {
+    usd_par_1m_entree: entree,
+    usd_par_1m_sortie: sortie,
+    usd_par_unite: unite,
+    usd_par_recherche: recherche,
+    usd_par_recherche_web: rechercheWeb,
+  }
+  // Un modèle est clé par un TEXTE : le sujet est dérivé, stable, et le nom
+  // lisible reste dans le détail (`model`).
+  const sujetId = identifiantDerive('reglage', `ai_model_tarifs:${model}`)
+
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `regler_tarif_ia` met à jour la grille ET écrit la ligne du grand livre
+  //  dans la même transaction, par l'écrivain unique `journaliser_reglage()`.
+  //  Un modèle inconnu y est refusé (P0002) : la lecture ci-dessus l'a déjà dit.
   const maintenant = new Date().toISOString()
-  const { error } = await auth.supabaseAdmin
-    .from('ai_model_tarifs')
-    .update({
-      usd_par_1m_entree: entree,
-      usd_par_1m_sortie: sortie,
-      usd_par_unite: unite,
-      usd_par_recherche: recherche,
-      usd_par_recherche_web: rechercheWeb,
-      ...(typeof body.source === 'string' && body.source.trim() !== ''
-        ? { source: body.source.trim().slice(0, 300) }
-        : {}),
-      updated_at: maintenant,
-      updated_by: auth.user.id,
-    })
-    .eq('model', model)
+  const { error } = await auth.supabaseAdmin.rpc('regler_tarif_ia', {
+    p_piece: journal.piece,
+    p_acteur_id: auth.user.id,
+    p_ecosysteme_id: auth.domain.id,
+    p_sujet_id: sujetId,
+    p_model: model,
+    p_valeurs: apres,
+    p_source: typeof body.source === 'string' ? body.source.trim().slice(0, 300) : null,
+    p_avant: avant,
+  })
   if (error) {
-    console.error('[admin:tarifs-ia] update failed', error.message)
+    console.error('[admin:tarifs-ia] écriture en échec', error.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
@@ -246,28 +272,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id: auth.domain.id,
     action: 'ai_tarif_updated',
     entity_type: 'ai_model_tarif',
-    // Un modèle est clé par un TEXTE : l'entité est dérivée, stable, et le nom
-    // lisible reste dans `detail.model`.
-    entity_id: identifiantDerive('reglage', `ai_model_tarifs:${model}`),
-    detail: {
-      model,
-      avant: {
-        usd_par_1m_entree: nombreOuNull(avantRow.usd_par_1m_entree as number | string | null),
-        usd_par_1m_sortie: nombreOuNull(avantRow.usd_par_1m_sortie as number | string | null),
-        usd_par_unite: nombreOuNull(avantRow.usd_par_unite as number | string | null),
-        usd_par_recherche: nombreOuNull(avantRow.usd_par_recherche as number | string | null),
-        usd_par_recherche_web: nombreOuNull(
-          avantRow.usd_par_recherche_web as number | string | null,
-        ),
-      },
-      apres: {
-        usd_par_1m_entree: entree,
-        usd_par_1m_sortie: sortie,
-        usd_par_unite: unite,
-        usd_par_recherche: recherche,
-        usd_par_recherche_web: rechercheWeb,
-      },
-    },
+    entity_id: sujetId,
+    detail: { model, avant, apres },
   })
 
   return json({ ok: true, model, updated_at: maintenant }, 200)

@@ -11,6 +11,9 @@ import {
   type DefaultRow,
 } from '@/lib/package-default'
 import { targetRoleForOrgType } from '@/lib/org-target-role'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { journaliserReglage } from '@/lib/journal/reglages'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,7 +49,8 @@ export const dynamic = 'force-dynamic'
  *    (une inscription doit toujours trouver une offre).
  *
  * ORDRE : (1) requireAdmin → (2) charge package + features actuels → (3) valide
- * → (4) SNAPSHOT complet dans package_history AVANT toute modif → (5) applique.
+ * → (4) SNAPSHOT complet dans package_history AVANT toute modif → (5) applique
+ * → (6) la ligne du grand livre, après écriture, sous la pièce du geste (§D.26).
  * Garde admin per-route via requireAdmin. service_role.
  */
 
@@ -131,6 +135,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Body
   try {
@@ -422,6 +428,57 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.error('[admin:update-package] feature update failed', fu.feature_code, fuErr.message)
       return json({ error: 'Feature update failed', code: 'db_error' }, 500)
     }
+  }
+
+  // ── (6) LE GRAND LIVRE — journal après écriture, même pièce (§D.26, §C.21) ─
+  //  L'édition traverse Stripe : elle ne tient pas dans une transaction. La
+  //  ligne porte les colonnes touchées, avant et après, et les limites
+  //  modifiées avec leur valeur d'avant — jamais la raison en texte libre,
+  //  qui reste dans l'historique et l'audit. En littéraux, clé par clé
+  //  (`undefined` = colonne non touchée, la clé n'est pas transmise).
+  const ligneAvant = pkg as Record<string, unknown>
+  const touche = (champ: string) => champ in packageUpdates
+  const avant = {
+    name: touche('name') ? (ligneAvant.name as string) : undefined,
+    target_role: touche('target_role') ? (ligneAvant.target_role as string) : undefined,
+    price_monthly: touche('price_monthly') ? nombreOuNull(ligneAvant.price_monthly) : undefined,
+    price_yearly: touche('price_yearly') ? nombreOuNull(ligneAvant.price_yearly) : undefined,
+    is_free: touche('is_free') ? Boolean(ligneAvant.is_free) : undefined,
+    active: touche('active') ? Boolean(ligneAvant.active) : undefined,
+  }
+  const apres = {
+    name: packageUpdates.name,
+    target_role: packageUpdates.target_role,
+    price_monthly: packageUpdates.price_monthly,
+    price_yearly: packageUpdates.price_yearly,
+    is_free: packageUpdates.is_free,
+    active: packageUpdates.active,
+  }
+  const valeurAvant = new Map(
+    ((currentFeats ?? []) as { feature_code: string; value: string }[]).map((f) => [f.feature_code, f.value]),
+  )
+  const limites = featureUpdates.map((f) => ({
+    feature_code: f.feature_code,
+    value: f.value,
+    avant: valeurAvant.get(f.feature_code) ?? null,
+  }))
+  try {
+    await journaliserReglage(auth.supabaseAdmin, journal, {
+      sujet: { type: 'packages', id: packageId },
+      avant,
+      apres,
+      complement: {
+        package_fields: Object.keys(packageUpdates).filter((k) => k !== 'updated_at'),
+        features: limites,
+      },
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[admin:update-package] grand livre en échec', err.message)
+    return json(
+      { error: 'Package updated but the ledger refused the line', code: 'journal_error', package_id: packageId },
+      500,
+    )
   }
 
   await logAudit({

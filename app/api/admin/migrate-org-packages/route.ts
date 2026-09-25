@@ -4,6 +4,9 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { organisationsAbonnees } from '@/lib/billing/attribution-manuelle'
 import { COVERAGE_TARGETS, covers } from '@/lib/package-default'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { journaliserReglage } from '@/lib/journal/reglages'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -30,6 +33,10 @@ export const dynamic = 'force-dynamic'
  * RÉVERSIBLE : l'opération est rejouable en sens inverse (source ↔ cible) tant
  * que les gardes le permettent. package_valid_until est remis à NULL (l'offre
  * migrée n'hérite pas de l'échéance de l'ancienne).
+ *
+ * UNE LIGNE DU GRAND LIVRE pour la migration entière (§D.26) — jamais une par
+ * organisation : le sujet est l'offre cible, le détail dit d'où l'on vient et
+ * combien, dont les abonnées écartées.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -57,6 +64,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { from_package_id?: unknown; to_package_id?: unknown; preview?: unknown }
   try {
@@ -186,6 +195,21 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Migration failed', code: 'db_error' }, 500)
   }
   const migrated = (updated ?? []).length
+
+  // ── LE GRAND LIVRE — journal après écriture, même pièce (§D.26, §C.21) ───
+  //  UNE ligne pour la migration entière, jamais une par organisation.
+  try {
+    await journaliserReglage(auth.supabaseAdmin, journal, {
+      sujet: { type: 'packages', id: toId },
+      avant: { package_id: fromId },
+      apres: { package_id: toId },
+      complement: { count: migrated, skipped_subscribed: idsEcartes.size },
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[admin:migrate-org-packages] grand livre en échec', err.message)
+    return json({ error: 'Migrated but the ledger refused the line', code: 'journal_error', migrated }, 500)
+  }
 
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,

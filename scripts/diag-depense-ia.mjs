@@ -51,6 +51,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Fins de ligne NORMALISEES : le depot sort les fichiers en CRLF, et un retour
@@ -473,12 +474,19 @@ section('I. Les deux reglages d’ARGENT se reglent — et l’ecran dit lequel 
   const ROUTE = sansCommentaires(read('app/api/admin/plafonds-ia/route.ts'))
   const LECTURE = sansCommentaires(read('app/api/admin/matching-settings/route.ts'))
 
-  ok(/\.from\('ai_spend_caps'\)\s*\.?\s*\n?\s*\.update\(/.test(ROUTE),
-    'le plafond global peut etre ECRIT depuis le back-office',
+  // L'ÉCRITURE PASSE PAR UNE RPC (§D.26) : la route appelle une fonction SQL
+  // dont la DERNIÈRE définition écrit la table — la preuve est dans le SQL,
+  // découverte, jamais listée (§E.61). Un `.from().update` dans la route serait
+  // un retour en arrière : il est REFUSÉ, pas accepté comme second chemin.
+  const DEFS = definitionsSql(ROOT)
+  const rpcCaps = rpcQuiEcrivent(ROUTE, 'ai_spend_caps', DEFS)
+  ok(rpcCaps.length > 0 && !/\.from\('ai_spend_caps'\)\s*\n?\s*\.update\(/.test(ROUTE),
+    `le plafond global peut etre ECRIT depuis le back-office — par une RPC qui ecrit ai_spend_caps (${rpcCaps.join(', ') || 'aucune'})`,
     'affiche sans pouvoir etre change, c’est un reglage qui ne regle rien (§D.7)')
 
-  ok(/\.from\('ai_spend_seuils_acteur'\)\s*\.?\s*\n?\s*\.update\(/.test(ROUTE),
-    'le seuil d’alerte par acteur peut etre ECRIT depuis le back-office')
+  const rpcAlertes = rpcQuiEcrivent(ROUTE, 'ai_spend_seuils_acteur', DEFS)
+  ok(rpcAlertes.length > 0 && rpcAlertes.some((fn) => /set seuil_mensuel_usd =/.test(DEFS.get(fn))) && !/\.from\('ai_spend_seuils_acteur'\)\s*\n?\s*\.update\(/.test(ROUTE),
+    `le seuil d’alerte par acteur peut etre ECRIT depuis le back-office — par une RPC qui ecrit seuil_mensuel_usd (${rpcAlertes.join(', ') || 'aucune'})`)
 
   // LA GARDE EST AU SERVEUR. Griser un champ ne garde rien : un appel forge passe.
   ok(/function montantValide/.test(ROUTE) && /n >= 0 && n <= 100_000/.test(ROUTE),

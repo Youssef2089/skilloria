@@ -106,6 +106,88 @@ function derniereDefinition(nomAvecParenthese) {
   }
   return trouvee
 }
+/**
+ * TOUTES les fonctions SQL dans leur DERNIÈRE définition : nom → { fichier,
+ * corps, params }. Les paramètres sont lus dans la signature — c'est par leur
+ * TYPE (`jsonb`) que le détecteur de données personnelles sait quels arguments
+ * d'un appel `.rpc()` portent un détail, sans liste tenue à la main (§E.61).
+ */
+const DEFINITIONS_COURANTES = (() => {
+  const defs = new Map()
+  for (const f of TOUTES_MIGRATIONS) {
+    const src = SQL_PAR_MIGRATION.get(f)
+    for (const m of src.matchAll(/create or replace function public\.(\w+)\(/g)) {
+      const corps = corpsSql(src.slice(m.index), `public.${m[1]}(`)
+      const signature = (blocApres(corps, `public.${m[1]}(`, '(', ')') ?? '()').slice(1, -1)
+      const params = []
+      let depth = 0
+      let courant = ''
+      for (const ch of signature + ',') {
+        if (ch === '(') depth++
+        if (ch === ')') depth--
+        if (ch === ',' && depth === 0) {
+          const [nom, type] = courant.trim().split(/\s+/)
+          if (nom) params.push({ nom, type: (type ?? '').toLowerCase() })
+          courant = ''
+        } else courant += ch
+      }
+      defs.set(m[1], { fichier: f, corps, params })
+    }
+  }
+  return defs
+})()
+/**
+ * Les ÉCRIVAINS du grand livre côté SQL : `journaliser()` et toute fonction
+ * qui l'appelle, directement ou par une autre — découverts par point fixe,
+ * jamais listés (§E.61). Un écrivain métier ajouté demain est vu sans qu'on
+ * l'inscrive nulle part.
+ */
+const ECRIVAINS_SQL = (() => {
+  const ecrivains = new Set(['journaliser'])
+  for (let bouge = true; bouge; ) {
+    bouge = false
+    for (const [nom, def] of DEFINITIONS_COURANTES) {
+      if (ecrivains.has(nom)) continue
+      if ([...ecrivains].some((e) => new RegExp(`\\b${e}\\(`).test(def.corps))) {
+        ecrivains.add(nom)
+        bouge = true
+      }
+    }
+  }
+  return ecrivains
+})()
+/**
+ * LES PORTES TypeScript : un écrivain SQL dont le seul métier est de journaliser
+ * a UNE enveloppe côté code, et c'est la seule qui l'appelle. Le détail y est
+ * une variable par construction (c'est le paramètre de la porte) : on ne le
+ * juge pas là, on le juge chez ses APPELANTS.
+ */
+const PORTES = new Map([
+  ['journaliser', 'lib/journal/journaliser.ts'],
+  ['journaliser_reglage', 'lib/journal/reglages.ts'],
+])
+/**
+ * Les arguments qu'un écrivain SQL passe à un AUTRE écrivain — c'est là, et
+ * là seulement, que ses paramètres jsonb deviennent un détail du grand livre.
+ * `regler_note_jugement(p_config jsonb, …)` écrit `p_config` dans SA table ;
+ * seuls `p_avant` et `p_apres` partent au journal, et le détecteur ne juge
+ * que ceux-là — un paramètre jsonb n'est pas un détail parce qu'il est jsonb.
+ */
+function argumentsVersLeJournal(nom) {
+  const corps = DEFINITIONS_COURANTES.get(nom)?.corps ?? ''
+  let out = ''
+  for (const w of ECRIVAINS_SQL) {
+    if (w === nom) continue
+    let from = 0
+    for (;;) {
+      const i = corps.indexOf(`${w}(`, from)
+      if (i < 0) break
+      if (!/\w/.test(corps[i - 1] ?? ' ')) out += (blocApres(corps.slice(i), `${w}(`, '(', ')') ?? '') + '\n'
+      from = i + w.length
+    }
+  }
+  return out
+}
 /** Les listes blanches posées en base, action par action — la dernière écriture gagne. */
 function listesBlanchesSql() {
   const listes = new Map()
@@ -154,7 +236,9 @@ let codesSqlGlobal = new Set()
   // LA LISTE BLANCHE, PAR ACTION — SQL et TypeScript, dans les deux sens.
   const clesTsBloc = blocApres(ts, 'export const CLES_DETAIL = {') ?? ''
   const clesTs = new Map()
-  for (const m of clesTsBloc.matchAll(/^\s*([a-z0-9_]+):\s*\[([^\]]*)\]/gm)) {
+  // Un chemin de clé peut contenir `[]` (`avant.drapeaux[]`) : la liste se
+  // lit donc jusqu'au `]` qui n'est PAS précédé de `[` — jamais au premier `]`.
+  for (const m of clesTsBloc.matchAll(/^\s*([a-z0-9_]+):\s*\[((?:\[\]|[^\]])*)\]/gm)) {
     clesTs.set(m[1], [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]).sort())
   }
   const clesSql = listesBlanchesSql()
@@ -258,11 +342,15 @@ section('C. journaliser() est la seule porte — pièce et type exigés, liste f
   for (const f of [...fichiers('app'), ...fichiers('lib'), ...fichiers('components')]) {
     const src = stripTs(read(f))
     if (/\.from\('grand_livre'\)[\s\S]{0,200}?\.(insert|update|upsert|delete)\(/.test(src)) ecrituresDirectes.push(f)
-    if (f !== 'lib/journal/journaliser.ts' && /\.rpc\('journaliser'/.test(src)) rpcHorsPorte.push(f)
+    for (const [fn, porte] of PORTES) {
+      if (f !== porte && new RegExp(`\\.rpc\\('${fn}'`).test(src)) rpcHorsPorte.push(`${f} → ${fn}`)
+    }
   }
   ok(ecrituresDirectes.length === 0, 'aucun fichier n’écrit dans grand_livre par le client (from().insert/update/delete)',
     ecrituresDirectes.join(', ') || undefined)
-  ok(rpcHorsPorte.length === 0, 'aucun fichier n’appelle la RPC journaliser hors de lib/journal/journaliser.ts', rpcHorsPorte.join(', ') || undefined)
+  ok(rpcHorsPorte.length === 0, `aucun fichier n’appelle une RPC-porte hors de son enveloppe (${[...PORTES].map(([fn, p]) => `${fn} ← ${p}`).join(' · ')})`, rpcHorsPorte.join(', ') || undefined)
+  ok([...PORTES.keys()].every((fn) => ECRIVAINS_SQL.has(fn)) && [...PORTES.values()].every((p) => /\.rpc\(/.test(stripTs(read(p)))),
+    'chaque porte déclarée est un écrivain SQL réel, et son enveloppe appelle bien une RPC')
   const porte = stripTs(read('lib/journal/journaliser.ts'))
   const typeEcriture = blocApres(porte, 'export type EcritureJournal = {') ?? ''
   ok(/^\s*piece: Piece\s*$/m.test(typeEcriture) && !/piece\?:/.test(typeEcriture),
@@ -288,8 +376,8 @@ section('D. Deux actions réelles passent par le socle — une par route, une en
   ok(/\.rpc\('regler_durees_place',\s*\{[\s\S]{0,400}?p_piece: piece,/.test(patch), 'la route écrit par regler_durees_place(), avec SA pièce')
   ok(!/\.from\('duree_reglages'\)[\s\S]{0,80}?\.update\(/.test(patch), 'la route n’écrit PLUS duree_reglages directement')
   const fnReglage = derniereDefinition('public.regler_durees_place(').corps
-  ok(/update public\.duree_reglages/.test(fnReglage) && /return public\.journaliser\(\s*p_piece, 'reglage_modifie', 'reussi', 'administrateur'/.test(fnReglage),
-    'regler_durees_place() met à jour le réglage ET journalise, dans la même fonction — l’un sans l’autre est impossible')
+  ok(/update public\.duree_reglages/.test(fnReglage) && /return public\.journaliser_reglage\(\s*p_piece, p_acteur_id, p_ecosysteme_id, 'duree_reglages'/.test(fnReglage),
+    'regler_durees_place() met à jour le réglage ET journalise par l’écrivain unique, dans la même fonction — l’un sans l’autre est impossible')
   ok(/if p_acteur_id is null then\s+raise exception[^;]*using errcode = 'GL002'/.test(fnReglage), 'un réglage a toujours un auteur')
   const fnIp = derniereDefinition('public.effacer_adresses_ip()').corps
   ok(/v_piece\s+uuid := gen_random_uuid\(\)/.test(fnIp), 'la tâche SQL génère sa pièce (gen_random_uuid) — la pièce est générable des deux côtés')
@@ -323,13 +411,13 @@ section('D bis. Chaque action branchée a UN écrivain, et un seul')
       }
     }
   }
-  for (const f of TOUTES_MIGRATIONS) {
-    const src = SQL_PAR_MIGRATION.get(f)
-    for (const m of src.matchAll(/create or replace function public\.(\w+)\(/g)) {
-      if (m[1] === 'journaliser') continue
-      const corps = corpsSql(src.slice(m.index), `public.${m[1]}(`)
-      for (const c of corps.matchAll(/journaliser\(\s*[^,()]+,\s*'([a-z0-9_]+)'/g)) noter(c[1], `sql:${m[1]}()`)
-    }
+  // Côté SQL, seule la DERNIÈRE définition de chaque fonction compte : c'est
+  // elle qui vit en base. L'ancienne `regler_durees_place()` écrivait le code
+  // elle-même ; recréée pour passer par `journaliser_reglage()`, elle ne doit
+  // plus compter comme écrivain — sinon « un seul » rougirait sur un fantôme.
+  for (const [nom, def] of DEFINITIONS_COURANTES) {
+    if (nom === 'journaliser') continue
+    for (const c of def.corps.matchAll(/journaliser\(\s*[^,()]+,\s*'([a-z0-9_]+)'/g)) noter(c[1], `sql:${nom}()`)
   }
   const parCode = [...sites.entries()].map(([code, l]) => [code, [...l]])
   const branchees = parCode.filter(([, l]) => l.length >= 1).map(([c]) => c).sort()
@@ -357,6 +445,40 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await enregistrerDepense\(supabaseAdmin, \{[\s\S]*?\}\)\s*\n\s*await signalerPlafondAtteint\(/, quoi: 'le fait est cherché APRÈS chaque enregistrement de dépense' },
     { code: 'plafond_atteint', fichier: 'lib/ai-budget.ts', bloc: 'async function signalerPlafondAtteint(', motif: /\.eq\('type_action', 'plafond_atteint'\)[\s\S]*?\.gte\('horodatage'/, quoi: 'une fois par acteur et par mois : le journal est relu avant d’écrire' },
     { code: 'reglage_modifie', fichier: 'app/api/admin/durees/route.ts', bloc: 'export async function PATCH(', motif: /\.rpc\('regler_durees_place',\s*\{[\s\S]{0,400}?p_piece: piece,/, quoi: 'la route écrit par la RPC métier, avec sa pièce' },
+    // ── A2 : les six familles de réglages, onze routes ──
+    { code: 'reglage_modifie', fichier: 'app/api/admin/tarifs-ia/route.ts', bloc: 'export async function PATCH(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('regler_tarif_ia',\s*\{[\s\S]{0,400}?p_piece: journal\.piece,[\s\S]{0,400}?p_avant: avant,/, quoi: 'tarifs : le contexte naît avant l’écriture ; la route écrit par regler_tarif_ia() avec sa pièce et l’avant' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/tarifs-ia/route.ts', bloc: 'export async function PATCH(', motif: (b) => !/\.from\('ai_model_tarifs'\)[\s\S]{0,120}?\.(update|upsert|insert)\(/.test(b), quoi: 'tarifs : la route n’écrit PLUS la grille directement' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/plafonds-ia/route.ts', bloc: 'export async function PATCH(', motif: (b) => {
+        const cles = [...b.matchAll(/const sujet\w+ = identifiantDerive\('reglage', '([^']+)'\)/g)].map((m) => m[1])
+        return cles.length === 3 && new Set(cles).size === 3
+          && /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('regler_plafonds_ia',\s*\{[\s\S]{0,900}?p_piece: journal\.piece,[\s\S]{0,900}?p_sujet_plafonds: sujetPlafonds,\s*p_sujet_alertes: sujetAlertes,\s*p_sujet_plafonds_acteur: sujetPlafondsActeur,/.test(b)
+      }, quoi: 'plafonds : trois sujets DÉRIVÉS distincts, passés à la RPC avec la pièce' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/plafonds-ia/route.ts', bloc: 'export async function PATCH(', motif: (b) => !/\.from\('(ai_spend_caps|ai_spend_seuils_acteur)'\)[\s\S]{0,120}?\.(update|upsert|insert)\(/.test(b), quoi: 'plafonds : la route n’écrit PLUS les trois tables directement' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/ai-quotas/route.ts', bloc: 'export async function PATCH(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?loadCvParsingQuota\([\s\S]*?\.rpc\('regler_quota_ia',\s*\{[\s\S]{0,400}?p_piece: journal\.piece,[\s\S]{0,400}?p_avant: avant,/, quoi: 'quota : l’avant est LU (ou refusé) avant l’écriture ; la route écrit par regler_quota_ia() avec sa pièce' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/ai-quotas/route.ts', bloc: 'export async function PATCH(', motif: (b) => !/\.from\('ai_quotas'\)[\s\S]{0,120}?\.(update|upsert|insert)\(/.test(b), quoi: 'quota : la route n’écrit PLUS la table directement' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/matching-settings/route.ts', bloc: 'export async function PATCH(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('regler_matching',\s*\{[\s\S]{0,400}?p_piece: journal\.piece,[\s\S]{0,200}?p_domain_id: domainId,[\s\S]{0,200}?p_avant: avant,/, quoi: 'moteur : la route écrit par regler_matching() avec sa pièce, sur l’écosystème du réglage' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/matching-settings/route.ts', bloc: 'export async function PATCH(', motif: (b) => !/\.from\('matching_settings'\)[\s\S]{0,120}?\.(update|upsert|insert)\(/.test(b), quoi: 'moteur : la route n’écrit PLUS la table directement' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/seuils/route.ts', bloc: 'export async function PATCH(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('regler_note_jugement',\s*\{[\s\S]{0,400}?p_piece: journal\.piece,[\s\S]{0,600}?p_apres: apres,/, quoi: 'notes : la route écrit par regler_note_jugement() avec sa pièce' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/seuils/route.ts', bloc: 'export async function PATCH(', motif: (b) => !/\.from\('verification_providers'\)[\s\S]{0,120}?\.(update|upsert|insert)\(/.test(b), quoi: 'notes : la route n’écrit PLUS la table directement' },
+    { code: 'reglage_modifie', fichier: 'lib/package-default.ts', bloc: 'export async function applyDefaultTransfer(', motif: /\.rpc\('set_default_package',\s*\{\s*p_package_id: packageId,\s*p_piece: journal\.piece,\s*p_acteur_id: journal\.acteur\.id,/, quoi: 'défaut : le transfert passe à la RPC la pièce et l’acteur du geste' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/set-default-package/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?applyDefaultTransfer\(auth\.supabaseAdmin, \{[\s\S]{0,400}?journal,/, quoi: 'défaut : la route transmet son contexte au transfert' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/create-package/route.ts', bloc: 'export async function POST(', motif: /applyDefaultTransfer\(auth\.supabaseAdmin, \{[\s\S]{0,400}?journal,[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{\s*sujet: \{ type: 'packages', id: pkg\.id \},/, quoi: 'création : le transfert (sa ligne) PUIS la ligne de l’offre, même pièce, deux sujets' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/update-package/route.ts', bloc: 'export async function POST(', motif: /\.from\('packages'\)\s*\.update\(packageUpdates\)[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{\s*sujet: \{ type: 'packages', id: packageId \},/, quoi: 'édition : la ligne vient APRÈS l’écriture, sur l’offre' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/assign-org-package/route.ts', bloc: 'export async function POST(', motif: /\.select\('id, package_id, package_started_at, package_valid_until'\)[\s\S]*?organization_not_found[\s\S]*?\.from\('organizations'\)\s*\.update\(\{[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{\s*sujet: \{ type: 'organizations', id: organizationId \},/, quoi: 'attribution : l’organisation est LUE (404 sinon), écrite, puis journalisée' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/migrate-org-packages/route.ts', bloc: 'export async function POST(', motif: /\.update\(\{ package_id: toId,[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{\s*sujet: \{ type: 'packages', id: toId \},[\s\S]{0,300}?count: migrated,/, quoi: 'migration : UNE ligne après l’écriture, avec le compte — jamais une par organisation' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/synchroniser-catalogue/route.ts', bloc: 'export async function POST(', motif: /catch \(err\) \{[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{[\s\S]{0,200}?statut: 'echoue',[\s\S]*?return json\(\{ error: cause, code: 'synchronisation_impossible' \}, 502\)/, quoi: 'catalogue : une synchronisation qui n’a pas pu se faire est journalisée ÉCHOUÉE, avec sa cause' },
+    { code: 'reglage_modifie', fichier: 'app/api/admin/synchroniser-catalogue/route.ts', bloc: 'export async function POST(', motif: /statut: rapport\.failed\.length > 0 \? 'echoue' : 'reussi',[\s\S]{0,200}?synchronisees: rapport\.synced\.map\(\(r\) => r\.slug\),\s*refusees: rapport\.refused\.map\(\(r\) => r\.slug\),\s*en_echec: rapport\.failed\.map\(\(r\) => r\.slug\),/, quoi: 'catalogue : slugs seulement, et ÉCHOUÉE dès qu’une offre est en échec' },
+  ]
+  // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
+  // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
+  const PREUVES_SQL = [
+    { fn: 'journaliser_reglage', motif: /if p_statut not in \('reussi', 'echoue'\)[\s\S]*?using errcode = 'GL003'[\s\S]*?return public\.journaliser\(\s*p_piece, 'reglage_modifie', p_statut, 'administrateur'/, quoi: 'l’écrivain unique : reussi ou echoue, jamais refuse' },
+    { fn: 'regler_tarif_ia', motif: /update public\.ai_model_tarifs[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(/, quoi: 'tarifs : écrit, compté, puis journalisé — même transaction' },
+    { fn: 'regler_plafonds_ia', motif: (c) => /update public\.ai_spend_caps/.test(c) && (c.match(/journaliser_reglage\(/g) || []).length === 3 && /p_sujet_plafonds,[\s\S]*?p_sujet_alertes,[\s\S]*?p_sujet_plafonds_acteur,/.test(c), quoi: 'plafonds : trois familles, trois lignes, trois sujets distincts' },
+    { fn: 'regler_quota_ia', motif: /update public\.ai_quotas[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(/, quoi: 'quota : écrit, compté, puis journalisé' },
+    { fn: 'regler_matching', motif: /update public\.matching_settings[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(\s*p_piece, p_acteur_id, p_domain_id/, quoi: 'moteur : écrit, compté, puis journalisé — sur l’écosystème du réglage' },
+    { fn: 'regler_note_jugement', motif: /update public\.verification_providers[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(/, quoi: 'notes : écrit, compté, puis journalisé' },
+    { fn: 'set_default_package', motif: /invariant_broken[\s\S]*?perform public\.journaliser_reglage\([\s\S]*?'packages_default', public\.identifiant_derive\('reglage', 'packages_default:' \|\| v_target\)/, quoi: 'défaut : vérifié PUIS journalisé, sur le défaut de la cible — pas sur l’offre' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
   // signature — le premier `{` après le nom serait celui d'un type de paramètre.
@@ -373,10 +495,15 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     if (fermante < 0) return null
     return blocApres(src.slice(fermante), '{')
   }
+  const tient = (motif, texte) => (typeof motif === 'function' ? motif(texte) : motif.test(texte))
   for (const p of PREUVES) {
     const src = stripTs(read(p.fichier))
     const bloc = (p.bloc.endsWith('(') ? corpsFonctionTs(src, p.bloc) : blocApres(src, p.bloc)) ?? ''
-    ok(bloc.length > 0 && p.motif.test(bloc), `${p.code} — ${p.quoi} (${p.fichier} · ${p.bloc.trim().slice(0, 40)})`)
+    ok(bloc.length > 0 && tient(p.motif, bloc), `${p.code} — ${p.quoi} (${p.fichier} · ${p.bloc.trim().slice(0, 40)})`)
+  }
+  for (const p of PREUVES_SQL) {
+    const corps = DEFINITIONS_COURANTES.get(p.fn)?.corps ?? ''
+    ok(corps.length > 0 && tient(p.motif, corps), `reglage_modifie — ${p.quoi} (SQL · ${p.fn}())`)
   }
 }
 
@@ -425,6 +552,21 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   ok(/when sqlstate 'GL005'/.test(postB), 'une fois : la même écriture rejouée LÈVE GL005 (sonde exécutée)')
   ok(/grand_livre_chemins\('\{"a":\{"b":1,"c":null\}[\s\S]{0,200}?array\['a\.b', 'a\.c', 'l\[\]\.x', 't', 'v'\]/.test(postB),
     'la fonction pure des chemins est EXÉCUTÉE sur un objet imbriqué, un tableau, un nul, deux vides')
+  // La migration des réglages a la sienne, exécutée elle aussi.
+  const REGLAGES = stripSql(read(migration('journal_reglages')))
+  const iPostR = REGLAGES.indexOf('do $post$')
+  const postR = iPostR < 0 ? '' : REGLAGES.slice(iPostR)
+  ok(/drop function if exists public\.set_default_package\(uuid\);/.test(REGLAGES) && /to_regprocedure\('public\.set_default_package\(uuid\)'\) is not null/.test(postR),
+    'réglages : l’ancienne set_default_package(uuid) — une porte sans journal — est SUPPRIMÉE, et la postcondition le vérifie')
+  ok(/'public\.journaliser_reglage\(uuid, uuid, uuid, text, uuid, jsonb, jsonb, jsonb, text\)'/.test(postR) && /'public\.set_default_package\(uuid, uuid, uuid, uuid\)'/.test(postR),
+    'réglages : les huit signatures sont vérifiées par TYPES (to_regprocedure)')
+  ok(/journaliser_reglage\([^;]*?'\{"change_reason":"texte libre"\}'::jsonb\)[\s\S]{0,300}?when sqlstate 'GL004'/.test(postR),
+    'réglages : un TEXTE LIBRE est refusé par la liste blanche (sonde exécutée)')
+  ok(/journaliser_reglage\([^;]*?'refuse'\)[\s\S]{0,300}?when sqlstate 'GL003'/.test(postR),
+    'réglages : le statut « refuse » est refusé à l’écrivain des réglages (sonde exécutée)')
+  ok(/detail -> 'apres' ->> 'max_per_window' = '5' and detail ->> 'quota' = 'cv_parsing'/.test(postR) && /regler_durees_place\(gen_random_uuid\(\), v_acteur/.test(postR),
+    'réglages : la ligne écrite est RELUE (avant, après, complément), et les durées sont rejouées par la porte recréée')
+  ok((postR.match(/raise exception 'SONDE_ANNULEE'/g) || []).length >= 2, 'réglages : chaque sonde qui écrit s’annule')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════
@@ -434,10 +576,29 @@ section('G. Un détail passé au grand livre ne porte ni clé ni valeur personne
   ok(CLES.length >= 10, `la liste des clés personnelles est lue en base (${CLES.length} clés) — la même que pour audit_logs`)
   const detecteurDetail = fabriquerDetecteur(CLES, 'detail')
   const detecteurRpc = fabriquerDetecteur(CLES, 'p_detail')
+  // LES ARGUMENTS QUI PORTENT UN DÉTAIL sont DÉCOUVERTS : pour chaque écrivain
+  // SQL (journaliser() et tout ce qui l'appelle), ses paramètres `jsonb`. Une
+  // RPC métier ajoutée demain est couverte sans qu'on l'inscrive (§E.61).
+  const RPC_DU_JOURNAL = new Map(
+    [...ECRIVAINS_SQL].map((fn) => {
+      const args = fn === 'journaliser' ? null : argumentsVersLeJournal(fn)
+      return [fn, DEFINITIONS_COURANTES.get(fn).params
+        .filter((p) => p.type === 'jsonb' && (args === null || new RegExp(`\\b${p.nom}\\b`).test(args)))
+        .map((p) => p.nom)]
+    }),
+  )
+  const detecteurs = new Map()
+  const detecteurDe = (champ) => {
+    if (!detecteurs.has(champ)) detecteurs.set(champ, fabriquerDetecteur(CLES, champ))
+    return detecteurs.get(champ)
+  }
+  ok(ECRIVAINS_SQL.size >= 9 && [...RPC_DU_JOURNAL.values()].some((c) => c.includes('p_avant')),
+    `${ECRIVAINS_SQL.size} écrivains SQL découverts par point fixe, et leurs arguments jsonb : ${[...RPC_DU_JOURNAL].map(([fn, c]) => `${fn}(${c.join(', ')})`).join(' · ')}`)
   const defauts = []
   let appels = 0
+  const FICHIERS_PORTES = new Set(PORTES.values())
   for (const f of [...fichiers('app'), ...fichiers('lib'), ...fichiers('components')]) {
-    if (f === 'lib/journal/journaliser.ts') continue
+    if (FICHIERS_PORTES.has(f)) continue
     const src = stripTs(read(f))
     for (const nom of ['journaliser(', 'journaliserDans(']) {
       for (const bloc of appelsDe(src, nom)) {
@@ -446,15 +607,28 @@ section('G. Un détail passé au grand livre ne porte ni clé ni valeur personne
         if (d) defauts.push(`${f} · ${nom.slice(0, -1)} — ${d}`)
       }
     }
-    for (const nom of [".rpc('journaliser'", ".rpc('regler_durees_place'"]) {
-      for (const bloc of appelsDe(src, nom)) {
+    for (const [fn, champs] of RPC_DU_JOURNAL) {
+      for (const bloc of appelsDe(src, `.rpc('${fn}'`)) {
         appels++
-        const d = detecteurRpc(bloc, src)
-        if (d) defauts.push(`${f} · ${nom} — ${d}`)
+        for (const champ of champs) {
+          const d = detecteurDe(champ)(bloc, src)
+          if (d) defauts.push(`${f} · .rpc('${fn}').${champ} — ${d}`)
+        }
+      }
+    }
+    for (const bloc of appelsDe(src, 'journaliserReglage(')) {
+      appels++
+      for (const champ of ['avant', 'apres', 'complement']) {
+        const d = detecteurDe(champ)(bloc, src)
+        if (d) defauts.push(`${f} · journaliserReglage().${champ} — ${d}`)
       }
     }
   }
   ok(appels >= 1, `${appels} appel(s) vers le grand livre lus`)
+  ok(detecteurDe('avant')('journaliserReglage(admin, journal, { sujet, avant, apres })', 'const avant = { email: u.email }')?.startsWith('clé personnelle'),
+    'témoin : un RACCOURCI `avant` est jugé sur son `const avant = {…}` du fichier')
+  ok(detecteurDe('avant')('journaliserReglage(admin, journal, { sujet, avant, apres })', '')?.includes('OPAQUE'),
+    'témoin : un raccourci sans `const` littéral dans le fichier est opaque, donc refusé')
   ok(defauts.length === 0, 'aucun détail ne porte de clé ni de valeur personnelle, et aucun n’est opaque', defauts.join('\n         ') || undefined)
   // témoins
   ok(detecteurRpc(".rpc('regler_durees_place', { p_piece: piece, p_detail: { avant: { email: u.email } } })")?.startsWith('clé personnelle'),

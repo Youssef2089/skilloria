@@ -4,6 +4,9 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { synchroniserAvantEcriture } from '@/lib/billing/catalogue-guard'
 import { applyDefaultTransfer, isTargetRole } from '@/lib/package-default'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { journaliserReglage } from '@/lib/journal/reglages'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,8 +34,9 @@ export const dynamic = 'force-dynamic'
  * ORDRE : (1) requireAdmin → (2) valide TOUT (rien n'est écrit avant) →
  * (3) slug unique par cible → (4) insert package → (5) insert features →
  * (6) snapshot package_history (création) → (7) transfert du défaut si demandé
- * — via la RPC atomique set_default_package (lib/package-default) → (8)
- * logAudit 'package_created'.
+ * — via la RPC atomique set_default_package (lib/package-default), qui écrit
+ * SA ligne du grand livre → (8) la ligne du grand livre de la création, sous la
+ * même pièce (§D.26) → (9) logAudit 'package_created'.
  *
  * COHÉRENCE : is_default exige active — une offre par défaut inactive laisserait
  * une cible sans offre à l'inscription → 400 'default_requires_active'.
@@ -128,6 +132,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Record<string, unknown>
   try {
@@ -326,6 +332,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       targetRole,
       userId: auth.user.id,
       changeReason: `default transfer on creation (${targetRole}) → ${slug}`,
+      journal,
     })
     if (transfer.ok) {
       defaultApplied = true
@@ -336,7 +343,46 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
-  // ── (8) Audit ──────────────────────────────────────────────────────────────
+  // ── (8) LE GRAND LIVRE — journal après écriture, même pièce (§D.26, §C.21) ─
+  //  Une création traverse Stripe : elle ne tient pas dans une transaction. La
+  //  ligne est donc écrite APRÈS, quand tout est connu — le transfert du
+  //  défaut, s'il a eu lieu, a déjà écrit la sienne sous la même pièce, sur SON
+  //  sujet (le défaut de la cible). Ici le sujet est l'offre.
+  const apres = {
+    name,
+    slug,
+    target_role: targetRole,
+    price_monthly: pm.value,
+    price_yearly: py.value,
+    currency,
+    active,
+    is_free: isFree,
+    is_default: defaultApplied,
+    scope: 'organization',
+  }
+  try {
+    await journaliserReglage(auth.supabaseAdmin, journal, {
+      sujet: { type: 'packages', id: pkg.id },
+      avant: {},
+      apres,
+      complement: {
+        features,
+        default_requested: wantDefault,
+        default_applied: defaultApplied,
+        default_refused_code: defaultRefusedCode,
+      },
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    // L'offre EXISTE : on le dit, avec son identifiant — jamais un 500 muet.
+    console.error('[admin:create-package] grand livre en échec', err.message)
+    return json(
+      { error: 'Package created but the ledger refused the line', code: 'journal_error', package_id: pkg.id },
+      500,
+    )
+  }
+
+  // ── (9) Audit ──────────────────────────────────────────────────────────────
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
