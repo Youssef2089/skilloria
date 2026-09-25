@@ -337,7 +337,9 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   const postB = iPostB < 0 ? '' : BLANCHE.slice(iPostB)
   ok(/when sqlstate 'GL004' then[\s\S]{0,200}?sqlerrm not like '%email_facturation%'/.test(postB),
     'liste blanche : une clé hors liste est REFUSÉE, et le refus NOMME la clé (sonde exécutée)')
-  ok(/avant\.nom_contact|"nom_contact"/.test(postB) && (postB.match(/when sqlstate 'GL004'/g) || []).length >= 2,
+  // Ancré sur le DÉTAIL passé à la sonde, pas sur le message du raise (§E.7) :
+  // la clé nouvelle doit être dans le jsonb envoyé à journaliser().
+  ok(/journaliser\([^;]*?'\{[^']*"nom_contact"[^']*\}'::jsonb\)[\s\S]{0,300}?when sqlstate 'GL004'/.test(postB),
     'liste blanche : une clé personnelle NOUVELLE, imbriquée, est refusée par la liste blanche — pas par la liste noire')
   ok(/when sqlstate 'GL005'/.test(postB), 'une fois : la même écriture rejouée LÈVE GL005 (sonde exécutée)')
   ok(/grand_livre_chemins\('\{"a":\{"b":1,"c":null\}[\s\S]{0,200}?array\['a\.b', 'a\.c', 'l\[\]\.x', 't', 'v'\]/.test(postB),
