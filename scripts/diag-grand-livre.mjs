@@ -487,6 +487,10 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     // ── B4 : les refus de garde du dépôt ──
     { code: 'refus_garde_eligibilite', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => !/issue: 'refusee'/.test(b) && (b.match(/return refuser\(/g) || []).length >= 10, quoi: 'AUCUNE sortie « refusee » littérale dans le dépôt : toutes passent par le raccourci vers l’écrivain' },
     { code: 'refus_garde_eligibilite', fichier: 'lib/candidatures/depot.ts', bloc: 'async function refuserGarde(', motif: /if \(REFUS_DEPOT\[args\.code\] < 500\) \{\s*await journaliserDans\(admin, journal, \{\s*type: 'refus_garde_eligibilite',\s*statut: 'refuse',\s*sujet: \{ type: 'publications', id: args\.publicationId \},/, quoi: 'seuls les refus de RÈGLE (< 500) s’écrivent, au statut imposé, sujet l’annonce' },
+    // ── B5 : le quota d'analyses de CV refuse, et le refus s'écrit ──
+    { code: 'refus_quota_cv', fichier: 'lib/ai-quotas.ts', bloc: 'export async function refuserParQuota(', motif: /journaliserDans\(admin, journal, \{\s*type: 'refus_quota_cv',\s*statut: 'refuse',\s*sujet: \{ type: 'profiles', id: args\.profileId \},[\s\S]{0,300}?limite: args\.maxPerWindow,/, quoi: 'au statut imposé, sujet le profil, la limite LUE au moment du refus' },
+    { code: 'refus_quota_cv', fichier: 'app/api/profile/upload-cv/route.ts', bloc: 'export async function POST(', motif: /if \(windowActive && count24h >= quota\.maxPerWindow\) \{\s*await refuserParQuota\(supabaseAdmin, journal, \{[\s\S]{0,400}?\}\)\s*return json\(/, quoi: 'freelance : le refus est écrit AVANT le 429' },
+    { code: 'refus_quota_cv', fichier: 'app/api/profile/cdi-upload-cv/route.ts', bloc: 'export async function POST(', motif: /if \(windowActive && count24h >= quota\.maxPerWindow\) \{\s*await refuserParQuota\(supabaseAdmin, journal, \{[\s\S]{0,400}?\}\)\s*return json\(/, quoi: 'CDI : le refus est écrit AVANT le 429 — parité (§D.14)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -635,6 +639,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   ok(/journaliser\(gen_random_uuid\(\), 'refus_garde_eligibilite', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('code', 'already_applied', 'profile_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postG),
     'refus de garde : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
   ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postG), 'refus de garde : un texte libre est REFUSÉ (sonde exécutée)')
+  // Le quota de CV : même forme.
+  const QUOTA = stripSql(read(migration('journal_refus_quota_cv')))
+  const iPostQ = QUOTA.indexOf('do $post$')
+  const postQ = iPostQ < 0 ? '' : QUOTA.slice(iPostQ)
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_quota_cv', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('quota', 'cv_parsing', 'limite', 3, 'fenetre_heures', 24, 'reset_at', now\(\), 'compte', 3\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postQ),
+    'quota de CV : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
+  ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postQ), 'quota de CV : un texte libre est REFUSÉ (sonde exécutée)')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

@@ -5,7 +5,7 @@ import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { parseCV } from '@/lib/cv-parser'
-import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
+import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing, refuserParQuota } from '@/lib/ai-quotas'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 import { signAvatarUrl } from '@/lib/avatar'
 
@@ -154,6 +154,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   const count24h = profile.cv_parsing_count_24h ?? 0
 
   if (windowActive && count24h >= quota.maxPerWindow) {
+    // LE REFUS S'ÉCRIT (§D.26) — par le seul écrivain de `refus_quota_cv`.
+    await refuserParQuota(supabaseAdmin, journal, {
+      profileId: profile.id,
+      quota: 'cv_parsing',
+      maxPerWindow: quota.maxPerWindow,
+      windowHours: quota.windowHours,
+      resetAt: resetAt!.toISOString(),
+      count: count24h,
+    })
     return json(
       {
         // Le message REPREND les valeurs lues : il disait « 3 / 24h » en dur,

@@ -5,7 +5,7 @@ import crypto from 'node:crypto'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { parseCdiCV } from '@/lib/cv-parser-cdi'
-import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing } from '@/lib/ai-quotas'
+import { loadCvParsingQuota, windowEndsAt, QuotaConfigMissing, refuserParQuota } from '@/lib/ai-quotas'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 import { signAvatarUrl } from '@/lib/avatar'
 
@@ -208,6 +208,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   const count24h = prof.cv_parsing_count_24h ?? 0
 
   if (windowActive && count24h >= quota.maxPerWindow) {
+    // LE REFUS S'ÉCRIT (§D.26) — par le seul écrivain de `refus_quota_cv`.
+    await refuserParQuota(supabaseAdmin, journal, {
+      profileId: prof.id,
+      quota: 'cv_parsing',
+      maxPerWindow: quota.maxPerWindow,
+      windowHours: quota.windowHours,
+      resetAt: resetAt!.toISOString(),
+      count: count24h,
+    })
     return json(
       {
         error: `Rate limit: ${quota.maxPerWindow} parsings / ${quota.windowHours}h`,
