@@ -72,3 +72,22 @@ export async function profilPublie(
     detail: { deja_visible: args.dejaVisible, verification_avant: args.verificationAvant },
   })
 }
+
+/**
+ * LE PROFIL MODIFIÉ — les NOMS des champs scalaires et des blocs touchés
+ * (expériences, formations, langues), jamais leur contenu. Une modification
+ * qui ne fait que publier ou basculer la disponibilité n'écrit pas cette
+ * ligne : ces deux gestes ont la leur (`profil_publie`, `disponibilite_basculee`).
+ */
+export async function profilModifie(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string; champs: string[]; blocs: string[] },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'profil_modifie',
+    statut: 'reussi',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: { champs: args.champs, blocs: args.blocs },
+  })
+}

@@ -1,6 +1,6 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { JournalError } from '@/lib/journal/journaliser'
-import { profilPublie } from '@/lib/profil/journal-profil'
+import { profilModifie, profilPublie } from '@/lib/profil/journal-profil'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -230,6 +230,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // Cast nécessaire car `profileSelect` est une chaîne dynamique
   // (supabase-js ne peut typer le retour qu'avec un littéral statique).
   const cp = currentProfile as unknown as Record<string, any> & { id: string }
+
+  // LE CHAMP DE DISPONIBILITÉ DE CHAQUE VOIE — une seule table, lue par le
+  // journal du profil (§D.14 : parité, pas deux listes).
+  const CHAMP_DISPONIBILITE = { expert_freelance: 'availability_status', expert_cdi: 'cdi_status' } as const
 
   const patch: Record<string, unknown> = {}
   const directFields: Array<keyof PatchBody> = [
@@ -705,6 +709,20 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // enregistré, la vérification et la mise en relation partent quand même,
   // seule la trace manque — et la réponse le dit (§D.26, §C.21).
   let journalRefuse: JournalError | null = null
+
+  // LA LIGNE DE LA MODIFICATION — les NOMS des champs et des blocs touchés, hors
+  // `visible` (la publication a sa ligne) et hors le champ de disponibilité (la
+  // bascule a la sienne). Rien à écrire si le geste n'était que l'un des deux.
+  const champsModifies = Object.keys(patch).filter((k) => k !== 'visible' && k !== CHAMP_DISPONIBILITE[isCdi ? 'expert_cdi' : 'expert_freelance'])
+  if (champsModifies.length > 0 || touchedBlocks.length > 0) {
+    try {
+      await profilModifie(supabaseAdmin, journal, { profileId: cp.id, champs: champsModifies, blocs: touchedBlocks })
+    } catch (err) {
+      if (!(err instanceof JournalError)) throw err
+      journalRefuse = err
+      console.error('[profile PATCH] grand livre en échec après écriture', { profileId: cp.id, message: err.message })
+    }
+  }
 
   // Passage en review si publication
   if (body.visible === true) {
