@@ -1,3 +1,5 @@
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
+import { STATUT_ARBITRABLE } from '@/lib/verification/types'
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
@@ -53,6 +55,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Body
   try {
@@ -80,30 +84,33 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!org) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
-  if (org.verification_status !== 'pending_admin_review') {
+  if (org.verification_status !== STATUT_ARBITRABLE) {
     return json(
       { error: 'Already processed', code: 'already_processed', current_status: org.verification_status },
       409,
     )
   }
 
-  // ── UPDATE organizations ───────────────────────────────────────────────
-  const nowIso = new Date().toISOString()
-  const { error: updErr } = await auth.supabaseAdmin
-    .from('organizations')
-    .update({
-      verification_status: 'approved',
-      // Invariant : is_verified === (verification_status === 'approved').
-      // C'est is_verified qui sert de flag de blocage côté guards (publications,
-      // achats) — sans ce sync, l'admin "approuve" mais l'org reste bloquée.
-      is_verified: true,
-      verified_at: nowIso,
-      verified_by: auth.user.id,
-    })
-    .eq('id', organization_id)
+  // ── L'ARBITRAGE ET SA LIGNE DE GRAND LIVRE, EN UN SEUL APPEL (§D.26) ────
+  //  La transition est rejouée SOUS VERROU : seul `pending_admin_review`
+  //  s'arbitre, et deux administrateurs simultanés se sérialisent — le second
+  //  lit « déjà traité » et rend `null`. Le motif de refus reste sur la ligne
+  //  métier ; la ligne du journal dit qu'il y en a un, pas ce qu'il dit.
+  //  L'invariant `is_verified === (verification_status = 'approved')` est posé
+  //  dans la même instruction : c'est lui qui débloque les gardes.
+  const { data: arbitrage, error: updErr } = await auth.supabaseAdmin.rpc('statuer_sur_organisation', {
+    ...parametresJournal(journal),
+    p_organization_id: organization_id,
+    p_statut_admis: STATUT_ARBITRABLE,
+    p_approuve: true,
+    p_motif: null,
+  })
   if (updErr) {
     console.error('[admin:approve-org] update failed', updErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+  if (!arbitrage) {
+    return json({ error: 'Already processed', code: 'already_processed' }, 409)
   }
 
   // ── Audit log ───────────────────────────────────────────────────────────
@@ -180,7 +187,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       ok: true,
       organization_id,
       verification_status: 'approved',
-      verified_at: nowIso,
+      // La date de la décision est celle que la BASE a posée, rendue par la RPC :
+      // en fabriquer une ici en ferait une seconde, proche mais fausse (§E.24).
+      verified_at: (arbitrage as { verified_at?: string } | null)?.verified_at ?? null,
       email_sent: emailResult.ok,
       email_skip_code: emailResult.ok ? null : emailResult.code ?? null,
     },

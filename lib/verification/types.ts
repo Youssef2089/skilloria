@@ -191,3 +191,12 @@ export type VerificationVerdict = {
     sirene_error_note?: string | null
   }
 }
+
+/**
+ * LE SEUL STATUT QUI S'ARBITRE À LA MAIN — quatre routes le citaient chacune
+ * en littéral (`approve-expert`, `reject-expert`, `approve-org`, `reject-org`).
+ * Il est désormais passé aux RPC d'arbitrage comme STATUT ADMIS, et une
+ * cinquième copie ferait dire à l'écran et à la base deux choses différentes
+ * (§E.20). L'écrire une fois, ici, et le lire partout.
+ */
+export const STATUT_ARBITRABLE = 'pending_admin_review'

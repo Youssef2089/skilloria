@@ -621,6 +621,15 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'devoilement_ferme', fichier: 'app/api/cron/constats/route.ts', bloc: 'async function handle(', motif: /\.from\('candidatures'\)\s*\.select\('id, status, unlocked_at, conversations\(expires_at\)'\)\s*\.eq\('status', 'unlocked'\)\s*\.is\('fermeture_constatee_at', null\)[\s\S]*?const vie = deriveCandidatureLifecycle\([\s\S]*?if \(vie\.reason !== 'exchange_expired'\) continue[\s\S]*?\.rpc\('constater_devoilement_ferme',\s*\{\s*p_piece: journal\.piece,\s*p_candidature_id: c\.id,\s*p_fin_echange: fin\.toISOString\(\),/, quoi: 'la tâche lit les dévoilées jamais constatées avec leur fil, laisse la SOURCE UNIQUE de l’état de vie décider « échange refermé », et constate avec la pièce du passage et la fin d’échange' },
     // ── E : la sécurité des comptes et la gouvernance d'organisation ──
     { code: 'compte_suspendu', fichier: 'app/api/admin/user-status/route.ts', bloc: 'export async function POST(', motif: (b) => /const journal = contexteDepuisAuth\(auth\)/.test(b) && /\.rpc\('changer_statut_compte',\s*\{\s*\.\.\.parametresJournal\(journal\),\s*p_user_id: t\.id,\s*p_statuts_admis: \[t\.status\],\s*p_nouveau_statut: nextStatus,\s*p_suspend: action === 'suspend',\s*\}\)/.test(b) && /if \(!bascule\) \{[\s\S]{0,300}?code: 'wrong_status' \}, 409\)/.test(b) && !/\.from\('users'\)[\s\S]{0,120}?\.update\(\{ status:/.test(b), quoi: 'la route bascule par la RPC métier avec le contexte et le statut LU comme seul statut admis ; zéro ligne répond 409 ; plus d’écriture directe du statut' },
+    ...[['approve-expert', 'statuer_sur_expert', 'true', 'null'], ['reject-expert', 'statuer_sur_expert', 'false', 'reason'],
+        ['approve-org', 'statuer_sur_organisation', 'true', 'null'], ['reject-org', 'statuer_sur_organisation', 'false', 'reason']]
+      .map(([route, fn, approuve, motif]) => ({ code: approuve === 'true' ? 'compte_valide' : 'compte_refuse', fichier: `app/api/admin/${route}/route.ts`, bloc: 'export async function POST(', motif: (b) =>
+        new RegExp(`const journal = contexteDepuisAuth\\(auth\\)`).test(b)
+        && new RegExp(`\\.rpc\\('${fn}',\\s*\\{\\s*\\.\\.\\.parametresJournal\\(journal\\),[\\s\\S]{0,200}?p_statut_admis: STATUT_ARBITRABLE,\\s*p_approuve: ${approuve},\\s*p_motif: ${motif},`).test(b)
+        && /if \(!arbitrage\) \{[\s\S]{0,200}?code: 'already_processed' \}, 409\)/.test(b)
+        && !/\.from\('(profiles|organizations)'\)[\s\S]{0,200}?\.update\(\{\s*verification_status:/.test(b)
+        && !/verified_at: nowIso/.test(b),
+        quoi: `${route} : arbitre par la RPC métier avec le contexte et le statut admis PARTAGÉ ; zéro ligne répond 409 ; plus d’écriture directe du verdict, et la date rendue est celle posée par la base` })),
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -644,6 +653,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'constater_annonces_expirees', code: 'annonce_expiree', motif: /where p\.expiration_constatee_at is null\s*and p\.published_at is not null\s*and p\.status = 'published'\s*and not public\.annonce_active\(p\.status, p\.expires_at, p\.published_at, p_vie_annonce_jours\)[\s\S]*?for update skip locked[\s\S]*?set expiration_constatee_at = now\(\)[\s\S]*?perform public\.journaliser\(\s*p_piece, 'annonce_expiree', 'reussi', 'tache_planifiee',\s*null::uuid, null::text, r\.domain_id,\s*'publications', r\.id,/, quoi: 'jamais constatée, publiée, et plus active selon la SEULE règle du schéma (annonce_active) ; marqueur PUIS ligne, même transaction, sous verrou' },
     { fn: 'constater_devoilement_ferme', code: 'devoilement_ferme', motif: /if p_fin_echange is null or p_fin_echange > now\(\) then[\s\S]*?update public\.candidatures c\s*set fermeture_constatee_at = now\(\)\s*where c\.id = p_candidature_id\s*and c\.fermeture_constatee_at is null\s*and c\.status = 'unlocked'\s*returning[\s\S]*?if not found then\s*return false;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'devoilement_ferme', 'reussi', 'tache_planifiee',/, quoi: 'une fin d’échange future est refusée ; marqueur posé sur une candidature encore dévoilée et jamais constatée, PUIS la ligne — même transaction ; zéro ligne rend false' },
     { fn: 'changer_statut_compte', code: 'compte_suspendu', motif: /select u\.id, u\.status, u\.domain_id, u\.user_type[\s\S]*?for update;\s*if not found or not \(v_u\.status = any \(p_statuts_admis\)\) then\s*return null;[\s\S]*?update public\.users u\s*set status = p_nouveau_statut,[\s\S]*?perform public\.journaliser\(\s*p_piece,\s*case when p_suspend then 'compte_suspendu' else 'compte_reactive' end,\s*'reussi', p_origine,\s*p_acteur_id, p_acteur_type, v_u\.domain_id,/, quoi: 'verrou de ligne, transition rejouée (zéro ligne rend null), bascule PUIS ligne dont le CODE est dérivé du geste — même transaction, écosystème de la cible' },
+    { fn: 'journaliser_verification', code: 'compte_valide', motif: /return public\.journaliser\(\s*p_piece,\s*case when p_approuve then 'compte_valide' else 'compte_refuse' end,\s*'reussi', p_origine,/, quoi: 'l’écrivain UNIQUE des deux codes, qui les DÉRIVE du verdict — la forme de journaliser_reglage()' },
+    { fn: 'statuer_sur_expert', code: 'compte_valide', motif: /for update;\s*if not found or v_p\.verification_status is distinct from p_statut_admis then\s*return null;[\s\S]*?update public\.profiles p[\s\S]*?update public\.users u\s*set is_verified = p_approuve[\s\S]*?perform public\.journaliser_verification\(/, quoi: 'expert : statut relu sous verrou et rejoué, profil ET drapeau du compte écrits, PUIS l’écrivain — même transaction' },
+    { fn: 'statuer_sur_organisation', code: 'compte_valide', motif: /for update;\s*if not found or v_o\.verification_status is distinct from p_statut_admis then\s*return null;[\s\S]*?is_verified   = p_approuve,[\s\S]*?perform public\.journaliser_verification\([\s\S]{0,200}?null::uuid, 'organizations',/, quoi: 'organisation : même forme, invariant is_verified dans la même instruction, ligne SANS écosystème (une organisation en rejoint plusieurs)' },
     { fn: 'devoiler_candidature', code: 'devoilement_ouvert', motif: /where c\.id = p_candidature_id\s*for update;[\s\S]*?'transition'[\s\S]*?insert into public\.conversations \(candidature_id, domain_id, status, expires_at\)[\s\S]*?on conflict \(candidature_id\) do nothing[\s\S]*?if v_c\.status = 'unlocked' then[\s\S]*?'deja'[\s\S]*?set status\s*=\s*'unlocked',\s*unlocked_at = now\(\)[\s\S]*?perform public\.journaliser\(\s*p_piece, 'devoilement_ouvert', 'reussi', p_origine,[\s\S]*?'auto', p_auto,[\s\S]*?'devoilee'/, quoi: 'verrou de ligne, transition jugée, conversation idempotente, « déjà » sans ligne, bascule PUIS ligne avec l’origine — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
@@ -918,6 +930,21 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/g\.type_action = 'compte_reactive'[\s\S]{0,200}?g\.detail ->> 'de' = 'suspended' and g\.detail ->> 'vers' = 'active'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'suspension : les DEUX lignes (suspendue, réactivée) sont RELUES, puis annulées')
     ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'suspension : une adresse est REFUSÉE (sonde exécutée)')
+  }
+  {
+    const VALID = stripSql(read(migration('journal_compte_valide')))
+    const P = VALID.slice(Math.max(0, VALID.indexOf('do $post$')))
+    ok(/to_regprocedure\('public\.journaliser_verification\(uuid, uuid, text, uuid, text, uuid, text, uuid, boolean, jsonb\)'\) is null/.test(P)
+      && /to_regprocedure\('public\.statuer_sur_expert\(uuid, uuid, text, uuid, text, uuid, text, boolean, text\)'\) is null/.test(P)
+      && /to_regprocedure\('public\.statuer_sur_organisation\(uuid, uuid, text, uuid, text, uuid, text, boolean, text\)'\) is null/.test(P),
+      'arbitrage : les TROIS signatures sont vérifiées par TYPES')
+    ok((P.match(/public\.statuer_sur_expert\((v_piece|gen_random_uuid\(\)),/g) || []).length === 3 && /v_res2 is not null or v_lignes <> 1/.test(P),
+      'arbitrage : la RPC est EXÉCUTÉE trois fois — approuvé, rejoué (null, une ligne), refusé par le MÊME écrivain (sonde annulée)')
+    ok(/u\.is_verified\)? then\s*\n?[\s\S]{0,120}?raise exception 'postcondition NON TENUE : le profil ou le drapeau du compte n est pas relu'/.test(P) && /\(v_res ->> 'verified_at'\) is null/.test(P),
+      'arbitrage : le profil, le drapeau du compte et la DATE POSÉE par la base sont RELUS')
+    ok(/g\.type_action = 'compte_valide' and g\.sujet_type = 'organizations'[\s\S]{0,120}?g\.ecosysteme_id is null/.test(P),
+      'arbitrage : l’organisation écrit sa ligne SANS écosystème, et c’est relu')
+    ok(/"review_reason":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'arbitrage : le motif en texte libre est REFUSÉ (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

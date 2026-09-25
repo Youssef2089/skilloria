@@ -1,4 +1,5 @@
-import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
+import { STATUT_ARBITRABLE } from '@/lib/verification/types'
 import { NextRequest, after } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
@@ -111,34 +112,32 @@ export async function POST(request: NextRequest): Promise<Response> {
     verification_status: string | null
     users: ExpertUser | ExpertUser[] | null
   }
-  if (row.verification_status !== 'pending_admin_review') {
+  if (row.verification_status !== STATUT_ARBITRABLE) {
     return json(
       { error: 'Already processed', code: 'already_processed', current_status: row.verification_status },
       409,
     )
   }
 
-  const nowIso = new Date().toISOString()
-  const { error: updErr } = await auth.supabaseAdmin
-    .from('profiles')
-    .update({
-      verification_status: 'approved',
-      verified_at: nowIso,
-      verified_by: auth.user.id,
-      review_reason: null,
-    })
-    .eq('id', profileId)
+  // ── L'ARBITRAGE ET SA LIGNE DE GRAND LIVRE, EN UN SEUL APPEL (§D.26) ────
+  //  La transition est rejouée SOUS VERROU : seul `pending_admin_review`
+  //  s'arbitre, et deux administrateurs simultanés se sérialisent — le second
+  //  lit « déjà traité » et rend `null`. Le motif de refus reste sur la ligne
+  //  métier ; la ligne du journal dit qu'il y en a un, pas ce qu'il dit.
+  const { data: arbitrage, error: updErr } = await auth.supabaseAdmin.rpc('statuer_sur_expert', {
+    ...parametresJournal(journal),
+    p_profile_id: profileId,
+    p_statut_admis: STATUT_ARBITRABLE,
+    p_approuve: true,
+    p_motif: null,
+  })
   if (updErr) {
     console.error('[admin:approve-expert] update failed', updErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
-
-  // Flip users.is_verified (drapeau agrégé UI)
-  const { error: uErr } = await auth.supabaseAdmin
-    .from('users')
-    .update({ is_verified: true })
-    .eq('id', row.user_id)
-  if (uErr) console.error('[admin:approve-expert] users.is_verified flip failed', uErr.message)
+  if (!arbitrage) {
+    return json({ error: 'Already processed', code: 'already_processed' }, 409)
+  }
 
   // Notif expert (best-effort)
   const u = Array.isArray(row.users) ? row.users[0] : row.users
@@ -288,7 +287,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       ok: true,
       profile_id: profileId,
       verification_status: 'approved',
-      verified_at: nowIso,
+      // La date de la décision est celle que la BASE a posée, rendue par la RPC :
+      // en fabriquer une ici en ferait une seconde, proche mais fausse (§E.24).
+      verified_at: (arbitrage as { verified_at?: string } | null)?.verified_at ?? null,
     },
     200,
   )
