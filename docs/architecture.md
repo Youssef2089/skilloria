@@ -98,6 +98,14 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_devoilement_ouvert` (25/09/2026) — DÉVOILER : LA CONVERSATION, LA BASCULE ET LA LIGNE, SOUS VERROU DE LIGNE.**
+> `devoiler_candidature(contexte, candidature, statuts admis, fin d'échange, auto)` : `select … for update`,
+> transition jugée, `insert conversations … on conflict (candidature_id) do nothing` (relue si elle existait),
+> `deja` si déjà dévoilée (rien journalisé), sinon bascule `unlocked` puis `journaliser('devoilement_ouvert')`.
+> Liste blanche posée. **Ordre : AVANT le déploiement** — `lib/unlock.ts` l'appelle. Postcondition exécutée sur
+> une candidature réelle en transition admise sans conversation (sautée, et dite, sinon) : dévoilée, conversation
+> et bascule **relues**, ligne **relue** (`auto`), rejeu « deja » sur la même conversation sans seconde ligne.
+
 > **`journal_candidature_retenue` (25/09/2026) — RETENIR : MÊME FORME QUE DÉCLINER, `selected_at` POSÉ PAR LA BASE.**
 > `retenir_candidature(…)` : `update … set status = 'selected', selected_at = now() where id, domain_id, status =
 > any(admis), exists(publication de l'organisation) returning selected_at` — zéro ligne rend `null` sans
@@ -1700,6 +1708,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `refus_quota_cv` | `refuserParQuota()` dans `lib/ai-quotas.ts` | fait, après refus | `quota`, `limite`, `fenetre_heures`, `reset_at`, `compte` | les **deux** routes d'analyse de CV (freelance, CDI — parité §D.14) l'appellent AVANT leur 429 ; la limite et la fenêtre sont celles **lues** au moment du refus, un réglage qui change ne réécrit pas l'histoire ; sujet le profil |
 | `candidature_declinee` | `decliner_candidature()` (SQL) | RPC métier + journal | `publication_id`, `has_reason` | la transition, le cloisonnement (§D.3) et la propriété sont **rejoués dans l'UPDATE** ; zéro ligne rend `false` — la route répond 409 `invalid_transition` là où elle disait 200 en silence (§E.27) ; la raison en texte libre reste sur la candidature, hors du grand livre |
 | `candidature_retenue` | `retenir_candidature()` (SQL) | RPC métier + journal | `publication_id`, `publication_type`, `profile_id` | même forme que la déclinée : gardes rejouées dans l'UPDATE, zéro ligne rend `null` (409 `invalid_transition`), `selected_at` posé par la base et rendu à la route ; idempotent si déjà retenue (rien n'est écrit, rien n'est journalisé) |
+| `devoilement_ouvert` | `devoiler_candidature()` (SQL), par le chemin partagé `performUnlock()` | RPC métier + journal | `publication_id`, `profile_id`, `conversation_id`, `auto`, `expires_at` | la candidature est **verrouillée** (`for update`), la conversation posée (idempotente par sa clé), la bascule `unlocked` faite et la ligne écrite ensemble ; **quatre issues fermées** — `devoilee`, `deja` (conversation réconciliée, rien journalisé), `transition`, `introuvable` ; le dévoilement **inclus** au dépôt porte la **même pièce** que le dépôt (`auto: true`), le manuel sa propre pièce ; « déjà dévoilée » est le verdict de la base sous verrou, pas celui de la lecture d'avant |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3050,9 +3059,11 @@ Le socle est posé (§D.26, §C.20), validé sur une base jetable et sur staging
 actions dans l'ordre arbitré par Youssef — (a) l'argent et les réglages d'administration : les **six
 familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `paiement_recu`,
 `plafond_atteint`, `refus_plafond_atteint` et `ip_effacees` — **(a) est fait** ; (b) la candidature
-et le dévoilement — **en cours** : `candidature_deposee`, la pièce du rejeu,
-`refus_depot_sans_jugement`, `refus_expert_inapte`, `refus_garde_eligibilite`, `refus_quota_cv`,
-`candidature_declinee` et `candidature_retenue` sont faits ; (c) le
+et le dévoilement : **fait** — `candidature_deposee` (et la pièce du rejeu), `refus_depot_sans_jugement`,
+`refus_expert_inapte`, `refus_garde_eligibilite`, `refus_quota_cv`, `candidature_declinee`,
+`candidature_retenue`, `devoilement_ouvert` ; **sauf `devoilement_ferme`**, qui n'est pas un geste mais un
+**constat** — la fenêtre d'échange ou l'annonce expire, personne n'agit (§D.5) — et qui est livré avec
+`annonce_expiree` en (d), par une tâche de constat à colonne-marqueur, écrite une fois ; (c) le
 moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en

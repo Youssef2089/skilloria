@@ -662,6 +662,7 @@ export async function deposerCandidature(args: {
   //  cesse d'être exposé au couperet d'après-réponse (§E.5).
   //  Et surtout : la RELANCE doit rendre l'état final, pas un état en cours.
   await devoilementInclus(supabaseAdmin, {
+    journal: args.journal,
     publicationId,
     candidatureId: row.id,
     acteurUserId: profileRow.user_id,
@@ -982,6 +983,8 @@ async function notifierOrganisation(
 async function devoilementInclus(
   admin: SupabaseClient,
   args: {
+    /** Le geste du dépôt (§D.26) : le dévoilement inclus s'écrit sous la MÊME pièce. */
+    journal: ContexteJournal
     publicationId: string
     candidatureId: string
     /**
@@ -1170,6 +1173,7 @@ async function devoilementInclus(
 
       const res = await performUnlock(admin, candidatureId, {
         auto: true,
+        journal: args.journal,
         actorUserId: args.acteurUserId,
         fenetreEchangeJours: args.fenetreEchangeJours,
       })

@@ -91,7 +91,7 @@ export const CLES_DETAIL = {
   candidature_declinee: ['publication_id', 'has_reason'],
   candidature_retenue: ['publication_id', 'publication_type', 'profile_id'],
   sous_traitance_candidature: [],
-  devoilement_ouvert: [],
+  devoilement_ouvert: ['publication_id', 'profile_id', 'conversation_id', 'auto', 'expires_at'],
   devoilement_ferme: [],
   message_envoye: [],
   compte_valide: [],

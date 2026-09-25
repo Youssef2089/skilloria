@@ -6,6 +6,7 @@ import { getOrgEntitlements, consumeQuota, monthlyPeriodStart } from '@/lib/enti
 import { performUnlock, ALLOWED_PREVIOUS_STATUSES } from '@/lib/unlock'
 import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -81,6 +82,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { id: candidatureId } = await ctx.params
   if (!candidatureId || !UUID_REGEX.test(candidatureId)) {
@@ -209,6 +212,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   // ── Exécution du dévoilement (chemin partagé) ──────────────────────────────
   const result = await performUnlock(auth.supabaseAdmin, candidatureId, {
     auto: false,
+    journal,
     actorUserId: auth.user.id,
     // C'est CETTE écriture qui fixe la fin de l'échange — d'où le fait qu'un
     // changement de réglage ne raccourcit jamais une conversation en cours.
