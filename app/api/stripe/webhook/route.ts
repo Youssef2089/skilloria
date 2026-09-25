@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 import { billingEnabled, livemodeMatchesEnvironment, resolveWebhookSecret } from '@/lib/billing/config'
 import { getBillingAdmin, getSignatureVerifier, getStripe } from '@/lib/billing/stripe'
 import { handleStripeEvent } from '@/lib/billing/events'
+import { contexteSysteme } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -140,6 +141,12 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const admin = getBillingAdmin()
 
+  // LE CONTEXTE DE JOURNAL — une PIÈCE par événement, née AVANT toute écriture
+  // (la réclamation ci-dessous est la première). Origine `systeme`, et c'est
+  // justifié : l'événement vient de Stripe, authentifié par sa signature ;
+  // aucun compte n'agit, aucune tâche planifiée ne tourne (§D.26).
+  const journal = contexteSysteme()
+
   // ── 4. Réclamation idempotente ───────────────────────────────────────────
   //  `false` = événement déjà reçu (ou en cours de traitement par une autre
   //  livraison). On répond 200 et on NE FAIT RIEN. C'est ce qui garantit qu'un
@@ -184,7 +191,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── 7. Traitement ────────────────────────────────────────────────────────
   try {
-    const outcome = await handleStripeEvent(admin, event)
+    const outcome = await handleStripeEvent(admin, event, journal)
     await mark(
       admin,
       event.id,

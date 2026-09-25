@@ -111,7 +111,12 @@ export const CLES_DETAIL = {
   membre_retire: [],
   membre_parti: [],
   role_membre_change: [],
-  paiement_recu: [],
+  paiement_recu: [
+    'transaction_id', 'organization_id', 'package_id',
+    'stripe_invoice_id', 'stripe_event_id',
+    'montant', 'montant_ht', 'taxe', 'devise',
+    'periode', 'periode_debut', 'periode_fin',
+  ],
   plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd', 'mois'],
   // L'union des familles de réglages — chaque route n'en remplit qu'une, la
   // base refuse le reste (migration `journal_reglages`).

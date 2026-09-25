@@ -67,6 +67,7 @@
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -772,20 +773,39 @@ ok(
   'une ecriture plus ancienne est ECARTEE (`stale`), pas appliquee',
 )
 
-// ③ LA SEULE INSERTION EST UN UPSERT, ET SA CLE EST UNIQUE EN BASE (§E.31).
+// ③ LA SEULE INSERTION EST IDEMPOTENTE, ET SA CLE EST UNIQUE EN BASE (§E.31).
+//    Deux formes acceptees : un `upsert … onConflict` cote code, ou — depuis
+//    §D.26, la piece comptable et sa ligne de grand livre naissant dans la
+//    meme transaction — une RPC dont le SQL insere `on conflict (colonne) do
+//    nothing`. La RPC est DECOUVERTE (elle ecrit `transactions`), pas nommee.
 const insertionsNues = [...ecritures.matchAll(/\.insert\(/g)]
 ok(
   insertionsNues.length === 0,
   'aucune insertion NUE dans le chemin d ecriture (un rejeu la doublerait)',
   `${insertionsNues.length} occurrence(s) de \`.insert(\``,
 )
-const upserts = [...ecritures.matchAll(/\.upsert\([\s\S]{0,2000}?onConflict:\s*'([a-z_]+)'/g)]
+const DEFS_SQL = definitionsSql(ROOT)
+const colonnesConflit = [
+  ...[...ecritures.matchAll(/\.upsert\([\s\S]{0,2000}?onConflict:\s*'([a-z_]+)'/g)].map((m) => m[1]),
+  ...rpcQuiEcrivent(ecritures, 'transactions', DEFS_SQL).flatMap((fn) =>
+    [...(DEFS_SQL.get(fn) ?? '').matchAll(/on conflict \((\w+)\)[^;]*?do nothing/g)].map((m) => m[1]),
+  ),
+]
 ok(
-  upserts.length >= 1,
-  'les ecritures de transaction passent par un `upsert` avec `onConflict`',
+  colonnesConflit.length >= 1,
+  `les ecritures de transaction sont idempotentes — \`upsert … onConflict\` ou \`insert … on conflict do nothing\` dans une RPC (colonnes : ${colonnesConflit.join(', ') || 'aucune'})`,
 )
-for (const u of upserts) {
-  const colonne = u[1]
+// ET LA RPC POSE LE PREDICAT DE L INDEX PARTIEL (§E.69) : sans lui, Postgres
+// n infere aucun index et leve 42P10 au premier paiement — la garde « unique
+// en base » ci-dessous serait verte pendant que l insertion echoue.
+for (const fn of rpcQuiEcrivent(ecritures, 'transactions', DEFS_SQL)) {
+  ok(
+    /on conflict \(stripe_invoice_id\) where stripe_invoice_id is not null do nothing/.test(DEFS_SQL.get(fn) ?? ''),
+    `${fn}() pose le predicat de l index partiel dans son \`on conflict\``,
+    'sans le predicat, 42P10 au runtime : la contrainte existe, mais l insertion ne peut pas s y adosser',
+  )
+}
+for (const colonne of colonnesConflit) {
   // §G.3 — JAMAIS par le numero. Le controle qui garde cette regle est dans
   //        CE fichier, et il m a pris sur cette ligne meme : un numero cite
   //        vieillit mal et ment ensuite. On resout par SUFFIXE DESCRIPTIF.

@@ -468,6 +468,10 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'reglage_modifie', fichier: 'app/api/admin/migrate-org-packages/route.ts', bloc: 'export async function POST(', motif: /\.update\(\{ package_id: toId,[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{\s*sujet: \{ type: 'packages', id: toId \},[\s\S]{0,300}?count: migrated,/, quoi: 'migration : UNE ligne après l’écriture, avec le compte — jamais une par organisation' },
     { code: 'reglage_modifie', fichier: 'app/api/admin/synchroniser-catalogue/route.ts', bloc: 'export async function POST(', motif: /catch \(err\) \{[\s\S]*?journaliserReglage\(auth\.supabaseAdmin, journal, \{[\s\S]{0,200}?statut: 'echoue',[\s\S]*?return json\(\{ error: cause, code: 'synchronisation_impossible' \}, 502\)/, quoi: 'catalogue : une synchronisation qui n’a pas pu se faire est journalisée ÉCHOUÉE, avec sa cause' },
     { code: 'reglage_modifie', fichier: 'app/api/admin/synchroniser-catalogue/route.ts', bloc: 'export async function POST(', motif: /statut: rapport\.failed\.length > 0 \? 'echoue' : 'reussi',[\s\S]{0,200}?synchronisees: rapport\.synced\.map\(\(r\) => r\.slug\),\s*refusees: rapport\.refused\.map\(\(r\) => r\.slug\),\s*en_echec: rapport\.failed\.map\(\(r\) => r\.slug\),/, quoi: 'catalogue : slugs seulement, et ÉCHOUÉE dès qu’une offre est en échec' },
+    // ── A3 : le paiement reçu ──
+    { code: 'paiement_recu', fichier: 'app/api/stripe/webhook/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteSysteme\(\)[\s\S]*?\.rpc\('stripe_event_claim'[\s\S]*?handleStripeEvent\(admin, event, journal\)/, quoi: 'le webhook ouvre sa pièce AVANT la réclamation (première écriture) et la transmet au traitement' },
+    { code: 'paiement_recu', fichier: 'lib/billing/events.ts', bloc: 'async function onInvoicePaid(', motif: /\.rpc\('enregistrer_paiement',\s*\{\s*p_piece: journal\.piece,\s*p_stripe_event_id: eventId,/, quoi: 'la pièce comptable est écrite par la RPC métier, avec la pièce et l’événement' },
+    { code: 'paiement_recu', fichier: 'lib/billing/events.ts', bloc: 'async function onInvoicePaid(', motif: (b) => !/\.from\('transactions'\)[\s\S]{0,80}?\.(upsert|insert)\(/.test(b), quoi: 'le code n’écrit PLUS transactions directement' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -479,6 +483,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'regler_matching', motif: /update public\.matching_settings[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(\s*p_piece, p_acteur_id, p_domain_id/, quoi: 'moteur : écrit, compté, puis journalisé — sur l’écosystème du réglage' },
     { fn: 'regler_note_jugement', motif: /update public\.verification_providers[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(/, quoi: 'notes : écrit, compté, puis journalisé' },
     { fn: 'set_default_package', motif: /invariant_broken[\s\S]*?perform public\.journaliser_reglage\([\s\S]*?'packages_default', public\.identifiant_derive\('reglage', 'packages_default:' \|\| v_target\)/, quoi: 'défaut : vérifié PUIS journalisé, sur le défaut de la cible — pas sur l’offre' },
+    { fn: 'enregistrer_paiement', code: 'paiement_recu', motif: /on conflict \(stripe_invoice_id\) where stripe_invoice_id is not null do nothing\s+returning id into v_id;[\s\S]*?if v_id is null then\s+return null;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'paiement_recu', 'reussi', 'systeme',\s*null::uuid, null::text, v_t\.domain_id,\s*'organizations', v_t\.organization_id,/, quoi: 'la pièce comptable est insérée (doublon : rien, ni ligne), PUIS journalisée sur l’organisation — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
   // signature — le premier `{` après le nom serait celui d'un type de paramètre.
@@ -503,7 +508,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
   }
   for (const p of PREUVES_SQL) {
     const corps = DEFINITIONS_COURANTES.get(p.fn)?.corps ?? ''
-    ok(corps.length > 0 && tient(p.motif, corps), `reglage_modifie — ${p.quoi} (SQL · ${p.fn}())`)
+    ok(corps.length > 0 && tient(p.motif, corps), `${p.code ?? 'reglage_modifie'} — ${p.quoi} (SQL · ${p.fn}())`)
   }
 }
 
@@ -567,6 +572,15 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   ok(/detail -> 'apres' ->> 'max_per_window' = '5' and detail ->> 'quota' = 'cv_parsing'/.test(postR) && /regler_durees_place\(gen_random_uuid\(\), v_acteur/.test(postR),
     'réglages : la ligne écrite est RELUE (avant, après, complément), et les durées sont rejouées par la porte recréée')
   ok((postR.match(/raise exception 'SONDE_ANNULEE'/g) || []).length >= 2, 'réglages : chaque sonde qui écrit s’annule')
+  // Le paiement reçu a la sienne : la pièce et sa ligne naissent ensemble, le doublon n'écrit rien.
+  const PAIEMENT = stripSql(read(migration('journal_paiement')))
+  const iPostP = PAIEMENT.indexOf('do $post$')
+  const postP = iPostP < 0 ? '' : PAIEMENT.slice(iPostP)
+  ok(/to_regprocedure\('public\.enregistrer_paiement\(uuid, jsonb, text\)'\) is null/.test(postP), 'paiement : la signature est vérifiée par TYPES')
+  ok((postP.match(/public\.enregistrer_paiement\(gen_random_uuid\(\),/g) || []).length === 2 && /v_id2 is not null or v_lignes <> 1/.test(postP),
+    'paiement : la RPC est EXÉCUTÉE deux fois sur la même facture — la seconde n’insère ni ne journalise (sonde annulée)')
+  ok(/detail ->> 'transaction_id' = v_id::text/.test(postP) && /raise exception 'SONDE_ANNULEE'/.test(postP),
+    'paiement : la ligne est RELUE (sujet organisation, transaction dans le détail), puis annulée')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

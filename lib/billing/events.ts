@@ -15,6 +15,7 @@ import {
 } from '@/lib/billing/resolve'
 import { modeDeLEvenement, type ModeStripe } from '@/lib/billing/catalogue-stripe'
 import { applyPackageState, attachCustomer, extendValidity } from '@/lib/billing/apply'
+import type { ContexteJournal } from '@/lib/journal/contexte'
 
 /**
  * lib/billing/events.ts — LE TRAITEMENT MÉTIER DES ÉVÉNEMENTS STRIPE.
@@ -320,6 +321,8 @@ async function onInvoicePaid(
   invoice: Stripe.Invoice,
   eventAt: Date,
   mode: ModeStripe,
+  journal: ContexteJournal,
+  eventId: string,
 ): Promise<EventOutcome> {
   const customerId = idOf(invoice.customer)
   const metadata = meta(invoice)
@@ -335,7 +338,7 @@ async function onInvoicePaid(
   // ── La pièce comptable ────────────────────────────────────────────────────
   //  Idempotence par la contrainte UNIQUE sur stripe_invoice_id (fondations) :
   //  un rejeu se heurte à la base, il n'est pas arbitré par une lecture.
-  //  `ignoreDuplicates` traduit exactement cette intention.
+  //  `on conflict do nothing`, dans la RPC, traduit exactement cette intention.
   //
   //  Ni HT ni TTC présumé (décision produit n°9) : les trois montants sont
   //  enregistrés séparément. `tax` vaut 0 tant que Stripe Tax n'est pas activé —
@@ -345,8 +348,15 @@ async function onInvoicePaid(
   const priceId = invoiceFirstPriceId(invoice)
   const pkg = priceId ? await resolvePackageByPrice(admin, priceId, mode) : null
 
-  const { error: txErr } = await admin.from('transactions').upsert(
-    {
+  // L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) :
+  // `enregistrer_paiement` insère la pièce comptable ET écrit `paiement_recu`
+  // au grand livre dans la même transaction SQL. Un rejeu n'écrit ni l'une ni
+  // l'autre ; une panne du journal annule l'insertion, Stripe rejoue, et les
+  // deux naissent ensemble — jamais une transaction sans sa ligne.
+  const { error: txErr } = await admin.rpc('enregistrer_paiement', {
+    p_piece: journal.piece,
+    p_stripe_event_id: eventId,
+    p_transaction: {
       organization_id: org.value,
       user_id: metaUuid(metadata, META_USER),
       domain_id: ecosystem,
@@ -367,8 +377,7 @@ async function onInvoicePaid(
       invoice_url: invoice.hosted_invoice_url ?? null,
       livemode: invoice.livemode,
     },
-    { onConflict: 'stripe_invoice_id', ignoreDuplicates: true },
-  )
+  })
   if (txErr) throw new Error(`écriture transactions: ${txErr.message}`)
 
   // ── La validité ───────────────────────────────────────────────────────────
@@ -457,6 +466,8 @@ async function onInvoicePaymentFailed(
 export async function handleStripeEvent(
   admin: SupabaseClient,
   event: Stripe.Event,
+  /** Le contexte de journal du webhook : une pièce par événement (§D.26). */
+  journal: ContexteJournal,
 ): Promise<EventOutcome> {
   const eventAt = new Date(event.created * 1000)
 
@@ -485,7 +496,7 @@ export async function handleStripeEvent(
       return onSubscriptionDeleted(admin, event.data.object as Stripe.Subscription, eventAt)
 
     case 'invoice.paid':
-      return onInvoicePaid(admin, event.data.object as Stripe.Invoice, eventAt, mode)
+      return onInvoicePaid(admin, event.data.object as Stripe.Invoice, eventAt, mode, journal, event.id)
 
     case 'invoice.payment_failed':
       return onInvoicePaymentFailed(admin, event.data.object as Stripe.Invoice, eventAt)

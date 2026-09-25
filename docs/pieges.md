@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **93** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
+Sur les **94** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
 24/09/2026, à l'exécution — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
@@ -3439,7 +3439,7 @@ migration qui « réussit » n'a rien prouvé. Le pendant manquait : **une postc
 > (`p.oid::regprocedure::text`) ou le rendu réellement obtenu.
 
 **Gardé par [`diag-signature-de-fonction`](../scripts/diag-signature-de-fonction.mjs)** — il balaie
-**les 93 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
+**les 94 migrations**, pas les six du lot : la faute est une habitude d'écriture, pas un accident de
 sprint (§E.61).
 ⚠️ **Il garde la FORME, pas le comportement de Postgres.** Aucun moteur ne tourne dans le dépôt — ni
 `psql`, ni Docker, et PostgREST ne lit pas `pg_catalog`. Ce qui prouve le mécanisme est une requête
@@ -3500,6 +3500,39 @@ rougissait sur un dériveur juste (§E.34) ; il EXÉCUTE désormais le dériveur
 > de journal : on lui fait confiance. »* C'est déjà vrai, aujourd'hui, sur `audit_logs`. Un journal
 > dont l'écriture est best-effort et dont les contraintes ne sont tenues que par un commentaire
 > **finit par mentir sans que personne ne le voie** — et il ment d'abord sur l'argent.
+
+---
+
+<a id="e69"></a>
+### E.69 — UN `on conflict` SANS LE PRÉDICAT DE L'INDEX PARTIEL N'INFÈRE RIEN : 42P10 au premier paiement, pendant que « la clé est unique en base » reste vert.
+
+**Le cas, trouvé le 25/09/2026 en déplaçant l'écriture de la pièce comptable dans une RPC (§D.26).**
+`transactions.stripe_invoice_id` est dédoublonné par un index unique **PARTIEL** —
+`idx_transactions_stripe_invoice … where stripe_invoice_id is not null` (migration `stripe_fondations`).
+Le webhook écrivait par `upsert(…, { onConflict: 'stripe_invoice_id', ignoreDuplicates: true })`, que
+PostgREST traduit en `ON CONFLICT (stripe_invoice_id) DO NOTHING` — **sans prédicat**. Or Postgres
+n'infère un index partiel que si la clause porte son prédicat (`index_predicate`, documentation de
+`INSERT … ON CONFLICT`) : sans lui, **42P10** — *there is no unique or exclusion constraint matching
+the ON CONFLICT specification* — au premier `invoice.paid`, l'événement marqué `failed`, Stripe qui
+rejoue, et le même refus à chaque fois. Rien n'a jamais été enregistré par ce chemin, et rien ne
+pouvait l'être ; le mur payant fermé (§D.1) a masqué le défaut : aucun paiement réel n'est passé.
+
+**Ce qui rendait le piège invisible.** `diag-billing-socle` gardait *« la clé est unique en base »*
+en lisant `create unique index … (stripe_invoice_id)` — vrai — et *« l'écriture est un upsert avec
+onConflict »* — vrai aussi. Deux vérités ne font pas une insertion qui marche : la contrainte
+existe, **l'insertion ne peut pas s'y adosser**. Le contrôle testait deux présences ; il ne testait
+pas l'accord entre elles (§E.8, la forme voisine).
+
+**La parade, et elle est EXÉCUTÉE.** La RPC `enregistrer_paiement()` écrit
+`on conflict (stripe_invoice_id) where stripe_invoice_id is not null do nothing` — le prédicat de
+l'index, dans la clause. La postcondition de `journal_paiement` **tente la forme sans prédicat sur
+le schéma réel** et exige 42P10 : si un jour un index non partiel rendait l'ancienne forme valide,
+la migration le dirait, et ce paragraphe serait à réécrire. `diag-billing-socle` exige désormais le
+prédicat dans toute RPC qui insère `transactions`.
+
+> **NON VÉRIFIÉ en base au moment d'écrire** : la sonde est écrite, elle s'exécute au rejeu local et
+> au `db push` sur staging (§G.4 bis), sur une base qui porte au moins une organisation. Si elle
+> passe, le 42P10 est un fait mesuré ; si elle refuse, c'est ce paragraphe qui est faux, pas la RPC.
 
 ---
 

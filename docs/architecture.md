@@ -98,6 +98,21 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_paiement` (25/09/2026) — UN PAIEMENT REÇU : LA PIÈCE COMPTABLE ET SA LIGNE NAISSENT ENSEMBLE.**
+> `enregistrer_paiement(p_piece, p_transaction jsonb, p_stripe_event_id)` : `jsonb_populate_record` typographie
+> les colonnes, `insert … on conflict (stripe_invoice_id) where stripe_invoice_id is not null do nothing`,
+> et — si une ligne est née — `journaliser('paiement_recu', 'systeme', sujet organisation)` dans la même
+> transaction ; un rejeu rend `null` et n'écrit rien. Pourquoi une RPC et pas « journal après
+> écriture » : une panne du journal après un `upsert` idempotent laisserait une transaction **sans
+> ligne pour toujours** (le rejeu ne réinsère pas). La liste blanche de `paiement_recu` est posée.
+> **Ordre : AVANT le déploiement** — `lib/billing/events.ts` l'appelle sur `invoice.paid`.
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** : signature par `to_regprocedure`, témoins de la liste blanche, puis
+> une sonde annulée sur une organisation réelle (sautée, et dite, sur base vierge) : la RPC exécutée
+> **deux fois** sur la même facture — la première insère et sa ligne est **relue**, la seconde n'insère
+> ni ne journalise — et la forme **sans prédicat** de l'ancien `upsert` PostgREST tentée sur le
+> schéma réel, qui doit lever **42P10** (§E.69).
+
 > **`journal_reglages` (25/09/2026) — TOUT RÉGLAGE D'ADMINISTRATION S'ÉCRIT AU GRAND LIVRE, PAR UN ÉCRIVAIN.**
 > `journaliser_reglage()` (le seul littéral `reglage_modifie` ; `reussi` ou `echoue`, GL003 sinon) ;
 > `regler_durees_place()` recréée pour y passer ; cinq RPC métier neuves — `regler_tarif_ia`,
@@ -1626,6 +1641,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | · créer / modifier une offre | `journaliserReglage()` ([lib/journal/reglages.ts](../lib/journal/reglages.ts)) | journal après écriture | `avant/apres.{name, slug, target_role, price_*, currency, active, is_free, is_default, scope}`, `features[].{feature_code, value, reset_period, avant}`, `package_fields[]`, `default_*` | Stripe est au milieu : la ligne vient après, quand tout est connu ; une création par défaut écrit **deux** lignes sous une pièce (l'offre, le défaut) ; la raison en texte libre reste hors du grand livre |
 | · attribuer / migrer des offres | `journaliserReglage()` | journal après écriture | `avant/apres.package_{id, started_at, valid_until}`, `count`, `skipped_subscribed` | l'organisation est **lue** avant (l'écart connu — 200 sur un id inconnu — se ferme en 404) ; une migration = **une** ligne, jamais une par organisation |
 | · synchroniser le catalogue | `journaliserReglage()` | journal après écriture | `mode`, `synchronisees[]`, `refusees[]`, `en_echec[]`, `cause` | slugs seulement ; `echoue` dès qu'une offre est en échec ou que Stripe n'a pas répondu (cause bornée à 200 caractères) |
+| `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
 | `plafond_atteint` | `signalerPlafondAtteint()` dans `lib/ai-budget.ts` | fait, après enregistrement | idem + `mois` | cherché après **chaque** dépense enregistrée ; le journal est relu avant d'écrire (une fois par acteur et par mois) |
@@ -2973,8 +2989,8 @@ supprimées ne sont **plus citées nulle part** — code, types générés, SQL.
 **H.3 — LE GRAND LIVRE : L'ÉTAPE 2 EST EN COURS, ACTION PAR ACTION. Les étapes 3 et 4 suivent.**
 Le socle est posé (§D.26, §C.20), validé sur une base jetable et sur staging. L'étape 2 branche les
 actions dans l'ordre arbitré par Youssef — (a) l'argent et les réglages d'administration : les **six
-familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `plafond_atteint`,
-`refus_plafond_atteint` et `ip_effacees` ; `paiement_recu` est le commit suivant ; (b) la candidature
+familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `paiement_recu`,
+`plafond_atteint`, `refus_plafond_atteint` et `ip_effacees` — **(a) est fait** ; (b) la candidature
 et le dévoilement ; (c) le moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en

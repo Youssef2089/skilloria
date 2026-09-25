@@ -282,6 +282,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.66](docs/pieges.md#e66) | UN `import type` EST EFFACÉ. Le transformer en import de valeur rend un banc MUET, pas rouge. |
 | [E.67](docs/pieges.md#e67) | UNE POSTCONDITION QUI COMPARE UNE CHAÎNE RENDUE PAR POSTGRES PARIE SUR UN FORMAT — et jamais exécutée, elle arrête un déploiement sur un faux négatif. |
 | [E.68](docs/pieges.md#e68) | UN JOURNAL BEST-EFFORT MENT DÉJÀ : sept traces d'audit sur des réglages d'argent n'ont jamais existé. La parade est le TYPE, pas la consigne. |
+| [E.69](docs/pieges.md#e69) | UN `on conflict` SANS LE PRÉDICAT DE L'INDEX PARTIEL N'INFÈRE RIEN : 42P10 au premier paiement, pendant que « la clé est unique en base » reste vert. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -348,7 +349,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 93 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 94 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > ⚠️ **UNE BASE VIERGE NE REJOUE PAS LES CAS DE DONNÉES.** Les postconditions qui comparent des
