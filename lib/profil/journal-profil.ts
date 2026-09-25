@@ -52,3 +52,23 @@ export async function cvTeleverse(
     },
   })
 }
+
+/**
+ * LE PROFIL PUBLIÉ — l'expert se rend visible (`visible: true`), première
+ * fois ou republication : toute (re)publication relance la vérification, et
+ * la ligne le dit avec l'état de vérification d'AVANT. Écrite avant la
+ * vérification qui en découle : c'est le geste qui compte, pas son issue —
+ * l'approbation a sa propre action (`compte_valide`).
+ */
+export async function profilPublie(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string; dejaVisible: boolean; verificationAvant: string | null },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'profil_publie',
+    statut: 'reussi',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: { deja_visible: args.dejaVisible, verification_avant: args.verificationAvant },
+  })
+}

@@ -557,6 +557,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
         const avantAudit = b.indexOf("analyse: 'failed'") < b.indexOf("detail: { status: 'failed'") && b.indexOf("analyse: 'done'") < b.search(/detail: \{\s*status: 'done',/)
         return appels.join(',') === 'done,failed' && premierAvantEcriture && avantAudit && /journalRefuse = err/.test(b) && /if \(journalRefuse\) return json\(\{ error: 'Journal failed', code: 'journal_error', profile_id: \w+\.id \}, 500\)/.test(b)
       }, quoi: 'la voie écrit la ligne aux DEUX issues (analyse faite, analyse en échec), avant l’audit ; le premier consentement est lu AVANT l’écriture qui le pose ; un journal qui refuse est rendu après le travail différé' })),
+    { code: 'profil_publie', fichier: 'lib/profil/journal-profil.ts', bloc: 'export async function profilPublie(', motif: /type: 'profil_publie',\s*statut: 'reussi',\s*sujet: \{ type: 'profiles', id: args\.profileId \},\s*detail: \{ deja_visible: args\.dejaVisible, verification_avant: args\.verificationAvant \},/, quoi: 'l’écrivain : première publication ou republication, et l’état de vérification d’avant' },
+    { code: 'profil_publie', fichier: 'app/api/profile/route.ts', bloc: 'export async function PATCH(', motif: (b) => /if \(body\.visible === true\) \{\s*const \{ error: userUpdErr \}[\s\S]*?\}\s*try \{\s*await profilPublie\(supabaseAdmin, journal, \{ profileId: cp\.id, dejaVisible: cp\.visible === true, verificationAvant: \(cp\.verification_status as string \| null\) \?\? null \}\)/.test(b) && b.indexOf('await profilPublie(') < b.indexOf('runExpertVerification({') && b.indexOf('await profilPublie(') < b.indexOf("action: 'profile_update'") && /journalRefuse = err/.test(b) && b.indexOf('after(async () =>') < b.indexOf("if (journalRefuse) return json({ error: 'Journal failed', code: 'journal_error', profile_id: cp.id }, 500)"), quoi: 'la route écrit la ligne dans la branche visible=true, AVANT la vérification et l’audit ; un refus du journal est gardé et rendu APRÈS le travail différé' },
+    { code: 'profil_publie', fichier: 'app/api/profile/route.ts', bloc: 'const baseSelect =', motif: /\bvisible\b/, quoi: 'la colonne `visible` est LUE avec le profil (§E.1) — sans elle, « déjà visible » se lirait toujours faux' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -811,6 +814,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/journaliser\(gen_random_uuid\(\), 'cv_televerse', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'done', 'premier_consentement', true, 'experiences', \d+, 'formations', \d+, 'langues', \d+\)[\s\S]{0,800}?journaliser\(gen_random_uuid\(\), 'cv_televerse', 'echoue', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'failed', 'premier_consentement', false\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
       'CV : les deux formes que le module écrit (analyse faite, en échec) sont ÉCRITES, puis annulées')
     ok(/"cv_hash"|"hash"/.test(P) && /when sqlstate 'GL004'/.test(P), 'CV : l’empreinte du fichier est REFUSÉE par la liste blanche (sonde exécutée)')
+  }
+  {
+    const PUBLIE = stripSql(read(migration('journal_profil_publie')))
+    const P = PUBLIE.slice(Math.max(0, PUBLIE.indexOf('do $post$')))
+    ok(/journaliser\(gen_random_uuid\(\), 'profil_publie', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('deja_visible', false, 'verification_avant', null\)[\s\S]{0,700}?jsonb_build_object\('deja_visible', true, 'verification_avant', 'approved'\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
+      'profil publié : la première publication (sans vérification d’avant) et la republication sont ÉCRITES, puis annulées')
+    ok(/"title":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'profil publié : un champ du profil est REFUSÉ (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

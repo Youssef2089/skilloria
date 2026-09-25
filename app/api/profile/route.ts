@@ -1,4 +1,6 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { profilPublie } from '@/lib/profil/journal-profil'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -200,7 +202,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // currentProfile : on étend le select avec les colonnes nécessaires à la
   // validation CDI uniquement si isCdi (pas de surcoût pour le freelance).
-  const baseSelect = 'id, title, summary, skills, branch_id, speciality_ids, seniorities, work_zone_ids, work_modes, availability_status, cdi_status, verification_status, cv_parsing_status, ai_consent_at'
+  // `visible` est LU pour dire si une publication est la première ou une republication (§D.26) — une colonne absente se lit undefined (§E.1).
+  const baseSelect = 'id, title, summary, skills, branch_id, speciality_ids, seniorities, work_zone_ids, work_modes, availability_status, cdi_status, verification_status, cv_parsing_status, ai_consent_at, visible'
   // `cdi_status` est désormais dans le socle : la garde de visibilité en a
   // besoin pour TOUS les experts (elle teste « au moins l'une des deux
   // disponibilités »). Ne pas le redemander ici.
@@ -698,6 +701,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     touchedBlocks.push('languages_structured')
   }
 
+  // Un refus du grand livre est GARDÉ et rendu à la fin : le profil est
+  // enregistré, la vérification et la mise en relation partent quand même,
+  // seule la trace manque — et la réponse le dit (§D.26, §C.21).
+  let journalRefuse: JournalError | null = null
+
   // Passage en review si publication
   if (body.visible === true) {
     const { error: userUpdErr } = await supabaseAdmin
@@ -706,6 +714,17 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       .eq('id', user.id)
     if (userUpdErr) {
       console.error('[profile PATCH] user status update failed', userUpdErr)
+    }
+
+    // LA LIGNE DU GRAND LIVRE — la (re)publication, AVANT la vérification qui
+    // en découle et avant l'audit best-effort (§E.68). Première fois ou
+    // republication : `visible` a été LU avant l'écriture.
+    try {
+      await profilPublie(supabaseAdmin, journal, { profileId: cp.id, dejaVisible: cp.visible === true, verificationAvant: (cp.verification_status as string | null) ?? null })
+    } catch (err) {
+      if (!(err instanceof JournalError)) throw err
+      journalRefuse = err
+      console.error('[profile PATCH] grand livre en échec après écriture', { profileId: cp.id, message: err.message })
     }
 
     // ── Vérification expert (Lot vérif expert / Lot CV) ───────────────────
@@ -900,5 +919,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   })
 
+  if (journalRefuse) return json({ error: 'Journal failed', code: 'journal_error', profile_id: cp.id }, 500)
   return json({ profile: updatedProfile })
 }

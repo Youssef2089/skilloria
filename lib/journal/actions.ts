@@ -76,7 +76,7 @@ export const CLES_DETAIL = {
   annonce_expiree: ['vie_annonce_jours'],
   sous_traitance_publiee: [],
   cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues'],
-  profil_publie: [],
+  profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: [],
   disponibilite_basculee: [],
   recherche_lancee: ['tentative', 'tache'],
