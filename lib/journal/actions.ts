@@ -85,7 +85,7 @@ export const CLES_DETAIL = {
   recherche_correspondances: ['retenues', 'fortes', 'inserees', 'mises_a_jour', 'supprimees', 'filtre_flux', 'palier_fort'],
   recherche_notifiee: ['demandees', 'deja_notifiees', 'posees', 'paquets_en_echec', 'renonce'],
   recherche_terminee: ['issue', 'raison'],
-  recherche_echouee: [],
+  recherche_echouee: ['etape', 'cause', 'tentative', 'arret', 'lots_en_echec'],
   recherche_abandonnee: [],
   candidature_deposee: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   candidature_declinee: ['publication_id', 'has_reason'],

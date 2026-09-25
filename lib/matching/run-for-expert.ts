@@ -260,9 +260,11 @@ async function executerRunExpert(args: {
     .maybeSingle()
   if (profErr) {
     console.error('[matching-expert] lecture du profil en échec', { profileId, message: profErr.message })
+    await recherche.echouee({ etape: 'lecture', cause: 'lecture_en_panne', tentative: null })
     return { status: 'error', proposals: [], notes: `Lecture du profil en échec : ${profErr.message}`, model: null }
   }
   if (!profData) {
+    await recherche.echouee({ etape: 'lecture', cause: 'introuvable', tentative: null })
     return { status: 'error', proposals: [], notes: 'Profil introuvable.', model: null }
   }
   const p = profData as unknown as LigneProfil
@@ -287,6 +289,7 @@ async function executerRunExpert(args: {
   // ── 2. Les réglages ──────────────────────────────────────────────────────
   const reglages = await loadMatchingSettings(supabaseAdmin, p.domain_id)
   if (!reglages.ok) {
+    await recherche.echouee({ etape: 'reglages', cause: 'reglages_absents', tentative: p.matching_relance_tentatives })
     return { status: 'no_config', proposals: [], notes: reglages.detail, model: null }
   }
   const s = reglages.settings
@@ -296,6 +299,7 @@ async function executerRunExpert(args: {
   //    au reranker, et invisibles ensuite dans son flux — qui filtre, lui.
   const lectureDurees = await chargerDurees(supabaseAdmin)
   if (!lectureDurees.ok) {
+    await recherche.echouee({ etape: 'reglages', cause: 'durees_illisibles', tentative: p.matching_relance_tentatives })
     return {
       status: 'no_config',
       proposals: [],
@@ -343,6 +347,7 @@ async function executerRunExpert(args: {
   const { data: pubsData, error: pubsErr } = await q
   if (pubsErr) {
     console.error('[matching-expert] chargement des annonces en échec', { profileId, message: pubsErr.message })
+    await recherche.echouee({ etape: 'vivier', cause: 'vivier_en_panne', tentative: p.matching_relance_tentatives })
     return { status: 'error', proposals: [], notes: `Chargement des annonces : ${pubsErr.message}`, model: s.rerank_model }
   }
   const annonces = (pubsData ?? []) as unknown as LigneAnnonce[]
@@ -357,6 +362,7 @@ async function executerRunExpert(args: {
   if (declinesRes.error || postulesRes.error) {
     const detail = declinesRes.error?.message ?? postulesRes.error?.message ?? 'inconnue'
     console.error('[matching-expert] décisions déjà prises illisibles', { profileId, detail })
+    await recherche.echouee({ etape: 'vivier', cause: 'decisions_illisibles', tentative: p.matching_relance_tentatives })
     return { status: 'error', proposals: [], notes: `Décisions déjà prises illisibles : ${detail}`, model: s.rerank_model }
   }
   const tranchees = new Set<string>([
@@ -493,6 +499,7 @@ async function executerRunExpert(args: {
     })
   } catch (err) {
     const note = err instanceof Error ? err.message : String(err)
+    await recherche.echouee({ etape: 'correspondances', cause: 'reconciliation_en_panne', tentative: p.matching_relance_tentatives })
     return { status: 'error', proposals: [], notes: `Réconciliation en échec : ${note}`, model: notation.model }
   }
   // La ligne des correspondances : ce que le filtre a retenu, ce que la base a fait.
@@ -539,6 +546,7 @@ async function executerRunExpert(args: {
   const acheve = notation.lots_en_echec === 0 && !notation.arret
   // La fin — APRÈS la trace de périmètre : la ligne dit ce qui est acquis.
   if (acheve) await recherche.terminee({ issue: 'ok' })
+  else await recherche.echouee({ etape: 'notation', cause: notation.arret_code ? 'notation_arretee' : 'lots_en_echec', tentative: p.matching_relance_tentatives, arret: notation.arret_code ?? null, lots_en_echec: notation.lots_en_echec })
   const resume =
     `Annonces ${retenues.length} · notées ${notation.notes} · retenues ${desired.length} · ` +
     `notifiées ${notifies} · +${stats.inserted.length} ~${stats.updated} -${stats.deleted}` +

@@ -236,9 +236,11 @@ export async function runMatchingForPublication(args: {
   // chercher une annonce supprimée alors que c'est la base qui n'a pas répondu.
   if (pubErr) {
     console.error('[matching] lecture de l annonce en échec', { publicationId, message: pubErr.message })
+    await recherche.echouee({ etape: 'lecture', cause: 'lecture_en_panne', tentative: null })
     return { status: 'error', proposals: [], notes: `Lecture de l'annonce en échec : ${pubErr.message}`, model: null }
   }
   if (!pubData) {
+    await recherche.echouee({ etape: 'lecture', cause: 'introuvable', tentative: null })
     return { status: 'error', proposals: [], notes: 'Annonce introuvable.', model: null }
   }
   const pub = pubData as unknown as LigneAnnonce
@@ -247,6 +249,7 @@ export async function runMatchingForPublication(args: {
   // ── 2. Les réglages ──────────────────────────────────────────────────────
   const reglages = await loadMatchingSettings(supabaseAdmin, pub.domain_id)
   if (!reglages.ok) {
+    await recherche.echouee({ etape: 'reglages', cause: 'reglages_absents', tentative: null })
     return { status: 'no_config', proposals: [], notes: reglages.detail, model: null }
   }
   const s = reglages.settings
@@ -270,6 +273,7 @@ export async function runMatchingForPublication(args: {
     // Une durée illisible n'est pas une annonce expirée : on ne DEVINE pas, et
     // on ne se rabat sur aucun défaut (lib/durees.ts l'énonce). Le run refuse
     // avec le motif des réglages absents, qui est ce qu'il est.
+    await recherche.echouee({ etape: 'reglages', cause: 'durees_illisibles', tentative: null })
     return {
       status: 'no_config',
       proposals: [],
@@ -294,8 +298,10 @@ export async function runMatchingForPublication(args: {
   await marquerTentative(supabaseAdmin, publicationId, pub.matching_attempts ?? 0)
 
   // `lancee` s'écrit ICI, après la tentative comptée : c'est le point de
-  // non-retour, le moteur va payer (§D.26).
-  await recherche.lancee({ tentative: (pub.matching_attempts ?? 0) + 1 })
+  // non-retour, le moteur va payer (§D.26). La tentative de CE run est le
+  // compteur lu + 1 ; un échec d'ici la fin la porte.
+  const tentative = (pub.matching_attempts ?? 0) + 1
+  await recherche.lancee({ tentative })
 
   const criteres: CriteresAnnonce = {
     id: pub.id,
@@ -312,6 +318,7 @@ export async function runMatchingForPublication(args: {
   const vivier = await chargerVivierPourAnnonce(supabaseAdmin, criteres)
   if (vivier.erreur) {
     await acheverRun(supabaseAdmin, publicationId, { erreur: vivier.erreur }, s.rerank_model, false)
+    await recherche.echouee({ etape: 'vivier', cause: 'vivier_en_panne', tentative })
     return { status: 'error', proposals: [], notes: vivier.erreur, model: s.rerank_model }
   }
 
@@ -325,6 +332,7 @@ export async function runMatchingForPublication(args: {
     // rendre un vivier vide, qui se lirait « personne ne correspond ».
     const note = 'Annonce trop courte pour être notée (titre + description + compétences).'
     await acheverRun(supabaseAdmin, publicationId, { erreur: note }, s.rerank_model, false)
+    await recherche.echouee({ etape: 'filtrage', cause: 'annonce_sans_matiere', tentative })
     return { status: 'error', proposals: [], notes: note, model: s.rerank_model }
   }
 
@@ -475,6 +483,7 @@ export async function runMatchingForPublication(args: {
   } catch (err) {
     const note = err instanceof Error ? err.message : String(err)
     await acheverRun(supabaseAdmin, publicationId, { ...baseStats, erreur: note }, notation.model, false)
+    await recherche.echouee({ etape: 'correspondances', cause: 'reconciliation_en_panne', tentative })
     return { status: 'error', proposals: [], notes: `Réconciliation en échec : ${note}`, model: notation.model }
   }
   // La ligne des correspondances : ce que le filtre a retenu, ce que la base a fait.
@@ -559,6 +568,7 @@ export async function runMatchingForPublication(args: {
   if (acheve) await solderBrouillon(supabaseAdmin, publicationId)
   // La fin — APRÈS la trace et le brouillon soldé : la ligne dit ce qui est acquis.
   if (acheve) await recherche.terminee({ issue: 'ok' })
+  else await recherche.echouee({ etape: 'notation', cause: notation.arret_code ? 'notation_arretee' : 'lots_en_echec', tentative, arret: notation.arret_code ?? null, lots_en_echec: notation.lots_en_echec })
 
   const resume =
     `Vivier ${vivier.profils.length} · notés ${notation.notes} · retenus ${desired.length} · ` +

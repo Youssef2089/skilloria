@@ -68,6 +68,24 @@ export type SujetDeRecherche =
  */
 export type IssueDeRecherche = 'ok' | 'vivier_vide' | 'annonce_expiree' | 'ineligible' | 'sans_matiere'
 
+/**
+ * OÙ ET POURQUOI UNE RECHERCHE A ÉCHOUÉ — en CODES, jamais une phrase (§E.24) :
+ * une phrase se reformule, un code se compare. Le texte de la panne reste dans
+ * les journaux techniques, hors du grand livre (il pourrait porter n'importe quoi).
+ */
+export type EtapeDeRecherche = 'lecture' | 'reglages' | 'vivier' | 'filtrage' | 'notation' | 'correspondances'
+export type CauseDEchec =
+  | 'lecture_en_panne'
+  | 'introuvable'
+  | 'reglages_absents'
+  | 'durees_illisibles'
+  | 'vivier_en_panne'
+  | 'decisions_illisibles'
+  | 'annonce_sans_matiere'
+  | 'notation_arretee'
+  | 'lots_en_echec'
+  | 'reconciliation_en_panne'
+
 export class JournalDeRecherche {
   constructor(
     private readonly admin: SupabaseClient,
@@ -242,6 +260,29 @@ export class JournalDeRecherche {
       sujet: this.sujet,
       ecosystemeId: this.ecosystemeId,
       detail: { issue: d.issue, raison: d.raison },
+    })
+  }
+
+  /**
+   * L'ÉCHEC — l'étape et la cause, en codes ; la tentative consommée (`null`
+   * quand aucune ne l'a été : une lecture en panne avant le point de
+   * non-retour) ; pour la notation, l'arrêt en code et les lots manqués.
+   * Statut `echoue` imposé par la base. Une recherche échouée côté annonce
+   * reste INACHEVÉE (rejouable) ; côté expert, la relance n'est pas soldée.
+   */
+  async echouee(d: {
+    etape: EtapeDeRecherche
+    cause: CauseDEchec
+    tentative: number | null
+    arret?: ArretDeNotation | null
+    lots_en_echec?: number
+  }): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_echouee',
+      statut: 'echoue',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: { etape: d.etape, cause: d.cause, tentative: d.tentative, arret: d.arret, lots_en_echec: d.lots_en_echec },
     })
   }
 }
