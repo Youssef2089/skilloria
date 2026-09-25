@@ -70,7 +70,7 @@ export function estTypeAction(x: unknown): x is TypeAction {
  * clés dans le commit qui la branche, avec la migration qui les pose en base.
  */
 export const CLES_DETAIL = {
-  annonce_publiee: [],
+  annonce_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
   annonce_modifiee: [],
   annonce_depubliee: [],
   annonce_expiree: [],

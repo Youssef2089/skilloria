@@ -98,6 +98,14 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_annonce_publiee` (25/09/2026) — PUBLIER : LA MISE EN LIGNE, LE VERDICT ET LA LIGNE, EN UNE TRANSACTION.**
+> `publier_annonce(contexte, annonce, écosystème, organisation, statuts admis, verdict, score, méthode, données)` :
+> `update … where id, domain_id, organization_id, status = any(admis)`, `published_at = now()` si publiée, `returning` ;
+> `null` sinon ; `journaliser('annonce_publiee')` seulement si publiée. Liste blanche posée. **Ordre : AVANT le
+> déploiement** — la route l'appelle. Postcondition exécutée sur un brouillon réel (sautée, et dite, sinon) : publié
+> et **relu** (ligne, organisation, `published_at`), rejeu `null` sans seconde ligne, `pending_review` écrit le
+> verdict sans ligne ; texte libre refusé (GL004).
+
 > **`journal_recherche_abandonnee` (25/09/2026) — LA LISTE BLANCHE DE L'ABANDON D'UNE RECHERCHE.** Ordre
 > indifférent : l'écrivain est TypeScript. Postcondition exécutée : la forme du module acceptée pour les deux
 > sujets, l'échec et l'abandon d'un même run tenus sous **une** pièce (relu : deux lignes), un texte libre
@@ -1755,6 +1763,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `recherche_terminee` | `JournalDeRecherche.terminee()` | fait, dans le run | `issue` (`ok` · `vivier_vide` · `annonce_expiree` · `ineligible` · `sans_matiere`), `raison` (code d'inéligibilité, §D.20) | statut `reussi` **imposé** : un refus légitime (annonce expirée, expert inéligible, profil sans matière) et un vivier vide sont des recherches **terminées**, pas échouées — la même lecture que `runAcheve()` ; **trois** fins côté annonce, **quatre** côté expert, et le contrôle compte les appels ; `ok` s'écrit **après** la trace (et le brouillon soldé) ; l'instance naît à l'**entrée** du run sous l'écosystème du geste et passe sous celui de l'objet dès qu'il est lu (`dansEcosysteme()`, immuable) |
 | `recherche_echouee` | `JournalDeRecherche.echouee()` | fait, dans le run | `etape` (`lecture` · `reglages` · `vivier` · `filtrage` · `notation` · `correspondances`), `cause` (dix codes fermés), `tentative`, `arret`, `lots_en_echec` | statut `echoue` **imposé** ; **huit** sorties par sens, et le contrôle les énumère (étape, cause, tentative) ; la tentative est `null` avant le point de non-retour (une lecture en panne n'en consomme pas), le compteur après ; le **texte** de la panne reste dans les journaux techniques, hors du grand livre ; la fin d'un run est `terminee` **ou** `echouee`, jamais les deux ; côté annonce le run reste inachevé (rejouable), côté expert la relance n'est pas soldée |
 | `recherche_abandonnee` | `JournalDeRecherche.abandonnee()` — **privé**, décidé dans `echouee()` | fait, dans le run | `tentatives`, `plafond`, `cause` | écrite **après** l'échec, sous la **même pièce** (deux types, un sujet), quand la tentative consommée atteint le **plafond du sens** — `RUN_MAX_TENTATIVES` (annonce, **nouveau** dans `lib/matching/run-abouti.ts`, importé par `cron/match-retry` à la place de sa constante locale) ou `RELANCE_MAX_TENTATIVES` (expert) ; les deux ont leurs **jumeaux SQL** vérifiés par `diag-relance-rejouee` (défaut du rattrapage, défaut de la supervision) ; le moteur est le **seul** à voir toutes les tentatives, déclenchements directs compris ; `admin/approve-expert` compte désormais la tentative **avant** le run comme les deux autres appelants (`solderRelance` remet le compteur à zéro sur un succès : état final inchangé, compteur lu juste) ; le plafond est écrit avec la ligne |
+| `annonce_publiee` | `publier_annonce()` (SQL) | RPC métier + journal | `type`, `organization_id`, `verification_method`, `verification_score`, `published_at` | la transition (`draft` → verdict), le cloisonnement et la propriété sont **rejoués dans l'UPDATE** ; `published_at` est posé par la **base** quand le verdict publie (`expires_at` toujours non écrit) ; zéro ligne rend `null` → la route rend la place et répond 409 `wrong_status` là où elle disait 200 ; un verdict `pending_review` écrit le verdict **sans** ligne (rien n'est en ligne) ; `diag-ordre-des-ecritures` prend la RPC pour repère de la mise en ligne |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3114,7 +3123,7 @@ moteur dans les deux sens, une ligne par étape — **fait** : un seul module é
 (`lib/matching/journal-de-recherche.ts`), les huit étapes branchées dans les deux sens (`recherche_lancee`, `_filtree`,
 `_classee` avec le coût dans les colonnes de coût, `_correspondances`, `_notifiee`, `_terminee`, `_echouee`,
 `_abandonnee`), jamais une ligne par lot ni par profil, le contrôle comptant les fins et énumérant les sorties ; (d) l'annonce, le profil,
-le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
+le CV, la disponibilité — **en cours** : `annonce_publiee` ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
 n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :

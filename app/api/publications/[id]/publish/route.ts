@@ -1,4 +1,4 @@
-import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -354,32 +354,38 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     await rendreLaPlace(`verdict ${verdict.status}`)
   }
 
-  // ── UPDATE atomique : status + verification_* (+ published_at si OK) ────
-  const nowIso = new Date().toISOString()
-  const updates: Record<string, unknown> = {
-    status: verdict.status,
-    verification_score: verdict.score,
-    verification_method: verdict.method,
-    verification_data: verdict.data,
-  }
-  if (verdict.status === 'published') {
-    // published_at pilote l'expiration (calculée à la lecture : published_at + 30j).
-    // On N'ÉCRIT PAS expires_at (décision : règle read-time, pas de valeur stockée
-    // — une colonne écrite mais jamais relue serait un piège futur).
-    updates.published_at = nowIso
-  }
-
-  const { error: updateErr } = await auth.supabaseAdmin
-    .from('publications')
-    .update(updates)
-    // Defense en profondeur — cf. la lecture cloisonnee plus haut.
-    .eq('id', id)
-    .eq('domain_id', activeEcosystemId(auth))
+  // ── LA MISE EN LIGNE ET SA LIGNE DE GRAND LIVRE, EN UN SEUL APPEL (§D.26) ──
+  //  `publier_annonce` écrit le statut, le verdict de vérification et — si
+  //  publiée — `published_at`, posé par la BASE : il pilote l'expiration,
+  //  calculée à la lecture (`expires_at` n'est toujours PAS écrit — une
+  //  colonne écrite mais jamais relue serait un piège). Puis la fonction
+  //  journalise `annonce_publiee` dans la même transaction. La transition est
+  //  REJOUÉE dans l'UPDATE (statut admis, écosystème, organisation) : zéro
+  //  ligne rend null, et la route répond 409 au lieu d'un 200 muet (§E.27).
+  //  Un verdict `pending_review` écrit le verdict, pas de ligne : rien n'est
+  //  en ligne.
+  const { data: miseEnLigne, error: updateErr } = await auth.supabaseAdmin.rpc('publier_annonce', {
+    ...parametresJournal(journal),
+    p_publication_id: id,
+    p_domain_id: activeEcosystemId(auth),
+    p_organization_id: orgId,
+    p_statuts_admis: [...PUBLISHABLE_FROM],
+    p_verdict: verdict.status,
+    p_score: verdict.score,
+    p_method: verdict.method,
+    p_data: verdict.data,
+  })
 
   if (updateErr) {
     console.error('[publications:publish] update failed', updateErr.message)
     await rendreLaPlace('écriture du statut en échec')
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+  if (!miseEnLigne) {
+    // Le statut a changé entre la lecture et l'écriture : rien n'a été touché,
+    // rien n'est journalisé, la place retenue est rendue.
+    await rendreLaPlace('statut changé pendant la vérification')
+    return json({ error: 'Cannot publish', code: 'wrong_status' }, 409)
   }
 
   // ── Audit — AVANT tout travail qui peut faire tuer la fonction ─────────

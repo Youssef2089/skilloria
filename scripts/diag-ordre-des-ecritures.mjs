@@ -93,7 +93,8 @@ titre('(B) L’AUDIT PRÉCÈDE CE QUI PEUT TUER LA FONCTION')
 // ═══════════════════════════════════════════════════════════════════════════
 
 const iQuota = publish.indexOf('consumeQuota(')
-const iUpdate = publish.indexOf(".update(updates)")
+// La mise en ligne passe par la RPC métier (journal dans la même transaction, §D.26).
+const iUpdate = publish.indexOf(".rpc('publier_annonce'")
 const iAudit = publish.indexOf('await logAudit(')
 const iAfter = publish.indexOf('after(async () =>')
 const iReponse = publish.lastIndexOf('return json({ status: verdict.status')
