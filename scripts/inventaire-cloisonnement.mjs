@@ -74,6 +74,14 @@ export const INVENTORY = {
   // cloisonnee des deux cotes (org via l'annonce, expert via son profil).
   // Un filtre ici serait redondant sans rien ajouter.
   'conversations/[id]/messages/route.ts': 'exempt',
+
+  // ── Tache de constat (§D.26) ────────────────────────────────────────────
+  // Aucun contexte d'appel, aucun ecosysteme actif : elle lit les candidatures
+  // devoilees et jamais constatees de TOUS les ecosystemes, et ne rend rien a
+  // personne — la ligne du grand livre porte le domain_id de chaque
+  // candidature, lu sur sa ligne par la fonction SQL. Protegee par CRON_SECRET,
+  // jamais par une population.
+  'cron/constats/route.ts': 'exempt',
 }
 
 // ─── L'INVENTAIRE DES MODULES `lib/` ─────────────────────────────────────────
@@ -236,4 +244,6 @@ export const ATTENDUS = {
   'candidatures/route.ts':            { verbe: 'POST', cible: 'publication_corps', corps: null, attendus: { anonyme: 401, expert_freelance: 'parcours', expert_cdi: R, client: 403, cabinet: 403, admin: 403 }, eco_autre: null },
   // ── Conversation : deux côtés — mode 'exempt', cloisonnée par la candidature ─
   'conversations/[id]/messages/route.ts': { verbe: 'GET', cible: 'conversation', attendus: { anonyme: 401, expert_freelance: '2xx', expert_cdi: R, client: '2xx', cabinet: R, admin: R }, eco_autre: null },
+  // La tache de constat ne connait que CRON_SECRET : sans lui, 401 pour TOUTE population, admin compris.
+  'cron/constats/route.ts':           { verbe: 'GET', cible: null, attendus: { anonyme: 401, expert_freelance: 401, expert_cdi: 401, client: 401, cabinet: 401, admin: 401 }, eco_autre: 401 },
 }

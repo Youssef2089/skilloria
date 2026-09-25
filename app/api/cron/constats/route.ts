@@ -4,6 +4,10 @@ import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
+// LA SOURCE UNIQUE de l'état de vie d'une candidature : c'est ELLE qui dit
+// « échange refermé » (§D.5). Aucun jumeau SQL de cette règle n'existe.
+import { deriveCandidatureLifecycle } from '@/lib/candidatures/lifecycle'
+import { effectiveConversationExpiry } from '@/lib/conversations/expiry'
 
 /** Nom du bail. MÊME valeur pour GET et POST : c'est la TÂCHE qu'on garde. */
 const JOB = 'constats'
@@ -112,6 +116,53 @@ async function handle(request: NextRequest): Promise<Response> {
     }
     const annoncesExpirees = typeof expirees === 'number' ? expirees : Number(expirees ?? 0)
 
+    // ── LES DÉVOILEMENTS REFERMÉS — la règle est LUE en TypeScript, le marqueur
+    //    et la ligne sont posés par la base. Les candidatures encore dévoilées
+    //    et jamais constatées, avec leur fil ; `deriveCandidatureLifecycle`
+    //    décide, et seule l'issue « échange refermé » se constate — `selected`
+    //    reste active sans limite (§D.5), et la source le sait.
+    const { data: devoilees, error: devErr } = await admin
+      .from('candidatures')
+      .select('id, status, unlocked_at, conversations(expires_at)')
+      .eq('status', 'unlocked')
+      .is('fermeture_constatee_at', null)
+      .order('unlocked_at', { ascending: true })
+      .limit(LIMITE_PAR_PASSAGE)
+    if (devErr) {
+      console.error('[constats] dévoilements : lecture en échec', devErr.message)
+      return json({ error: 'Query failed', code: 'db_error', etape: 'devoilements_fermes', annonces_expirees: annoncesExpirees }, 500)
+    }
+    type Devoilee = {
+      id: string
+      status: string
+      unlocked_at: string | null
+      conversations: { expires_at: string | null } | { expires_at: string | null }[] | null
+    }
+    let devoilementsFermes = 0
+    for (const c of (devoilees ?? []) as unknown as Devoilee[]) {
+      const fil = Array.isArray(c.conversations) ? (c.conversations[0] ?? null) : c.conversations
+      const vie = deriveCandidatureLifecycle(
+        { status: c.status, unlocked_at: c.unlocked_at, conversation: fil ? { expires_at: fil.expires_at } : null },
+        { vieAnnonceJours: durees.vieAnnonceJours, fenetreEchangeJours: durees.fenetreEchangeJours },
+      )
+      if (vie.reason !== 'exchange_expired') continue
+      const fin = effectiveConversationExpiry(
+        { conversationExpiresAt: fil?.expires_at ?? null, unlockedAt: c.unlocked_at },
+        { fenetreEchangeJours: durees.fenetreEchangeJours },
+      )
+      if (!fin) continue
+      const { data: constate, error: cErr } = await admin.rpc('constater_devoilement_ferme', {
+        p_piece: journal.piece,
+        p_candidature_id: c.id,
+        p_fin_echange: fin.toISOString(),
+      })
+      if (cErr) {
+        console.error('[constats] dévoilement : constat en échec', { candidatureId: c.id, message: cErr.message })
+        return json({ error: 'Query failed', code: 'db_error', etape: 'devoilements_fermes', annonces_expirees: annoncesExpirees, devoilements_fermes: devoilementsFermes }, 500)
+      }
+      if (constate === true) devoilementsFermes++
+    }
+
     // Le verdict est rendu TEL QUEL : le compte de ce passage, et sa borne —
     // un passage plein dit qu'il en reste.
     return json(
@@ -119,6 +170,7 @@ async function handle(request: NextRequest): Promise<Response> {
         ok: true,
         piece: journal.piece,
         annonces_expirees: annoncesExpirees,
+        devoilements_fermes: devoilementsFermes,
         limite: LIMITE_PAR_PASSAGE,
       },
       200,
