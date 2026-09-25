@@ -88,14 +88,22 @@ export async function journaliser(admin: SupabaseClient, e: EcritureJournal): Pr
 export async function journaliserDans(
   admin: SupabaseClient,
   journal: ContexteJournal,
-  e: Pick<EcritureJournal, 'type' | 'statut' | 'sujet' | 'detail' | 'cout'>,
+  e: Pick<EcritureJournal, 'type' | 'statut' | 'sujet' | 'detail' | 'cout'> & {
+    /**
+     * L'écosystème DE LA LIGNE, quand il n'est pas celui du geste : un
+     * administrateur qui rejoue un dépôt agit depuis le sien, mais la ligne
+     * appartient à l'écosystème du dépôt. Absent, celui du contexte.
+     */
+    ecosystemeId?: string | null
+  },
 ): Promise<number> {
+  const { ecosystemeId, ...ligne } = e
   return journaliser(admin, {
     piece: journal.piece,
     origine: journal.origine,
     acteur: journal.acteur,
-    ecosystemeId: journal.ecosystemeId,
+    ecosystemeId: ecosystemeId !== undefined ? ecosystemeId : journal.ecosystemeId,
     pieceOrigine: journal.pieceOrigine,
-    ...e,
+    ...ligne,
   })
 }

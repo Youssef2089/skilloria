@@ -230,7 +230,10 @@ section('1. Le dépôt juge l’aptitude, avant tout ce qui coûte')
 
 ok(/jugerEligibilite\s*\(/.test(depotNu), 'le dépôt lit la règle d’éligibilité')
 ok(
-  /return \{ issue: 'inapte', raison: aptitude\.raison \}/.test(depotNu),
+  // Depuis §D.26 le refus passe par son écrivain (`refuserInapte`), qui rend
+  // l'issue ET l'écrit au grand livre : la propriété reste « il refuse avec la
+  // raison, sans rien écrire de métier ».
+  /return refuserInapte\([\s\S]{0,300}?raison: aptitude\.raison,?\s*\}\)/.test(depotNu),
   '… et il REFUSE avec la raison, sans rien écrire',
 )
 

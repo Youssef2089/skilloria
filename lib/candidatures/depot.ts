@@ -57,6 +57,7 @@ import { after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
+import { journaliserDans } from '@/lib/journal/journaliser'
 import { dispatchNotificationsForUsers } from '@/lib/notifications/dispatch'
 import { newCandidatureInappLabels } from '@/lib/notifications/inapp-labels'
 import { getOrgEntitlements } from '@/lib/entitlements'
@@ -176,6 +177,30 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
     cdi_company_size: Array.isArray(profile.cdi_company_size) ? profile.cdi_company_size : [],
     cdi_sectors: Array.isArray(profile.cdi_sectors) ? profile.cdi_sectors : [],
   }
+}
+
+/**
+ * LE REFUS POUR L'ÉTAT DE L'EXPERT — écrit au grand livre, sujet le PROFIL
+ * (§D.21, §D.26). Le SEUL écrivain de `refus_expert_inapte`.
+ *
+ * Posé avant toute dépense ; la raison est l'une des valeurs fermées de la
+ * règle d'éligibilité. L'écosystème est celui du DÉPÔT (le profil), pas celui
+ * du geste : un administrateur qui rejoue agit depuis le sien. Un journal qui
+ * refuse LÈVE — un refus qu'on n'a pas pu écrire reste un refus, mais on le sait.
+ */
+async function refuserInapte(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string; publicationId: string; domainId: string; raison: RaisonIneligible },
+): Promise<IssueDepot> {
+  await journaliserDans(admin, journal, {
+    type: 'refus_expert_inapte',
+    statut: 'refuse',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: { raison: args.raison, publication_id: args.publicationId },
+    ecosystemeId: args.domainId,
+  })
+  return { issue: 'inapte', raison: args.raison }
 }
 
 /** Les types de publication auxquels un expert peut candidater. */
@@ -313,7 +338,13 @@ export async function deposerCandidature(args: {
       publicationId,
       raison: aptitude.raison,
     })
-    return { issue: 'inapte', raison: aptitude.raison }
+    // LE REFUS S'ÉCRIT (§D.26) — par le seul écrivain de `refus_expert_inapte`.
+    return refuserInapte(supabaseAdmin, args.journal, {
+      profileId: profileRow.id,
+      publicationId,
+      domainId: profileRow.domain_id,
+      raison: aptitude.raison,
+    })
   }
 
   // ── Match requis (bornage curation) ─────────────────────────────────────

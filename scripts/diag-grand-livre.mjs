@@ -481,6 +481,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'refus_depot_sans_jugement', fichier: 'lib/candidatures/depot.ts', bloc: 'async function solderJournalEnEchec(', motif: /\.rpc\('solder_depot_en_echec',\s*\{\s*\.\.\.parametresJournal\(args\.journal\),[\s\S]{0,300}?p_cause: args\.cause,/, quoi: 'le solde en échec passe par la RPC, avec le contexte du geste et la cause fermée' },
     { code: 'refus_depot_sans_jugement', fichier: 'lib/candidatures/depot.ts', bloc: 'async function solderJournalEnEchec(', motif: (b) => !/\.from\('candidature_depots'\)[\s\S]{0,120}?\.update\(/.test(b), quoi: 'le solde en échec n’écrit PLUS la table directement' },
     { code: 'refus_depot_sans_jugement', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => (b.match(/solderJournalEnEchec\(supabaseAdmin, \{\s*journal: args\.journal,/g) || []).length === 2 && (b.match(/solderJournalEnEchec\(/g) || []).length === 2, quoi: 'les DEUX sorties sans jugement (modèle, base) passent le contexte au solde' },
+    // ── B3 : l'expert inapte est refusé, et le refus s'écrit ──
+    { code: 'refus_expert_inapte', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => (b.match(/return refuserInapte\(supabaseAdmin, args\.journal, \{/g) || []).length === 1 && !/issue: 'inapte'/.test(b), quoi: 'la SEULE sortie « inapte » du dépôt passe par l’écrivain, avec le contexte' },
+    { code: 'refus_expert_inapte', fichier: 'lib/candidatures/depot.ts', bloc: 'async function refuserInapte(', motif: /journaliserDans\(admin, journal, \{\s*type: 'refus_expert_inapte',\s*statut: 'refuse',\s*sujet: \{ type: 'profiles', id: args\.profileId \},[\s\S]{0,300}?ecosystemeId: args\.domainId,/, quoi: 'au statut imposé, sujet le PROFIL, écosystème celui du dépôt' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -615,6 +618,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     'refus de dépôt : le statut « reussi » est REFUSÉ par la base pour cette action (sonde exécutée)')
   ok(/public\.ouvrir_depot_candidature\(v_pub, v_prof, v_domaine, 'sonde', v_piece\)[\s\S]*?public\.solder_depot_en_echec\(v_piece,[\s\S]*?d\.etat = 'echec' and d\.cause = 'plafond'[\s\S]*?g\.type_action = 'refus_depot_sans_jugement' and g\.statut = 'refuse'[\s\S]*?g\.detail ->> 'tentative' = '1'[\s\S]*?raise exception 'SONDE_ANNULEE'/.test(postR2),
     'refus de dépôt : ouverture, solde en échec RELU, refus RELU sous sa pièce (cause, tentative), puis annulé')
+  // L'expert inapte : la forme du code acceptée, le texte libre refusé.
+  const INAPTE = stripSql(read(migration('journal_refus_expert_inapte')))
+  const iPostI = INAPTE.indexOf('do $post$')
+  const postI = iPostI < 0 ? '' : INAPTE.slice(iPostI)
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_expert_inapte', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('raison', 'ne_pas_deranger', 'publication_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postI),
+    'expert inapte : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
+  ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postI), 'expert inapte : un texte libre est REFUSÉ (sonde exécutée)')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════
