@@ -247,6 +247,11 @@ async function executerRunExpert(args: {
 }): Promise<VerdictExpert> {
   const { supabaseAdmin, profileId, journal } = args
 
+  // ── L'HISTOIRE DU RUN, au grand livre — une ligne par étape (§D.26) ─────
+  //  Le sujet est le profil ; l'écosystème est le sien dès qu'il est lu —
+  //  avant, celui du geste, pour pouvoir dire qu'une lecture a échoué.
+  let recherche = new JournalDeRecherche(supabaseAdmin, journal, { type: 'profiles', id: profileId }, journal.ecosystemeId)
+
   // ── 1. Le profil ─────────────────────────────────────────────────────────
   const { data: profData, error: profErr } = await supabaseAdmin
     .from('profiles')
@@ -261,12 +266,15 @@ async function executerRunExpert(args: {
     return { status: 'error', proposals: [], notes: 'Profil introuvable.', model: null }
   }
   const p = profData as unknown as LigneProfil
+  recherche = recherche.dansEcosysteme(p.domain_id)
   const u = pickRel(p.users)
   const kind: ExpertKind = u?.user_type === 'expert_cdi' ? 'expert_cdi' : 'expert_freelance'
   const locale = args.locale ?? u?.locale ?? 'fr'
 
   const eligibilite = expertEligible(p, kind)
   if (!eligibilite.ok) {
+    // Un refus légitime, connu en une lecture : la recherche est TERMINÉE (§D.13, runAcheve).
+    await recherche.terminee({ issue: 'ineligible', raison: eligibilite.raison })
     return {
       status: 'empty_pool',
       proposals: [],
@@ -297,12 +305,10 @@ async function executerRunExpert(args: {
   }
   const vieAnnonceJours = lectureDurees.durees.vieAnnonceJours
 
-  // ── L'HISTOIRE DU RUN, au grand livre — une ligne par étape (§D.26) ─────
-  //  Le sujet est le profil, l'écosystème le sien. `lancee` s'écrit ICI :
-  //  l'expert est éligible, les réglages sont lus, le moteur va lire les
-  //  annonces et payer. La tentative est le compteur de relance tel que lu —
-  //  l'appelant qui relance l'a incrémenté AVANT le run (`marquerTentativeRelance`).
-  const recherche = new JournalDeRecherche(supabaseAdmin, journal, { type: 'profiles', id: profileId }, p.domain_id)
+  // `lancee` s'écrit ICI : l'expert est éligible, les réglages sont lus, le
+  // moteur va lire les annonces et payer. La tentative est le compteur de
+  // relance tel que lu — l'appelant qui relance l'a incrémenté AVANT le run
+  // (`marquerTentativeRelance`).
   await recherche.lancee({ tentative: p.matching_relance_tentatives })
 
   const ouvertureCroisee = ouvertureCroiseeDe(p, kind)
@@ -382,6 +388,7 @@ async function executerRunExpert(args: {
     experiences: [],
   })
   if (!documentUtilisable(requete)) {
+    await recherche.terminee({ issue: 'sans_matiere' })
     return {
       status: 'empty_pool',
       proposals: [],
@@ -407,6 +414,7 @@ async function executerRunExpert(args: {
 
   if (documents.length === 0) {
     await ecrireTraceDePerimetre(supabaseAdmin, profileId, ouvertureCroisee)
+    await recherche.terminee({ issue: 'vivier_vide' })
     return { status: 'empty_pool', proposals: [], notes: 'Aucune annonce à noter pour cet expert.', model: s.rerank_model }
   }
 
@@ -529,6 +537,8 @@ async function executerRunExpert(args: {
   await ecrireTraceDePerimetre(supabaseAdmin, profileId, ouvertureCroisee)
 
   const acheve = notation.lots_en_echec === 0 && !notation.arret
+  // La fin — APRÈS la trace de périmètre : la ligne dit ce qui est acquis.
+  if (acheve) await recherche.terminee({ issue: 'ok' })
   const resume =
     `Annonces ${retenues.length} · notées ${notation.notes} · retenues ${desired.length} · ` +
     `notifiées ${notifies} · +${stats.inserted.length} ~${stats.updated} -${stats.deleted}` +

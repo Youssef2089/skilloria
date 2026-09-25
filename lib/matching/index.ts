@@ -215,6 +215,12 @@ export async function runMatchingForPublication(args: {
 }): Promise<MatchingVerdict> {
   const { supabaseAdmin, publicationId, journal } = args
 
+  // ── L'HISTOIRE DU RUN, au grand livre — une ligne par étape (§D.26) ─────
+  //  Le sujet est l'annonce ; la pièce est celle du geste qui a déclenché ce
+  //  run (`journal`). L'écosystème est celui de l'annonce dès qu'elle est lue
+  //  — avant, celui du geste, pour pouvoir dire qu'une lecture a échoué.
+  let recherche = new JournalDeRecherche(supabaseAdmin, journal, { type: 'publications', id: publicationId }, journal.ecosystemeId)
+
   // ── 1. L'annonce ─────────────────────────────────────────────────────────
   const { data: pubData, error: pubErr } = await supabaseAdmin
     .from('publications')
@@ -236,6 +242,7 @@ export async function runMatchingForPublication(args: {
     return { status: 'error', proposals: [], notes: 'Annonce introuvable.', model: null }
   }
   const pub = pubData as unknown as LigneAnnonce
+  recherche = recherche.dansEcosysteme(pub.domain_id)
 
   // ── 2. Les réglages ──────────────────────────────────────────────────────
   const reglages = await loadMatchingSettings(supabaseAdmin, pub.domain_id)
@@ -275,6 +282,7 @@ export async function runMatchingForPublication(args: {
     // porte son propre nom. Aucune écriture — la trace du dernier run reste
     // lisible, et réconcilier à vide DÉTRUIRAIT les rapprochements passés pour
     // ne rien gagner : le flux les filtre déjà à la lecture.
+    await recherche.terminee({ issue: 'annonce_expiree' })
     return {
       status: 'annonce_expiree',
       proposals: [],
@@ -285,11 +293,8 @@ export async function runMatchingForPublication(args: {
 
   await marquerTentative(supabaseAdmin, publicationId, pub.matching_attempts ?? 0)
 
-  // ── L'HISTOIRE DU RUN, au grand livre — une ligne par étape (§D.26) ─────
-  //  Le sujet est l'annonce, l'écosystème le sien ; la pièce est celle du
-  //  geste qui a déclenché ce run (`journal`). `lancee` s'écrit ICI, après
-  //  la tentative comptée : c'est le point de non-retour, le moteur va payer.
-  const recherche = new JournalDeRecherche(supabaseAdmin, journal, { type: 'publications', id: publicationId }, pub.domain_id)
+  // `lancee` s'écrit ICI, après la tentative comptée : c'est le point de
+  // non-retour, le moteur va payer (§D.26).
   await recherche.lancee({ tentative: (pub.matching_attempts ?? 0) + 1 })
 
   const criteres: CriteresAnnonce = {
@@ -386,6 +391,7 @@ export async function runMatchingForPublication(args: {
       s.rerank_model,
       true,
     )
+    await recherche.terminee({ issue: 'vivier_vide' })
     return { status: 'empty_pool', proposals: [], notes: 'Aucun profil éligible à noter.', model: s.rerank_model }
   }
 
@@ -551,6 +557,8 @@ export async function runMatchingForPublication(args: {
   // ce qui a été payé. L'effacer plus tôt rouvrirait exactement le mur qu'on
   // ferme ; ne pas l'effacer du tout ferait reprendre un run déjà fini.
   if (acheve) await solderBrouillon(supabaseAdmin, publicationId)
+  // La fin — APRÈS la trace et le brouillon soldé : la ligne dit ce qui est acquis.
+  if (acheve) await recherche.terminee({ issue: 'ok' })
 
   const resume =
     `Vivier ${vivier.profils.length} · notés ${notation.notes} · retenus ${desired.length} · ` +

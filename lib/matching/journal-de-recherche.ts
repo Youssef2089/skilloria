@@ -3,6 +3,7 @@ import type { ContexteJournal } from '@/lib/journal/contexte'
 import { journaliserDans } from '@/lib/journal/journaliser'
 import type { ArretDeNotation } from './rerank'
 import type { BilanNotifications } from './shared'
+import type { RaisonIneligible } from './eligibilite'
 
 /**
  * LE JOURNAL D'UNE RECHERCHE — l'histoire d'un run, écrite au grand livre,
@@ -55,14 +56,35 @@ export type SujetDeRecherche =
   | { type: 'publications'; id: string }
   | { type: 'profiles'; id: string }
 
+/**
+ * LES ISSUES D'UNE RECHERCHE QUI S'EST TERMINÉE — fermées, en valeur.
+ *   `ok`              le moteur est allé au bout ;
+ *   `vivier_vide`     rien à noter — un RÉSULTAT, pas une panne ;
+ *   `annonce_expiree` l'annonce n'est plus active (sens annonce) ;
+ *   `ineligible`      l'expert n'a pas droit au moteur aujourd'hui (sens expert) ;
+ *   `sans_matiere`    le profil est trop court pour être comparé (sens expert).
+ * Les trois dernières sont des REFUS LÉGITIMES : la recherche s'est terminée
+ * sans tourner, et c'est la bonne réponse — `runAcheve()` les solde de même.
+ */
+export type IssueDeRecherche = 'ok' | 'vivier_vide' | 'annonce_expiree' | 'ineligible' | 'sans_matiere'
+
 export class JournalDeRecherche {
   constructor(
     private readonly admin: SupabaseClient,
     private readonly journal: ContexteJournal,
     private readonly sujet: SujetDeRecherche,
-    /** L'écosystème de l'OBJET cherché, lu sur sa ligne — pas celui du contexte. */
-    private readonly ecosystemeId: string,
+    /**
+     * L'écosystème de l'OBJET cherché, lu sur sa ligne — pas celui du contexte.
+     * Avant la lecture de l'objet, celui du geste (une tâche n'en a pas) :
+     * `dansEcosysteme()` rend l'instance de l'objet dès qu'il est lu.
+     */
+    private readonly ecosystemeId: string | null,
   ) {}
+
+  /** La même recherche, sous l'écosystème de l'objet lu. Immuable : une nouvelle instance. */
+  dansEcosysteme(ecosystemeId: string): JournalDeRecherche {
+    return new JournalDeRecherche(this.admin, this.journal, this.sujet, ecosystemeId)
+  }
 
   /**
    * LE LANCEMENT — après que la tentative a été comptée (annonce :
@@ -203,6 +225,23 @@ export class JournalDeRecherche {
         paquets_en_echec: b.paquets_en_echec,
         renonce: b.renonce,
       },
+    })
+  }
+
+  /**
+   * LA FIN — l'issue, fermée. Statut `reussi` imposé par la base : une
+   * recherche terminée sur un refus légitime (annonce expirée, expert
+   * inéligible, profil sans matière) ou sur un vivier vide s'est bien
+   * TERMINÉE ; ce qui a échoué s'écrit `echouee`. La raison n'accompagne
+   * que l'inéligibilité, en code (§D.20).
+   */
+  async terminee(d: { issue: IssueDeRecherche; raison?: RaisonIneligible }): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_terminee',
+      statut: 'reussi',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: { issue: d.issue, raison: d.raison },
     })
   }
 }
