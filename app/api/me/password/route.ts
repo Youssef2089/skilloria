@@ -1,3 +1,6 @@
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { motDePasseChange } from '@/lib/comptes/journal-compte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
@@ -64,6 +67,17 @@ export async function POST(request: NextRequest): Promise<Response> {
       ? 'password_same_as_old'
       : 'password_change_failed'
     return json({ error: 'Could not change password', code }, 400)
+  }
+
+  // LA LIGNE DU GRAND LIVRE — après la bascule (immédiate, chez Supabase
+  // Auth), avant l'audit best-effort (§E.68). Un journal qui refuse le DIT :
+  // le mot de passe EST changé, et un 200 muet le ferait oublier.
+  try {
+    await motDePasseChange(auth.supabaseAdmin, contexteDepuisAuth(auth), { userId: auth.user.id })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[me/password] grand livre en échec après le changement', err.message)
+    return json({ error: 'Journal failed', code: 'journal_error' }, 500)
   }
 
   await logAudit({

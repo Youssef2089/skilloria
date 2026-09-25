@@ -637,6 +637,8 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'suppression_annulee', fichier: 'app/api/me/account/reactivate/route.ts', bloc: 'export async function POST(', motif: (b) => /\.from\('users'\)\s*\.update\(\{ deletion_scheduled_at: null \}\)[\s\S]*?await suppressionAnnulee\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{\s*userId: auth\.user\.id,\s*visibiliteRestauree: restoreVisible,\s*avaitUnProfil,\s*\}\)/.test(b) && /if \(!\(err instanceof JournalError\)\) throw err[\s\S]{0,300}?code: 'journal_error'/.test(b) && b.indexOf('await suppressionAnnulee(') < b.indexOf("action: 'account_reactivated'"), quoi: 'la ligne vient APRÈS la réactivation du compte et AVANT l’audit, avec la visibilité réellement restaurée ; un journal qui refuse répond journal_error' },
     { code: 'email_change', fichier: 'lib/comptes/journal-compte.ts', bloc: 'export async function emailChange(', motif: /type: 'email_change',\s*statut: 'reussi',\s*sujet: \{ type: 'users', id: args\.userId \},\s*detail: \{ etape: args\.etape \},/, quoi: 'l’écrivain : l’étape seule sort (son type fermé est tenu par le compilateur) — jamais l’adresse' },
     { code: 'email_change', fichier: 'app/api/me/email/route.ts', bloc: 'export async function POST(', motif: (b) => /userClient\.auth\.updateUser\(\{ email: new_email \}\)[\s\S]*?await emailChange\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{ userId: auth\.user\.id, etape: 'demande' \}\)/.test(b) && b.indexOf('await emailChange(') < b.indexOf("action: 'email_change_requested'") && /code: 'journal_error'/.test(b), quoi: 'la ligne vient APRÈS l’appel qui déclenche la confirmation, avec l’étape « demande » — l’adresse n’a pas encore changé — et avant l’audit' },
+    { code: 'mot_de_passe_change', fichier: 'lib/comptes/journal-compte.ts', bloc: 'export async function motDePasseChange(', motif: /type: 'mot_de_passe_change',\s*statut: 'reussi',\s*sujet: \{ type: 'users', id: args\.userId \},\s*detail: \{\},/, quoi: 'l’écrivain : le fait seul — aucun détail, donc ni empreinte ni longueur' },
+    { code: 'mot_de_passe_change', fichier: 'app/api/me/password/route.ts', bloc: 'export async function POST(', motif: (b) => /userClient\.auth\.updateUser\(\{ password: new_password \}\)[\s\S]*?await motDePasseChange\(auth\.supabaseAdmin, contexteDepuisAuth\(auth\), \{ userId: auth\.user\.id \}\)/.test(b) && b.indexOf('await motDePasseChange(') < b.indexOf("action: 'password_changed'") && /code: 'journal_error'/.test(b), quoi: 'la ligne vient APRÈS la bascule et AVANT l’audit ; un journal qui refuse répond journal_error' },
     { code: 'recherche_classee', fichier: 'lib/ai-budget.ts', bloc: 'export async function enregistrerDepenseIA(', motif: /await signalerPlafondAtteint\([^\n]*\)\s*return \{ cout_usd: cout \}\s*\} catch \(err\) \{[\s\S]*?return \{ cout_usd: null \}/, quoi: 'l’enregistrement REND le coût calculé au tarif (null si tarif manquant ou exception) — un seul calcul, jamais recalculé par l’appelant (§E.13)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
@@ -988,6 +990,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/jsonb_build_object\('etape', 'demande'\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
       'adresse : la forme exacte du module (l’étape seule) est ÉCRITE, puis annulée')
     ok(/"new_email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'adresse : l’ADRESSE est REFUSÉE (sonde exécutée)')
+  }
+  {
+    const MDP = stripSql(read(migration('journal_mot_de_passe_change')))
+    const P = MDP.slice(Math.max(0, MDP.indexOf('do $post$')))
+    ok(/array_length\(v_cles, 1\) is not null then\s*\n?\s*raise exception 'postcondition NON TENUE : mot_de_passe_change devrait avoir une liste blanche VIDE/.test(P),
+      'mot de passe : la liste blanche est VÉRIFIÉE VIDE')
+    ok(/'\{"longueur":14\}'[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'mot de passe : la LONGUEUR est REFUSÉE (sonde exécutée)')
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

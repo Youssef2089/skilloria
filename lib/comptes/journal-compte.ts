@@ -88,3 +88,22 @@ export async function emailChange(
     detail: { etape: args.etape },
   })
 }
+
+/**
+ * LE MOT DE PASSE CHANGÉ — la bascule est IMMÉDIATE (contrairement à
+ * l'adresse), il n'y a donc pas d'étape à distinguer. Aucun détail : ni le
+ * mot de passe, ni son empreinte, ni sa LONGUEUR — elle n'a l'air de rien et
+ * réduit l'espace de recherche. La liste blanche vide refuse tout.
+ */
+export async function motDePasseChange(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { userId: string },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'mot_de_passe_change',
+    statut: 'reussi',
+    sujet: { type: 'users', id: args.userId },
+    detail: {},
+  })
+}

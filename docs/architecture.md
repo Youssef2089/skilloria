@@ -98,6 +98,10 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_mot_de_passe_change` (25/09/2026) — LA SECONDE LISTE BLANCHE VIDE.** Ordre indifférent : l'écrivain
+> est TypeScript. Postcondition exécutée : la liste est vérifiée vide, le fait seul accepté puis annulé, la
+> **longueur** du mot de passe refusée (GL004).
+
 > **`journal_email_change` (25/09/2026) — LA LISTE BLANCHE DU CHANGEMENT D'ADRESSE.** Ordre indifférent :
 > l'écrivain est TypeScript. Postcondition exécutée : l'étape seule acceptée puis annulée, l'adresse refusée
 > (GL004).
@@ -1857,6 +1861,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `suppression_programmee` | `programmer_suppression_compte()` (SQL, **signature étendue**) | RPC métier + journal | `echeance`, `grace_jours` | la fonction **existait** et portait déjà une garantie : le transfert du **siège d'administrateur plateforme** et l'écriture du jalon dans la même transaction ; la ligne y entre — une suppression programmée sans trace, ou une trace sans suppression, seraient deux moitiés du même défaut ; les **deux refus** (`introuvable`, `dernier_admin` — une course tranchée par la clé étrangère) rendent **sans** écrire ; l'**ancienne signature** (sans journal) est **supprimée**, sinon `create or replace` en laisserait une seconde, appelable |
 | `suppression_annulee` | `suppressionAnnulee()` dans `lib/comptes/journal-compte.ts` | journal après écriture, même pièce | `visibilite_restauree`, `avait_un_profil` | le compte revient **toujours** ; la **visibilité** du profil ne revient que si elle était acquise avant la suppression **et** que le profil est encore complet — écrire l'un sans l'autre laisserait croire qu'un expert réactivé est de nouveau visible alors qu'il ne l'est pas (§E.24) ; `avait_un_profil` distingue l'expert de l'organisation, sinon une visibilité « non restaurée » se lirait comme un refus là où il n'y a pas de profil ; la liste des champs manquants (elle décrit un profil) est refusée par la liste blanche |
 | `email_change` | `emailChange()` dans `lib/comptes/journal-compte.ts` | journal après écriture, même pièce | `etape` (`demande` · `confirme`) | **la demande, pas la bascule** : la route déclenche l'e-mail de confirmation, l'adresse ne change qu'au clic du lien — écrire « adresse changée » ici annoncerait un fait qui n'est pas arrivé (§E.24) ; le jour où le retour du lien sera branché, il écrira la **même** action avec `confirme`, et l'histoire se lira dans le bon ordre ; ni l'ancienne adresse ni la nouvelle n'entrent dans la ligne (la sonde le vérifie), et l'audit ne les écrivait déjà pas |
+| `mot_de_passe_change` | `motDePasseChange()` dans `lib/comptes/journal-compte.ts` | journal après écriture, même pièce | **aucun** (liste blanche **vide**) | la bascule est **immédiate** (contrairement à l'adresse) : pas d'étape à distinguer ; aucun détail — ni le mot de passe, ni son empreinte, ni sa **longueur**, qui n'a l'air de rien et réduit l'espace de recherche ; la liste vide refuse tout, y compris une clé au nom innocent |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3219,7 +3224,7 @@ moteur dans les deux sens, une ligne par étape — **fait** : un seul module é
 le CV, la disponibilité — **fait** : `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree` et
 `devoilement_ferme` (par la **tâche de constat** `constats_trigger`, à colonne-marqueur, une pièce par passage),
 `cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` ; (e) la sécurité des comptes et la gouvernance d'organisation — **en cours** : `compte_suspendu`, `compte_reactive`,
-`compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change` ; (f) la
+`compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change` ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
 n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :
