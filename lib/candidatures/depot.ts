@@ -512,6 +512,7 @@ export async function deposerCandidature(args: {
       raison: resultat.raison,
     })
     await solderJournalEnEchec(supabaseAdmin, {
+      journal: args.journal,
       publicationId,
       profileId: profileRow.id,
       cause: resultat.cause,
@@ -567,6 +568,7 @@ export async function deposerCandidature(args: {
     //    a rendu quelque chose que la base juge nu. On garde la ligne en
     //    ÉCHEC plutôt qu'en cours : c'est bien un dépôt qui n'a pas abouti.
     await solderJournalEnEchec(supabaseAdmin, {
+      journal: args.journal,
       publicationId,
       profileId: profileRow.id,
       cause: 'reponse_illisible',
@@ -685,25 +687,42 @@ async function ouvrirJournal(
 
 async function solderJournalEnEchec(
   admin: SupabaseClient,
-  args: { publicationId: string; profileId: string; cause: CausePanne; detail: string },
+  args: {
+    journal: ContexteJournal
+    publicationId: string
+    profileId: string
+    cause: CausePanne
+    detail: string
+  },
 ): Promise<void> {
-  const { error } = await admin
-    .from('candidature_depots')
-    .update({
-      etat: 'echec',
-      cause: args.cause,
-      // Le détail est une phrase de journal, jamais le texte produit : une
-      // panne n'a pas de contenu.
-      detail: args.detail,
-      termine_at: new Date().toISOString(),
-    })
-    .eq('publication_id', args.publicationId)
-    .eq('profile_id', args.profileId)
+  // LE JOURNAL DU DÉPÔT SOLDÉ EN ÉCHEC ET LE REFUS AU GRAND LIVRE, EN UN SEUL
+  // APPEL (§D.26) : `refus_depot_sans_jugement`, au statut que la base impose,
+  // sous la pièce du geste — la cause fermée et le rang de la tentative, jamais
+  // le texte de la panne, qui reste sur la ligne du dépôt.
+  const { data, error } = await admin.rpc('solder_depot_en_echec', {
+    ...parametresJournal(args.journal),
+    p_publication_id: args.publicationId,
+    p_profile_id: args.profileId,
+    p_cause: args.cause,
+    // Le détail est une phrase de journal, jamais le texte produit : une
+    // panne n'a pas de contenu.
+    p_detail: args.detail,
+  })
   if (error) {
     console.error('[depot] échec NON JOURNALISÉ — il n apparaîtra sur aucun écran', {
       publicationId: args.publicationId,
       profileId: args.profileId,
       message: error.message,
+    })
+    return
+  }
+  if (data !== true) {
+    // Le journal du dépôt n'avait pas été ouvert (son ouverture est best-effort) :
+    // le refus est au grand livre, mais cette ligne-là n'apparaîtra sur aucun
+    // écran de relance. Dit, pas tu (§E.22).
+    console.error('[depot] refus journalisé SANS ligne de dépôt — non relançable', {
+      publicationId: args.publicationId,
+      profileId: args.profileId,
     })
   }
 }

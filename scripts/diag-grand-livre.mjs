@@ -477,6 +477,10 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'candidature_deposee', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => !/\.from\('candidatures'\)[\s\S]{0,80}?\.(insert|upsert)\(/.test(b) && !/\.from\('candidature_depots'\)[\s\S]{0,120}?\.update\(\{\s*etat: 'depose'/.test(b), quoi: 'le dépôt n’écrit PLUS la candidature ni le solde du journal directement' },
     { code: 'candidature_deposee', fichier: 'lib/candidatures/depot.ts', bloc: 'async function ouvrirJournal(', motif: /\.rpc\('ouvrir_depot_candidature',\s*\{[\s\S]{0,300}?p_piece: args\.piece,/, quoi: 'le journal du dépôt s’ouvre AVEC la pièce du geste — avant l’appel au modèle' },
     { code: 'candidature_deposee', fichier: 'app/api/admin/depots-en-echec/route.ts', bloc: 'export async function POST(', motif: /contexteDepuisAuth\(auth, estPiece\(ligne\.piece\) \? ligne\.piece : null\)[\s\S]*?deposerCandidature\(\{[\s\S]{0,300}?journal,/, quoi: 'le rejeu ouvre une pièce NEUVE qui référence celle de la tentative rejouée, et la passe au dépôt' },
+    // ── B2 : le dépôt sans jugement est un refus ──
+    { code: 'refus_depot_sans_jugement', fichier: 'lib/candidatures/depot.ts', bloc: 'async function solderJournalEnEchec(', motif: /\.rpc\('solder_depot_en_echec',\s*\{\s*\.\.\.parametresJournal\(args\.journal\),[\s\S]{0,300}?p_cause: args\.cause,/, quoi: 'le solde en échec passe par la RPC, avec le contexte du geste et la cause fermée' },
+    { code: 'refus_depot_sans_jugement', fichier: 'lib/candidatures/depot.ts', bloc: 'async function solderJournalEnEchec(', motif: (b) => !/\.from\('candidature_depots'\)[\s\S]{0,120}?\.update\(/.test(b), quoi: 'le solde en échec n’écrit PLUS la table directement' },
+    { code: 'refus_depot_sans_jugement', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => (b.match(/solderJournalEnEchec\(supabaseAdmin, \{\s*journal: args\.journal,/g) || []).length === 2 && (b.match(/solderJournalEnEchec\(/g) || []).length === 2, quoi: 'les DEUX sorties sans jugement (modèle, base) passent le contexte au solde' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -491,6 +495,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'enregistrer_paiement', code: 'paiement_recu', motif: /on conflict \(stripe_invoice_id\) where stripe_invoice_id is not null do nothing\s+returning id into v_id;[\s\S]*?if v_id is null then\s+return null;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'paiement_recu', 'reussi', 'systeme',\s*null::uuid, null::text, v_t\.domain_id,\s*'organizations', v_t\.organization_id,/, quoi: 'la pièce comptable est insérée (doublon : rien, ni ligne), PUIS journalisée sur l’organisation — même transaction' },
     { fn: 'inserer_candidature_jugee', code: 'candidature_deposee', motif: /on conflict \(publication_id, profile_id\) do nothing[\s\S]*?if v_id is null then[\s\S]*?delete from public\.candidature_depots[\s\S]*?return null;[\s\S]*?update public\.candidature_depots[\s\S]*?set etat\s*=\s*'depose'[\s\S]*?perform public\.journaliser\(\s*p_piece, 'candidature_deposee', 'reussi', p_origine,\s*p_acteur_id, p_acteur_type, v_c\.domain_id,\s*'candidatures', v_id,[\s\S]*?p_piece_origine/, quoi: 'la candidature est insérée (concurrente : rien, ligne du dépôt retirée), le journal du dépôt soldé, PUIS la ligne écrite avec la pièce d’origine — même transaction' },
     { fn: 'ouvrir_depot_candidature', code: 'candidature_deposee', motif: /p_piece\s+uuid[\s\S]*?raise exception 'ouvrir_depot_candidature : la piece est obligatoire' using errcode = 'GL002'[\s\S]*?piece\s*=\s*excluded\.piece/, quoi: 'le journal du dépôt exige la pièce et la pose, à l’ouverture comme à la relance' },
+    { fn: 'solder_depot_en_echec', code: 'refus_depot_sans_jugement', motif: /set etat\s*=\s*'echec'[\s\S]*?returning d\.id, d\.tentatives, d\.domain_id[\s\S]*?perform public\.journaliser\(\s*p_piece, 'refus_depot_sans_jugement', 'refuse', p_origine,\s*p_acteur_id, p_acteur_type, v_domaine,[\s\S]*?'cause', p_cause,[\s\S]*?p_piece_origine/, quoi: 'le journal du dépôt est soldé en échec PUIS le refus écrit, au statut imposé, avec la cause fermée et la pièce d’origine — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
   // signature — le premier `{` après le nom serait celui d'un type de paramètre.
@@ -601,6 +606,15 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     'dépôt : le journal du dépôt porte la pièce à l’ouverture, et il est SOLDÉ par l’écriture (relu)')
   ok(/g\.piece = v_piece and g\.type_action = 'candidature_deposee'[\s\S]{0,300}?g\.detail ->> 'tentative' = '1'/.test(postD) && /raise exception 'SONDE_ANNULEE'/.test(postD),
     'dépôt : la ligne est RELUE sous sa pièce (sujet candidature, tentative comptée), puis annulée')
+  // Le refus sans jugement a la sienne : statut imposé éprouvé, solde et refus relus.
+  const REFUS_DEPOT = stripSql(read(migration('journal_refus_depot_sans_jugement')))
+  const iPostR2 = REFUS_DEPOT.indexOf('do $post$')
+  const postR2 = iPostR2 < 0 ? '' : REFUS_DEPOT.slice(iPostR2)
+  ok(/to_regprocedure\('public\.solder_depot_en_echec\(uuid, uuid, text, uuid, text, uuid, uuid, text, text\)'\) is null/.test(postR2), 'refus de dépôt : la signature est vérifiée par TYPES')
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_depot_sans_jugement', 'reussi'[\s\S]{0,400}?when sqlstate 'GL003'/.test(postR2),
+    'refus de dépôt : le statut « reussi » est REFUSÉ par la base pour cette action (sonde exécutée)')
+  ok(/public\.ouvrir_depot_candidature\(v_pub, v_prof, v_domaine, 'sonde', v_piece\)[\s\S]*?public\.solder_depot_en_echec\(v_piece,[\s\S]*?d\.etat = 'echec' and d\.cause = 'plafond'[\s\S]*?g\.type_action = 'refus_depot_sans_jugement' and g\.statut = 'refuse'[\s\S]*?g\.detail ->> 'tentative' = '1'[\s\S]*?raise exception 'SONDE_ANNULEE'/.test(postR2),
+    'refus de dépôt : ouverture, solde en échec RELU, refus RELU sous sa pièce (cause, tentative), puis annulé')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

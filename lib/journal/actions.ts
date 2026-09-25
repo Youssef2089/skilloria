@@ -167,5 +167,5 @@ export const CLES_DETAIL = {
   refus_expert_inapte: [],
   refus_garde_eligibilite: [],
   refus_quota_cv: [],
-  refus_depot_sans_jugement: [],
+  refus_depot_sans_jugement: ['publication_id', 'profile_id', 'cause', 'tentative'],
 } as const satisfies Record<TypeAction, readonly string[]>
