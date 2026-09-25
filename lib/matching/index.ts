@@ -471,6 +471,16 @@ export async function runMatchingForPublication(args: {
     await acheverRun(supabaseAdmin, publicationId, { ...baseStats, erreur: note }, notation.model, false)
     return { status: 'error', proposals: [], notes: `Réconciliation en échec : ${note}`, model: notation.model }
   }
+  // La ligne des correspondances : ce que le filtre a retenu, ce que la base a fait.
+  await recherche.correspondances({
+    retenues: desired.length,
+    fortes: auDessusDuSeuil.length,
+    inserees: stats.inserted.length,
+    mises_a_jour: stats.updated,
+    supprimees: stats.deleted,
+    filtre_flux: s.feed_threshold,
+    palier_fort: s.notify_threshold,
+  })
 
   // ── 6. Les notifications ─────────────────────────────────────────────────
   //  Seulement les inserts FRAIS, seulement au-dessus du seuil, et seulement si

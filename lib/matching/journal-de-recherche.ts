@@ -146,4 +146,37 @@ export class JournalDeRecherche {
       cout: d.facture.cout_usd === null ? null : { usd: d.facture.cout_usd, unite: 'recherches' },
     })
   }
+
+  /**
+   * LES CORRESPONDANCES — ce que le filtre du flux a retenu parmi les notés,
+   * combien sont fortes (le palier figé ce jour-là), et ce que la
+   * réconciliation a FAIT : insérées, mises à jour, supprimées. Les deux
+   * valeurs de réglage qui ont trié sont écrites avec — un réglage qui change
+   * ne réécrit pas l'histoire. Jamais une note individuelle (§D.6).
+   */
+  async correspondances(d: {
+    retenues: number
+    fortes: number
+    inserees: number
+    mises_a_jour: number
+    supprimees: number
+    filtre_flux: number
+    palier_fort: number
+  }): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_correspondances',
+      statut: 'reussi',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: {
+        retenues: d.retenues,
+        fortes: d.fortes,
+        inserees: d.inserees,
+        mises_a_jour: d.mises_a_jour,
+        supprimees: d.supprimees,
+        filtre_flux: d.filtre_flux,
+        palier_fort: d.palier_fort,
+      },
+    })
+  }
 }

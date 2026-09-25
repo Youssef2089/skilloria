@@ -487,6 +487,16 @@ async function executerRunExpert(args: {
     const note = err instanceof Error ? err.message : String(err)
     return { status: 'error', proposals: [], notes: `Réconciliation en échec : ${note}`, model: notation.model }
   }
+  // La ligne des correspondances : ce que le filtre a retenu, ce que la base a fait.
+  await recherche.correspondances({
+    retenues: desired.length,
+    fortes: desired.filter((d) => d.relevance_tier === 'strong').length,
+    inserees: stats.inserted.length,
+    mises_a_jour: stats.updated,
+    supprimees: stats.deleted,
+    filtre_flux: s.feed_threshold,
+    palier_fort: s.notify_threshold,
+  })
 
   // ── 7. Notifications ─────────────────────────────────────────────────────
   let notifies = 0
