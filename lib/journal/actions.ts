@@ -103,7 +103,7 @@ export const CLES_DETAIL = {
   suppression_annulee: ['visibilite_restauree', 'avait_un_profil'],
   email_change: ['etape'],
   mot_de_passe_change: [], // AUCUN détail : ni empreinte, ni longueur (elle réduit l'espace de recherche).
-  telephone_verifie: [],
+  telephone_verifie: ['methode'],
   membre_invite: [],
   invitation_renvoyee: [],
   invitation_acceptee: [],

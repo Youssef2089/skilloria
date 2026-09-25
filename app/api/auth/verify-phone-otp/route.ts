@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import {
@@ -148,11 +149,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'OTP provider error', code: 'vonage_error' }, 502)
   }
 
-  // Succès : on flip phone_verified et on stocke le phone (canonique E.164).
-  const { error: updErr } = await auth.supabaseAdmin
-    .from('users')
-    .update({ phone_verified: true, phone })
-    .eq('id', auth.user.id)
+  // ── LE DRAPEAU, LE NUMÉRO ET LA LIGNE, EN UN SEUL APPEL (§D.26) ─────────
+  //  Succès : on flip phone_verified et on stocke le phone (canonique E.164),
+  //  et la ligne du grand livre naît dans la MÊME transaction. Avant, le
+  //  drapeau pouvait être posé et la trace manquer. Le numéro va sur le
+  //  COMPTE (c'est sa place, une purge l'y trouve) et jamais dans la ligne —
+  //  il y survivrait à la suppression du compte.
+  //  L'unicité reste celle de la base : la violation (23505) remonte telle
+  //  quelle, la transaction entière est annulée, et aucune ligne n'est écrite.
+  const { error: updErr } = await auth.supabaseAdmin.rpc('verifier_telephone', {
+    ...parametresJournal(contexteDepuisAuth(auth)),
+    p_user_id: auth.user.id,
+    p_phone: phone,
+    p_methode: 'otp_sms',
+  })
   if (updErr) {
     // Filet en cas de course avec un autre compte gagnant l'index entre le
     // pré-check et l'update : refus propre plutôt qu'un 500 brut.
