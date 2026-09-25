@@ -507,8 +507,10 @@ export async function runMatchingForPublication(args: {
       })
     }
     if (specs.length > 0) {
-      await notifyAndFlip({ supabaseAdmin, specs })
+      const bilan = await notifyAndFlip({ supabaseAdmin, specs })
       notifies = specs.length
+      // La ligne des notifications : ce que l'envoi a FAIT, pas ce qu'on lui a demandé.
+      await recherche.notifiee(bilan)
     }
   }
 

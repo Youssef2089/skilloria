@@ -70,12 +70,31 @@ export type NotifySpec = {
  */
 const PAQUET_DESTINATAIRES = 500
 
+/**
+ * CE QUE L'ENVOI A FAIT — rendu à l'appelant pour la ligne `recherche_notifiee`
+ * du grand livre (§D.26). `demandees` : les destinataires du run ;
+ * `deja_notifiees` : les paires déjà présentes, non renvoyées ; `posees` : les
+ * lignes de notification ÉCRITES (un doublon concurrent est ignoré par
+ * l'index, il n'est pas compté à part : la base ne le dit pas) ;
+ * `paquets_en_echec` : les insertions refusées ; `renonce` : la lecture de
+ * l'existant a échoué, RIEN n'est parti. Le nombre demandé n'est pas le
+ * nombre parti — c'est tout l'objet de ce bilan (§E.24).
+ */
+export type BilanNotifications = {
+  demandees: number
+  deja_notifiees: number
+  posees: number
+  paquets_en_echec: number
+  renonce: boolean
+}
+
 export async function notifyAndFlip(args: {
   supabaseAdmin: SupabaseClient
   specs: NotifySpec[]
-}): Promise<void> {
+}): Promise<BilanNotifications> {
   const { supabaseAdmin, specs } = args
-  if (specs.length === 0) return
+  const bilan: BilanNotifications = { demandees: specs.length, deja_notifiees: 0, posees: 0, paquets_en_echec: 0, renonce: false }
+  if (specs.length === 0) return bilan
 
   const userIds = Array.from(new Set(specs.map((s) => s.user_id)))
   const pubIds = Array.from(new Set(specs.map((s) => s.publication_id)))
@@ -113,7 +132,7 @@ export async function notifyAndFlip(args: {
         // vue partielle de l'existant, c'est exactement produire les doublons
         // qu'on refuse.
         console.error('[matching] notifications existantes illisibles — aucun envoi ce run', existErr.message)
-        return
+        return { ...bilan, renonce: true }
       }
       for (const r of existing ?? []) {
         dejaNotifie.add(`${r.user_id as string}:::${r.entity_id as string}`)
@@ -126,7 +145,10 @@ export async function notifyAndFlip(args: {
 
   for (const s of specs) {
     aBasculer.push(s)
-    if (dejaNotifie.has(`${s.user_id}:::${s.publication_id}`)) continue
+    if (dejaNotifie.has(`${s.user_id}:::${s.publication_id}`)) {
+      bilan.deja_notifiees++
+      continue
+    }
     const loc = normalizeMatchingLocale(s.locale)
     // Ouverture croisée : le segment suit le type de l'EXPERT (son tableau de
     // bord), jamais celui de l'annonce.
@@ -163,7 +185,12 @@ export async function notifyAndFlip(args: {
       const { error: insErr } = await supabaseAdmin
         .from('notifications')
         .upsert(tranche, { onConflict: 'user_id,entity_id', ignoreDuplicates: true })
-      if (insErr) console.error('[matching] insertion de notifications en échec', insErr.message)
+      if (insErr) {
+        bilan.paquets_en_echec++
+        console.error('[matching] insertion de notifications en échec', insErr.message)
+      } else {
+        bilan.posees += tranche.length
+      }
     }
 
     // Envoi immédiat, PAR PAQUETS de destinataires : le dépêcheur ne lit que
@@ -205,4 +232,5 @@ export async function notifyAndFlip(args: {
       if (flipErr) console.error('[matching] bascule notified en échec', flipErr.message)
     }
   }
+  return bilan
 }

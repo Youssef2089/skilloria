@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContexteJournal } from '@/lib/journal/contexte'
 import { journaliserDans } from '@/lib/journal/journaliser'
 import type { ArretDeNotation } from './rerank'
+import type { BilanNotifications } from './shared'
 
 /**
  * LE JOURNAL D'UNE RECHERCHE — l'histoire d'un run, écrite au grand livre,
@@ -176,6 +177,31 @@ export class JournalDeRecherche {
         supprimees: d.supprimees,
         filtre_flux: d.filtre_flux,
         palier_fort: d.palier_fort,
+      },
+    })
+  }
+
+  /**
+   * LES NOTIFICATIONS — ce que l'envoi a FAIT, tel qu'il l'a rendu : le
+   * nombre demandé n'est pas le nombre parti. Écrite seulement quand un envoi
+   * a été tenté ; son absence dit « rien à envoyer » (notifications éteintes,
+   * aucune forte fraîche), et la ligne des correspondances dit pourquoi.
+   * Statut de l'ÉTAPE : `echoue` si l'envoi a renoncé ou si un paquet a été
+   * refusé — les destinataires manqués se rattrapent au run suivant, mais on
+   * ne l'écrit pas comme réussi.
+   */
+  async notifiee(b: BilanNotifications): Promise<void> {
+    await journaliserDans(this.admin, this.journal, {
+      type: 'recherche_notifiee',
+      statut: b.renonce || b.paquets_en_echec > 0 ? 'echoue' : 'reussi',
+      sujet: this.sujet,
+      ecosystemeId: this.ecosystemeId,
+      detail: {
+        demandees: b.demandees,
+        deja_notifiees: b.deja_notifiees,
+        posees: b.posees,
+        paquets_en_echec: b.paquets_en_echec,
+        renonce: b.renonce,
       },
     })
   }

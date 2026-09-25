@@ -83,7 +83,7 @@ export const CLES_DETAIL = {
   recherche_filtree: ['eligibles', 'sans_matiere', 'a_noter', 'ecartes_deja_decline', 'ecartes_deja_postule', 'chargees'],
   recherche_classee: ['model', 'notes', 'reprises', 'lots_en_echec', 'arret', 'recherches', 'unites_source'],
   recherche_correspondances: ['retenues', 'fortes', 'inserees', 'mises_a_jour', 'supprimees', 'filtre_flux', 'palier_fort'],
-  recherche_notifiee: [],
+  recherche_notifiee: ['demandees', 'deja_notifiees', 'posees', 'paquets_en_echec', 'renonce'],
   recherche_terminee: [],
   recherche_echouee: [],
   recherche_abandonnee: [],
