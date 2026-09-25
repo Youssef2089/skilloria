@@ -98,6 +98,20 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`liste_blanche_par_action` (25/09/2026) — LE DÉTAIL DU GRAND LIVRE EST EN LISTE BLANCHE, ET UNE ACTION S'ÉCRIT UNE FOIS.**
+> `grand_livre_actions.cles_detail text[]` (les chemins autorisés, par action) ; `grand_livre_chemins(jsonb)`
+> (pure, récursive : objets, tableaux, nuls, vides) ; index unique `grand_livre_une_fois_idx`
+> (pièce, action, sujet) ; `journaliser()` remplacée à signature égale — liste blanche **d'abord**
+> (GL004, la clé fautive nommée), liste noire ensuite, unicité tenue (GL005). Les deux actions déjà
+> branchées reçoivent leur liste. **Ordre indifférent**, rejouable.
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** : quatre signatures, la colonne NOT NULL, les deux listes lues,
+> l'index vérifié unique sur trois attributs dans `pg_index`, la fonction pure exécutée sur un objet
+> imbriqué / un tableau / un nul / deux vides, puis quatre sondes annulées — une clé hors liste
+> **refusée et nommée**, une clé personnelle **nouvelle** imbriquée refusée **par la liste blanche**,
+> la même écriture rejouée qui lève GL005, et `regler_durees_place()` qui passe sa propre liste
+> (sautée, et dite, sur base vierge).
+
 > **`grand_livre` (24/09/2026) — LE SOCLE DU JOURNAL DES TRANSACTIONS (§D.26).**
 > `grand_livre_actions` (liste fermée, seed `do update` — un référentiel, pas un réglage) ;
 > `grand_livre` (quatorze colonnes, neuf contraintes, date en tête des index de filtre) ; privilèges
@@ -2509,6 +2523,24 @@ sans rien perdre, comme n'importe quelle valeur capturée par la fermeture (§E.
 chacun dans son bloc ; les tâches qui appellent une route la transmettront dans le corps HTTP
 (étape 3). Le dériveur d'identifiant existe en SQL (`identifiant_derive()`) comme en TypeScript, et
 la postcondition **prouve** leur égalité sur un témoin que le contrôle recalcule.
+
+**La liste blanche par action — la correction de conception du 25/09/2026.** Le filtre de données
+personnelles était une **liste noire** : `audit_logs_detail_sans_pii()` retire des clés *connues*, et une
+clé nouvelle — « nom_contact », « email_facturation » — serait passée. C'est la discipline qu'on
+remplace partout. Chaque action de `grand_livre_actions` déclare désormais dans `cles_detail` les
+**chemins** de clés que son détail a le droit de porter (`avant.vie_annonce_jours`, `liste[].champ` ;
+une valeur nulle ou un conteneur vide comptent pour leur clé) ; `journaliser()` calcule les chemins
+du détail (`grand_livre_chemins()`, pure, exécutée par la postcondition) et **refuse toute autre clé,
+nommément** (GL004). La liste noire reste en **seconde** barrière, jamais en première. Le miroir
+TypeScript `CLES_DETAIL` (`satisfies Record<TypeAction, …>` : une action sans liste **ne compile
+pas**) est comparé à la base action par action, dans les deux sens. Une action reçoit ses clés dans
+le commit qui la branche, avec la migration qui les pose.
+
+**Et une action s'écrit UNE fois — par une clé.** Index unique `(piece, type_action, sujet)` : la
+seconde écriture du même geste, pour la même action, sur le même sujet, **lève** (GL005). Un run du
+moteur écrit ses étapes sous des types différents ; un message, une candidature, un réglage ont
+chacun leur sujet. Ce n'est pas le contrôle qui promet « ni zéro, ni deux » : c'est la base qui tient
+« ni deux », et le contrôle qui compte « ni zéro » (un écrivain par action).
 
 **Le partitionnement attend, et il ne changera pas le modèle.** 127 lignes d'audit en cinq mois. La
 **date est en tête** de chaque index de filtre dès aujourd'hui — un partitionnement par mois gardera

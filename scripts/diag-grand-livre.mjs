@@ -91,7 +91,32 @@ function corpsSql(sql, nomAvecParenthese) {
 
 const MIG = migration('grand_livre')
 const SQL = stripSql(read(MIG))
-const TOUTES_MIGRATIONS = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql'))
+const TOUTES_MIGRATIONS = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
+const SQL_PAR_MIGRATION = new Map(TOUTES_MIGRATIONS.map((f) => [f, stripSql(read(`supabase/migrations/${f}`))]))
+/**
+ * LA DERNIÈRE DÉFINITION d'une fonction, toutes migrations confondues : c'est
+ * elle qui vit en base. Une migration ultérieure qui remplace `journaliser()`
+ * (la liste blanche l'a fait) est celle qu'on lit — pas la première.
+ */
+function derniereDefinition(nomAvecParenthese) {
+  let trouvee = { fichier: null, corps: '' }
+  for (const f of TOUTES_MIGRATIONS) {
+    const src = SQL_PAR_MIGRATION.get(f)
+    if (src.includes(`create or replace function ${nomAvecParenthese}`)) trouvee = { fichier: f, corps: corpsSql(src, nomAvecParenthese) }
+  }
+  return trouvee
+}
+/** Les listes blanches posées en base, action par action — la dernière écriture gagne. */
+function listesBlanchesSql() {
+  const listes = new Map()
+  for (const f of TOUTES_MIGRATIONS) {
+    const src = SQL_PAR_MIGRATION.get(f)
+    for (const m of src.matchAll(/set cles_detail = array\[([\s\S]*?)\]::text\[\]\s+where code = '([a-z0-9_]+)'/g)) {
+      listes.set(m[2], [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1]).sort())
+    }
+  }
+  return listes
+}
 
 // ═══ A. LA LISTE FERMÉE — une seule, dans les deux sens ═════════════════════
 section('A. La liste fermée des actions — SQL et TypeScript disent la même chose')
@@ -123,6 +148,26 @@ section('A. La liste fermée des actions — SQL et TypeScript disent la même c
   ok(/constraint grand_livre_actions_refus_impose\s+check \(famille <> 'refus' or statut_impose = 'refuse'\)/.test(SQL),
     'la base tient : famille refus ⇒ statut imposé refuse')
   ok(/on conflict \(code\) do update/.test(SQL), 'le seed se propage (do update) : un référentiel, pas un réglage')
+
+  // LA LISTE BLANCHE, PAR ACTION — SQL et TypeScript, dans les deux sens.
+  const clesTsBloc = blocApres(ts, 'export const CLES_DETAIL = {') ?? ''
+  const clesTs = new Map()
+  for (const m of clesTsBloc.matchAll(/^\s*([a-z0-9_]+):\s*\[([^\]]*)\]/gm)) {
+    clesTs.set(m[1], [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]).sort())
+  }
+  const clesSql = listesBlanchesSql()
+  ok(clesTs.size === codesTs.size && [...codesTs].every((c) => clesTs.has(c)),
+    'chaque action déclare sa liste blanche côté TypeScript (CLES_DETAIL, `satisfies` — une action sans liste ne compile pas)')
+  const ecarts = []
+  for (const code of codesSql) {
+    const s = clesSql.get(code) ?? []
+    const t = clesTs.get(code) ?? []
+    if (s.join('|') !== t.join('|')) ecarts.push(`${code} : SQL [${s.join(', ') || '—'}] ≠ TS [${t.join(', ') || '—'}]`)
+  }
+  ok(ecarts.length === 0, 'les listes blanches sont IDENTIQUES en base et en TypeScript, action par action', ecarts.slice(0, 6).join('\n         ') || undefined)
+  const declarees = [...clesSql.entries()].filter(([, l]) => l.length > 0).map(([c]) => c)
+  ok(declarees.includes('reglage_modifie') && declarees.includes('ip_effacees'),
+    `les actions branchées déclarent leur détail (${declarees.length} liste(s) non vide(s) : ${declarees.join(', ')})`)
 }
 
 // ═══ B. LA TABLE ET LE VERROU ═══════════════════════════════════════════════
@@ -159,31 +204,52 @@ section('B. La table en ajout seul : colonnes, privilèges, trigger, index date 
     `la DATE EN TÊTE de chaque index de filtre (${index.length} index, deux exceptions nommées : pièce, sujet)`,
     horsDate.length ? `hors date : ${horsDate.map((i) => `${i.nom} (${i.premiere})`).join(', ')}` : undefined)
   ok(EXCEPTIONS.every((e) => index.some((i) => i.nom === e)), 'les index pièce et sujet existent — ils se cherchent sans période')
+  const uneFois = [...SQL_PAR_MIGRATION.values()].some((src) =>
+    /create unique index if not exists grand_livre_une_fois_idx\s+on public\.grand_livre \(piece, type_action, coalesce\(sujet_id/.test(src))
+  ok(uneFois, 'UNE FOIS par geste, par action, par sujet — tenu par un index UNIQUE, pas par une discipline (§E.31)')
 }
 
 // ═══ C. LA FONCTION UNIQUE ══════════════════════════════════════════════════
-section('C. journaliser() est la seule porte — pièce et type exigés, liste fermée, sans donnée personnelle')
+section('C. journaliser() est la seule porte — pièce et type exigés, liste fermée, liste blanche, sans donnée personnelle')
 {
-  const fn = corpsSql(SQL, 'public.journaliser(')
+  const { fichier: fichierJournaliser, corps: fn } = derniereDefinition('public.journaliser(')
+  ok(!!fichierJournaliser, `journaliser() lue dans sa DERNIÈRE définition (${fichierJournaliser ?? 'introuvable'})`)
+  // LA LISTE BLANCHE D'ABORD, LA LISTE NOIRE ENSUITE — l'ordre est la décision.
+  const iBlanche = fn.indexOf('grand_livre_chemins(v_detail)')
+  const iNoire = fn.indexOf('public.audit_logs_detail_sans_pii(v_detail)')
+  ok(iBlanche >= 0 && /where c <> all \(v_cles\)/.test(fn) && /using errcode = 'GL004'/.test(fn),
+    'PREMIÈRE barrière : toute clé hors de la liste blanche de l’action est REFUSÉE et nommée (GL004)')
+  ok(iNoire >= 0 && iBlanche >= 0 && iBlanche < iNoire,
+    'SECONDE barrière : la liste noire commune vient APRÈS — elle ne décide plus, elle reste')
+  ok(/exception when unique_violation then[\s\S]{0,400}?using errcode = 'GL005'/.test(fn),
+    'UNE FOIS : la seconde écriture du même geste LÈVE (GL005), jamais une ligne de plus')
   ok(/if p_piece is null then\s+raise exception 'journaliser : la piece est obligatoire[^']*'\s+using errcode = 'GL002'/.test(fn),
     'la pièce est OBLIGATOIRE (GL002)')
   ok(/if p_type_action is null then\s+raise exception[^;]*using errcode = 'GL002'/.test(fn), 'le type est OBLIGATOIRE (GL002)')
   ok(/type d action inconnu[\s\S]{0,200}?using errcode = 'GL003'/.test(fn), 'un type hors liste est REFUSÉ (GL003)')
   ok(/impose le statut[\s\S]{0,200}?using errcode = 'GL003'/.test(fn), 'un statut contraire à celui que le type impose est REFUSÉ (GL003)')
-  ok(/public\.audit_logs_detail_sans_pii\(coalesce\(p_detail, '\{\}'::jsonb\)\)/.test(fn),
+  ok(/public\.audit_logs_detail_sans_pii\(v_detail\)/.test(fn),
     'le détail passe par audit_logs_detail_sans_pii() AVANT d’être inséré — la même liste que le journal d’audit')
-  // UN SEUL insert dans tout le dépôt, et il est dans journaliser.
+  // TOUT insert dans grand_livre vit dans un corps de journaliser() — quelle
+  // que soit la migration qui la (re)définit. Une seconde fonction qui
+  // insérerait, ou un insert nu, rougit en nommant le fichier.
   let inserts = 0
-  const ailleurs = []
+  const horsPorte = []
   for (const f of TOUTES_MIGRATIONS) {
-    const src = stripSql(read(`supabase/migrations/${f}`))
-    const n = (src.match(/insert into public\.grand_livre\b(?!_actions)/g) || []).length
-    inserts += n
-    if (n && `supabase/migrations/${f}` !== MIG) ailleurs.push(f)
+    const src = SQL_PAR_MIGRATION.get(f)
+    const spans = []
+    for (const m of src.matchAll(/create or replace function public\.journaliser\(/g)) {
+      const corps = corpsSql(src.slice(m.index), 'public.journaliser(')
+      spans.push([m.index, m.index + corps.length])
+    }
+    for (const m of src.matchAll(/insert into public\.grand_livre\b(?!_actions)/g)) {
+      inserts++
+      if (!spans.some(([a, b]) => m.index >= a && m.index < b)) horsPorte.push(f)
+    }
   }
-  ok(inserts === 1 && ailleurs.length === 0 && /insert into public\.grand_livre\s*\(/.test(fn),
-    'UN SEUL `insert into public.grand_livre` dans tout le dépôt, et il est dans journaliser()',
-    `vu : ${inserts} insert(s)${ailleurs.length ? `, hors migration grand_livre : ${ailleurs.join(', ')}` : ''}`)
+  ok(inserts >= 1 && horsPorte.length === 0 && /insert into public\.grand_livre\s*\(/.test(fn),
+    `tout \`insert into public.grand_livre\` du dépôt est DANS journaliser() (${inserts} définition(s) successive(s))`,
+    horsPorte.length ? `insert hors de journaliser() dans : ${[...new Set(horsPorte)].join(', ')}` : undefined)
   // Côté code : aucune écriture directe, aucun appel RPC hors de la porte.
   const ecrituresDirectes = []
   const rpcHorsPorte = []
@@ -219,11 +285,11 @@ section('D. Deux actions réelles passent par le socle — une par route, une en
     'la route crée sa pièce AVANT toute écriture — à l’entrée du geste')
   ok(/\.rpc\('regler_durees_place',\s*\{[\s\S]{0,400}?p_piece: piece,/.test(patch), 'la route écrit par regler_durees_place(), avec SA pièce')
   ok(!/\.from\('duree_reglages'\)[\s\S]{0,80}?\.update\(/.test(patch), 'la route n’écrit PLUS duree_reglages directement')
-  const fnReglage = corpsSql(SQL, 'public.regler_durees_place(')
+  const fnReglage = derniereDefinition('public.regler_durees_place(').corps
   ok(/update public\.duree_reglages/.test(fnReglage) && /return public\.journaliser\(\s*p_piece, 'reglage_modifie', 'reussi', 'administrateur'/.test(fnReglage),
     'regler_durees_place() met à jour le réglage ET journalise, dans la même fonction — l’un sans l’autre est impossible')
   ok(/if p_acteur_id is null then\s+raise exception[^;]*using errcode = 'GL002'/.test(fnReglage), 'un réglage a toujours un auteur')
-  const fnIp = corpsSql(SQL, 'public.effacer_adresses_ip()')
+  const fnIp = derniereDefinition('public.effacer_adresses_ip()').corps
   ok(/v_piece\s+uuid := gen_random_uuid\(\)/.test(fnIp), 'la tâche SQL génère sa pièce (gen_random_uuid) — la pièce est générable des deux côtés')
   const iExc = fnIp.indexOf('exception when others then')
   const corpsOk = iExc < 0 ? '' : fnIp.slice(0, iExc)
@@ -265,6 +331,17 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   for (const idx of ['grand_livre_date_type_idx', 'grand_livre_date_acteur_idx', 'grand_livre_date_ecosysteme_idx']) {
     ok(post.includes(`'${idx}'`), `l’index ${idx} est vérifié dans pg_index (première colonne), pas dans une chaîne rendue`)
   }
+  // La liste blanche a sa propre postcondition, qui s'exécute elle aussi.
+  const BLANCHE = stripSql(read(migration('liste_blanche_par_action')))
+  const iPostB = BLANCHE.indexOf('do $post$')
+  const postB = iPostB < 0 ? '' : BLANCHE.slice(iPostB)
+  ok(/when sqlstate 'GL004' then[\s\S]{0,200}?sqlerrm not like '%email_facturation%'/.test(postB),
+    'liste blanche : une clé hors liste est REFUSÉE, et le refus NOMME la clé (sonde exécutée)')
+  ok(/avant\.nom_contact|"nom_contact"/.test(postB) && (postB.match(/when sqlstate 'GL004'/g) || []).length >= 2,
+    'liste blanche : une clé personnelle NOUVELLE, imbriquée, est refusée par la liste blanche — pas par la liste noire')
+  ok(/when sqlstate 'GL005'/.test(postB), 'une fois : la même écriture rejouée LÈVE GL005 (sonde exécutée)')
+  ok(/grand_livre_chemins\('\{"a":\{"b":1,"c":null\}[\s\S]{0,200}?array\['a\.b', 'a\.c', 'l\[\]\.x', 't', 'v'\]/.test(postB),
+    'la fonction pure des chemins est EXÉCUTÉE sur un objet imbriqué, un tableau, un nul, deux vides')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════
