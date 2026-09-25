@@ -88,7 +88,7 @@ export const CLES_DETAIL = {
   recherche_echouee: [],
   recherche_abandonnee: [],
   candidature_deposee: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
-  candidature_declinee: [],
+  candidature_declinee: ['publication_id', 'has_reason'],
   candidature_retenue: [],
   sous_traitance_candidature: [],
   devoilement_ouvert: [],

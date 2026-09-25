@@ -44,14 +44,19 @@ export function definitionsSql(root) {
   return defs
 }
 
+/** Les trois verbes d'écriture SQL, tels qu'ils précèdent un nom de table. */
+export const VERBES_ECRITURE = ['update', 'insert into', 'delete from']
+
 /**
  * Les RPC que `source` appelle (`.rpc('x'`) et dont la dernière définition
- * ÉCRIT `table` (`update` / `insert into` / `delete from public.table`).
+ * ÉCRIT `table` — par l'un des `verbes` donnés (tous par défaut). Un contrôle
+ * qui défend « une seule CRÉATION » passe `['insert into']` : une RPC qui
+ * décline une candidature la met à jour, elle ne la crée pas.
  * Vide = la route n'écrit pas cette table par une RPC.
  */
-export function rpcQuiEcrivent(source, table, defs) {
+export function rpcQuiEcrivent(source, table, defs, verbes = VERBES_ECRITURE) {
   const appelees = [...source.matchAll(/\.rpc\('(\w+)'/g)].map((m) => m[1])
-  const ecrit = new RegExp(`(update|insert into|delete from)\\s+public\\.${table}\\b`)
+  const ecrit = new RegExp(`(${verbes.join('|')})\\s+public\\.${table}\\b`)
   return [...new Set(appelees)].filter((fn) => ecrit.test(defs.get(fn) ?? ''))
 }
 

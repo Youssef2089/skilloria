@@ -3,6 +3,7 @@ import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -65,6 +66,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LE CONTEXTE DE JOURNAL, À L'ENTRÉE DU GESTE — avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { id: candidatureId } = await ctx.params
   if (!candidatureId || !UUID_REGEX.test(candidatureId)) {
@@ -125,17 +128,30 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     )
   }
 
-  // ── UPDATE ─────────────────────────────────────────────────────────────
-  const { error: updErr } = await auth.supabaseAdmin
-    .from('candidatures')
-    .update({ status: 'rejected', status_reason: reason })
-    // Defense en profondeur — cf. la lecture cloisonnee plus haut.
-    .eq('id', candidatureId)
-    .eq('domain_id', activeEcosystemId(auth))
-    .in('status', ALLOWED_PREVIOUS_STATUSES)  // anti-race
+  // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
+  //  `decliner_candidature` refuse la candidature ET écrit `candidature_declinee`
+  //  dans la même transaction. La garde de transition, le cloisonnement
+  //  (défense en profondeur — cf. la lecture cloisonnée plus haut) et la
+  //  propriété sont REJOUÉS dans l'instruction (anti-race) : zéro ligne
+  //  touchée n'est pas un succès, c'est une transition devenue invalide — la
+  //  route la disait 200 en silence (§E.27).
+  const { data: declinee, error: updErr } = await auth.supabaseAdmin.rpc('decliner_candidature', {
+    ...parametresJournal(journal),
+    p_candidature_id: candidatureId,
+    p_domain_id: activeEcosystemId(auth),
+    p_organization_id: orgId,
+    p_reason: reason,
+    p_statuts_admis: [...ALLOWED_PREVIOUS_STATUSES],
+  })
   if (updErr) {
     console.error('[candidatures/[id]/reject:POST] update failed', updErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+  if (declinee !== true) {
+    return json(
+      { error: 'Invalid status transition', code: 'invalid_transition', current: candRow.status },
+      409,
+    )
   }
 
   // ── Audit best-effort ──────────────────────────────────────────────────

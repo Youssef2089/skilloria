@@ -491,6 +491,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'refus_quota_cv', fichier: 'lib/ai-quotas.ts', bloc: 'export async function refuserParQuota(', motif: /journaliserDans\(admin, journal, \{\s*type: 'refus_quota_cv',\s*statut: 'refuse',\s*sujet: \{ type: 'profiles', id: args\.profileId \},[\s\S]{0,300}?limite: args\.maxPerWindow,/, quoi: 'au statut imposé, sujet le profil, la limite LUE au moment du refus' },
     { code: 'refus_quota_cv', fichier: 'app/api/profile/upload-cv/route.ts', bloc: 'export async function POST(', motif: /if \(windowActive && count24h >= quota\.maxPerWindow\) \{\s*await refuserParQuota\(supabaseAdmin, journal, \{[\s\S]{0,400}?\}\)\s*return json\(/, quoi: 'freelance : le refus est écrit AVANT le 429' },
     { code: 'refus_quota_cv', fichier: 'app/api/profile/cdi-upload-cv/route.ts', bloc: 'export async function POST(', motif: /if \(windowActive && count24h >= quota\.maxPerWindow\) \{\s*await refuserParQuota\(supabaseAdmin, journal, \{[\s\S]{0,400}?\}\)\s*return json\(/, quoi: 'CDI : le refus est écrit AVANT le 429 — parité (§D.14)' },
+    // ── B6 : la candidature déclinée ──
+    { code: 'candidature_declinee', fichier: 'app/api/candidatures/[id]/reject/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?\.rpc\('decliner_candidature',\s*\{\s*\.\.\.parametresJournal\(journal\),[\s\S]{0,400}?p_statuts_admis: \[\.\.\.ALLOWED_PREVIOUS_STATUSES\],[\s\S]{0,400}?if \(declinee !== true\)[\s\S]{0,200}?invalid_transition/, quoi: 'la route décline par la RPC avec le contexte et les statuts admis, et ZÉRO ligne est une transition invalide (409), plus un succès muet' },
+    { code: 'candidature_declinee', fichier: 'app/api/candidatures/[id]/reject/route.ts', bloc: 'export async function POST(', motif: (b) => !/\.from\('candidatures'\)[\s\S]{0,120}?\.update\(/.test(b), quoi: 'la route n’écrit PLUS la candidature directement' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -506,6 +509,7 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'inserer_candidature_jugee', code: 'candidature_deposee', motif: /on conflict \(publication_id, profile_id\) do nothing[\s\S]*?if v_id is null then[\s\S]*?delete from public\.candidature_depots[\s\S]*?return null;[\s\S]*?update public\.candidature_depots[\s\S]*?set etat\s*=\s*'depose'[\s\S]*?perform public\.journaliser\(\s*p_piece, 'candidature_deposee', 'reussi', p_origine,\s*p_acteur_id, p_acteur_type, v_c\.domain_id,\s*'candidatures', v_id,[\s\S]*?p_piece_origine/, quoi: 'la candidature est insérée (concurrente : rien, ligne du dépôt retirée), le journal du dépôt soldé, PUIS la ligne écrite avec la pièce d’origine — même transaction' },
     { fn: 'ouvrir_depot_candidature', code: 'candidature_deposee', motif: /p_piece\s+uuid[\s\S]*?raise exception 'ouvrir_depot_candidature : la piece est obligatoire' using errcode = 'GL002'[\s\S]*?piece\s*=\s*excluded\.piece/, quoi: 'le journal du dépôt exige la pièce et la pose, à l’ouverture comme à la relance' },
     { fn: 'solder_depot_en_echec', code: 'refus_depot_sans_jugement', motif: /set etat\s*=\s*'echec'[\s\S]*?returning d\.id, d\.tentatives, d\.domain_id[\s\S]*?perform public\.journaliser\(\s*p_piece, 'refus_depot_sans_jugement', 'refuse', p_origine,\s*p_acteur_id, p_acteur_type, v_domaine,[\s\S]*?'cause', p_cause,[\s\S]*?p_piece_origine/, quoi: 'le journal du dépôt est soldé en échec PUIS le refus écrit, au statut imposé, avec la cause fermée et la pièce d’origine — même transaction' },
+    { fn: 'decliner_candidature', code: 'candidature_declinee', motif: /set status\s*=\s*'rejected'[\s\S]*?and c\.domain_id = p_domain_id\s*and c\.status = any \(p_statuts_admis\)\s*and exists \(select 1 from public\.publications p\s*where p\.id = c\.publication_id and p\.organization_id = p_organization_id\)[\s\S]*?if v_publication is null then[\s\S]*?return false;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'candidature_declinee', 'reussi', p_origine,/, quoi: 'transition, cloisonnement et propriété rejoués dans l’UPDATE ; zéro ligne rend false sans journaliser ; PUIS la ligne — même transaction' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
   // signature — le premier `{` après le nom serait celui d'un type de paramètre.
@@ -646,6 +650,15 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   ok(/journaliser\(gen_random_uuid\(\), 'refus_quota_cv', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('quota', 'cv_parsing', 'limite', 3, 'fenetre_heures', 24, 'reset_at', now\(\), 'compte', 3\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postQ),
     'quota de CV : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
   ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postQ), 'quota de CV : un texte libre est REFUSÉ (sonde exécutée)')
+  // La candidature déclinée : transition relue, rejeu sans seconde ligne.
+  const DECLINEE = stripSql(read(migration('journal_candidature_declinee')))
+  const iPostDc = DECLINEE.indexOf('do $post$')
+  const postDc = iPostDc < 0 ? '' : DECLINEE.slice(iPostDc)
+  ok(/to_regprocedure\('public\.decliner_candidature\(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text, text\[\]\)'\) is null/.test(postDc), 'déclinée : la signature est vérifiée par TYPES')
+  ok((postDc.match(/public\.decliner_candidature\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_ok2 is distinct from false or v_lignes <> 1/.test(postDc),
+    'déclinée : la RPC est EXÉCUTÉE deux fois sur la même candidature — le rejeu rend false et n’écrit pas (sonde annulée)')
+  ok(/c\.status = 'rejected' and c\.status_reason = 'sonde'/.test(postDc) && /\(g\.detail ->> 'has_reason'\)::boolean/.test(postDc) && /raise exception 'SONDE_ANNULEE'/.test(postDc),
+    'déclinée : la transition et la ligne sont RELUES, puis annulées')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

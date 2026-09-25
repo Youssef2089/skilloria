@@ -166,7 +166,7 @@ section('C. UNE FOIS ÉCRITE, PLUS RIEN NE PERD LA CANDIDATURE')
 const lignesDepot = DEPOT.split('\n')
 // L'ÉCRITURE EST UNE RPC (§D.26), DÉCOUVERTE : celle dont le SQL insère
 // `candidatures` — jamais nommée ici (§E.34, §E.61).
-const rpcEcriture = rpcQuiEcrivent(DEPOT, 'candidatures', definitionsSql(ROOT))[0] ?? ''
+const rpcEcriture = rpcQuiEcrivent(DEPOT, 'candidatures', definitionsSql(ROOT), ['insert into'])[0] ?? ''
 const ligneInsert = rpcEcriture ? lignesDepot.findIndex((l) => l.includes(`.rpc('${rpcEcriture}'`)) + 1 : 0
 ok(ligneInsert > 0, `l ÉCRITURE de la candidature est localisée (ligne ${ligneInsert}, RPC ${rpcEcriture || 'aucune'})`)
 

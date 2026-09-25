@@ -242,7 +242,7 @@ const iJournal = depotNu.indexOf('await ouvrirJournal(')
 const iModele = depotNu.indexOf('jugerCandidature(')
 // L'ÉCRITURE EST UNE RPC (§D.26), DÉCOUVERTE : celle dont le SQL insère
 // `candidatures` — jamais nommée ici (§E.34, §E.61).
-const rpcEcriture = rpcQuiEcrivent(depotNu, 'candidatures', definitionsSql(ROOT))[0] ?? ''
+const rpcEcriture = rpcQuiEcrivent(depotNu, 'candidatures', definitionsSql(ROOT), ['insert into'])[0] ?? ''
 const iInsert = rpcEcriture ? depotNu.indexOf(`.rpc('${rpcEcriture}'`) : -1
 ok(iAptitude >= 0 && iJournal > iAptitude, 'l’aptitude est jugée AVANT l’ouverture du journal')
 ok(

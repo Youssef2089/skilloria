@@ -242,10 +242,12 @@ section('0. Les détecteurs retrouvent le défaut, et se taisent sur le correcti
 const DEFS_SQL = definitionsSql(ROOT)
 const ecritCandidatures = (src) => {
   const nu = depouillerJs(src)
-  // … par une RPC dont la DERNIÈRE définition SQL insère `candidatures` —
+  // … par une RPC dont la DERNIÈRE définition SQL INSÈRE `candidatures` —
   // depuis §D.26, la candidature, sa note et sa ligne de grand livre naissent
   // dans la même transaction. Découverte dans les migrations, jamais nommée.
-  if (rpcQuiEcrivent(nu, 'candidatures', DEFS_SQL).length > 0) return true
+  // INSÈRE, et non « écrit » : décliner ou retenir une candidature la met à
+  // jour par sa propre RPC, et ce n'est pas la création qu'on défend ici.
+  if (rpcQuiEcrivent(nu, 'candidatures', DEFS_SQL, ['insert into']).length > 0) return true
   // La chaîne peut être coupée sur plusieurs lignes : on cherche `.insert(` ou
   // `.upsert(` APRÈS `from('candidatures')`, dans la même expression — bornée
   // au prochain `;` ou à la prochaine ligne vide.
@@ -363,7 +365,7 @@ const iJuger = corpsDepot.indexOf('jugerCandidature(')
 // L'ÉCRITURE EST UNE RPC (§D.26), DÉCOUVERTE : celle dont le SQL insère
 // `candidatures`. Son argument jsonb porte l'objet inséré — son nom est lu
 // dans la signature SQL, jamais écrit ici (§E.34, §E.61).
-const rpcEcriture = rpcQuiEcrivent(corpsDepot, 'candidatures', DEFS_SQL)
+const rpcEcriture = rpcQuiEcrivent(corpsDepot, 'candidatures', DEFS_SQL, ['insert into'])
 const nomRpcEcriture = rpcEcriture[0] ?? ''
 const iInsert = nomRpcEcriture ? corpsDepot.indexOf(`.rpc('${nomRpcEcriture}'`) : -1
 const paramObjet = (/(\w+)\s+jsonb/.exec(DEFS_SQL.get(nomRpcEcriture) ?? '') ?? [])[1] ?? ''
