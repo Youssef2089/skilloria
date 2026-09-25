@@ -47,6 +47,7 @@
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
 // Les deux LECTEURS survivants sont importés depuis leur module sans
 // dépendance : le SDK et le compteur de dépense ne sont pas chargés, et le
 // diagnostic peut donc les éprouver pour de vrai.
@@ -163,8 +164,11 @@ section('C. UNE FOIS ÉCRITE, PLUS RIEN NE PERD LA CANDIDATURE')
 // ══════════════════════════════════════════════════════════════════════════
 
 const lignesDepot = DEPOT.split('\n')
-const ligneInsert = lignesDepot.findIndex((l) => l.includes('.insert({')) + 1
-ok(ligneInsert > 0, `l INSERT de la candidature est localisé (ligne ${ligneInsert})`)
+// L'ÉCRITURE EST UNE RPC (§D.26), DÉCOUVERTE : celle dont le SQL insère
+// `candidatures` — jamais nommée ici (§E.34, §E.61).
+const rpcEcriture = rpcQuiEcrivent(DEPOT, 'candidatures', definitionsSql(ROOT))[0] ?? ''
+const ligneInsert = rpcEcriture ? lignesDepot.findIndex((l) => l.includes(`.rpc('${rpcEcriture}'`)) + 1 : 0
+ok(ligneInsert > 0, `l ÉCRITURE de la candidature est localisée (ligne ${ligneInsert}, RPC ${rpcEcriture || 'aucune'})`)
 
 // 1. AUCUN REFUS APRÈS L'INSERT — sauf ceux de l'INSERT lui-même, qui n'ont
 //    aucune candidature à perdre puisque l'écriture a échoué.
@@ -176,8 +180,14 @@ ok(ligneInsert > 0, `l INSERT de la candidature est localisé (ligne ${ligneInse
 //       aurait passé au vert en ne mesurant plus rien (§E.27). On s'ancre sur
 //       ce qu'on défend : un retour de REFUS après l'écriture.
 {
-  const blocInsertErr = (() => {
-    const d = lignesDepot.findIndex((l) => l.includes('if (insertErr) {'))
+  // LES SORTIES DU RÉSULTAT DE L'ÉCRITURE : `if (<erreur>) {` et `if (!<donnée>) {`,
+  // les deux noms LUS sur la ligne d'écriture elle-même (§E.34). L'un dit que
+  // la base a refusé, l'autre qu'une concurrente est passée pendant le
+  // jugement — dans les deux cas rien n'a été écrit, il n'y a rien à perdre.
+  const noms = /const \{ data: (\w+), error: (\w+) \} = await/.exec(lignesDepot[ligneInsert - 1] ?? '')
+  ok(!!noms, 'la ligne d écriture destructure { data, error } — ses blocs de sortie en sont dérivés')
+  const blocDe = (ouverture) => {
+    const d = lignesDepot.findIndex((l) => l.includes(ouverture))
     if (d === -1) return { debut: -1, fin: -1 }
     let prof = 0
     for (let i = d; i < lignesDepot.length; i++) {
@@ -186,7 +196,8 @@ ok(ligneInsert > 0, `l INSERT de la candidature est localisé (ligne ${ligneInse
       if (prof === 0) return { debut: d + 1, fin: i + 1 }
     }
     return { debut: d + 1, fin: -1 }
-  })()
+  }
+  const blocsSortie = noms ? [blocDe(`if (${noms[2]}) {`), blocDe(`if (!${noms[1]}) {`)] : []
 
   const refusApres = []
   for (let i = 0; i < lignesDepot.length; i++) {
@@ -195,7 +206,7 @@ ok(ligneInsert > 0, `l INSERT de la candidature est localisé (ligne ${ligneInse
     if (ligne <= ligneInsert) continue
     // Exception NOMMÉE : les sorties du bloc `if (insertErr)`. L'écriture a
     // échoué, il n'y a pas de candidature à perdre.
-    if (ligne >= blocInsertErr.debut && ligne <= blocInsertErr.fin) continue
+    if (blocsSortie.some((b) => b.debut > 0 && ligne >= b.debut && ligne <= b.fin)) continue
     refusApres.push(`ligne ${ligne}`)
   }
   ok(refusApres.length === 0,

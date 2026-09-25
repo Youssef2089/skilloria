@@ -65,6 +65,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, relative } from 'node:path'
+import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
 // ⚠️ IMPORT STATIQUE, ET C EST LE PIEGE QUE CE LOT VIENT DE PAYER DEUX FOIS :
 //    un `await import()` en milieu de fichier fait planter Node a la SORTIE,
 //    sous Windows, quand stdout est redirige — vert a la main, MUET dans la
@@ -238,8 +239,13 @@ function fichiersSous(dossiers, exts = ['.ts', '.tsx']) {
 section('0. Les détecteurs retrouvent le défaut, et se taisent sur le correctif')
 
 /** Un fichier ÉCRIT-il dans `candidatures` ? */
+const DEFS_SQL = definitionsSql(ROOT)
 const ecritCandidatures = (src) => {
   const nu = depouillerJs(src)
+  // … par une RPC dont la DERNIÈRE définition SQL insère `candidatures` —
+  // depuis §D.26, la candidature, sa note et sa ligne de grand livre naissent
+  // dans la même transaction. Découverte dans les migrations, jamais nommée.
+  if (rpcQuiEcrivent(nu, 'candidatures', DEFS_SQL).length > 0) return true
   // La chaîne peut être coupée sur plusieurs lignes : on cherche `.insert(` ou
   // `.upsert(` APRÈS `from('candidatures')`, dans la même expression — bornée
   // au prochain `;` ou à la prochaine ligne vide.
@@ -249,6 +255,10 @@ const ecritCandidatures = (src) => {
   }
   return false
 }
+const TEMOIN_RPC = `
+  const { data } = await admin.rpc('inserer_candidature_jugee', { p_candidature: { publication_id: p } })
+`
+ok(ecritCandidatures(TEMOIN_RPC), 'il VOIT une écriture par la RPC dont le SQL insère candidatures')
 
 const TEMOIN_ECRITURE = `
   const { data } = await admin
@@ -350,9 +360,18 @@ const corpsDepot = corpsDe(depotNu, 'export async function deposerCandidature')
 ok(corpsDepot.length > 1000, 'le corps de `deposerCandidature` est trouvé', 'ancre perdue : tout ce qui suit ne prouverait rien')
 
 const iJuger = corpsDepot.indexOf('jugerCandidature(')
-const iInsert = corpsDepot.search(/from\(\s*['"]candidatures['"]\s*\)\s*\n?\s*\.insert\(/)
+// L'ÉCRITURE EST UNE RPC (§D.26), DÉCOUVERTE : celle dont le SQL insère
+// `candidatures`. Son argument jsonb porte l'objet inséré — son nom est lu
+// dans la signature SQL, jamais écrit ici (§E.34, §E.61).
+const rpcEcriture = rpcQuiEcrivent(corpsDepot, 'candidatures', DEFS_SQL)
+const nomRpcEcriture = rpcEcriture[0] ?? ''
+const iInsert = nomRpcEcriture ? corpsDepot.indexOf(`.rpc('${nomRpcEcriture}'`) : -1
+const paramObjet = (/(\w+)\s+jsonb/.exec(DEFS_SQL.get(nomRpcEcriture) ?? '') ?? [])[1] ?? ''
 ok(iJuger >= 0, 'le dépôt appelle bien le jugement')
-ok(iInsert >= 0, 'le dépôt insère bien une candidature')
+ok(
+  rpcEcriture.length === 1 && iInsert >= 0 && paramObjet.length > 0,
+  `le dépôt insère bien une candidature — par UNE RPC dont le SQL insère candidatures (${nomRpcEcriture || 'aucune'}), l’objet dans \`${paramObjet || '?'}\``,
+)
 ok(
   iJuger >= 0 && iInsert >= 0 && iJuger < iInsert,
   'le jugement est appelé AVANT l’insertion',
@@ -366,7 +385,7 @@ ok(
 //    défend). Mesuré : la mutation passait au vert.
 const objetInsere = (() => {
   if (iInsert < 0) return ''
-  const o = corpsDepot.indexOf('{', corpsDepot.indexOf('.insert(', iInsert))
+  const o = corpsDepot.indexOf('{', corpsDepot.indexOf(`${paramObjet}:`, iInsert))
   if (o < 0) return ''
   let prof = 0
   for (let i = o; i < corpsDepot.length; i++) {

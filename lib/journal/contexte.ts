@@ -103,3 +103,25 @@ export function contexteDeTache(job: string, pieceRecue?: unknown): ContexteJour
 export function contexteSysteme(): ContexteJournal {
   return ouvrirContexte({ origine: 'systeme' })
 }
+
+/**
+ * LES PARAMÈTRES SQL D'UN CONTEXTE — pour une RPC métier qui journalise
+ * elle-même, dans sa transaction (§D.26). Cinq scalaires, jamais un jsonb :
+ * le détecteur de données personnelles juge les arguments jsonb qui partent
+ * au journal, et un contexte n'en est pas un.
+ */
+export function parametresJournal(journal: ContexteJournal): {
+  p_piece: Piece
+  p_piece_origine: Piece | null
+  p_origine: OrigineJournal
+  p_acteur_id: string | null
+  p_acteur_type: TypeActeur | null
+} {
+  return {
+    p_piece: journal.piece,
+    p_piece_origine: journal.pieceOrigine,
+    p_origine: journal.origine,
+    p_acteur_id: journal.acteur?.id ?? null,
+    p_acteur_type: journal.acteur?.type ?? null,
+  }
+}

@@ -472,6 +472,11 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'paiement_recu', fichier: 'app/api/stripe/webhook/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteSysteme\(\)[\s\S]*?\.rpc\('stripe_event_claim'[\s\S]*?handleStripeEvent\(admin, event, journal\)/, quoi: 'le webhook ouvre sa pièce AVANT la réclamation (première écriture) et la transmet au traitement' },
     { code: 'paiement_recu', fichier: 'lib/billing/events.ts', bloc: 'async function onInvoicePaid(', motif: /\.rpc\('enregistrer_paiement',\s*\{\s*p_piece: journal\.piece,\s*p_stripe_event_id: eventId,/, quoi: 'la pièce comptable est écrite par la RPC métier, avec la pièce et l’événement' },
     { code: 'paiement_recu', fichier: 'lib/billing/events.ts', bloc: 'async function onInvoicePaid(', motif: (b) => !/\.from\('transactions'\)[\s\S]{0,80}?\.(upsert|insert)\(/.test(b), quoi: 'le code n’écrit PLUS transactions directement' },
+    // ── B1 : la candidature déposée, et la pièce du rejeu ──
+    { code: 'candidature_deposee', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: /jugerCandidature\(\{[\s\S]*?\.rpc\('inserer_candidature_jugee',\s*\{\s*\.\.\.parametresJournal\(args\.journal\),\s*p_origine_depot: args\.origine,/, quoi: 'le jugement PUIS l’écriture par la RPC, avec le contexte du geste (pièce, origine, acteur, pièce d’origine)' },
+    { code: 'candidature_deposee', fichier: 'lib/candidatures/depot.ts', bloc: 'export async function deposerCandidature(', motif: (b) => !/\.from\('candidatures'\)[\s\S]{0,80}?\.(insert|upsert)\(/.test(b) && !/\.from\('candidature_depots'\)[\s\S]{0,120}?\.update\(\{\s*etat: 'depose'/.test(b), quoi: 'le dépôt n’écrit PLUS la candidature ni le solde du journal directement' },
+    { code: 'candidature_deposee', fichier: 'lib/candidatures/depot.ts', bloc: 'async function ouvrirJournal(', motif: /\.rpc\('ouvrir_depot_candidature',\s*\{[\s\S]{0,300}?p_piece: args\.piece,/, quoi: 'le journal du dépôt s’ouvre AVEC la pièce du geste — avant l’appel au modèle' },
+    { code: 'candidature_deposee', fichier: 'app/api/admin/depots-en-echec/route.ts', bloc: 'export async function POST(', motif: /contexteDepuisAuth\(auth, estPiece\(ligne\.piece\) \? ligne\.piece : null\)[\s\S]*?deposerCandidature\(\{[\s\S]{0,300}?journal,/, quoi: 'le rejeu ouvre une pièce NEUVE qui référence celle de la tentative rejouée, et la passe au dépôt' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -484,6 +489,8 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { fn: 'regler_note_jugement', motif: /update public\.verification_providers[\s\S]*?get diagnostics v_n = row_count;[\s\S]*?return public\.journaliser_reglage\(/, quoi: 'notes : écrit, compté, puis journalisé' },
     { fn: 'set_default_package', motif: /invariant_broken[\s\S]*?perform public\.journaliser_reglage\([\s\S]*?'packages_default', public\.identifiant_derive\('reglage', 'packages_default:' \|\| v_target\)/, quoi: 'défaut : vérifié PUIS journalisé, sur le défaut de la cible — pas sur l’offre' },
     { fn: 'enregistrer_paiement', code: 'paiement_recu', motif: /on conflict \(stripe_invoice_id\) where stripe_invoice_id is not null do nothing\s+returning id into v_id;[\s\S]*?if v_id is null then\s+return null;[\s\S]*?perform public\.journaliser\(\s*p_piece, 'paiement_recu', 'reussi', 'systeme',\s*null::uuid, null::text, v_t\.domain_id,\s*'organizations', v_t\.organization_id,/, quoi: 'la pièce comptable est insérée (doublon : rien, ni ligne), PUIS journalisée sur l’organisation — même transaction' },
+    { fn: 'inserer_candidature_jugee', code: 'candidature_deposee', motif: /on conflict \(publication_id, profile_id\) do nothing[\s\S]*?if v_id is null then[\s\S]*?delete from public\.candidature_depots[\s\S]*?return null;[\s\S]*?update public\.candidature_depots[\s\S]*?set etat\s*=\s*'depose'[\s\S]*?perform public\.journaliser\(\s*p_piece, 'candidature_deposee', 'reussi', p_origine,\s*p_acteur_id, p_acteur_type, v_c\.domain_id,\s*'candidatures', v_id,[\s\S]*?p_piece_origine/, quoi: 'la candidature est insérée (concurrente : rien, ligne du dépôt retirée), le journal du dépôt soldé, PUIS la ligne écrite avec la pièce d’origine — même transaction' },
+    { fn: 'ouvrir_depot_candidature', code: 'candidature_deposee', motif: /p_piece\s+uuid[\s\S]*?raise exception 'ouvrir_depot_candidature : la piece est obligatoire' using errcode = 'GL002'[\s\S]*?piece\s*=\s*excluded\.piece/, quoi: 'le journal du dépôt exige la pièce et la pose, à l’ouverture comme à la relance' },
   ]
   // Le CORPS d'une fonction TypeScript : après la parenthèse fermante de sa
   // signature — le premier `{` après le nom serait celui d'un type de paramètre.
@@ -581,6 +588,19 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     'paiement : la RPC est EXÉCUTÉE deux fois sur la même facture — la seconde n’insère ni ne journalise (sonde annulée)')
   ok(/detail ->> 'transaction_id' = v_id::text/.test(postP) && /raise exception 'SONDE_ANNULEE'/.test(postP),
     'paiement : la ligne est RELUE (sujet organisation, transaction dans le détail), puis annulée')
+  // La candidature déposée a la sienne : ouverture avec pièce, écriture, journal du dépôt soldé, ligne relue, concurrente refusée.
+  const DEPOSEE = stripSql(read(migration('journal_candidature_deposee')))
+  const iPostD = DEPOSEE.indexOf('do $post$')
+  const postD = iPostD < 0 ? '' : DEPOSEE.slice(iPostD)
+  ok(/drop function if exists public\.ouvrir_depot_candidature\(uuid, uuid, uuid, text\);/.test(DEPOSEE) && /to_regprocedure\('public\.ouvrir_depot_candidature\(uuid, uuid, uuid, text\)'\) is not null/.test(postD),
+    'dépôt : l’ancienne ouverture SANS pièce est supprimée, et la postcondition le vérifie')
+  ok(/'public\.inserer_candidature_jugee\(uuid, uuid, text, uuid, text, jsonb, text\)'/.test(postD), 'dépôt : les signatures sont vérifiées par TYPES')
+  ok((postD.match(/public\.inserer_candidature_jugee\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_res2 is not null or v_lignes <> 1/.test(postD),
+    'dépôt : la RPC est EXÉCUTÉE deux fois sur le même couple — la concurrente n’insère ni ne journalise (sonde annulée)')
+  ok(/d\.piece = v_piece and d\.etat = 'en_cours'/.test(postD) && /d\.etat = 'depose' and d\.candidature_id = \(v_res ->> 'id'\)::uuid and d\.cover_message is null/.test(postD),
+    'dépôt : le journal du dépôt porte la pièce à l’ouverture, et il est SOLDÉ par l’écriture (relu)')
+  ok(/g\.piece = v_piece and g\.type_action = 'candidature_deposee'[\s\S]{0,300}?g\.detail ->> 'tentative' = '1'/.test(postD) && /raise exception 'SONDE_ANNULEE'/.test(postD),
+    'dépôt : la ligne est RELUE sous sa pièce (sujet candidature, tentative comptée), puis annulée')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

@@ -52,7 +52,7 @@
 //   Refusé par Youssef : « ça tournerait en boucle et ça coûterait. » Une
 //   relance est un geste d'administrateur, sur une ligne qu'il a lue.
 
-import type { ContexteJournal } from '@/lib/journal/contexte'
+import { parametresJournal, type ContexteJournal } from '@/lib/journal/contexte'
 import { after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -416,6 +416,7 @@ export async function deposerCandidature(args: {
     profileId: profileRow.id,
     domainId: pubRow.domain_id,
     coverMessage,
+    piece: args.journal.piece,
   })
 
   // ── LES DEUX LANGUES, LUES AVANT L'APPEL ────────────────────────────────
@@ -519,11 +520,17 @@ export async function deposerCandidature(args: {
     return { issue: 'sans_jugement', cause: resultat.cause, raison: resultat.raison }
   }
 
-  // ── L'ÉCRITURE — UNE SEULE, AVEC SA NOTE ET SON RÉSUMÉ ──────────────────
+  // ── L'ÉCRITURE — UNE SEULE, AVEC SA NOTE, SON RÉSUMÉ ET SA LIGNE DE JOURNAL ─
+  //  `inserer_candidature_jugee` insère la candidature, solde le journal du
+  //  dépôt et écrit `candidature_deposee` au grand livre dans la MÊME
+  //  transaction (§D.26) — sous la pièce du geste, et pour un rejeu, avec la
+  //  pièce d'origine. Une candidature concurrente arrivée PENDANT le jugement
+  //  rend `null` : rien n'est écrit, la ligne du dépôt est retirée.
   const preview = buildPreview(profileRow)
-  const { data: inserted, error: insertErr } = await supabaseAdmin
-    .from('candidatures')
-    .insert({
+  const { data: insere, error: insertErr } = await supabaseAdmin.rpc('inserer_candidature_jugee', {
+    ...parametresJournal(args.journal),
+    p_origine_depot: args.origine,
+    p_candidature: {
       id: candidatureId,
       publication_id: publicationId,
       profile_id: profileRow.id,
@@ -551,27 +558,10 @@ export async function deposerCandidature(args: {
       ai_model: resultat.jugement.model,
       status: 'received',
       preview,
-    })
-    .select('id, status, created_at')
-    .single()
+    },
+  })
 
   if (insertErr) {
-    // Re-candidature : PG 23505 unique_violation sur (publication_id, profile_id).
-    // Le test préalable l'a déjà écartée ; rester ici signifie qu'une
-    // candidature concurrente est arrivée PENDANT le jugement. Rare, et payé —
-    // il n'y a rien à faire d'autre que de le dire.
-    if ((insertErr as { code?: string }).code === '23505') {
-      console.warn('[depot] candidature concurrente arrivée pendant le jugement', {
-        publicationId,
-        profileId: profileRow.id,
-      })
-      await solderJournalEnDepot(supabaseAdmin, {
-        publicationId,
-        profileId: profileRow.id,
-        candidatureId: null,
-      })
-      return { issue: 'refusee', code: 'already_applied' }
-    }
     console.error('[depot] insertion refusée', insertErr.message)
     // ⚠️ LA CONTRAINTE DE COMPLÉTUDE PEUT ÊTRE LA CAUSE, et alors le jugement
     //    a rendu quelque chose que la base juge nu. On garde la ligne en
@@ -584,13 +574,18 @@ export async function deposerCandidature(args: {
     })
     return { issue: 'refusee', code: 'db_error' }
   }
-  const row = inserted as unknown as { id: string; status: string; created_at: string }
-
-  await solderJournalEnDepot(supabaseAdmin, {
-    publicationId,
-    profileId: profileRow.id,
-    candidatureId: row.id,
-  })
+  if (!insere) {
+    // Re-candidature : le test préalable l'a déjà écartée ; rester ici
+    // signifie qu'une candidature concurrente est arrivée PENDANT le jugement.
+    // Rare, et payé — la base a refusé la seconde, la RPC a retiré la ligne du
+    // dépôt, et il n'y a rien à faire d'autre que de le dire.
+    console.warn('[depot] candidature concurrente arrivée pendant le jugement', {
+      publicationId,
+      profileId: profileRow.id,
+    })
+    return { issue: 'refusee', code: 'already_applied' }
+  }
+  const row = insere as { id: string; status: string; created_at: string }
 
   // ── LE DÉVOILEMENT INCLUS, DANS LA REQUÊTE ──────────────────────────────
   //  Il vivait dans un `after()`, derrière le jugement. Le jugement est
@@ -659,6 +654,8 @@ async function ouvrirJournal(
     profileId: string
     domainId: string | null
     coverMessage: string | null
+    /** La pièce du geste (§D.26) : la ligne la porte, et un rejeu la référence. */
+    piece: string
   },
 ): Promise<void> {
   const { data, error } = await admin.rpc('ouvrir_depot_candidature', {
@@ -666,6 +663,7 @@ async function ouvrirJournal(
     p_profile_id: args.profileId,
     p_domain_id: args.domainId,
     p_cover_message: args.coverMessage,
+    p_piece: args.piece,
   })
   if (error) {
     console.error('[depot] journal NON OUVERT — ce dépôt ne sera pas relançable', {
@@ -705,52 +703,6 @@ async function solderJournalEnEchec(
     console.error('[depot] échec NON JOURNALISÉ — il n apparaîtra sur aucun écran', {
       publicationId: args.publicationId,
       profileId: args.profileId,
-      message: error.message,
-    })
-  }
-}
-
-async function solderJournalEnDepot(
-  admin: SupabaseClient,
-  args: { publicationId: string; profileId: string; candidatureId: string | null },
-): Promise<void> {
-  if (args.candidatureId === null) {
-    // Une candidature concurrente occupe déjà le couple : notre ligne n'a plus
-    // d'objet. On la SUPPRIME plutôt que de la marquer « déposée » en
-    // désignant la candidature d'un autre passage — la contrainte l'interdit
-    // d'ailleurs, et elle a raison.
-    const { error } = await admin
-      .from('candidature_depots')
-      .delete()
-      .eq('publication_id', args.publicationId)
-      .eq('profile_id', args.profileId)
-    if (error) {
-      console.error('[depot] ligne concurrente NON RETIRÉE — elle restera « en cours »', {
-        publicationId: args.publicationId,
-        message: error.message,
-      })
-    }
-    return
-  }
-  const { error } = await admin
-    .from('candidature_depots')
-    .update({
-      etat: 'depose',
-      cause: null,
-      detail: null,
-      // LE MESSAGE DE MOTIVATION PART ICI. Il ne servait qu'à rejouer ; le
-      // dépôt a abouti, la candidature le porte. Le garder serait une
-      // conservation sans finalité.
-      cover_message: null,
-      candidature_id: args.candidatureId,
-      termine_at: new Date().toISOString(),
-    })
-    .eq('publication_id', args.publicationId)
-    .eq('profile_id', args.profileId)
-  if (error) {
-    console.error('[depot] dépôt abouti NON SOLDÉ — la ligne restera sur l écran d erreurs', {
-      publicationId: args.publicationId,
-      candidatureId: args.candidatureId,
       message: error.message,
     })
   }

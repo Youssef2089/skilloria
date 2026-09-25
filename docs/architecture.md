@@ -98,6 +98,20 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_candidature_deposee` (25/09/2026) — LA CANDIDATURE, SA NOTE, LE JOURNAL DU DÉPÔT SOLDÉ ET SA LIGNE NAISSENT ENSEMBLE.**
+> `candidature_depots.piece` (la pièce de la **dernière** tentative) ; `ouvrir_depot_candidature()` recréée à
+> cinq arguments (la pièce exigée, GL002 ; l'ancienne signature **supprimée**) ; `inserer_candidature_jugee(
+> pièce, pièce d'origine, origine, acteur, candidature jsonb, origine du dépôt)` : `insert … on conflict
+> (publication_id, profile_id) do nothing` — une concurrente rend `null` et **retire** la ligne du dépôt —,
+> le journal du dépôt soldé (`depose`, message de motivation effacé), puis `journaliser('candidature_deposee')`
+> sur la candidature, avec la pièce d'origine. Liste blanche posée. **Ordre : AVANT le déploiement.**
+>
+> ⚠️ **POSTCONDITION QUI S'EXÉCUTE** : deux signatures, l'ancienne absente, la colonne vue dans
+> `information_schema`, les témoins de la liste blanche, puis une sonde annulée sur un couple
+> (annonce, expert) mis en relation et libre (sautée, et dite, sinon) : ouverture avec pièce **relue**,
+> écriture, journal du dépôt **relu soldé**, ligne **relue** sous sa pièce avec `tentative = 1`, et la
+> concurrente qui n'insère ni ne journalise.
+
 > **`journal_paiement` (25/09/2026) — UN PAIEMENT REÇU : LA PIÈCE COMPTABLE ET SA LIGNE NAISSENT ENSEMBLE.**
 > `enregistrer_paiement(p_piece, p_transaction jsonb, p_stripe_event_id)` : `jsonb_populate_record` typographie
 > les colonnes, `insert … on conflict (stripe_invoice_id) where stripe_invoice_id is not null do nothing`,
@@ -1641,6 +1655,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | · créer / modifier une offre | `journaliserReglage()` ([lib/journal/reglages.ts](../lib/journal/reglages.ts)) | journal après écriture | `avant/apres.{name, slug, target_role, price_*, currency, active, is_free, is_default, scope}`, `features[].{feature_code, value, reset_period, avant}`, `package_fields[]`, `default_*` | Stripe est au milieu : la ligne vient après, quand tout est connu ; une création par défaut écrit **deux** lignes sous une pièce (l'offre, le défaut) ; la raison en texte libre reste hors du grand livre |
 | · attribuer / migrer des offres | `journaliserReglage()` | journal après écriture | `avant/apres.package_{id, started_at, valid_until}`, `count`, `skipped_subscribed` | l'organisation est **lue** avant (l'écart connu — 200 sur un id inconnu — se ferme en 404) ; une migration = **une** ligne, jamais une par organisation |
 | · synchroniser le catalogue | `journaliserReglage()` | journal après écriture | `mode`, `synchronisees[]`, `refusees[]`, `en_echec[]`, `cause` | slugs seulement ; `echoue` dès qu'une offre est en échec ou que Stripe n'a pas répondu (cause bornée à 200 caractères) |
+| `candidature_deposee` | `inserer_candidature_jugee()` (SQL) | RPC métier + journal | `publication_id`, `profile_id`, `match_id`, `ai_match_score`, `origine_depot`, `tentative` | jugement PUIS insertion **avec** sa note, journal du dépôt **soldé** et ligne écrite dans la même transaction ; une concurrente pendant le jugement rend `null` (rien d'écrit, ligne du dépôt retirée) ; le journal du dépôt s'ouvre **avec la pièce** avant l'appel au modèle (`candidature_depots.piece`) et le rejeu ouvre une pièce **neuve** qui la référence |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -2991,7 +3006,8 @@ Le socle est posé (§D.26, §C.20), validé sur une base jetable et sur staging
 actions dans l'ordre arbitré par Youssef — (a) l'argent et les réglages d'administration : les **six
 familles de réglages** sont branchées (`reglage_modifie`, un écrivain), avec `paiement_recu`,
 `plafond_atteint`, `refus_plafond_atteint` et `ip_effacees` — **(a) est fait** ; (b) la candidature
-et le dévoilement ; (c) le moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
+et le dévoilement — **en cours** : `candidature_deposee` et la pièce du rejeu sont faits ; (c) le
+moteur dans les deux sens, une ligne par étape ; (d) l'annonce, le profil,
 le CV, la disponibilité ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui

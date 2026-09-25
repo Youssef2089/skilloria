@@ -1,4 +1,5 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { estPiece } from '@/lib/journal/piece'
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
@@ -223,10 +224,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     throw err
   }
   const admin = auth.supabaseAdmin
-  // LE REJEU EST UN NOUVEAU GESTE (§D.26) : pièce neuve. Elle référencera la
-  // pièce du dépôt d'origine dès que candidature_depots la portera (étape 2b).
-  const journal = contexteDepuisAuth(auth)
-
   let body: { id?: unknown }
   try {
     body = (await request.json()) as { id?: unknown }
@@ -241,7 +238,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const { data: ligneRow, error: ligneErr } = await admin
     .from('candidature_depots')
     .select(
-      'id, publication_id, profile_id, domain_id, etat, cause, detail, tentatives, commence_at, termine_at, cover_message',
+      'id, publication_id, profile_id, domain_id, etat, cause, detail, tentatives, commence_at, termine_at, cover_message, piece',
     )
     .eq('id', id)
     .maybeSingle()
@@ -250,7 +247,11 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   if (!ligneRow) return json({ error: 'Not found', code: 'not_found' }, 404)
-  const ligne = ligneRow as unknown as LigneBase & { cover_message: string | null }
+  const ligne = ligneRow as unknown as LigneBase & { cover_message: string | null; piece: string | null }
+  // LE REJEU EST UN NOUVEAU GESTE (§D.26) : pièce NEUVE, qui référence celle de
+  // la tentative rejouée (`candidature_depots.piece`) — de proche en proche, on
+  // remonte à l'originale. Nulle pour un dépôt antérieur au grand livre.
+  const journal = contexteDepuisAuth(auth, estPiece(ligne.piece) ? ligne.piece : null)
 
   // ── ON NE RELANCE QUE CE QUI EST EN SOUFFRANCE ──────────────────────────
   //  Un dépôt ABOUTI n'a rien à rejouer ; un dépôt EN COURS est en train de

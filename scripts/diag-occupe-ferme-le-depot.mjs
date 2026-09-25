@@ -60,6 +60,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, relative } from 'node:path'
+import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
 // ⚠️ IMPORT STATIQUE (§E.57) : un `await import()` en milieu de fichier fait
 //    planter Node à la sortie, sous Windows, quand stdout est redirigé.
 import * as REGLE from '../lib/matching/eligibilite.ts'
@@ -236,7 +237,10 @@ ok(
 const iAptitude = depotNu.indexOf('jugerEligibilite(')
 const iJournal = depotNu.indexOf('await ouvrirJournal(')
 const iModele = depotNu.indexOf('jugerCandidature(')
-const iInsert = depotNu.search(/from\(\s*['"]candidatures['"]\s*\)\s*\n?\s*\.insert\(/)
+// L'ÉCRITURE EST UNE RPC (§D.26), DÉCOUVERTE : celle dont le SQL insère
+// `candidatures` — jamais nommée ici (§E.34, §E.61).
+const rpcEcriture = rpcQuiEcrivent(depotNu, 'candidatures', definitionsSql(ROOT))[0] ?? ''
+const iInsert = rpcEcriture ? depotNu.indexOf(`.rpc('${rpcEcriture}'`) : -1
 ok(iAptitude >= 0 && iJournal > iAptitude, 'l’aptitude est jugée AVANT l’ouverture du journal')
 ok(
   iAptitude >= 0 && iModele > iAptitude,
