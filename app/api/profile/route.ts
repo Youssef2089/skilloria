@@ -1,6 +1,6 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { JournalError } from '@/lib/journal/journaliser'
-import { profilModifie, profilPublie } from '@/lib/profil/journal-profil'
+import { disponibiliteBasculee, profilModifie, profilPublie } from '@/lib/profil/journal-profil'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -713,10 +713,24 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // LA LIGNE DE LA MODIFICATION — les NOMS des champs et des blocs touchés, hors
   // `visible` (la publication a sa ligne) et hors le champ de disponibilité (la
   // bascule a la sienne). Rien à écrire si le geste n'était que l'un des deux.
-  const champsModifies = Object.keys(patch).filter((k) => k !== 'visible' && k !== CHAMP_DISPONIBILITE[isCdi ? 'expert_cdi' : 'expert_freelance'])
+  const champDispo = CHAMP_DISPONIBILITE[isCdi ? 'expert_cdi' : 'expert_freelance']
+  const champsModifies = Object.keys(patch).filter((k) => k !== 'visible' && k !== champDispo)
   if (champsModifies.length > 0 || touchedBlocks.length > 0) {
     try {
       await profilModifie(supabaseAdmin, journal, { profileId: cp.id, champs: champsModifies, blocs: touchedBlocks })
+    } catch (err) {
+      if (!(err instanceof JournalError)) throw err
+      journalRefuse = err
+      console.error('[profile PATCH] grand livre en échec après écriture', { profileId: cp.id, message: err.message })
+    }
+  }
+
+  // LA BASCULE DE DISPONIBILITÉ — le champ de la voie, l'état d'AVANT (lu avec
+  // le profil) et l'état d'après. Une valeur renvoyée inchangée n'est pas une
+  // bascule : rien à écrire.
+  if (champDispo in patch && patch[champDispo] !== cp[champDispo]) {
+    try {
+      await disponibiliteBasculee(supabaseAdmin, journal, { profileId: cp.id, champ: champDispo, de: (cp[champDispo] as string | null) ?? null, vers: (patch[champDispo] as string | null) ?? null })
     } catch (err) {
       if (!(err instanceof JournalError)) throw err
       journalRefuse = err

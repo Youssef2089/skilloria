@@ -91,3 +91,21 @@ export async function profilModifie(
     detail: { champs: args.champs, blocs: args.blocs },
   })
 }
+
+/**
+ * LA DISPONIBILITÉ BASCULÉE — le champ de la voie (`availability_status` en
+ * freelance, `cdi_status` en CDI — §D.14), l'état d'AVANT tel que lu avec le
+ * profil, l'état d'après. Des codes, jamais une date ni un texte.
+ */
+export async function disponibiliteBasculee(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string; champ: 'availability_status' | 'cdi_status'; de: string | null; vers: string | null },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'disponibilite_basculee',
+    statut: 'reussi',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: { champ: args.champ, de: args.de, vers: args.vers },
+  })
+}

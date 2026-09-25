@@ -78,7 +78,7 @@ export const CLES_DETAIL = {
   cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues'],
   profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: ['champs', 'champs[]', 'blocs', 'blocs[]'],
-  disponibilite_basculee: [],
+  disponibilite_basculee: ['champ', 'de', 'vers'],
   recherche_lancee: ['tentative', 'tache'],
   recherche_filtree: ['eligibles', 'sans_matiere', 'a_noter', 'ecartes_deja_decline', 'ecartes_deja_postule', 'chargees'],
   recherche_classee: ['model', 'notes', 'reprises', 'lots_en_echec', 'arret', 'recherches', 'unites_source'],
