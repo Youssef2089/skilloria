@@ -1,3 +1,4 @@
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -44,6 +45,9 @@ const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}
 
 type RouteContext = { params: Promise<{ id: string }> }
 
+/** D'où l'on peut clôturer. La RPC reçoit cette liste : elle ne porte aucun littéral de statut. */
+const CLOSABLE_FROM = ['published'] as const
+
 export async function POST(request: NextRequest, ctx: RouteContext): Promise<Response> {
   // ── Auth + appartenance org active ──────────────────────────────────────
   let auth: AuthContext
@@ -62,6 +66,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // LA PIÈCE, À L'ENTRÉE DU GESTE (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // ── Id de route ─────────────────────────────────────────────────────────
   const { id } = await ctx.params
@@ -91,27 +97,32 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Forbidden', code: 'forbidden' }, 403)
   }
   const currentStatus = pub.status as string
-  if (currentStatus !== 'published') {
+  if (!(CLOSABLE_FROM as readonly string[]).includes(currentStatus)) {
     return json(
       { error: 'Cannot close', code: 'wrong_status', current_status: currentStatus },
       409,
     )
   }
 
-  // ── UPDATE : status uniquement ──────────────────────────────────────────
-  const { data: updated, error: updateErr } = await auth.supabaseAdmin
-    .from('publications')
-    .update({ status: 'archived' })
-    // Defense en profondeur : le SELECT ci-dessus est deja cloisonne, mais une
-    // ECRITURE ne doit pas dependre de l'ORDRE des instructions pour etre sure.
-    .eq('id', id)
-    .eq('domain_id', activeEcosystemId(auth))
-    .select('id, status')
-    .single()
+  // ── LA CLÔTURE ET SA LIGNE DE GRAND LIVRE, EN UN SEUL APPEL (§D.26) ──────
+  //  `cloturer_annonce` rejoue la transition (`published` → `archived`), le
+  //  cloisonnement et la propriété DANS l'UPDATE, puis journalise
+  //  `annonce_depubliee` dans la même transaction. Zéro ligne touchée rend
+  //  false : la route répond 409 au lieu d'un 200 muet (§E.27).
+  const { data: cloturee, error: updateErr } = await auth.supabaseAdmin.rpc('cloturer_annonce', {
+    ...parametresJournal(journal),
+    p_publication_id: id,
+    p_domain_id: activeEcosystemId(auth),
+    p_organization_id: orgId,
+    p_statuts_admis: [...CLOSABLE_FROM],
+  })
 
-  if (updateErr || !updated) {
-    console.error('[publications:close] update failed', updateErr?.message)
+  if (updateErr) {
+    console.error('[publications:close] update failed', updateErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+  if (cloturee !== true) {
+    return json({ error: 'Cannot close', code: 'wrong_status' }, 409)
   }
 
   await logAudit({
@@ -124,5 +135,5 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     detail: { from: 'published', to: 'archived' },
   })
 
-  return json({ id: updated.id, status: updated.status }, 200)
+  return json({ id, status: 'archived' }, 200)
 }

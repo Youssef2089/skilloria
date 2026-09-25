@@ -98,6 +98,14 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`journal_annonce_depubliee` (25/09/2026) — CLÔTURER : LA TRANSITION ET LA LIGNE, EN UNE TRANSACTION.**
+> `cloturer_annonce(contexte, annonce, écosystème, organisation, statuts admis)` : statut d'origine lu `for update`
+> et jugé contre les statuts admis de la **route** (la fonction ne porte aucun littéral de statut — le contrôle
+> d'expiration refuse toute fonction SQL qui décide sur `status = 'published'` seul), `update … set status =
+> 'archived'` ; zéro ligne rend `false` ; `journaliser('annonce_depubliee')` avec le statut d'origine.
+> Liste blanche posée. **Ordre : AVANT le déploiement** — la route l'appelle. Postcondition exécutée sur une annonce
+> publiée réelle (sautée, et dite, sinon) : clôturée et **relue**, rejeu `false` sans seconde ligne.
+
 > **`journal_annonce_modifiee` (25/09/2026) — LA LISTE BLANCHE DE L'ÉDITION D'UNE ANNONCE.** Ordre indifférent :
 > l'écrivain est TypeScript. Postcondition exécutée : les noms de champs acceptés puis annulés, le contenu d'un
 > champ refusé (GL004).
@@ -1769,6 +1777,7 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `recherche_abandonnee` | `JournalDeRecherche.abandonnee()` — **privé**, décidé dans `echouee()` | fait, dans le run | `tentatives`, `plafond`, `cause` | écrite **après** l'échec, sous la **même pièce** (deux types, un sujet), quand la tentative consommée atteint le **plafond du sens** — `RUN_MAX_TENTATIVES` (annonce, **nouveau** dans `lib/matching/run-abouti.ts`, importé par `cron/match-retry` à la place de sa constante locale) ou `RELANCE_MAX_TENTATIVES` (expert) ; les deux ont leurs **jumeaux SQL** vérifiés par `diag-relance-rejouee` (défaut du rattrapage, défaut de la supervision) ; le moteur est le **seul** à voir toutes les tentatives, déclenchements directs compris ; `admin/approve-expert` compte désormais la tentative **avant** le run comme les deux autres appelants (`solderRelance` remet le compteur à zéro sur un succès : état final inchangé, compteur lu juste) ; le plafond est écrit avec la ligne |
 | `annonce_publiee` | `publier_annonce()` (SQL) | RPC métier + journal | `type`, `organization_id`, `verification_method`, `verification_score`, `published_at` | la transition (`draft` → verdict), le cloisonnement et la propriété sont **rejoués dans l'UPDATE** ; `published_at` est posé par la **base** quand le verdict publie (`expires_at` toujours non écrit) ; zéro ligne rend `null` → la route rend la place et répond 409 `wrong_status` là où elle disait 200 ; un verdict `pending_review` écrit le verdict **sans** ligne (rien n'est en ligne) ; `diag-ordre-des-ecritures` prend la RPC pour repère de la mise en ligne |
 | `annonce_modifiee` | `journaliserDans()` dans `app/api/publications/[id]/route.ts` (PATCH) | journal après écriture, même pièce | `champs[]` (noms de colonnes), `statut_annonce`, `organization_id` | l'édition est un UPDATE **dynamique** (les champs que le corps porte, parmi les éditables) : une RPC figée recopierait la liste des colonnes ; la ligne vient **après** l'écriture et **avant** l'audit best-effort ; jamais le **contenu** d'un champ — la postcondition refuse un titre ; un journal qui refuse répond `journal_error` avec l'identifiant de l'annonce modifiée |
+| `annonce_depubliee` | `cloturer_annonce()` (SQL) | RPC métier + journal | `de`, `vers`, `organization_id` | même forme que décliner : le statut d'origine est lu **sous verrou** et jugé contre les statuts admis passés par la **route** (`CLOSABLE_FROM`) — la fonction ne porte **aucun littéral de statut**, ce que `diag-annonce-expiree` exige de toute fonction SQL qui lit `publications` ; transition, cloisonnement et propriété **rejoués dans l'UPDATE** ; zéro ligne rend `false` → 409 `wrong_status` là où la route disait 200 en silence (§E.27) ; la clôture par l'organisation est la seule dépublication volontaire — l'expiration est un **constat** (`annonce_expiree`) |
 | `paiement_recu` | `enregistrer_paiement()` (SQL) | RPC métier + journal | `transaction_id`, `organization_id`, `package_id`, `stripe_invoice_id`, `stripe_event_id`, `montant`, `montant_ht`, `taxe`, `devise`, `periode`, `periode_debut`, `periode_fin` | la pièce comptable est insérée `on conflict … do nothing` — **avec le prédicat de l'index partiel** (§E.69) — PUIS journalisée sur l'**organisation**, même transaction ; un rejeu Stripe n'écrit ni l'une ni l'autre ; le webhook ouvre sa pièce (`contexteSysteme()`, justifié : Stripe agit, personne ne se connecte) AVANT la réclamation, sa première écriture |
 | `ip_effacees` | `effacer_adresses_ip()` (SQL) | tâche SQL, pièce `gen_random_uuid()` | `mois`, `limite`, `audit_logs`, `session_logs` ; `cause`, `sqlstate` | succès dans le bloc, échec dans le gestionnaire |
 | `refus_plafond_atteint` | `journaliserRefusPlafond()` dans `lib/ai-budget.ts` | fait, après refus | `action`, `fournisseur`, `portee` (acteur / global), `depense_mois_usd`, `plafond_mensuel_usd` | les DEUX chemins de refus (`arret.arrete`, `etat.au_plafond`) appellent l'écrivain ; statut `refuse` |
@@ -3128,7 +3137,7 @@ moteur dans les deux sens, une ligne par étape — **fait** : un seul module é
 (`lib/matching/journal-de-recherche.ts`), les huit étapes branchées dans les deux sens (`recherche_lancee`, `_filtree`,
 `_classee` avec le coût dans les colonnes de coût, `_correspondances`, `_notifiee`, `_terminee`, `_echouee`,
 `_abandonnee`), jamais une ligne par lot ni par profil, le contrôle comptant les fins et énumérant les sorties ; (d) l'annonce, le profil,
-le CV, la disponibilité — **en cours** : `annonce_publiee`, `annonce_modifiee` ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
+le CV, la disponibilité — **en cours** : `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee` ; (e) la sécurité des comptes et la gouvernance d'organisation ; (f) la
 collaboration ; (g) les purges et les dix routes sans trace. Les actions branchées sont recensées en
 **§C.21**, avec leur écrivain et leur preuve ; `diag-grand-livre` compte à chaque passage celles qui
 n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'écrit encore rien**. Puis :
