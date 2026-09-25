@@ -502,6 +502,11 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'devoilement_ouvert', fichier: 'lib/unlock.ts', bloc: 'export async function performUnlock(', motif: (b) => !/\.from\('conversations'\)[\s\S]{0,120}?\.insert\(/.test(b) && !/\.from\('candidatures'\)[\s\S]{0,120}?\.update\(/.test(b) && /alreadyUnlocked: verdict\.issue === 'deja'/.test(b), quoi: 'plus d’écriture directe ; « déjà dévoilée » est le verdict de la base sous verrou' },
     { code: 'devoilement_ouvert', fichier: 'lib/candidatures/depot.ts', bloc: 'async function devoilementInclus(', motif: /performUnlock\(admin, candidatureId, \{\s*auto: true,\s*journal: args\.journal,/, quoi: 'le dévoilement inclus passe la pièce du dépôt — même geste, même pièce' },
     { code: 'devoilement_ouvert', fichier: 'app/api/candidatures/[id]/unlock/route.ts', bloc: 'export async function POST(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?performUnlock\(auth\.supabaseAdmin, candidatureId, \{\s*auto: false,\s*journal,/, quoi: 'le dévoilement manuel ouvre son contexte à l’entrée et le passe au chemin partagé' },
+    // ── C : le moteur, dans les deux sens — une ligne par étape, un seul module écrivain ──
+    { code: 'recherche_lancee', fichier: 'lib/matching/journal-de-recherche.ts', bloc: 'async lancee(', motif: /journaliserDans\(this\.admin, this\.journal, \{\s*type: 'recherche_lancee',\s*statut: 'reussi',\s*sujet: this\.sujet,\s*ecosystemeId: this\.ecosystemeId,\s*detail: \{ tentative: d\.tentative, tache: this\.journal\.tache \},/, quoi: 'l’écrivain : sujet et écosystème de l’objet cherché, la tentative et la tâche' },
+    { code: 'recherche_lancee', fichier: 'lib/matching/index.ts', bloc: 'export async function runMatchingForPublication(', motif: /await marquerTentative\(supabaseAdmin, publicationId, pub\.matching_attempts \?\? 0\)\s*const recherche = new JournalDeRecherche\(supabaseAdmin, journal, \{ type: 'publications', id: publicationId \}, pub\.domain_id\)\s*await recherche\.lancee\(\{ tentative: \(pub\.matching_attempts \?\? 0\) \+ 1 \}\)/, quoi: 'annonce : lancée APRÈS la tentative comptée, sujet l’annonce, écosystème le sien, tentative = compteur lu + 1' },
+    { code: 'recherche_lancee', fichier: 'lib/matching/run-for-expert.ts', bloc: 'async function executerRunExpert(', motif: /const vieAnnonceJours = lectureDurees\.durees\.vieAnnonceJours\s*const recherche = new JournalDeRecherche\(supabaseAdmin, journal, \{ type: 'profiles', id: profileId \}, p\.domain_id\)\s*await recherche\.lancee\(\{ tentative: p\.matching_relance_tentatives \}\)[\s\S]*?\.from\('publications'\)/, quoi: 'expert : lancée après l’éligibilité et les réglages, AVANT la lecture des annonces ; tentative = le compteur de relance lu' },
+    { code: 'recherche_lancee', fichier: 'lib/matching/run-for-expert.ts', bloc: 'const SELECT_PROFIL =', motif: /matching_relance_tentatives/, quoi: 'expert : le compteur de relance est LU avec le profil (§E.1 — une colonne absente se lit undefined)' },
   ]
   // La même preuve côté SQL : chaque RPC métier écrit sa table, compte la
   // ligne, PUIS appelle l'écrivain unique — dans sa DERNIÈRE définition.
@@ -537,9 +542,16 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     return blocApres(src.slice(fermante), '{')
   }
   const tient = (motif, texte) => (typeof motif === 'function' ? motif(texte) : motif.test(texte))
+  // Une INSTRUCTION (`const X =`) n'a pas d'accolade : c'est le texte jusqu'à la première ligne vide.
+  const instructionApres = (src, debut) => {
+    const i = src.indexOf(debut)
+    if (i < 0) return null
+    const j = src.indexOf('\n\n', i)
+    return src.slice(i, j < 0 ? src.length : j)
+  }
   for (const p of PREUVES) {
     const src = stripTs(read(p.fichier))
-    const bloc = (p.bloc.endsWith('(') ? corpsFonctionTs(src, p.bloc) : blocApres(src, p.bloc)) ?? ''
+    const bloc = (p.bloc.endsWith('(') ? corpsFonctionTs(src, p.bloc) : p.bloc.endsWith(' =') ? instructionApres(src, p.bloc) : blocApres(src, p.bloc)) ?? ''
     ok(bloc.length > 0 && tient(p.motif, bloc), `${p.code} — ${p.quoi} (${p.fichier} · ${p.bloc.trim().slice(0, 40)})`)
   }
   for (const p of PREUVES_SQL) {
@@ -687,6 +699,17 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     'dévoilement : la RPC est EXÉCUTÉE deux fois — le rejeu est « deja », même conversation, sans seconde ligne (sonde annulée)')
   ok(/c\.status = 'unlocked' and c\.unlocked_at is not null/.test(postDv) && /v\.status = 'open'/.test(postDv) && /\(g\.detail ->> 'auto'\)::boolean = false/.test(postDv) && /raise exception 'SONDE_ANNULEE'/.test(postDv),
     'dévoilement : la bascule, la conversation et la ligne (auto) sont RELUES, puis annulées')
+  // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
+  const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {
+    const M = stripSql(read(migration(suffixe)))
+    const iP = M.indexOf('do $post$')
+    const P = iP < 0 ? '' : M.slice(iP)
+    const m = (sujet) => new RegExp(`journaliser\\(gen_random_uuid\\(\\), '${code}', '${statut}', 'tache_planifiee',[\\s\\S]{0,200}?'${sujet}', gen_random_uuid\\(\\),\\s*${forme}[\\s\\S]{0,900}?raise exception 'SONDE_ANNULEE'`)
+    ok(m('publications').test(P) && m('profiles').test(P), `${code} : la forme exacte que le module écrit est ÉCRITE pour les DEUX sujets (annonce, profil), puis annulée`)
+    ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), `${code} : un texte libre est REFUSÉ (sonde exécutée)`)
+    ok(new RegExp(`'${code}', '${statutRefuse}'[\\s\\S]{0,400}?when sqlstate 'GL003'`).test(P), `${code} : le statut « ${statutRefuse} » est REFUSÉ par la base (sonde exécutée)`)
+  }
+  sondeRecherche('journal_recherche_lancee', 'recherche_lancee', 'reussi', "jsonb_build_object\\('tentative', 1, 'tache', '(match_retry|expert_relance)'\\)", 'refuse')
 }
 
 // ═══ G. AUCUNE DONNÉE PERSONNELLE — détecteur partagé ═══════════════════════

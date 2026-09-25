@@ -10,6 +10,7 @@ import { buildAnnonceQuery, buildExpertDocument, documentUtilisable } from './do
 import { rerankerTout } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, type NotifySpec } from './shared'
+import { JournalDeRecherche } from './journal-de-recherche'
 import type { MatchingVerdict } from './types'
 // LA RÈGLE D'EXPIRATION NE SE RÉÉCRIT PAS ICI — elle se LIT (§D.7, §E.24).
 // lib/publications/expiry.ts est la source unique ; la durée vient de
@@ -283,6 +284,13 @@ export async function runMatchingForPublication(args: {
   }
 
   await marquerTentative(supabaseAdmin, publicationId, pub.matching_attempts ?? 0)
+
+  // ── L'HISTOIRE DU RUN, au grand livre — une ligne par étape (§D.26) ─────
+  //  Le sujet est l'annonce, l'écosystème le sien ; la pièce est celle du
+  //  geste qui a déclenché ce run (`journal`). `lancee` s'écrit ICI, après
+  //  la tentative comptée : c'est le point de non-retour, le moteur va payer.
+  const recherche = new JournalDeRecherche(supabaseAdmin, journal, { type: 'publications', id: publicationId }, pub.domain_id)
+  await recherche.lancee({ tentative: (pub.matching_attempts ?? 0) + 1 })
 
   const criteres: CriteresAnnonce = {
     id: pub.id,

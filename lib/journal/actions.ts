@@ -79,7 +79,7 @@ export const CLES_DETAIL = {
   profil_publie: [],
   profil_modifie: [],
   disponibilite_basculee: [],
-  recherche_lancee: [],
+  recherche_lancee: ['tentative', 'tache'],
   recherche_filtree: [],
   recherche_classee: [],
   recherche_correspondances: [],

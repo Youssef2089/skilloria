@@ -9,6 +9,7 @@ import { buildAnnonceQuery, buildExpertDocument, documentUtilisable } from './do
 import { rerankerTout, type DocumentANoter } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, pickRel, type NotifySpec } from './shared'
+import { JournalDeRecherche } from './journal-de-recherche'
 import type { VerdictExpert } from './types'
 import {
   COLONNES_COMPTE,
@@ -61,6 +62,8 @@ type LigneProfil = {
   open_to_cdi: boolean | null
   open_to_freelance: boolean | null
   last_matching_scope: unknown
+  /** Le compteur de relance, tel que lu : la tentative que ce run consomme (§D.26). */
+  matching_relance_tentatives: number | null
   users: { user_type: string; locale: string } | { user_type: string; locale: string }[] | null
 }
 
@@ -89,7 +92,7 @@ const SELECT_PROFIL =
   'id, user_id, domain_id, title, summary, skills, certifications, years_total_experience, ' +
   'branch_id, speciality_ids, seniorities, work_zone_countries, ' +
   `${COLONNES_PROFIL.join(', ')}, ` +
-  'open_to_cdi, open_to_freelance, last_matching_scope, ' +
+  'open_to_cdi, open_to_freelance, last_matching_scope, matching_relance_tentatives, ' +
   `users!profiles_user_id_fkey!inner(user_type, locale, ${COLONNES_COMPTE.join(', ')})`
 
 /**
@@ -293,6 +296,14 @@ async function executerRunExpert(args: {
     }
   }
   const vieAnnonceJours = lectureDurees.durees.vieAnnonceJours
+
+  // ── L'HISTOIRE DU RUN, au grand livre — une ligne par étape (§D.26) ─────
+  //  Le sujet est le profil, l'écosystème le sien. `lancee` s'écrit ICI :
+  //  l'expert est éligible, les réglages sont lus, le moteur va lire les
+  //  annonces et payer. La tentative est le compteur de relance tel que lu —
+  //  l'appelant qui relance l'a incrémenté AVANT le run (`marquerTentativeRelance`).
+  const recherche = new JournalDeRecherche(supabaseAdmin, journal, { type: 'profiles', id: profileId }, p.domain_id)
+  await recherche.lancee({ tentative: p.matching_relance_tentatives })
 
   const ouvertureCroisee = ouvertureCroiseeDe(p, kind)
   const typesAutorises = annonceTypesForExpert(kind, ouvertureCroisee)
