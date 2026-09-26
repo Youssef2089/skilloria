@@ -156,13 +156,26 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   const rawToken = generateInvitationToken()
   const tokenHash = hashInvitationToken(rawToken)
   const expiresAt = invitationExpiryIso({ invitationJours: lectureDurees.durees.invitationJours })
-  const { error: upErr } = await admin
-    .from('organization_invitations')
-    .update({ token: tokenHash, expires_at: expiresAt, updated_at: new Date().toISOString() })
-    .eq('id', inv.id)
+  // ── LE RENVOI ET SA LIGNE, EN UN SEUL APPEL (§D.26) ──────────────────────
+  //  Même forme que la révocation : transition et appartenance rejouées sous
+  //  verrou. Sans elles, une invitation révoquée entre la lecture ci-dessus et
+  //  cette écriture recevait un jeton neuf — et redevenait joignable.
+  //  Le jeton (haché) va sur l'invitation, jamais dans la ligne.
+  const { data: renvoyee, error: upErr } = await admin.rpc('renvoyer_invitation', {
+    ...parametresJournal(journal),
+    p_ecosysteme_id: auth.domain.id,
+    p_invitation_id: inv.id,
+    p_organization_id: org.id,
+    p_statuts_admis: [...INVITATION_MODIFIABLE],
+    p_token: tokenHash,
+    p_expires_at: expiresAt,
+  })
   if (upErr) {
     console.error('[me/invitations/:id] resend update failed', upErr.message)
     return json({ error: 'Resend failed', code: 'db_error' }, 500)
+  }
+  if (renvoyee !== true) {
+    return json({ error: 'Invitation not pending', code: 'not_pending' }, 409)
   }
 
   await logAudit({
