@@ -404,6 +404,10 @@ règle : elle repose aujourd'hui sur la discipline. Les quatre fichiers `message
 sont touchés par presque tous les lots — c'est le point de conflit structurel du projet.
 Plusieurs diagnostics vérifient qu'une clé existe **dans les quatre langues** et qu'aucune clé orpheline
 ne survit (`diag-score-de-pertinence`, `diag-murs-fermes`).
+**La parité GLOBALE est gardée depuis le 26/09/2026** par
+[`diag-parite-i18n`](scripts/diag-parite-i18n.mjs) : les quatre fichiers portent exactement les mêmes
+chemins (aucune manquante, aucune orpheline, les deux sens nommés), chaque valeur est une chaîne non vide.
+Il ne garde **pas** la justesse d'une traduction ni les variables d'interpolation, et il le dit.
 
 **G.8 — UN CLIQUET FIGE UN INVENTAIRE, IL NE LE JUGE PAS — et tous les gels ne se valent pas.**
 Née du lot 1.3 : trois lignes avaient été gelées **sans être ouvertes**, au motif qu'elles
