@@ -9,6 +9,7 @@ import {
   wouldRemoveLastAdmin,
   majMembreOrganisation,
 } from '@/lib/org-members'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import {
   loadAdminActionTarget,
   refuseAdminActionOnTarget,
@@ -76,6 +77,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { user_id?: unknown; role_in_org?: unknown; force?: unknown }
   try {
@@ -176,8 +179,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   //  l'organisation, et trace d'audit `last_admin_bypassed`. Aucun chemin
   //  implicite ne l'active : sans `force`, la base refuse comme les routes
   //  d'organisation.
-  const res = await majMembreOrganisation(auth.supabaseAdmin, {
+  const res = await majMembreOrganisation(auth.supabaseAdmin, journal, {
     membreId: member.id,
+    // La ligne appartient à l'écosystème de la CIBLE : l'administrateur est plateforme.
+    ecosystemeId: t.domain_id,
     nouveauRole: newRole,
     forcer: lastAdminBypassed,
   })

@@ -108,9 +108,10 @@ export const CLES_DETAIL = {
   invitation_renvoyee: ['role_in_org', 'expires_at'],
   invitation_acceptee: ['organization_id', 'role_in_org', 'deja_membre', 'reintegre'],
   invitation_revoquee: ['de', 'vers', 'role_in_org'],
-  membre_retire: [],
-  membre_parti: [],
-  role_membre_change: [],
+  // UNE forme pour les trois faces de `maj_membre_organisation()` — le code est dérivé du geste.
+  membre_retire: ['organization_id', 'membre_user_id', 'role_de', 'role_vers', 'statut_de', 'statut_vers', 'siege_transfere', 'siege_libere'],
+  membre_parti: ['organization_id', 'membre_user_id', 'role_de', 'role_vers', 'statut_de', 'statut_vers', 'siege_transfere', 'siege_libere'],
+  role_membre_change: ['organization_id', 'membre_user_id', 'role_de', 'role_vers', 'statut_de', 'statut_vers', 'siege_transfere', 'siege_libere'],
   paiement_recu: [
     'transaction_id', 'organization_id', 'package_id',
     'stripe_invoice_id', 'stripe_event_id',

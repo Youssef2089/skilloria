@@ -7,6 +7,7 @@ import {
   wouldRemoveLastAdmin,
   majMembreOrganisation,
 } from '@/lib/org-members'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,8 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   }
   if (loaded.error) return loaded.error
   const { auth, org, target } = loaded
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Record<string, unknown>
   try {
@@ -103,8 +106,9 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   // concurrence — deux rétrogradations simultanées le franchissaient toutes les
   // deux. La RPC transfère le siège d'administrateur avant de rétrograder son
   // occupant, dans la même transaction : il n'existe aucune fenêtre à zéro.
-  const res = await majMembreOrganisation(auth.supabaseAdmin, {
+  const res = await majMembreOrganisation(auth.supabaseAdmin, journal, {
     membreId: target.id,
+    ecosystemeId: auth.domain.id,
     nouveauRole: newRole,
   })
   if (res === 'dernier_admin') {
@@ -138,6 +142,8 @@ export async function DELETE(request: NextRequest, ctx: Ctx): Promise<Response> 
   }
   if (loaded.error) return loaded.error
   const { auth, org, target } = loaded
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // Anti lock-out : retirer le DERNIER admin actif.
   const targetIsActiveAdmin = target.role_in_org === 'admin' && target.status === 'active'
@@ -151,8 +157,9 @@ export async function DELETE(request: NextRequest, ctx: Ctx): Promise<Response> 
   // Retrait SOFT (status='removed') plutôt que DELETE physique, et par la base
   // — cf. le commentaire du PATCH : le garde applicatif ne tient pas seul sous
   // deux retraits simultanés.
-  const res = await majMembreOrganisation(auth.supabaseAdmin, {
+  const res = await majMembreOrganisation(auth.supabaseAdmin, journal, {
     membreId: target.id,
+    ecosystemeId: auth.domain.id,
     nouveauStatut: 'removed',
   })
   if (res === 'dernier_admin') {

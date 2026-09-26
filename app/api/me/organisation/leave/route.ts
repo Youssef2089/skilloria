@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { countActiveAdmins, majMembreOrganisation } from '@/lib/org-members'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -33,6 +34,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const org = auth.organization
   if (!org) return json({ error: 'No organization', code: 'no_organization' }, 403)
@@ -68,8 +71,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   // donne un refus précis — mais deux derniers administrateurs qui partent au
   // même instant le franchissaient tous les deux. La RPC transfère le siège
   // d'administrateur avant le départ de son occupant, dans la même transaction.
-  const res = await majMembreOrganisation(admin, {
+  const res = await majMembreOrganisation(admin, journal, {
     membreId: myRow.id as string,
+    ecosystemeId: auth.domain.id,
     nouveauStatut: 'removed',
   })
   if (res === 'dernier_admin') {

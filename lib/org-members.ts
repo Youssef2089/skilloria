@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { parametresJournal, type ContexteJournal } from '@/lib/journal/contexte'
 
 /**
  * lib/org-members.ts — helpers serveur partagés par les routes « Membres &
@@ -237,11 +238,20 @@ export type MajMembreResultat = 'ok' | 'dernier_admin' | 'introuvable' | 'inchan
  * ═══ FAIL-CLOSED ══════════════════════════════════════════════════════════
  *   Un échec d'appel rend `erreur`, jamais `ok`. Aucune écriture n'a eu lieu :
  *   la RPC est une transaction unique.
+ *
+ * ═══ ET LE GRAND LIVRE, DANS LA MÊME TRANSACTION (§D.26) ══════════════════
+ *   La RPC écrit la ligne du geste — `role_membre_change`, `membre_retire` ou
+ *   `membre_parti`, DÉRIVÉ par la base (sa propre ligne = un départ). Le
+ *   contexte du geste est donc OBLIGATOIRE : pas de changement de membre sans
+ *   pièce. L'écosystème est celui de la LIGNE, que l'appelant choisit : le sien
+ *   pour une organisation, celui de la cible pour le dépannage plateforme.
  */
 export async function majMembreOrganisation(
   admin: SupabaseClient,
+  journal: ContexteJournal,
   params: {
     membreId: string
+    ecosystemeId: string | null
     nouveauRole?: OrgRole | null
     nouveauStatut?: string | null
     /** Dépannage plateforme UNIQUEMENT — laisse délibérément l'org sans admin. */
@@ -249,6 +259,8 @@ export async function majMembreOrganisation(
   },
 ): Promise<MajMembreResultat> {
   const { data, error } = await admin.rpc('maj_membre_organisation', {
+    ...parametresJournal(journal),
+    p_ecosysteme_id: params.ecosystemeId,
     p_membre_id: params.membreId,
     p_nouveau_role: params.nouveauRole ?? null,
     p_nouveau_statut: params.nouveauStatut ?? null,

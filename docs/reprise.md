@@ -25,18 +25,18 @@
 | (c) le moteur, deux sens | `recherche_lancee`, `_filtree`, `_classee`, `_correspondances`, `_notifiee`, `_terminee`, `_echouee`, `_abandonnee` |
 | (d) annonce, profil, CV, disponibilité | `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree`, `cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` |
 | (e) comptes | `compte_suspendu`, `compte_reactive`, `compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change`, `telephone_verifie` |
-| (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee`, `invitation_acceptee` |
+| (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee`, `invitation_acceptee`, `role_membre_change`, `membre_retire`, `membre_parti` — **(e) fait** |
 
-**Compte : 45 / 55.**
+**Compte : 47 / 55** — 8 restantes, dont `journal_nettoye` (étape 4).
 
 ## En cours
 
-- (e) gouvernance : `role_membre_change`, `membre_retire`, `membre_parti` — par `maj_membre_organisation()` (le seul chemin d’écriture sur un membre), code DÉRIVÉ du geste, ancienne signature supprimée.
+- (f) la collaboration : `sous_traitance_publiee`, `sous_traitance_candidature`.
 
 ## Reste, dans l'ordre
 
-1. (e) terminé avec la ligne ci-dessus.
-2. (f) `sous_traitance_publiee`, `sous_traitance_candidature`.
+1. (e) fait.
+2. (f) en cours (ci-dessus).
 3. (g) `inactivite_avertie`, `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin` ; `message_envoye` ;
    **les « dix routes sans trace »** : la liste n'est écrite nulle part dans le dépôt — elle sera **mesurée**
    par un balayage à périmètre écrit, et son résultat inscrit ici.
