@@ -54,7 +54,22 @@ begin
     from public.users u
    where u.id = p_user_id
    for update;
-  if not found or not (v_u.status = any (p_statuts_admis)) then
+  if not found then
+    return null;
+  end if;
+  -- LES GARDES DE COMPTE, RELUES SOUS LE VERROU (point 2.6). La route les juge sur
+  -- sa lecture d'avant (`refuseAdminActionOnTarget`) ; une cible DEVENUE
+  -- administrateur entre-temps franchissait cette garde, et la clé étrangère du
+  -- siège plateforme levait 23503 — une erreur brute, rendue `db_error`. Relue
+  -- ici, elle devient le refus NOMMÉ que l'écran traduit déjà, avant toute écriture,
+  -- sans ligne (un refus de garde de compte n'est pas une action de la liste fermée).
+  if v_u.id = p_acteur_id then
+    return jsonb_build_object('refus', 'self_forbidden');
+  end if;
+  if v_u.user_type = 'admin' then
+    return jsonb_build_object('refus', 'target_is_admin');
+  end if;
+  if not (v_u.status = any (p_statuts_admis)) then
     return null;
   end if;
 
@@ -156,6 +171,15 @@ begin
                                         where g.type_action = 'compte_reactive' and g.sujet_id = v_user.id
                                           and g.detail ->> 'de' = 'suspended' and g.detail ->> 'vers' = 'active') then
         raise exception 'postcondition NON TENUE : la reactivation n a pas ecrit sa ligne [%]', v_res2;
+      end if;
+      -- LA GARDE DE COMPTE, RELUE SOUS VERROU : l'acteur se vise lui-même → refus NOMMÉ, rien d'écrit.
+      select count(*) into v_lignes from public.grand_livre g where g.sujet_id = v_acteur;
+      v_res2 := public.changer_statut_compte(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
+                                             v_acteur, array['active'], 'suspended', true);
+      if v_res2 ->> 'refus' is distinct from 'self_forbidden'
+         or exists (select 1 from public.users u where u.id = v_acteur and u.status = 'suspended')
+         or (select count(*) from public.grand_livre g where g.sujet_id = v_acteur) <> v_lignes then
+        raise exception 'postcondition NON TENUE : un administrateur a pu se suspendre lui-meme, ou le refus n est pas nomme [%]', v_res2;
       end if;
       raise exception 'SONDE_ANNULEE';
     exception when others then

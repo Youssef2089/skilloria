@@ -175,6 +175,21 @@ export async function POST(request: NextRequest): Promise<Response> {
     console.error('[admin:user-status] update failed', upErr.message)
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
+  // LA GARDE RELUE SOUS VERROU (point 2.6) : la cible est devenue administrateur,
+  // ou c'est l'acteur lui-même, entre la lecture et l'écriture. Le même code
+  // stable que `refuseAdminActionOnTarget` — l'écran le traduit déjà (4 langues).
+  const refusBase = (bascule as { refus?: unknown } | null)?.refus
+  if (refusBase === 'target_is_admin' || refusBase === 'self_forbidden') {
+    return json(
+      {
+        error: refusBase === 'self_forbidden'
+          ? 'An administrator cannot act on their own account'
+          : 'Acting on another administrator is not allowed',
+        code: refusBase,
+      },
+      403,
+    )
+  }
   if (!bascule) {
     // Le statut a changé entre la lecture et l'écriture : rien n'a été touché,
     // rien n'est journalisé — et on le DIT, plutôt qu'un 200 sur une bascule
