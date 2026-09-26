@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit'
 // L'anonymisation elle-même n'est PAS réécrite ici : c'est exactement la même
 // mécanique que les deux purges planifiées (cf. § RÉUTILISATION ci-dessous).
 import { purgeAccount } from '@/lib/account-purge'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { activeAdminCountOrUnknown, wouldRemoveLastAdmin } from '@/lib/org-members'
 import {
   loadAdminActionTarget,
@@ -195,6 +196,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   // pas un appelant qui n'a pas re-prouvé qui il est.
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: { user_id?: unknown; confirm_email?: unknown; acknowledge_org_lockout?: unknown }
   try {
@@ -289,7 +292,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     await purgeAccount(
       auth.supabaseAdmin,
       { id: t.id, domain_id: t.domain_id, email: t.email },
-      { origine: 'administrateur' },
+      { origine: 'administrateur', journal },
     )
   } catch (err) {
     // `purgeAccount` lève sur échec BLOQUANT (auth, profil, user) et n'a alors

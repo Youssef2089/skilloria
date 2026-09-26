@@ -43,6 +43,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { appelsDe, chargerClesPersonnelles, fabriquerDetecteur } from './lib/detail-sans-pii.mjs'
+import { corpsAnonymiserCompte, jalonDansLeMemeUpdate, appelAnonymiserCompte } from './lib/jalon-de-purge.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
@@ -141,7 +142,8 @@ section('D. purgeAccount nettoie audit_logs avant de poser anonymized_at, et lè
 {
   const purge = stripComments(read('lib/account-purge.ts'))
   const iRpc = purge.indexOf(".rpc('audit_logs_nettoyer_compte'")
-  const iJalon = purge.indexOf('anonymized_at: new Date()')
+  // Le jalon part par la RPC `anonymiser_compte()` (§E.65) : c'est son APPEL qui doit suivre le nettoyage.
+  const iJalon = jalonDansLeMemeUpdate(corpsAnonymiserCompte(ROOT)) ? appelAnonymiserCompte(purge) : -1
   ok(iRpc >= 0, 'purgeAccount appelle audit_logs_nettoyer_compte')
   ok(iRpc >= 0 && iJalon > iRpc,
     'le nettoyage précède le jalon anonymized_at',

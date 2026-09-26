@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
+import { parametresJournal, type ContexteJournal } from '@/lib/journal/contexte'
 
 /**
  * ANONYMISATION RGPD d'un compte — logique PARTAGÉE.
@@ -57,8 +58,19 @@ export type PurgeableUser = {
  * appelant qui ne le dit pas (§E.68 — une consigne se lit, un type se compile).
  */
 export type ContextePurge =
-  | { origine: 'tache_planifiee'; job: 'purge_inactive' | 'purge_deletions' }
-  | { origine: 'administrateur' }
+  | { origine: 'tache_planifiee'; job: 'purge_inactive' | 'purge_deletions'; journal: ContexteJournal }
+  | { origine: 'administrateur'; journal: ContexteJournal }
+
+/**
+ * LE MOTIF DE LA PURGE, DÉRIVÉ DE SON ORIGINE — trois purges SÉPARÉES au grand
+ * livre (§D.26) : la suppression DEMANDÉE (art. 17), l'INACTIVITÉ (règle CNIL),
+ * le geste d'un ADMINISTRATEUR. La base en dérive le code ; ici, le type fermé
+ * rend l'oubli d'un cas impossible à compiler.
+ */
+function motifDePurge(c: ContextePurge): 'inactivite' | 'demande' | 'admin' {
+  if (c.origine === 'administrateur') return 'admin'
+  return c.job === 'purge_inactive' ? 'inactivite' : 'demande'
+}
 
 export async function purgeAccount(
   admin: SupabaseClient,
@@ -172,25 +184,26 @@ export async function purgeAccount(
   })
   if (auditErr) throw new Error(`audit_scrub_failed: ${auditErr.message}`)
 
-  // 4. Anonymisation du user (anonymized_at posé EN DERNIER → idempotence).
-  const { error: userErr } = await admin
-    .from('users')
-    .update({
-      email: placeholderEmail,
-      first_name: null,
-      last_name: null,
-      phone: null,
-      phone_verified: false,
-      linkedin_url: null,
-      civility: null,
-      job_title: null,
-      // Valeur admise par `users_status_check` (cf. avertissement en tête).
-      status: 'archived',
-      last_session_token: null,
-      anonymized_at: new Date().toISOString(),
-    })
-    .eq('id', uid)
+  // 4. Anonymisation du user (anonymized_at posé EN DERNIER → idempotence),
+  //    ET LA LIGNE DU GRAND LIVRE, DANS LA MÊME TRANSACTION (§D.26).
+  //    `anonymiser_compte()` écrit les mêmes colonnes qu'avant (statut
+  //    `archived`, cf. avertissement en tête), pose le jalon, et journalise la
+  //    purge sous le code de son MOTIF. Une purge sans trace, ou une trace sans
+  //    purge, seraient deux moitiés du même défaut. Le jalon est sa propre
+  //    garde : `false` = compte déjà purgé (ou disparu) — rien n'est écrit, et
+  //    on LÈVE, comme toute étape bloquante : l'appelant ne compte pas ce compte.
+  const { data: anonymise, error: userErr } = await admin.rpc('anonymiser_compte', {
+    ...parametresJournal(contexte.journal),
+    p_user_id: uid,
+    p_email_substitut: placeholderEmail,
+    p_motif: motifDePurge(contexte),
+    p_profil_anonymise: prof?.id != null,
+    p_cv_supprime: cvSupprime,
+    p_avatar_supprime: !avErr,
+    p_audit_lignes: typeof auditNettoyees === 'number' ? auditNettoyees : null,
+  })
   if (userErr) throw new Error(`user_anonymize_failed: ${userErr.message}`)
+  if (anonymise !== true) throw new Error('user_anonymize_failed: compte déjà purgé ou introuvable')
 
   await logAudit({
     supabaseAdmin: admin,

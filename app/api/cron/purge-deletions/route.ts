@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
+import { contexteDeTache, type ContexteJournal } from '@/lib/journal/contexte'
 import { logAudit } from '@/lib/audit'
 import { wouldRemoveLastAdmin } from '@/lib/org-members'
 import {
@@ -90,6 +91,9 @@ async function handle(request: NextRequest): Promise<Response> {
   if (authHeader !== `Bearer ${secret}` && querySecret !== secret) {
     return unauthorized()
   }
+  // La pièce du PASSAGE naît à l'entrée, avant toute écriture (§D.26) :
+  // une ligne par compte purgé, toutes sous cette pièce.
+  const journal = contexteDeTache(JOB)
 
   const admin = getAdmin()
 
@@ -125,14 +129,14 @@ async function handle(request: NextRequest): Promise<Response> {
   }
 
   try {
-    return await purger(admin)
+    return await purger(admin, journal)
   } finally {
     await rendreBailRun(admin, JOB)
   }
 }
 
 /** Le traitement lui-même, isolé pour que le bail l'entoure sur TOUS ses chemins. */
-async function purger(admin: SupabaseClient): Promise<Response> {
+async function purger(admin: SupabaseClient, journal: ContexteJournal): Promise<Response> {
   const nowIso = new Date().toISOString()
 
   // `user_type` est chargé pour la garde « dernier administrateur » ci-dessous.
@@ -243,7 +247,7 @@ async function purger(admin: SupabaseClient): Promise<Response> {
     }
 
     try {
-      await purgeAccount(admin, u, { origine: 'tache_planifiee', job: JOB })
+      await purgeAccount(admin, u, { origine: 'tache_planifiee', job: JOB, journal })
       purged += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)

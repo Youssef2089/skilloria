@@ -27,12 +27,13 @@
 | (e) comptes | `compte_suspendu`, `compte_reactive`, `compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change`, `telephone_verifie` |
 | (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee`, `invitation_acceptee`, `role_membre_change`, `membre_retire`, `membre_parti` — **(e) fait** |
 | (f) collaboration | `sous_traitance_publiee`, `sous_traitance_candidature` |
+| (g) RGPD | `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin`, `inactivite_avertie` |
 
-**Compte : 49 / 55** — 6 restantes, dont `journal_nettoye` (étape 4).
+**Compte : 53 / 55** — restent `message_envoye` et `journal_nettoye` (étape 4).
 
 ## En cours
 
-- (g) les purges, `inactivite_avertie`, `message_envoye`, puis la mesure des routes sans trace.
+- (g) `message_envoye`, puis la MESURE des routes qui changent un état sans trace.
 
 ## Reste, dans l'ordre
 

@@ -2,6 +2,7 @@ import { NextRequest, after } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
+import { contexteDeTache, parametresJournal, type ContexteJournal } from '@/lib/journal/contexte'
 import { logAudit } from '@/lib/audit'
 import { renderInactivityWarningEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
@@ -163,6 +164,40 @@ async function tracerAvertissement(
   })
 }
 
+/**
+ * ── L'AVERTISSEMENT AU GRAND LIVRE (§D.26) — LE MARQUEUR ET LA LIGNE ENSEMBLE ──
+ *  `constater_avertissement_inactivite()` pose `inactivity_warning_sent_at` ET
+ *  écrit `inactivite_avertie` (réussi) dans UNE transaction quand l'e-mail est
+ *  parti ; sinon, la ligne dit `echoue` avec la CAUSE (un code) et le marqueur
+ *  n'est pas posé. Avant, le marqueur s'écrivait seul, et un échec de marquage
+ *  ne se lisait que dans l'audit best-effort. Rend `true` si la ligne est écrite.
+ *  Dans `after()` : personne n'attend la réponse, un échec se DIT en console.
+ */
+async function constaterAvertissement(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  u: WarnRow,
+  issue: { envoye: true; demandeEmailId: string | null } | { envoye: false; cause: string },
+): Promise<boolean> {
+  const { data, error } = await admin.rpc('constater_avertissement_inactivite', {
+    ...parametresJournal(journal),
+    p_user_id: u.id,
+    p_echeance_purge: shiftMonths(new Date(u.last_login_at), PURGE_MONTHS).toISOString(),
+    p_envoye: issue.envoye,
+    p_demande_email_id: issue.envoye ? issue.demandeEmailId : null,
+    p_cause: issue.envoye ? null : issue.cause,
+  })
+  if (error || data !== true) {
+    console.error('[purge-inactive] avertissement NON CONSTATÉ au grand livre', {
+      uid: u.id,
+      envoye: issue.envoye,
+      msg: error?.message ?? 'compte introuvable ou déjà anonymisé',
+    })
+    return false
+  }
+  return true
+}
+
 async function handle(request: NextRequest): Promise<Response> {
   const secret = process.env.CRON_SECRET
   if (!secret) {
@@ -174,6 +209,10 @@ async function handle(request: NextRequest): Promise<Response> {
   if (authHeader !== `Bearer ${secret}` && querySecret !== secret) {
     return unauthorized()
   }
+  // La pièce du PASSAGE naît à l'entrée, avant toute écriture (§D.26) : les
+  // purges et les avertissements du passage la portent — y compris à travers
+  // `after()`, qui la capture comme n'importe quelle valeur.
+  const journal = contexteDeTache(JOB)
 
   let admin: SupabaseClient
   try {
@@ -202,14 +241,14 @@ async function handle(request: NextRequest): Promise<Response> {
   }
 
   try {
-    return await purgerInactifs(admin)
+    return await purgerInactifs(admin, journal)
   } finally {
     await rendreBailRun(admin, JOB)
   }
 }
 
 /** Le traitement lui-même, isolé pour que le bail l'entoure sur TOUS ses chemins. */
-async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
+async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): Promise<Response> {
   const now = new Date()
   const warnCutoff = shiftMonths(now, -WARNING_MONTHS).toISOString()
   const purgeCutoff = shiftMonths(now, -PURGE_MONTHS).toISOString()
@@ -241,7 +280,7 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
   const failed: { id: string; error: string }[] = []
   for (const u of due) {
     try {
-      await purgeAccount(admin, u, { origine: 'tache_planifiee', job: JOB })
+      await purgeAccount(admin, u, { origine: 'tache_planifiee', job: JOB, journal })
       purged += 1
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -277,6 +316,11 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
     console.error(
       `[cron:purge-inactive] ${warn.length} avertissement(s) NON ENVOYÉ(S) — origine du site inconnaissable`,
     )
+    // …et au grand livre, compte par compte : une obligation légale qui n'est
+    // pas tenue se CHERCHE, elle ne se lit pas dans une console.
+    after(async () => {
+      for (const u of warn) await constaterAvertissement(admin, journal, u, { envoye: false, cause: 'origine_inconnaissable' })
+    })
   }
   if (warn.length > 0 && siteOrigin) {
     after(async () => {
@@ -285,6 +329,7 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
           // Sans adresse, aucun avertissement ne peut partir — et sans
           // avertissement, aucune purge : ce compte resterait éligible À VIE,
           // en silence. La trace le rend cherchable.
+          await constaterAvertissement(admin, journal, u, { envoye: false, cause: 'sans_email' })
           await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
             demande_email_id: null, marquage_pose: null, cause: 'sans_email',
           })
@@ -314,24 +359,16 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
             tag: rendered.tag,
           })
           if (res.ok) {
-            const { error: marqueErr } = await admin
-              .from('users')
-              .update({ inactivity_warning_sent_at: new Date().toISOString() })
-              .eq('id', u.id)
-            if (marqueErr) {
-              // L'e-mail est parti mais la marque n'est pas posée : le compte
-              // sera RÉ-AVERTI au prochain passage. La trace le dit, pour qu'un
-              // double envoi se lise comme tel et non comme un bug inexpliqué.
-              console.error('[purge-inactive] warning sent but sent_at NOT marked', {
-                uid: u.id,
-                msg: marqueErr.message,
-              })
-            }
+            // Le marqueur et la ligne, ensemble. S'ils échouent, l'e-mail est
+            // parti mais la marque n'est pas posée : le compte sera RÉ-AVERTI au
+            // prochain passage — l'audit le dit, pour qu'un double envoi se lise
+            // comme tel et non comme un bug inexpliqué.
+            const marque = await constaterAvertissement(admin, journal, u, { envoye: true, demandeEmailId: res.id })
             await tracerAvertissement(admin, u, 'inactivity_warning_sent', {
               // Accusé de réception de la DEMANDE par Resend — pas une preuve
               // de remise (§E.19).
               demande_email_id: res.id,
-              marquage_pose: !marqueErr,
+              marquage_pose: marque,
               cause: null,
             })
           } else {
@@ -339,6 +376,7 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
               uid: u.id,
               code: res.code,
             })
+            await constaterAvertissement(admin, journal, u, { envoye: false, cause: res.code })
             await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
               demande_email_id: null, marquage_pose: null, cause: res.code,
             })
@@ -350,6 +388,7 @@ async function purgerInactifs(admin: SupabaseClient): Promise<Response> {
           })
           // Le message d'une exception peut citer l'adresse : il reste dans la
           // console, la trace ne porte que la CLASSE de la panne.
+          await constaterAvertissement(admin, journal, u, { envoye: false, cause: 'exception' })
           await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
             demande_email_id: null, marquage_pose: null, cause: 'exception',
           })

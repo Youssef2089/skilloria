@@ -38,6 +38,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { corpsAnonymiserCompte, jalonDansLeMemeUpdate, appelAnonymiserCompte } from './lib/jalon-de-purge.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -95,7 +96,7 @@ for (const [needle, label] of [
   ok(!needle.test(purgeRoute), `la route ne réimplémente pas ${label}`)
 }
 ok(
-  /ban_duration/.test(accountPurge) && /anonymized_at/.test(accountPurge),
+  /ban_duration/.test(accountPurge) && appelAnonymiserCompte(accountPurge) >= 0 && jalonDansLeMemeUpdate(corpsAnonymiserCompte(ROOT)),
   'lib/account-purge.ts porte toujours l’effacement (bannissement + anonymized_at)',
 )
 

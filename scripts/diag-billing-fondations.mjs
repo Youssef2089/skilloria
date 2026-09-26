@@ -46,6 +46,7 @@
 import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { corpsAnonymiserCompte, jalonDansLeMemeUpdate, appelAnonymiserCompte } from './lib/jalon-de-purge.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -196,7 +197,7 @@ ok(
   'purgeAccount ne supprime pas la ligne users (elle l\'anonymise en place)',
 )
 ok(
-  /status:\s*'archived'/.test(purgeCode) && /anonymized_at:/.test(purgeCode),
+  appelAnonymiserCompte(purgeCode) >= 0 && jalonDansLeMemeUpdate(corpsAnonymiserCompte(ROOT)),
   'purgeAccount anonymise et marque le compte (status archived + anonymized_at)',
 )
 ok(

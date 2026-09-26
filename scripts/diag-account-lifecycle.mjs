@@ -36,6 +36,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { corpsAnonymiserCompte, jalonDansLeMemeUpdate, appelAnonymiserCompte } from './lib/jalon-de-purge.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -208,10 +209,13 @@ for (const f of STATUS_WRITERS) {
     bad.length ? `valeurs refusées par le CHECK : ${bad.join(', ')}` : undefined)
 }
 const purge = stripComments(read('lib/account-purge.ts'))
-ok(/status: 'archived'/.test(purge), 'purgeAccount : status = archived')
-ok(!/status: 'deleted'/.test(purge), 'purgeAccount : plus aucun status = deleted')
-ok(/anonymized_at: new Date\(\)\.toISOString\(\)/.test(purge),
-  'purgeAccount : anonymized_at posé dans le MÊME update (idempotence)')
+// L'étape 4 vit dans la RPC `anonymiser_compte()` depuis `journal_purges` (§E.65) :
+// la propriété se lit là où elle est écrite — l'appel côté code, la définition SQL.
+const corpsJalon = corpsAnonymiserCompte(ROOT)
+ok(appelAnonymiserCompte(purge) >= 0 && /status\s*= 'archived'/.test(corpsJalon), 'purgeAccount : status = archived (par anonymiser_compte)')
+ok(!/status: 'deleted'/.test(purge) && !/'deleted'/.test(corpsJalon), 'purgeAccount : plus aucun status = deleted')
+ok(jalonDansLeMemeUpdate(corpsJalon),
+  'purgeAccount : anonymized_at posé dans le MÊME update (idempotence), gardé par le jalon lui-même')
 
 // ═══ C bis. LA PURGE LAISSE SA TRACE — ET DIT D'OÙ ELLE VIENT ═════════════
 //
@@ -285,7 +289,9 @@ function appelsLogAudit(src) {
 
 // ── purge-inactive : CHAQUE sortie de l'envoi laisse une ligne ───────────────
 {
-  const bloc = blocApres(purgeInactive, 'after(async () => {')
+  // LE bloc d'envoi — pas le premier after() : celui de l'origine inconnaissable le précède.
+  const iEnvoi = purgeInactive.indexOf('after(async () => {', purgeInactive.indexOf('if (warn.length > 0 && siteOrigin) {'))
+  const bloc = iEnvoi < 0 ? null : blocApres(purgeInactive.slice(iEnvoi), 'after(async () => {')
   ok(!!bloc, 'purge-inactive : le bloc after() est trouvé')
   const src = bloc ?? ''
   const sansEmail = blocApres(src, 'if (!u.email) {')
@@ -295,8 +301,8 @@ function appelsLogAudit(src) {
   const okBloc = blocApres(src, 'if (res.ok) {')
   ok(!!okBloc && okBloc.includes("'inactivity_warning_sent'"),
     'envoi accepté : tracé (inactivity_warning_sent) DANS le bloc res.ok')
-  ok(!!okBloc && /\{\s*error:\s*\w+\s*\}\s*=\s*await admin[\s\S]*?inactivity_warning_sent_at/.test(okBloc)
-    && /marquage_pose/.test(okBloc),
+  // Le marquage passe par l'écrivain du grand livre, qui REND s'il a posé la marque.
+  ok(!!okBloc && /const marque = await constaterAvertissement\(admin, journal, u, \{ envoye: true,[\s\S]*?marquage_pose: marque,/.test(okBloc),
     'envoi accepté : l’erreur du marquage est LUE et la trace dit si la marque est posée',
     'un marquage en échec ré-avertit le lendemain : un double envoi doit se lire comme tel')
   const apresOk = okBloc ? src.slice(src.indexOf(okBloc) + okBloc.length) : ''

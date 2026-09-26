@@ -159,10 +159,11 @@ export const CLES_DETAIL = {
     // catalogue Stripe
     'mode', 'synchronisees', 'synchronisees[]', 'refusees', 'refusees[]', 'en_echec', 'en_echec[]', 'cause',
   ],
-  inactivite_avertie: [],
-  compte_purge_inactivite: [],
-  compte_purge_demande: [],
-  compte_purge_admin: [],
+  inactivite_avertie: ['echeance_purge', 'demande_email_id', 'cause'],
+  // Les trois purges : UN écrivain (`anonymiser_compte()`), le code dérivé du motif, la même forme.
+  compte_purge_inactivite: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],
+  compte_purge_demande: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],
+  compte_purge_admin: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],
   ip_effacees: ['mois', 'limite', 'audit_logs', 'session_logs', 'cause', 'sqlstate'],
   journal_nettoye: [],
   refus_plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd'],
