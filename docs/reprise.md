@@ -28,12 +28,13 @@
 | (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee`, `invitation_acceptee`, `role_membre_change`, `membre_retire`, `membre_parti` — **(e) fait** |
 | (f) collaboration | `sous_traitance_publiee`, `sous_traitance_candidature` |
 | (g) RGPD | `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin`, `inactivite_avertie` |
+| messagerie | `message_envoye` |
 
-**Compte : 53 / 55** — restent `message_envoye` et `journal_nettoye` (étape 4).
+**Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
 ## En cours
 
-- (g) `message_envoye`, puis la MESURE des routes qui changent un état sans trace.
+- (g) la MESURE des routes qui changent un état sans trace (périmètre écrit), puis vérification de (a)–(d), puis `journal_nettoye` et le contrôle strict 55/55.
 
 ## Reste, dans l'ordre
 

@@ -6,6 +6,7 @@ import {
   resolveNotificationLocale,
 } from '@/lib/notifications/inapp-labels'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure'
@@ -59,6 +60,13 @@ function json(data: unknown, status = 200): Response {
 
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 const MAX_CONTENT_LEN = 5000
+
+/**
+ * D'OÙ un fil accepte encore un message. La liste part EN PARAMÈTRE à
+ * `envoyer_message()` : la fonction SQL ne porte aucun littéral de statut, et
+ * la garde de la route lit la MÊME liste.
+ */
+const CONVERSATION_OUVERTE = ['open'] as const
 
 const NOTIF_TYPE = 'new_message'
 const NOTIF_CHANNEL = 'inapp'
@@ -503,6 +511,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { id: convId } = await ctx.params
   if (!convId || !UUID_REGEX.test(convId)) {
@@ -527,36 +537,44 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   if (isExpired(conv.expires_at)) {
     return json({ error: 'Conversation expired', code: 'expired' }, 409)
   }
-  if (conv.status !== 'open') {
+  if (!(CONVERSATION_OUVERTE as readonly string[]).includes(conv.status)) {
     return json({ error: 'Conversation closed', code: 'closed' }, 409)
   }
 
   const cand = pickRel(conv.candidatures) as { id: string; domain_id: string } | null
   if (!cand) return json({ error: 'Not found', code: 'not_found' }, 404)
 
-  // ── INSERT message ─────────────────────────────────────────────────────
-  const { data: inserted, error: insErr } = await auth.supabaseAdmin
-    .from('messages')
-    .insert({
-      conversation_id: convId,
-      sender_id: auth.user.id,
-      domain_id: cand.domain_id,
-      content,
-    })
-    .select('id, sender_id, content, read_at, created_at')
-    .single()
-  if (insErr || !inserted) {
-    console.error('[conversations/[id]/messages:POST] insert failed', insErr?.message)
+  // ── LE MESSAGE, LA DATE DU FIL ET LA LIGNE DU GRAND LIVRE (§D.26) ──────
+  //  Une RPC, une transaction : le fil est verrouillé et son statut rejoué
+  //  contre CONVERSATION_OUVERTE (la garde ci-dessus lit la même constante) ;
+  //  un fil fermé entre la lecture et l'écriture ne reçoit plus le message.
+  //  `last_message_at`, jadis best-effort dans une seconde requête, part avec.
+  //  L'expiration reste jugée ci-dessus par sa source unique (§D.5).
+  const { data: envoiBrut, error: insErr } = await auth.supabaseAdmin.rpc('envoyer_message', {
+    ...parametresJournal(journal),
+    p_conversation_id: convId,
+    p_statuts_admis: [...CONVERSATION_OUVERTE],
+    p_contenu: content,
+  })
+  if (insErr) {
+    console.error('[conversations/[id]/messages:POST] insert failed', insErr.message)
     return json({ error: 'Insert failed', code: 'db_error' }, 500)
   }
-  const msgRow = inserted as { id: string; sender_id: string; content: string; read_at: string | null; created_at: string }
-
-  // ── UPDATE conv.last_message_at (best-effort) ──────────────────────────
-  const { error: updErr } = await auth.supabaseAdmin
-    .from('conversations')
-    .update({ last_message_at: msgRow.created_at })
-    .eq('id', convId)
-  if (updErr) console.error('[conversations/[id]/messages:POST] last_message_at update failed', updErr.message)
+  const envoi = (envoiBrut ?? {}) as { issue?: string; id?: string; sender_id?: string; content?: string; read_at?: string | null; created_at?: string }
+  if (envoi.issue === 'fermee') return json({ error: 'Conversation closed', code: 'closed' }, 409)
+  if (envoi.issue === 'introuvable') return json({ error: 'Not found', code: 'not_found' }, 404)
+  if (envoi.issue !== 'envoye' || !envoi.id || !envoi.created_at) {
+    // Une issue inconnue n'est pas un succès (§E.30).
+    console.error('[conversations/[id]/messages:POST] issue inconnue', envoi.issue)
+    return json({ error: 'Insert failed', code: 'db_error' }, 500)
+  }
+  const msgRow = {
+    id: envoi.id,
+    sender_id: envoi.sender_id ?? auth.user.id,
+    content: envoi.content ?? content,
+    read_at: envoi.read_at ?? null,
+    created_at: envoi.created_at,
+  }
 
   // ── Notif autre participant (best-effort) ──────────────────────────────
   if (otherUserId) {

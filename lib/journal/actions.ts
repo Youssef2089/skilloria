@@ -94,7 +94,7 @@ export const CLES_DETAIL = {
   sous_traitance_candidature: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   devoilement_ouvert: ['publication_id', 'profile_id', 'conversation_id', 'auto', 'expires_at'],
   devoilement_ferme: ['publication_id', 'profile_id', 'unlocked_at', 'fin_echange'],
-  message_envoye: [],
+  message_envoye: ['conversation_id', 'candidature_id'], // jamais le contenu, ni sa longueur
   compte_valide: ['has_reason', 'de'],
   compte_refuse: ['has_reason', 'de'],
   compte_suspendu: ['de', 'vers', 'type_de_compte'],
