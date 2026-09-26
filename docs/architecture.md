@@ -100,6 +100,19 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
+> RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
+> une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **douze fermées** (dont
+> `organization_invitations_admin_all`, FOR ALL) — aucun écran ne les empruntait (mesuré : le seul client
+> navigateur, `lib/supabase.ts`, n'y écrit pas ; les routes et les RPC écrivent en `service_role`). La lecture ne
+> change pas : les politiques `…_member_read` la portaient déjà. La garde est l'**absence** de politique d'écriture,
+> RLS active — elle tient malgré `ensure_rls`, qui redonne des droits, pas des politiques. **Ordre : indifférent.**
+> Postcondition : `pg_policies` relu (plus aucune porte hors l'exception), RLS active sur les huit tables, les deux
+> lectures présentes. **Reste ouverte, écrite** : `profiles_self_update` — les bascules de disponibilité des tableaux
+> de bord l'empruntent (**DÉFAUT NOMMÉ**, arbitrage : ces bascules n'écrivent pas `disponibilite_basculee`). Gardé par
+> [`diag-portes-laterales`](../scripts/diag-portes-laterales.mjs) : tables **dérivées** des écrivains SQL, politiques
+> en état final, écritures du client navigateur — toute porte hors exception rougit, une exception périmée aussi.
+
 > **`journal_refus_recherche_en_cours` (26/09/2026) — LA PREMIÈRE ACTION AJOUTÉE APRÈS LE SOCLE.** Une ligne de
 > plus dans la liste fermée (`refus`, statut imposé `refuse`, liste blanche `tache`) : une recherche expert écartée
 > parce qu'une autre tient le bail. **Ordre : AVANT le déploiement.** Postcondition exécutée (aucune donnée

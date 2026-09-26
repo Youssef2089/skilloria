@@ -47,8 +47,9 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 | 2.5 les clés : type par action (`lib/journal/detail.ts`, portes génériques, 6 routes `satisfies`) + contrôle SQL C bis (54 sites, relais suivis, 14 appels .rpc typés) | fait | `97fb107` + correctif `d89a621` (deux gardes de la porte cassées par le type générique, et le `satisfies` retiré non vu — trouvés par mutation) |
 | 2.6 le siège plateforme : gardes de compte relues SOUS VERROU dans `changer_statut_compte`, refus nommé `target_is_admin` / `self_forbidden` (403) ; sonde `self_forbidden` exécutée | fait | voir `git log` |
 | 2.11 passif SANS ligne : annonces marquées par la migration (`annonce_active()`) ; dévoilements par la date de mise en service (`constats_mise_en_service`, issue fermée `constate`/`passif`/`deja`) ; §E.72 la règle des signatures supprimées ; secrets du Vault → requête de staging (la tâche reste HTTP : la règle des dévoilements vit en TS) ; index unique, colonnes, index §E.69, surcharges → requête de staging | fait | ce commit |
-| 2.7 le chevauchement s'écrit : `refus_recherche_en_cours` (migration `20260926000000`, écrivain unique, sur `occupe` seulement) ; la liste fermée compte 56 actions ; langue des codes reportée, écrite dans CLAUDE.md | fait | ce commit |
-| 2.1, 2.4, 2.8, 2.12, 2.13 | à faire | — |
+| 2.7 le chevauchement s'écrit : `refus_recherche_en_cours` (migration `20260926000000`, écrivain unique, sur `occupe` seulement) ; la liste fermée compte 56 actions ; langue des codes reportée, écrite dans CLAUDE.md | fait | voir `git log` |
+| 2.8 les portes latérales : 13 mesurées, 12 fermées (migration `20260926000010`), `profiles_self_update` reste ouverte — DÉFAUT NOMMÉ, arbitrage (les bascules de disponibilité des tableaux de bord écrivent `profiles` depuis le navigateur et n'écrivent pas `disponibilite_basculee`) ; `diag-portes-laterales` | fait, arbitrage demandé | ce commit |
+| 2.1, 2.4, 2.12, 2.13 | à faire | — |
 
 ## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 
