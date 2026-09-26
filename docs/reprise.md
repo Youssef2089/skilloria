@@ -32,7 +32,26 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
-## ▶ ÉTAPE 2 — LE COMPLÉMENT, EN COURS (GO de Youssef le 26/09/2026)
+## ⛔ ARRÊT 2 — L'ÉTAPE 2 EST FAITE (26/09/2026). LA PHASE B N'EST PAS COMMENCÉE.
+
+**Validations à l'arrêt** : `tsc` 0 erreur (hors `.next/`) ; `next build` vert ; lint 65/25 (cliquet vert) ;
+parité i18n 3 710 clés × 4, 0 écart ; cliquet des plages vert ; série `diag` **107 verts / 0 rouge / 5 muets**
+— les 5 mêmes qu'au départ (3 écartés parce qu'ils écrivent, 2 plantages Windows `UV_HANDLE_CLOSING`).
+**Rien n'a tourné sur une base** : ni les migrations corrigées, ni les tests, ni la requête de staging.
+
+**Migrations** : 2 nouvelles (`20260926000000_journal_refus_recherche_en_cours`,
+`20260926000010_portes_laterales_fermees`) ; 24 des 45 corrigées EN PLACE ; aucune renommée, supprimée ou
+réordonnée ; aucune migration déjà appliquée touchée.
+
+**En attente d'arbitrage** : ① `profiles_self_update` (DÉFAUT NOMMÉ, 2.8) — les bascules de disponibilité des
+tableaux de bord écrivent `profiles` depuis le navigateur sans `disponibilite_basculee` ; ② le passif des
+dévoilements tient par une DATE de mise en service (`constats_mise_en_service`), pas par un marquage en
+migration comme les annonces — la règle d'expiration de l'échange vit en TypeScript.
+
+**Prochaine action (Youssef)** : la séquence de CLAUDE.md §G.4 ter, étapes 1 à 4 ; retour des sorties ;
+puis 5 à 7 seulement si tout est vert et la requête sans `ÉCART`.
+
+## ▶ ÉTAPE 2 — LE COMPLÉMENT (GO de Youssef le 26/09/2026)
 
 Un commit par point ; ce tableau se met à jour **à chaque commit**. L'arrêt est à la fin de l'étape 2.
 Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien d'autre n'est ouvert.
