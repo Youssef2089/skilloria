@@ -74,7 +74,8 @@ export const CLES_DETAIL = {
   annonce_modifiee: ['champs', 'champs[]', 'statut_annonce', 'organization_id'],
   annonce_depubliee: ['de', 'vers', 'organization_id'],
   annonce_expiree: ['vie_annonce_jours'],
-  sous_traitance_publiee: [],
+  // Les faces « sous-traitance » de publier_annonce() et inserer_candidature_jugee() : même détail que leur jumelle.
+  sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
   cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues'],
   profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: ['champs', 'champs[]', 'blocs', 'blocs[]'],
@@ -90,7 +91,7 @@ export const CLES_DETAIL = {
   candidature_deposee: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   candidature_declinee: ['publication_id', 'has_reason'],
   candidature_retenue: ['publication_id', 'publication_type', 'profile_id'],
-  sous_traitance_candidature: [],
+  sous_traitance_candidature: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   devoilement_ouvert: ['publication_id', 'profile_id', 'conversation_id', 'auto', 'expires_at'],
   devoilement_ferme: ['publication_id', 'profile_id', 'unlocked_at', 'fin_echange'],
   message_envoye: [],

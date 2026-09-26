@@ -26,17 +26,18 @@
 | (d) annonce, profil, CV, disponibilité | `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree`, `cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` |
 | (e) comptes | `compte_suspendu`, `compte_reactive`, `compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change`, `telephone_verifie` |
 | (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee`, `invitation_acceptee`, `role_membre_change`, `membre_retire`, `membre_parti` — **(e) fait** |
+| (f) collaboration | `sous_traitance_publiee`, `sous_traitance_candidature` |
 
-**Compte : 47 / 55** — 8 restantes, dont `journal_nettoye` (étape 4).
+**Compte : 49 / 55** — 6 restantes, dont `journal_nettoye` (étape 4).
 
 ## En cours
 
-- (f) la collaboration : `sous_traitance_publiee`, `sous_traitance_candidature`.
+- (g) les purges, `inactivite_avertie`, `message_envoye`, puis la mesure des routes sans trace.
 
 ## Reste, dans l'ordre
 
 1. (e) fait.
-2. (f) en cours (ci-dessus).
+2. (f) fait — faces dérivées du type dans `publier_annonce()` et `inserer_candidature_jugee()`.
 3. (g) `inactivite_avertie`, `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin` ; `message_envoye` ;
    **les « dix routes sans trace »** : la liste n'est écrite nulle part dans le dépôt — elle sera **mesurée**
    par un balayage à périmètre écrit, et son résultat inscrit ici.
