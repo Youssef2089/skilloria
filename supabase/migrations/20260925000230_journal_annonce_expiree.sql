@@ -100,6 +100,34 @@ update public.grand_livre_actions
  where code = 'annonce_expiree';
 
 
+-- ── ③bis LE PASSIF — marqué SANS ligne (point 2.11) ────────────────────────
+--  Décision de Youssef (26/09/2026) : AUCUNE ligne rétroactive, pas de reprise de
+--  l'historique. Sans ceci, le premier passage constaterait toute annonce DÉJÀ
+--  expirée, avec une ligne datée d'aujourd'hui pour un fait ancien. La règle
+--  « expirée » a sa source unique EN SQL (`annonce_active()`) : la migration pose
+--  donc le marqueur elle-même sur le passif, sans écrire, et dit combien.
+do $passif$
+declare
+  v_vie integer;
+  v_n   integer;
+begin
+  select d.vie_annonce_jours into v_vie from public.duree_reglages d where d.ligne_unique;
+  if v_vie is null then
+    raise notice 'passif des annonces expirees : duree_reglages vide — rien a marquer (base vierge)';
+    return;
+  end if;
+  update public.publications p
+     set expiration_constatee_at = now()
+   where p.expiration_constatee_at is null
+     and p.published_at is not null
+     and p.status = 'published'
+     and not public.annonce_active(p.status, p.expires_at, p.published_at, v_vie);
+  get diagnostics v_n = row_count;
+  raise notice 'passif des annonces expirees : % annonce(s) marquee(s) SANS ligne au grand livre (pas de reprise de l historique)', v_n;
+end
+$passif$;
+
+
 -- ── ④ LA PLANIFICATION — 04:50 UTC, après les purges et le ménage ───────────
 do $$
 begin

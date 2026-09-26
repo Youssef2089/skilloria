@@ -291,6 +291,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.69](docs/pieges.md#e69) | UN `on conflict` SANS LE PRÉDICAT DE L'INDEX PARTIEL N'INFÈRE RIEN : 42P10 au premier paiement, pendant que « la clé est unique en base » reste vert. |
 | [E.70](docs/pieges.md#e70) | UNE SONDE QUI VIOLE UNE CONTRAINTE DE LA TABLE QU'ELLE SONDE N'ÉPROUVE RIEN : elle arrête la migration — 16 migrations l'ont fait sans avoir jamais tourné. |
 | [E.71](docs/pieges.md#e71) | UNE SONDE QUI SUPPOSE LA RÉPONSE D'UNE FONCTION JAMAIS EXÉCUTÉE TESTE SON AUTEUR — les chemins en double, et quatre sondes qui supposaient la ligne traitée ou l'absence d'une contrainte. |
+| [E.72](docs/pieges.md#e72) | UNE SIGNATURE APPELÉE PAR LE CODE EN LIGNE NE SE SUPPRIME QU'AU DÉPLOIEMENT SUIVANT : ajout, déploiement, puis suppression — jamais les trois ensemble en production. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

@@ -139,6 +139,7 @@ async function handle(request: NextRequest): Promise<Response> {
       conversations: { expires_at: string | null } | { expires_at: string | null }[] | null
     }
     let devoilementsFermes = 0
+    let devoilementsPassif = 0
     for (const c of (devoilees ?? []) as unknown as Devoilee[]) {
       const fil = Array.isArray(c.conversations) ? (c.conversations[0] ?? null) : c.conversations
       const vie = deriveCandidatureLifecycle(
@@ -160,7 +161,15 @@ async function handle(request: NextRequest): Promise<Response> {
         console.error('[constats] dévoilement : constat en échec', { candidatureId: c.id, message: cErr.message })
         return json({ error: 'Query failed', code: 'db_error', etape: 'devoilements_fermes', annonces_expirees: annoncesExpirees, devoilements_fermes: devoilementsFermes }, 500)
       }
-      if (constate === true) devoilementsFermes++
+      // Trois issues fermées. `passif` : l'échange s'est refermé AVANT la mise en
+      // service du constat — marqueur posé, AUCUNE ligne (pas de reprise de
+      // l'historique, décision du 26/09/2026). Une issue inconnue n'est pas un succès.
+      if (constate === 'constate') devoilementsFermes++
+      else if (constate === 'passif') devoilementsPassif++
+      else if (constate !== 'deja') {
+        console.error('[constats] dévoilement : issue inconnue', { candidatureId: c.id, issue: constate })
+        return json({ error: 'Unknown outcome', code: 'db_error', etape: 'devoilements_fermes', annonces_expirees: annoncesExpirees, devoilements_fermes: devoilementsFermes }, 500)
+      }
     }
 
     // Le verdict est rendu TEL QUEL : le compte de ce passage, et sa borne —
@@ -171,6 +180,8 @@ async function handle(request: NextRequest): Promise<Response> {
         piece: journal.piece,
         annonces_expirees: annoncesExpirees,
         devoilements_fermes: devoilementsFermes,
+        /** Fermetures ANTÉRIEURES à la mise en service : marquées, sans ligne au grand livre. */
+        devoilements_passif: devoilementsPassif,
         limite: LIMITE_PAR_PASSAGE,
       },
       200,

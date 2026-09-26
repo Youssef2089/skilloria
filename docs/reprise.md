@@ -45,8 +45,9 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 | 2.2 les 24 lignes « tenue » → PARTIELLE si une sonde saute (garde éprouvée) | fait | voir `git log` |
 | 2.3 le bloc annulé gardé (172 appels, gel 3 dont 1 défaut nommé) ; trous de `grand_livre.id` documentés | fait | voir `git log` |
 | 2.5 les clés : type par action (`lib/journal/detail.ts`, portes génériques, 6 routes `satisfies`) + contrôle SQL C bis (54 sites, relais suivis, 14 appels .rpc typés) | fait | `97fb107` + correctif `d89a621` (deux gardes de la porte cassées par le type générique, et le `satisfies` retiré non vu — trouvés par mutation) |
-| 2.6 le siège plateforme : gardes de compte relues SOUS VERROU dans `changer_statut_compte`, refus nommé `target_is_admin` / `self_forbidden` (403) ; sonde `self_forbidden` exécutée | fait | ce commit |
-| 2.11, 2.1, 2.4, 2.7, 2.8, 2.12, 2.13 | à faire | — |
+| 2.6 le siège plateforme : gardes de compte relues SOUS VERROU dans `changer_statut_compte`, refus nommé `target_is_admin` / `self_forbidden` (403) ; sonde `self_forbidden` exécutée | fait | voir `git log` |
+| 2.11 passif SANS ligne : annonces marquées par la migration (`annonce_active()`) ; dévoilements par la date de mise en service (`constats_mise_en_service`, issue fermée `constate`/`passif`/`deja`) ; §E.72 la règle des signatures supprimées ; secrets du Vault → requête de staging (la tâche reste HTTP : la règle des dévoilements vit en TS) ; index unique, colonnes, index §E.69, surcharges → requête de staging | fait | ce commit |
+| 2.1, 2.4, 2.7, 2.8, 2.12, 2.13 | à faire | — |
 
 ## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 

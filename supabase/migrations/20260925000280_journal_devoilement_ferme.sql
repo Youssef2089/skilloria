@@ -30,24 +30,55 @@ create index if not exists candidatures_fermeture_a_constater_idx
   where fermeture_constatee_at is null and unlocked_at is not null;
 
 
+-- ── ①bis LA MISE EN SERVICE — pas de ligne rétroactive (point 2.11) ─────────
+--  Au premier passage, toute candidature dont l'échange s'est refermé AVANT ce
+--  constat serait constatée, avec une ligne datée d'aujourd'hui pour un fait
+--  ancien : une reprise de l'historique déguisée. Décision de Youssef : AUCUNE
+--  ligne rétroactive. Mais « refermé » n'a qu'UNE source, en TypeScript (§D.5) —
+--  la migration ne peut pas dresser le passif sans en écrire un jumeau SQL.
+--  Donc : la base retient QUAND le constat entre en service, dans CET
+--  environnement (l'heure de sa propre migration), et la fonction pose le
+--  marqueur SANS ligne pour toute fin d'échange ANTÉRIEURE (issue `passif`).
+--  Le TypeScript décide toujours SI et QUAND ; la base ne compare que deux dates.
+create table if not exists public.constats_mise_en_service (
+  constat text primary key,
+  depuis  timestamptz not null default now()
+);
+comment on table public.constats_mise_en_service is
+  'Date d''entrée en service d''un constat, par environnement : un fait antérieur pose le marqueur sans ligne au grand livre (aucune ligne rétroactive).';
+revoke all on table public.constats_mise_en_service from public, anon, authenticated;
+grant select on table public.constats_mise_en_service to service_role;
+alter table public.constats_mise_en_service enable row level security;
+insert into public.constats_mise_en_service (constat) values ('devoilement_ferme')
+on conflict (constat) do nothing;
+
+
 -- ── ② LE CONSTAT — marqueur et ligne, dans la même transaction ──────────────
 create or replace function public.constater_devoilement_ferme(
   p_piece          uuid,
   p_candidature_id uuid,
   p_fin_echange    timestamptz
-) returns boolean
+) returns text
   language plpgsql
   security definer
   set search_path to 'public'
 as $fn$
+-- Rend une issue FERMÉE : 'constate' (marqueur + ligne), 'passif' (marqueur SANS
+-- ligne — fin d'échange antérieure à la mise en service), 'deja' (rien : déjà
+-- constatée, ou plus dévoilée).
 declare
-  v_c record;
+  v_c      record;
+  v_depuis timestamptz;
 begin
   if p_piece is null then
     raise exception 'constater_devoilement_ferme : la piece est obligatoire' using errcode = 'GL002';
   end if;
   if p_fin_echange is null or p_fin_echange > now() then
     raise exception 'constater_devoilement_ferme : la fin d echange doit etre passee (%)', p_fin_echange using errcode = '22023';
+  end if;
+  select m.depuis into v_depuis from public.constats_mise_en_service m where m.constat = 'devoilement_ferme';
+  if v_depuis is null then
+    raise exception 'constater_devoilement_ferme : la date de mise en service manque' using errcode = '22023';
   end if;
 
   update public.candidatures c
@@ -57,7 +88,11 @@ begin
      and c.status = 'unlocked'
   returning c.domain_id, c.publication_id, c.profile_id, c.unlocked_at into v_c;
   if not found then
-    return false;
+    return 'deja';
+  end if;
+  -- LE PASSIF : refermé AVANT la mise en service — marqueur, pas de ligne.
+  if p_fin_echange < v_depuis then
+    return 'passif';
   end if;
 
   perform public.journaliser(
@@ -70,7 +105,7 @@ begin
       'unlocked_at', v_c.unlocked_at,
       'fin_echange', p_fin_echange),
     null::uuid, null::numeric, null::text);
-  return true;
+  return 'constate';
 end;
 $fn$;
 
@@ -91,12 +126,15 @@ declare
   v_cles  text[];
   v_cand  uuid;
   v_piece uuid := gen_random_uuid();
-  v_ok    boolean;
-  v_ok2   boolean;
+  v_ok    text;
+  v_ok2   text;
   v_n     integer;
 begin
   if to_regprocedure('public.constater_devoilement_ferme(uuid, uuid, timestamptz)') is null then
     raise exception 'postcondition NON TENUE : constater_devoilement_ferme manque ou a change de signature';
+  end if;
+  if (select m.depuis from public.constats_mise_en_service m where m.constat = 'devoilement_ferme') is null then
+    raise exception 'postcondition NON TENUE : la date de mise en service du constat manque — le passif serait journalise';
   end if;
   if not exists (select 1 from information_schema.columns
                   where table_schema = 'public' and table_name = 'candidatures' and column_name = 'fermeture_constatee_at') then
@@ -123,9 +161,18 @@ begin
     v_sautee := true;
   else
     begin
-      v_ok := public.constater_devoilement_ferme(v_piece, v_cand, now() - interval '1 day');
-      if v_ok is distinct from true then
-        raise exception 'postcondition NON TENUE : le constat n a pas abouti';
+      -- LE PASSIF D'ABORD : une fin ANTÉRIEURE à la mise en service → marqueur, AUCUNE ligne.
+      v_ok := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now() - interval '1 day');
+      if v_ok is distinct from 'passif'
+         or not exists (select 1 from public.candidatures c where c.id = v_cand and c.fermeture_constatee_at is not null)
+         or exists (select 1 from public.grand_livre g where g.type_action = 'devoilement_ferme' and g.sujet_id = v_cand) then
+        raise exception 'postcondition NON TENUE : le passif n est pas marque sans ligne [%]', v_ok;
+      end if;
+      update public.candidatures set fermeture_constatee_at = null where id = v_cand;
+      -- LE CONSTAT : une fin à la mise en service ou après (ici, maintenant) → marqueur ET ligne.
+      v_ok := public.constater_devoilement_ferme(v_piece, v_cand, now());
+      if v_ok is distinct from 'constate' then
+        raise exception 'postcondition NON TENUE : le constat n a pas abouti [%]', v_ok;
       end if;
       if not exists (select 1 from public.grand_livre g
                       where g.piece = v_piece and g.type_action = 'devoilement_ferme' and g.statut = 'reussi'
@@ -134,9 +181,9 @@ begin
                         and g.detail ->> 'fin_echange' is not null and g.detail ->> 'publication_id' is not null) then
         raise exception 'postcondition NON TENUE : la ligne devoilement_ferme manque ou ne porte pas son detail';
       end if;
-      v_ok2 := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now() - interval '1 day');
+      v_ok2 := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now());
       select count(*) into v_n from public.grand_livre g where g.type_action = 'devoilement_ferme' and g.sujet_id = v_cand;
-      if v_ok2 is distinct from false or v_n <> 1 then
+      if v_ok2 is distinct from 'deja' or v_n <> 1 then
         raise exception 'postcondition NON TENUE : le rejeu a constate ou journalise une seconde fois [% / % ligne(s)]', v_ok2, v_n;
       end if;
       raise exception 'SONDE_ANNULEE';

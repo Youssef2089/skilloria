@@ -3621,6 +3621,33 @@ nommément). Éprouvé en restaurant les anciennes migrations : quatre rouges.
 
 ---
 
+<a id="e72"></a>
+### E.72 — UNE SIGNATURE APPELÉE PAR LE CODE EN LIGNE NE SE SUPPRIME QU'AU DÉPLOIEMENT SUIVANT. Ajout, déploiement, puis suppression.
+
+**Le cas, mesuré par l'audit du 26/09/2026.** Quatre migrations du grand livre **suppriment** l'ancienne
+signature d'une fonction qu'elles remplacent — `maj_membre_organisation` (4 arguments),
+`programmer_suppression_compte(uuid, timestamptz)`, `ouvrir_depot_candidature` (4 arguments),
+`set_default_package(uuid)` — parce qu'une ancienne signature laissée en place resterait **appelable sans
+pièce ni journal** (§D.26). Juste. Mais le code **en ligne** appelle encore ces anciennes signatures : entre le
+`db push` et le déploiement du nouveau code, chacun de ces gestes **échoue** (fonction introuvable), et la
+base vide du rejeu local ne peut pas le montrer — il n'y a pas de code en ligne sur une base jetable.
+
+**Décision de Youssef.** Sur staging, **avant le lancement**, la fenêtre est **acceptée** : elle dure le temps
+d'un déploiement, sur une base sans utilisateurs. **En production, la règle est :**
+1. **Ajouter** la nouvelle signature (l'ancienne reste, inchangée) ;
+2. **Déployer** le code qui appelle la nouvelle ;
+3. **Supprimer** l'ancienne dans une migration du déploiement **suivant**.
+Jamais les trois dans un seul déploiement : l'ordre « push puis déploiement » laisse une fenêtre où le code
+en ligne appelle une fonction qui n'existe plus ; l'ordre inverse, une fenêtre où le nouveau code appelle
+une fonction qui n'existe pas encore.
+
+**Ce qui garde, ce qui ne garde pas.** La **surcharge** (deux signatures vivantes du même nom) est gardée par
+le test pgTAP global (`supabase/tests/database/`) : pendant l'étape 1 de la règle, l'ancienne signature doit
+y figurer comme **exception écrite avec sa raison**, et disparaître de l'exception à l'étape 3. La **fenêtre**
+elle-même n'est gardée par rien : c'est l'ordre du déploiement (CLAUDE.md, §G.4 ter).
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
