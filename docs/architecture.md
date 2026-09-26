@@ -2927,6 +2927,19 @@ moteur écrit ses étapes sous des types différents ; un message, une candidatu
 chacun leur sujet. Ce n'est pas le contrôle qui promet « ni zéro, ni deux » : c'est la base qui tient
 « ni deux », et le contrôle qui compte « ni zéro » (un écrivain par action).
 
+**Une clé hors liste ne compile pas, et ne passe pas le contrôle (26/09/2026).** `journaliser()` refuse une
+clé hors liste blanche **dans la transaction du geste** : une clé oubliée ferait échouer le geste lui-même,
+en production. Deux gardes la voient AVANT. ① **Le type** : `lib/journal/detail.ts` dérive de `CLES_DETAIL`
+la **forme** permise par action (`DetailDe<A>`, `SousDetail<A, 'avant'>`) ; les portes (`journaliser`,
+`journaliserDans`, `journaliserReglage`) sont génériques sur l'action, et les six routes de réglage qui
+passent leurs branches à une RPC les construisent `satisfies SousDetail<'reglage_modifie', …>` — `tsc` refuse
+toute clé de plus, au premier niveau comme en profondeur. ② **Le contrôle SQL** (`diag-grand-livre`, section
+C bis) suit chaque détail depuis `journaliser()` — littéraux, variables, `||`, `- 'clé'`, `-> 'clé'` — et,
+quand il vient d'un paramètre jsonb, **remonte aux appelants** (point fixe : `journaliser_verification` ←
+`statuer_*`, `journaliser_reglage` ← `regler_*` / `set_default_package`), puis aux routes `.rpc()`, où il
+exige le `satisfies`. Aucun détail non suivi. La liste TypeScript est prouvée **identique** à la base par la
+section A. Ce que ni l'un ni l'autre ne voit : les **valeurs** (le détecteur de données personnelles les juge).
+
 **`grand_livre.id` a des TROUS, et c'est normal — il ne prouve JAMAIS qu'une ligne manque.** C'est une
 identité (`bigint generated always as identity`) : un numéro pris dans une transaction annulée n'est pas
 rendu. Les sondes des migrations (un bloc annulé par sonde), un geste qui échoue après avoir journalisé

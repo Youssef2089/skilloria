@@ -389,6 +389,191 @@ section('C. journaliser() est la seule porte — pièce et type exigés, liste f
     'nouvellePiece() est la fabrique côté code (randomUUID), le type est marqué')
 }
 
+// ═══ C bis. LES CLÉS DE CHAQUE APPELANT, CONTRE LA LISTE BLANCHE (point 2.5) ═══
+//  Périmètre : la DERNIÈRE définition de chaque fonction SQL qui appelle journaliser() ;
+//  le détail (10ᵉ argument) est suivi à travers les littéraux (jsonb_build_object,
+//  jsonb_build_array, '{…}'::jsonb), les variables locales (`v := …`), `||`, `- 'clé'`,
+//  `-> 'clé'`, coalesce — et, quand il vient d'un PARAMÈTRE jsonb, jusqu'aux APPELANTS de
+//  la fonction (point fixe), puis jusqu'aux routes TypeScript qui l'appellent par `.rpc()`,
+//  où le paramètre doit être construit `satisfies SousDetail|DetailDe<'code'>` (tsc le tient,
+//  lib/journal/detail.ts). Rouge : toute clé hors liste blanche ; tout détail non suivi.
+//  Pourquoi : journaliser() refuse une clé hors liste DANS la transaction du geste — une clé
+//  oubliée ferait échouer le geste lui-même, en production.
+section('C bis. Les clés de chaque appelant, contre la liste blanche de son action')
+{
+  const blanche = listesBlanchesSql()
+  const coupeHaut = (s, sep) => {
+    const out = []
+    let cur = ''
+    let prof = 0
+    let chaine = false
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i]
+      if (chaine) { cur += c; if (c === "'") chaine = false; continue }
+      if (c === "'") { chaine = true; cur += c; continue }
+      if (c === '(') prof++
+      else if (c === ')') prof--
+      if (prof === 0 && s.startsWith(sep, i)) { out.push(cur); cur = ''; i += sep.length - 1; continue }
+      cur += c
+    }
+    out.push(cur)
+    return out.map((x) => x.trim())
+  }
+  const deparentheser = (e) => {
+    e = e.trim()
+    while (e.startsWith('(') && blocApres(e, '(', '(', ')') === e) e = e.slice(1, -1).trim()
+    return e
+  }
+  /** Les clés d'une expression jsonb ; `ctx` : { params: Set, vars: Map, relais: [], dyn: [] }. */
+  function clesExpr(expr, pre, ctx, out) {
+    const e = deparentheser(expr)
+    const parts = coupeHaut(e, '||')
+    if (parts.length > 1) { for (const p of parts) clesExpr(p, pre, ctx, out); return }
+    const moins = /^([\s\S]+?)\s-\s'([^']+)'$/.exec(e)
+    if (moins && coupeHaut(e, ' - ').length > 1) {
+      const tmp = new Set()
+      clesExpr(moins[1], pre, ctx, tmp)
+      const k = pre ? `${pre}.${moins[2]}` : moins[2]
+      for (const x of tmp) if (x !== k && !x.startsWith(`${k}.`) && !x.startsWith(`${k}[]`)) out.add(x)
+      return
+    }
+    const fleche = /^(\w+)\s*->\s*'([^']+)'$/.exec(e)
+    if (fleche && ctx.params.has(fleche[1])) { ctx.relais.push({ param: fleche[1], pre: '' }); return }
+    if (/^jsonb_build_object\s*\(/i.test(e)) {
+      const a = decouperArguments(blocApres(e, 'jsonb_build_object', '(', ')') ?? '()')
+      for (let i = 0; i + 1 < a.length; i += 2) {
+        const k = /^'([^']+)'$/.exec(a[i])
+        if (!k) { ctx.dyn.push(`clé non littérale ${a[i]}`); continue }
+        const p = pre ? `${pre}.${k[1]}` : k[1]
+        out.add(p)
+        clesExpr(a[i + 1], p, ctx, out)
+      }
+      return
+    }
+    if (/^jsonb_build_array\s*\(/i.test(e)) {
+      out.add(`${pre}[]`)
+      for (const x of decouperArguments(blocApres(e, 'jsonb_build_array', '(', ')') ?? '()')) clesExpr(x, `${pre}[]`, ctx, out)
+      return
+    }
+    const lit = /^'([\s\S]*)'::jsonb$/.exec(e)
+    if (lit) {
+      const v = JSON.parse(lit[1])
+      ;(function w(o, p) {
+        if (Array.isArray(o)) { out.add(`${p}[]`); for (const x of o) if (x && typeof x === 'object') w(x, `${p}[]`); return }
+        if (o && typeof o === 'object') for (const k of Object.keys(o)) { const q = p ? `${p}.${k}` : k; out.add(q); if (o[k] && typeof o[k] === 'object') w(o[k], q) }
+      })(v, pre)
+      return
+    }
+    const co = /^coalesce\s*\(/i.exec(e)
+    if (co) { for (const x of decouperArguments(blocApres(e, 'coalesce', '(', ')') ?? '()')) clesExpr(x, pre, ctx, out); return }
+    if (/^\w+$/.test(e)) {
+      if (ctx.params.has(e)) { ctx.relais.push({ param: e, pre }); return }
+      if (ctx.vars.has(e) && !ctx.vus.has(e)) { ctx.vus.add(e); clesExpr(ctx.vars.get(e), pre, ctx, out); return }
+    }
+    // Une FEUILLE (valeur scalaire, to_jsonb(…), une colonne) sous une clé déjà comptée.
+    if (pre) return
+    ctx.dyn.push(e.slice(0, 60))
+  }
+  const ctxDe = (nom) => {
+    const def = DEFINITIONS_COURANTES.get(nom)
+    const vars = new Map()
+    for (const m of def.corps.matchAll(/\b(v_\w+)\s*:=\s*([\s\S]*?);/g)) if (!vars.has(m[1])) vars.set(m[1], m[2])
+    return { params: new Set(def.params.filter((p) => p.type === 'jsonb').map((p) => p.nom)), vars, relais: [], dyn: [], vus: new Set() }
+  }
+  const ecarts = []
+  const nonSuivis = []
+  let sites = 0
+  const comparer = (ou, codes, cles) => {
+    sites++
+    for (const c of codes) {
+      const b = new Set(blanche.get(c) ?? [])
+      const hors = [...cles].filter((k) => !b.has(k))
+      if (hors.length) ecarts.push(`${c} ← ${ou} : ${hors.join(', ')}`)
+    }
+  }
+  // File de relais : { fn, param, pre, codes } — un paramètre jsonb dont la valeur devient un détail.
+  const file = []
+  for (const [nom, def] of DEFINITIONS_COURANTES) {
+    if (nom === 'journaliser') continue
+    for (let from = 0; ; ) {
+      const i = def.corps.indexOf('journaliser(', from)
+      if (i < 0) break
+      from = i + 'journaliser('.length
+      if (/\w/.test(def.corps[i - 1] ?? ' ')) continue
+      const a = decouperArguments(blocApres(def.corps.slice(i), 'journaliser(', '(', ')') ?? '()')
+      const codes = [...(a[1] ?? '').matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]).filter((c) => codesSqlGlobal.has(c))
+      if (!codes.length) continue
+      const ctx = ctxDe(nom)
+      const out = new Set()
+      clesExpr(a[9] ?? '', '', ctx, out)
+      comparer(`sql:${nom}()`, codes, out)
+      for (const d of ctx.dyn) nonSuivis.push(`sql:${nom}() : ${d}`)
+      for (const r of ctx.relais) file.push({ fn: nom, ...r, codes })
+    }
+  }
+  // Les relais, jusqu'à leurs appelants — SQL (point fixe), puis TypeScript.
+  const tsFichiers = [...fichiers('app'), ...fichiers('lib')].map((f) => [f, stripTs(read(f))])
+  const vusRelais = new Set()
+  let relaisTs = 0
+  while (file.length) {
+    const r = file.shift()
+    const cle = `${r.fn}/${r.param}/${r.pre}`
+    if (vusRelais.has(cle)) continue
+    vusRelais.add(cle)
+    const idx = DEFINITIONS_COURANTES.get(r.fn).params.findIndex((p) => p.nom === r.param)
+    let appelants = 0
+    for (const [g] of DEFINITIONS_COURANTES) {
+      if (g === r.fn) continue
+      const corps = DEFINITIONS_COURANTES.get(g).corps
+      for (let from = 0; ; ) {
+        const i = corps.indexOf(`${r.fn}(`, from)
+        if (i < 0) break
+        from = i + r.fn.length + 1
+        if (/\w/.test(corps[i - 1] ?? ' ')) continue
+        const a = decouperArguments(blocApres(corps.slice(i), `${r.fn}(`, '(', ')') ?? '()')
+        if (a[idx] === undefined) continue
+        appelants++
+        const ctx = ctxDe(g)
+        const out = new Set()
+        clesExpr(a[idx], r.pre, ctx, out)
+        comparer(`sql:${g}() → ${r.fn}(${r.param})`, r.codes, out)
+        for (const d of ctx.dyn) nonSuivis.push(`sql:${g}() → ${r.fn}(${r.param}) : ${d}`)
+        for (const x of ctx.relais) file.push({ fn: g, ...x, codes: r.codes })
+      }
+    }
+    // TypeScript : `.rpc('fn', { p_param: ident })` — ident construit `satisfies …<'code'>`.
+    // Les PORTES (enveloppes typées par leur signature) ne sont pas des appelants .rpc à juger.
+    for (const [f, src] of tsFichiers) {
+      if ([...PORTES.values()].includes(f)) continue
+      for (const bloc of appelsDe(src, `.rpc('${r.fn}',`)) {
+        appelants++
+        relaisTs++
+        const m = new RegExp(`\\b${r.param}:\\s*([\\w.]+)`).exec(bloc)
+        if (!m) { nonSuivis.push(`ts:${f} → ${r.fn}(${r.param}) : paramètre absent ou non identifiable`); continue }
+        const ident = m[1].split('.')[0]
+        const decl = new RegExp(`(?:const|let)\\s+${ident}\\s*=\\s*[\\s\\S]*?\\}\\s*satisfies\\s+(SousDetail|DetailDe)<'([a-z0-9_]+)'`).exec(src)
+        if (!decl || !r.codes.includes(decl[2])) nonSuivis.push(`ts:${f} → ${r.fn}(${r.param}) : « ${ident} » n'est pas construit satisfies SousDetail|DetailDe<'${r.codes.join("'|'")}'>`)
+      }
+    }
+    if (!appelants && ![...PORTES.keys()].includes(r.fn)) nonSuivis.push(`${r.fn}(${r.param}) : relais sans aucun appelant trouvé`)
+  }
+  ok(ecarts.length === 0,
+    `aucune clé écrite hors de la liste blanche de son action (${sites} site(s) SQL comparé(s), relais suivis jusqu'aux littéraux)`,
+    ecarts.slice(0, 8).join('\n         ') || undefined)
+  ok(nonSuivis.length === 0 && relaisTs >= 6,
+    `aucun détail non suivi : chaque paramètre relayé remonte à un littéral SQL ou à un littéral TypeScript typé (${relaisTs} appel(s) .rpc typé(s))`,
+    nonSuivis.slice(0, 8).join('\n         ') || undefined)
+  // Côté TypeScript direct : les portes portent le type par action (tsc refuse une clé hors liste).
+  const porteJ = stripTs(read('lib/journal/journaliser.ts'))
+  const porteR = stripTs(read('lib/journal/reglages.ts'))
+  ok(/export type EcritureJournal<A extends TypeAction = TypeAction> = \{[\s\S]*?detail\?: DetailDe<A>/.test(porteJ)
+    && /export async function journaliserDans<A extends TypeAction>\(/.test(porteJ)
+    && /avant: SousDetail<'reglage_modifie', 'avant'>/.test(porteR) && /apres: SousDetail<'reglage_modifie', 'apres'>/.test(porteR),
+    'les portes TypeScript typent le détail PAR ACTION (DetailDe<A>) — tsc refuse une clé hors liste, dérivée de CLES_DETAIL')
+  ok(/export type FormeDetail<P extends string>/.test(stripTs(read('lib/journal/detail.ts'))) && /\(typeof CLES_DETAIL\)\[A\]\[number\]/.test(stripTs(read('lib/journal/detail.ts'))),
+    'la forme du détail est DÉRIVÉE de CLES_DETAIL — une seule liste, que la section A prouve identique à la base')
+}
+
 // ═══ D. L'ACTION RÉELLE, DE BOUT EN BOUT ════════════════════════════════════
 section('D. Deux actions réelles passent par le socle — une par route, une en SQL pur')
 {

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Piece } from './piece'
 import type { TypeAction } from './actions'
 import type { ContexteJournal } from './contexte'
+import type { DetailDe } from './detail'
 
 /**
  * LA SEULE PORTE TYPESCRIPT VERS LE GRAND LIVRE (§D.26).
@@ -34,16 +35,16 @@ export type OrigineJournal = 'utilisateur' | 'tache_planifiee' | 'administrateur
 /** Les valeurs de `users.user_type` — l'acteur est un compte, jamais un nom. */
 export type TypeActeur = 'expert_freelance' | 'expert_cdi' | 'client' | 'cabinet' | 'admin'
 
-export type EcritureJournal = {
+export type EcritureJournal<A extends TypeAction = TypeAction> = {
   piece: Piece
-  type: TypeAction
+  type: A
   statut: StatutJournal
   origine: OrigineJournal
   acteur?: { id: string; type: TypeActeur } | null
   ecosystemeId?: string | null
   sujet?: { type: string; id: string } | null
   /** Identifiants et faits seulement — la base retire les clés personnelles, le contrôle refuse les valeurs. */
-  detail?: Record<string, unknown>
+  detail?: DetailDe<A>
   /** La pièce d'ORIGINE : contrepassation, rejeu (§D.26) — une nouvelle pièce qui la référence. */
   pieceOrigine?: Piece | null
   /** Ce que ça a coûté, dans l'unité FACTURÉE par le fournisseur (§D.24). */
@@ -57,7 +58,7 @@ export class JournalError extends Error {
   }
 }
 
-export async function journaliser(admin: SupabaseClient, e: EcritureJournal): Promise<number> {
+export async function journaliser<A extends TypeAction>(admin: SupabaseClient, e: EcritureJournal<A>): Promise<number> {
   const { data, error } = await admin.rpc('journaliser', {
     p_piece: e.piece,
     p_type_action: e.type,
@@ -85,10 +86,10 @@ export async function journaliser(admin: SupabaseClient, e: EcritureJournal): Pr
  * ne donne que ce qui est propre à SA ligne — le type, le statut, le sujet,
  * le détail, le coût.
  */
-export async function journaliserDans(
+export async function journaliserDans<A extends TypeAction>(
   admin: SupabaseClient,
   journal: ContexteJournal,
-  e: Pick<EcritureJournal, 'type' | 'statut' | 'sujet' | 'detail' | 'cout'> & {
+  e: Pick<EcritureJournal<A>, 'type' | 'statut' | 'sujet' | 'detail' | 'cout'> & {
     /**
      * L'écosystème DE LA LIGNE, quand il n'est pas celui du geste : un
      * administrateur qui rejoue un dépôt agit depuis le sien, mais la ligne

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContexteJournal } from './contexte'
 import { JournalError } from './journaliser'
+import type { DetailDe, SousDetail } from './detail'
 
 /**
  * `reglage_modifie` DEPUIS LE CODE — pour les gestes qu'une transaction ne
@@ -25,9 +26,10 @@ export async function journaliserReglage(
   journal: ContexteJournal,
   r: {
     sujet: { type: string; id: string }
-    avant: Record<string, unknown>
-    apres: Record<string, unknown>
-    complement?: Record<string, unknown>
+    avant: SousDetail<'reglage_modifie', 'avant'>
+    apres: SousDetail<'reglage_modifie', 'apres'>
+    /** Les clés de premier niveau de `reglage_modifie` — la base fusionne avant, après et complément. */
+    complement?: DetailDe<'reglage_modifie'>
     statut?: 'reussi' | 'echoue'
   },
 ): Promise<number> {

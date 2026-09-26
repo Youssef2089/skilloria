@@ -43,8 +43,9 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 | 2.9 parité i18n — `diag-parite-i18n` (éprouvé : orpheline es, manquante de → rouge) | fait | voir `git log` |
 | 2.10 lint 65/25 — `diag-lint-cliquet` (éprouvé : 66/26 → rouge) | fait | voir `git log` |
 | 2.2 les 24 lignes « tenue » → PARTIELLE si une sonde saute (garde éprouvée) | fait | voir `git log` |
-| 2.3 le bloc annulé gardé (172 appels, gel 3 dont 1 défaut nommé) ; trous de `grand_livre.id` documentés | fait | ce commit |
-| 2.5, 2.6, 2.11, 2.1, 2.4, 2.7, 2.8, 2.12, 2.13 | à faire | — |
+| 2.3 le bloc annulé gardé (172 appels, gel 3 dont 1 défaut nommé) ; trous de `grand_livre.id` documentés | fait | voir `git log` |
+| 2.5 les clés : type par action (`lib/journal/detail.ts`, portes génériques, 6 routes `satisfies`) + contrôle SQL C bis (54 sites, relais suivis, 14 appels .rpc typés) | fait | ce commit |
+| 2.6, 2.11, 2.1, 2.4, 2.7, 2.8, 2.12, 2.13 | à faire | — |
 
 ## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 

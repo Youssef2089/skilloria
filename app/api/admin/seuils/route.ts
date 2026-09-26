@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { SUJETS, type Sujet, DRAPEAUX_CONNUS } from '@/lib/jugement/sujets'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import type { SousDetail } from '@/lib/journal/detail'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -260,8 +261,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // L'AVANT et l'APRÈS, une fois, pour le grand livre ET le sous-journal —
   // en littéraux : un objet rempli par programme ne se relit pas.
-  const avant = { note: noteAvant, drapeaux: drapeauxAvant }
-  const apres = { note, drapeaux: drapeauxApres }
+  const avant = { note: noteAvant, drapeaux: drapeauxAvant } satisfies SousDetail<'reglage_modifie', 'avant'>
+  const apres = { note, drapeaux: drapeauxApres } satisfies SousDetail<'reglage_modifie', 'apres'>
 
   // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
   //  `regler_note_jugement` met à jour la ligne du fournisseur ET écrit la

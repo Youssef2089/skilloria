@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { loadCvParsingQuota, QuotaConfigMissing } from '@/lib/ai-quotas'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import type { SousDetail } from '@/lib/journal/detail'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -116,8 +117,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
     throw err
   }
-  const avant = { max_per_window: lu.maxPerWindow, window_hours: lu.windowHours }
-  const apres = { max_per_window: max, window_hours: fenetre }
+  const avant = { max_per_window: lu.maxPerWindow, window_hours: lu.windowHours } satisfies SousDetail<'reglage_modifie', 'avant'>
+  const apres = { max_per_window: max, window_hours: fenetre } satisfies SousDetail<'reglage_modifie', 'apres'>
   const sujetId = identifiantDerive('reglage', 'ai_quotas:cv_parsing')
 
   // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────

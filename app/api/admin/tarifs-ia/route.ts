@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { jugerForme } from '@/lib/ai-tarifs/forme'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import type { SousDetail } from '@/lib/journal/detail'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -234,14 +235,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     usd_par_unite: nombreOuNull(avantRow.usd_par_unite as number | string | null),
     usd_par_recherche: nombreOuNull(avantRow.usd_par_recherche as number | string | null),
     usd_par_recherche_web: nombreOuNull(avantRow.usd_par_recherche_web as number | string | null),
-  }
+  } satisfies SousDetail<'reglage_modifie', 'avant'>
   const apres = {
     usd_par_1m_entree: entree,
     usd_par_1m_sortie: sortie,
     usd_par_unite: unite,
     usd_par_recherche: recherche,
     usd_par_recherche_web: rechercheWeb,
-  }
+  } satisfies SousDetail<'reglage_modifie', 'apres'>
   // Un modèle est clé par un TEXTE : le sujet est dérivé, stable, et le nom
   // lisible reste dans le détail (`model`).
   const sujetId = identifiantDerive('reglage', `ai_model_tarifs:${model}`)

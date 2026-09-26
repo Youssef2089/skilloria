@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { nouvellePiece } from '@/lib/journal/piece'
+import type { DetailDe } from '@/lib/journal/detail'
 import {
   chargerDurees,
   estDureeAcceptable,
@@ -292,7 +293,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
           confirmee: corps.confirme_retroactivite === true,
         }
       : null,
-  }
+  } satisfies DetailDe<'reglage_modifie'>
   // La table n'a qu'une ligne, sans UUID : le sujet est la famille (§E.68).
   const sujetId = identifiantDerive('reglage', 'duree_reglages')
 

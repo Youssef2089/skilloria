@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import type { SousDetail } from '@/lib/journal/detail'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -285,14 +286,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     notify_enabled: actuel.notify_enabled === true,
     rerank_model: actuel.rerank_model,
     rerank_batch_size: Number(actuel.rerank_batch_size),
-  }
+  } satisfies SousDetail<'reglage_modifie', 'avant'>
   const apres = {
     feed_threshold: patch.feed_threshold,
     notify_threshold: patch.notify_threshold,
     notify_enabled: patch.notify_enabled,
     rerank_model: patch.rerank_model,
     rerank_batch_size: patch.rerank_batch_size,
-  }
+  } satisfies SousDetail<'reglage_modifie', 'apres'>
 
   // ── L'ÉCRITURE ET SA LIGNE DE JOURNAL, EN UN SEUL APPEL (§D.26) ──────────
   //  `regler_matching` met à jour la ligne de l'écosystème ET écrit la ligne du

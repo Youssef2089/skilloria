@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { identifiantDerive } from '@/lib/admin/identifiant-derive'
 import { alerteCoherente } from '@/lib/ai-plafonds'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import type { SousDetail } from '@/lib/journal/detail'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -232,21 +233,21 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const montant = (v: unknown): number | undefined => (v === undefined ? undefined : Number(v))
   const avantDe = (touche: Record<string, unknown>, cle: string, etat: Record<string, number>): number | null | undefined =>
     cle in touche ? (etat[cle] ?? null) : undefined
-  const apresCaps = { claude: montant(plafonds.claude), rerank: montant(plafonds.rerank) }
-  const apresAlertes = { organization: montant(seuils.organization), profile: montant(seuils.profile) }
+  const apresCaps = { claude: montant(plafonds.claude), rerank: montant(plafonds.rerank) } satisfies SousDetail<'reglage_modifie', 'apres'>
+  const apresAlertes = { organization: montant(seuils.organization), profile: montant(seuils.profile) } satisfies SousDetail<'reglage_modifie', 'apres'>
   const apresPlafondsActeur = {
     organization: montant(plafondsActeur.organization),
     profile: montant(plafondsActeur.profile),
-  }
-  const avantCapsTouches = { claude: avantDe(plafonds, 'claude', avantCaps), rerank: avantDe(plafonds, 'rerank', avantCaps) }
+  } satisfies SousDetail<'reglage_modifie', 'apres'>
+  const avantCapsTouches = { claude: avantDe(plafonds, 'claude', avantCaps), rerank: avantDe(plafonds, 'rerank', avantCaps) } satisfies SousDetail<'reglage_modifie', 'avant'>
   const avantAlertesTouches = {
     organization: avantDe(seuils, 'organization', avantSeuils),
     profile: avantDe(seuils, 'profile', avantSeuils),
-  }
+  } satisfies SousDetail<'reglage_modifie', 'avant'>
   const avantPlafondsActeurTouches = {
     organization: avantDe(plafondsActeur, 'organization', avantPlafondsActeur),
     profile: avantDe(plafondsActeur, 'profile', avantPlafondsActeur),
-  }
+  } satisfies SousDetail<'reglage_modifie', 'avant'>
   // Trois sujets DISTINCTS sous la même pièce : un plafond qui bloque, une
   // alerte qui signale, un plafond d'acteur qui bloque le classement ne se
   // relisent pas de la même façon (§D.9) — et une action s'écrit une fois par
