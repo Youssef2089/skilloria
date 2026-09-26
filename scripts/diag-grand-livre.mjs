@@ -377,7 +377,11 @@ section('C. journaliser() est la seule porte — pièce et type exigés, liste f
   ok([...PORTES.keys()].every((fn) => ECRIVAINS_SQL.has(fn)) && [...PORTES.values()].every((p) => /\.rpc\(/.test(stripTs(read(p)))),
     'chaque porte déclarée est un écrivain SQL réel, et son enveloppe appelle bien une RPC')
   const porte = stripTs(read('lib/journal/journaliser.ts'))
-  const typeEcriture = blocApres(porte, 'export type EcritureJournal = {') ?? ''
+  // Le type peut être générique (`EcritureJournal<A …> = {`, point 2.5) : on ancre sur la
+  // DÉCLARATION, pas sur une écriture exacte de son en-tête (§E.34).
+  const iNom = porte.indexOf('export type EcritureJournal')
+  const iType = iNom < 0 ? -1 : porte.indexOf('= {', iNom)
+  const typeEcriture = iType < 0 ? '' : (blocApres(porte.slice(iType), '{') ?? '')
   ok(/^\s*piece: Piece\s*$/m.test(typeEcriture) && !/piece\?:/.test(typeEcriture),
     'dans la porte TypeScript, la pièce est un champ REQUIS — ni `?`, ni défaut')
   ok(!/nouvellePiece/.test(porte), 'la porte n’invente JAMAIS une pièce à la place de l’appelant')
@@ -551,7 +555,13 @@ section('C bis. Les clés de chaque appelant, contre la liste blanche de son act
         const m = new RegExp(`\\b${r.param}:\\s*([\\w.]+)`).exec(bloc)
         if (!m) { nonSuivis.push(`ts:${f} → ${r.fn}(${r.param}) : paramètre absent ou non identifiable`); continue }
         const ident = m[1].split('.')[0]
-        const decl = new RegExp(`(?:const|let)\\s+${ident}\\s*=\\s*[\\s\\S]*?\\}\\s*satisfies\\s+(SousDetail|DetailDe)<'([a-z0-9_]+)'`).exec(src)
+        // La DÉCLARATION elle-même : son littéral `{…}`, puis ce qui suit IMMÉDIATEMENT sa
+        // fermeture. (Une recherche paresseuse glissait jusqu'au `satisfies` de la déclaration
+        // suivante — trouvé par mutation, 26/09/2026.)
+        const iDecl = src.search(new RegExp(`(?:const|let)\\s+${ident}\\s*=\\s*\\{`))
+        const litDecl = iDecl < 0 ? null : blocApres(src.slice(iDecl), '{')
+        const apresLit = litDecl ? src.slice(src.indexOf(litDecl, iDecl) + litDecl.length) : ''
+        const decl = /^\s*satisfies\s+(SousDetail|DetailDe)<'([a-z0-9_]+)'/.exec(apresLit)
         if (!decl || !r.codes.includes(decl[2])) nonSuivis.push(`ts:${f} → ${r.fn}(${r.param}) : « ${ident} » n'est pas construit satisfies SousDetail|DetailDe<'${r.codes.join("'|'")}'>`)
       }
     }
