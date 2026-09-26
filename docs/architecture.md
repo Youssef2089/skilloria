@@ -3316,6 +3316,25 @@ n'ont **pas encore** d'écrivain — et **tout le reste de la liste fermée n'é
 **étape 4**, l'écran et le batch de nettoyage (la seule RPC autorisée à supprimer, reconnue par le
 trigger).
 
+**H.3 ter — LES ROUTES QUI CHANGENT UN ÉTAT SANS TRACE : MESURÉES LE 26/09/2026, ET SEPT GESTES N'ONT PAS D'ACTION.
+ARBITRAGE REQUIS — le lot s'est arrêté ici.**
+La liste des « dix routes sans trace » du mandat n'était écrite **nulle part** dans le dépôt. Elle est désormais
+**mesurée**, par un périmètre écrit avant le balayage :
+[scripts/mesure-routes-sans-trace.mjs](../scripts/mesure-routes-sans-trace.mjs) (lecture seule, rejouable). Sur
+**63** routes qui écrivent, **35** laissent une ligne, **28** n'en laissent aucune :
+
+| Groupe | Routes | Ce qu'il faudrait |
+|---|---|---|
+| **Hors périmètre** — lecture ou technique (7) | `auth/init-session` (session), `me/candidatures/[id]/view`, `me/missions/[id]` GET (marques de lecture), `me/notifications` ×2, `me/locale` (préférence d'affichage), `cron/stripe-reconcile` (journal de la tâche — sous-journal, étape 3) | rien — **à confirmer** |
+| **Une action existante les couvre** (14) | taxonomie ×6 (`create/update/delete-branch`, `…-speciality`) et écosystèmes ×3 (`admin/ecosystemes`, `[id]`, `[id]/visuel`) → `reglage_modifie` — **(a) n'était donc pas complète** ; `profile/cv/reset`, `profile/cv` DELETE, `me/identity`, `me/organisation`, `me/organisation/logo` → `profil_modifie` (sujet `profiles`, `users` ou `organizations`) | le branchement — **à valider** (le rattachement de l'identité et de l'organisation à `profil_modifie` est un choix) |
+| **AUCUNE action de la liste fermée ne nomme le geste** (7) | `auth/public/register-expert` (inscription), `auth/register-org` (préinscription), `admin/create-admin` (création d'un administrateur), `publications` POST (annonce créée en brouillon), `me/missions/[id]/dismiss` (mission écartée — **sans aucune trace, même pas d'audit**), `admin/facturation` POST (événement Stripe rouvert à la main), `admin/cron-jobs/[name]/run` (tâche lancée à la main) | **des actions nouvelles** — donc une liste qui ne compte plus 55 — **ou** la décision écrite de les laisser hors du grand livre |
+
+**Pourquoi le lot s'arrête.** Le critère de fin de l'étape 2 est « 55 actions, chacune un écrivain ». Le troisième
+groupe le contredit : ces gestes changent un état métier, et les tracer sous une action voisine serait un chiffre
+juste sous une étiquette fausse (§E.24) — une annonce créée n'est pas une annonce modifiée. Le mandat prévoit ce cas :
+**un fait mesuré contredit la conception, on le dit.** Le deuxième groupe n'est pas branché non plus : il se branche
+en une passe, **après** l'arbitrage, parce que l'arbitrage peut le déplacer.
+
 **H.3 bis — VU EN BRANCHANT LE CLASSEMENT, NON CORRIGÉ : UN RUN DONT TOUTES LES NOTES SONT REPRISES NE S'ACHÈVE JAMAIS.**
 Lecture du code, pas une mesure en base. Dans les deux sens, quand toutes les notes sont acquises d'un run
 interrompu (`aNoter` vide), `rerankerTout()` rend `arret_code: 'aucun_document'` sans appeler le fournisseur ;

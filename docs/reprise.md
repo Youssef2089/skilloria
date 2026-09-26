@@ -32,21 +32,29 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
-## En cours
+## ⛔ ARRÊT — ARBITRAGE REQUIS (26/09/2026)
 
-- (g) la MESURE des routes qui changent un état sans trace (périmètre écrit), puis vérification de (a)–(d), puis `journal_nettoye` et le contrôle strict 55/55.
+Les routes qui changent un état sans trace sont **mesurées** (`node scripts/mesure-routes-sans-trace.mjs`) :
+63 écrivent, 35 tracent, **28 non**. Le détail en trois groupes est en **§H.3 ter** d'architecture.md.
+**Sept gestes métier n'ont AUCUNE action dans la liste fermée** (inscription expert, préinscription
+organisation, création d'administrateur, annonce créée en brouillon, mission écartée, événement Stripe
+rouvert, tâche lancée à la main) : le critère « 55 actions » ne peut pas les couvrir honnêtement.
+Le mandat dit de s'arrêter sur un fait mesuré qui contredit la conception. **Le lot attend Youssef.**
 
-## Reste, dans l'ordre
+Ce qu'il faut trancher :
+1. les 7 gestes : actions nouvelles (lesquelles, quels noms) **ou** hors du grand livre, par écrit ;
+2. les 14 routes rattachables : `reglage_modifie` pour la taxonomie et les écosystèmes, `profil_modifie`
+   pour le CV, l'identité et l'organisation — à valider ;
+3. les 7 routes hors périmètre (lecture, technique) — à confirmer.
 
-1. (e) fait.
-2. (f) fait — faces dérivées du type dans `publier_annonce()` et `inserer_candidature_jugee()`.
-3. (g) `inactivite_avertie`, `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin` ; `message_envoye` ;
-   **les « dix routes sans trace »** : la liste n'est écrite nulle part dans le dépôt — elle sera **mesurée**
-   par un balayage à périmètre écrit, et son résultat inscrit ici.
-4. Vérifier (a)–(d) complètes.
-5. Le contrôle rougit sur **toute** action sans écrivain (aujourd'hui `diag-grand-livre` ne fait que les
-   afficher) — critère « 55 sur 55 ». `journal_nettoye` arrive avec l'étape 4.
-6. Étapes 3 et 4.
+## Reste, dans l'ordre — APRÈS l'arbitrage
+
+1. Brancher les 14 routes (et les actions nouvelles si l'arbitrage en crée).
+2. Vérifier (a)–(d) complètes — (a) ne l'est **pas** : la taxonomie et les écosystèmes ne tracent rien.
+3. `journal_nettoye` : l'écrivain SQL du nettoyage (le batch), avancé en fin d'étape 2.
+4. Rendre le contrôle STRICT : toute action sans écrivain rougit ; le rapport donne N sur N. La mesure des
+   routes devient un contrôle (cliquet sur les exceptions nommées, chacune avec sa raison, §G.8).
+5. Étapes 3 et 4.
 
 ## Validations à rejouer avant chaque commit
 
