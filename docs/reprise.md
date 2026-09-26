@@ -192,7 +192,7 @@ Ces huit points font la requête unique de 2.8.
 
 ## Validations à rejouer avant chaque commit
 
-`npx tsc --noEmit` · `npx next build` (séparément, §E.2) · `npm run lint` (base 66/28) · `node scripts/diag.mjs`
+`npx tsc --noEmit` · `npx next build` (séparément, §E.2) · `npm run lint` (base 65/25, tenue par `diag-lint-cliquet`) · `node scripts/diag.mjs`
 (série statique ; 5 muets attendus : 3 écartés parce qu'ils écrivent, 2 qui plantent sur l'environnement Windows) ·
 mutation du nouveau contrôle, **après** le commit.
 

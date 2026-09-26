@@ -392,6 +392,10 @@ fichiers a cassé **55 liens** relatifs, et il les a tous nommés avant le commi
 > moitié des phrases, et aucune machine ne les aurait trouvées. Ce qui les a trouvées, c'est une
 > relecture contre le code — il n'y a pas de raccourci.
 
+**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (65 erreurs / 25 avertissements au 26/09/2026)
+vit dans [`diag-lint-cliquet`](scripts/diag-lint-cliquet.mjs), pas dans une consigne : rouge dès qu'un des
+deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commit**.
+
 **G.6 — Aucun push, aucune écriture en base depuis un worktree.**
 La moitié « écriture en base » est **gardée dans le dépôt** (§E.4 : `garde-ecriture.mjs` +
 `diag-scripts-destructeurs.mjs`), avec l'angle mort des trois scripts hors périmètre.
