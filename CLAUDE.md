@@ -384,6 +384,11 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
   créée depuis le socle est appelée par un test, toute action de la liste fermée est testée **ou** au gel
   avec sa raison (écrite par le TypeScript) — le gel ne fait que descendre. **Il ne dit pas que les tests
   passent** : seul `test db --local` le dit, et c'est Youssef qui le lance.
+· **Une fonction, une signature** : `supabase/tests/database/une_signature.test.sql` lit `pg_proc` sur la
+  base rejouée — aucune fonction `public` à deux signatures, sauf exception écrite **avec sa raison**
+  (l'étape 1 de §E.72) ; une exception qui n'est plus une surcharge rougit.
+· **NON VÉRIFIÉ avant le premier lancement** : que `test db` descend dans les sous-dossiers et ignore
+  `_fabriques.psql`, et que `\ir` résout depuis le fichier de test. Repli : passer le dossier en argument.
 
 **G.5 — Le diagnostic s'éprouve par MUTATION.** Écrire le contrôle ne suffit pas : il faut casser
 délibérément la règle et vérifier que le contrôle **rougit**, puis la rétablir. C'est ainsi qu'ont été

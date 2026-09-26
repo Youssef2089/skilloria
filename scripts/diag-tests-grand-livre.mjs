@@ -187,6 +187,22 @@ if (!/siege_admin_membre_id\s+is\s+not\s+null/.test(fab)) fabDefauts.push('le si
 if (/session_replication_role|disable\s+trigger/i.test(fab)) fabDefauts.push('contournement')
 ok(fab !== '' && fabDefauts.length === 0, 'D. les fabriques passent par les chemins normaux', fabDefauts.length ? fabDefauts.join(', ') : '_fabriques.psql absent')
 
+// ── F. Le test global « une fonction, une signature » (point 2.4, §E.72) existe et compte sur pg_proc ──
+const CHEMIN_SIGNATURE = join(ROOT, 'supabase', 'tests', 'database', 'une_signature.test.sql')
+let sig = ''
+try { sig = sansCommentaires(lire(CHEMIN_SIGNATURE)) } catch { /* absent : rouge ci-dessous */ }
+const sigDefauts = []
+if (!sig) sigDefauts.push('absent')
+else {
+  if (!/from\s+pg_proc\b/i.test(sig)) sigDefauts.push('ne lit pas pg_proc')
+  if (!/having\s+count\(\*\)\s*>\s*1/i.test(sig)) sigDefauts.push('ne compte pas les signatures par nom')
+  if (!/nspname\s*=\s*'public'/i.test(sig)) sigDefauts.push('ne vise pas le schéma public')
+  if (!/raison\s+text\s+not\s+null/i.test(sig)) sigDefauts.push('une exception sans raison serait admise')
+  if (!/^\s*begin;/i.test(sig) || !/rollback;\s*$/i.test(sig)) sigDefauts.push('pas dans begin/rollback')
+}
+ok(sigDefauts.length === 0, 'F. le test « une fonction, une signature » compte les surcharges du schéma public, exceptions à raison',
+  sigDefauts.length ? `${relative(ROOT, CHEMIN_SIGNATURE)} : ${sigDefauts.join(', ')}` : undefined)
+
 // ── E. La commande de test ne vise jamais la base liée ──
 const INTERDIT = new RegExp('test\\s+db\\s+--' + 'linked|test\\s+db\\s+--' + 'db-url')
 const RACINES = ['CLAUDE.md', 'AGENTS.md', 'package.json', 'docs', 'scripts', 'supabase/tests']

@@ -50,7 +50,8 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 | 2.7 le chevauchement s'écrit : `refus_recherche_en_cours` (migration `20260926000000`, écrivain unique, sur `occupe` seulement) ; la liste fermée compte 56 actions ; langue des codes reportée, écrite dans CLAUDE.md | fait | voir `git log` |
 | 2.8 les portes latérales : 13 mesurées, 12 fermées (migration `20260926000010`), `profiles_self_update` reste ouverte — DÉFAUT NOMMÉ, arbitrage (les bascules de disponibilité des tableaux de bord écrivent `profiles` depuis le navigateur et n'écrivent pas `disponibilite_basculee`) ; `diag-portes-laterales` | fait, arbitrage demandé | ce commit |
 | 2.1 les tests pgTAP : **22 fichiers, 157 assertions** (et non 24 fichiers : les gestes d'une même famille partagent un fichier — invitations, membres, purges, réglages ; plus `socle` et `refus_recherche_en_cours`) ; **38 fonctions créées depuis le socle, 38 appelées** (les 35 de l'inventaire, les 7 sans sonde comprises, plus les 3 du socle) ; 33/56 actions citées, 23 au gel à raisons (22 écrites par le TypeScript, `journal_nettoye` sans écrivain avant l'étape 4) ; `diag-tests-grand-livre` ; CLAUDE.md §G.4 ter. **AUCUN test n'a tourné** : pas de Docker ici — `test db --local` est à lancer par Youssef | fait, non exécuté | ce commit |
-| 2.4, 2.12, 2.13 | à faire | — |
+| 2.4 une fonction, une signature : `supabase/tests/database/une_signature.test.sql` (2 assertions, `pg_proc` du schéma public hors extensions, table d'exceptions à raison obligatoire — **0 exception**) ; garde F de `diag-tests-grand-livre` (éprouvée : comptage retiré, raison facultative → rouge) | fait, non exécuté | ce commit |
+| 2.12, 2.13 | à faire | — |
 
 ## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 
