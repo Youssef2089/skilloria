@@ -51,7 +51,18 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 | 2.8 les portes latérales : 13 mesurées, 12 fermées (migration `20260926000010`), `profiles_self_update` reste ouverte — DÉFAUT NOMMÉ, arbitrage (les bascules de disponibilité des tableaux de bord écrivent `profiles` depuis le navigateur et n'écrivent pas `disponibilite_basculee`) ; `diag-portes-laterales` | fait, arbitrage demandé | ce commit |
 | 2.1 les tests pgTAP : **22 fichiers, 157 assertions** (et non 24 fichiers : les gestes d'une même famille partagent un fichier — invitations, membres, purges, réglages ; plus `socle` et `refus_recherche_en_cours`) ; **38 fonctions créées depuis le socle, 38 appelées** (les 35 de l'inventaire, les 7 sans sonde comprises, plus les 3 du socle) ; 33/56 actions citées, 23 au gel à raisons (22 écrites par le TypeScript, `journal_nettoye` sans écrivain avant l'étape 4) ; `diag-tests-grand-livre` ; CLAUDE.md §G.4 ter. **AUCUN test n'a tourné** : pas de Docker ici — `test db --local` est à lancer par Youssef | fait, non exécuté | ce commit |
 | 2.4 une fonction, une signature : `supabase/tests/database/une_signature.test.sql` (2 assertions, `pg_proc` du schéma public hors extensions, table d'exceptions à raison obligatoire — **0 exception**) ; garde F de `diag-tests-grand-livre` (éprouvée : comptage retiré, raison facultative → rouge) | fait, non exécuté | ce commit |
-| 2.12, 2.13 | à faire | — |
+| 2.13 la requête unique de staging : `supabase/verifications/staging-avant-push.sql` — **un** SELECT, lecture seule, **15 lignes** (attendu / observé / verdict OK·ÉCART·À LIRE) : doublons de l'index unique, nom d'index libre (§E.60), index partiel §E.69, deux secrets du Vault par leur nom, pg_cron/pg_net, `constats_trigger` absente, 4 colonnes et 1 table du lot absentes, 4 anciennes signatures présentes, 0 surcharge, 12 politiques retirées présentes, 0 porte posée à la main, et trois volumes (passif des annonces, lignes du socle, actions) | fait, non exécutée | ce commit |
+| 2.12 la séquence de déploiement : CLAUDE.md §G.4 ter (7 étapes) et ci-dessous | fait | ce commit |
+
+### La séquence de déploiement (CLAUDE.md §G.4 ter) — ce que Youssef lance
+
+1. `npx supabase db reset --local`
+2. `npx supabase db lint -s public --level error` — sortie vide = aucune erreur (pas de `--fail-on`)
+3. `npx supabase test db --local`
+4. la requête `supabase/verifications/staging-avant-push.sql` dans l'éditeur SQL de staging — un `ÉCART` → arrêt
+5. `npm run build`
+6. `npx supabase db push`
+7. `git push`, aussitôt après
 
 ## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 

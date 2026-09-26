@@ -390,6 +390,19 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
 · **NON VÉRIFIÉ avant le premier lancement** : que `test db` descend dans les sous-dossiers et ignore
   `_fabriques.psql`, et que `\ir` résout depuis le fichier de test. Repli : passer le dossier en argument.
 
+**LA SÉQUENCE DE DÉPLOIEMENT D'UN LOT DE MIGRATIONS — dans cet ordre, chaque étape verte avant la suivante :**
+1. `npx supabase db reset --local` — rejoue toutes les migrations sur la base jetable (§G.4 bis) ; une
+   postcondition **PARTIELLE** n'est pas un échec, mais sa fonction n'a tourné que par l'étape 3.
+2. `npx supabase db lint -s public --level error` — **une sortie vide = aucune erreur** ; pas de
+   `--fail-on` (non vérifié sur la CLI 2.108.0) : c'est la sortie qu'on lit.
+3. `npx supabase test db --local` — les tests pgTAP, tous verts.
+4. **La requête de staging** [supabase/verifications/staging-avant-push.sql](supabase/verifications/staging-avant-push.sql),
+   collée dans l'éditeur SQL de staging (lecture seule) : **un seul `ÉCART` → on s'arrête**.
+5. `npm run build` — `next build`, distinct de `tsc` (§E.2).
+6. `npx supabase db push` — sur le projet lié (staging).
+7. `git push` **aussitôt après** — le déploiement. Entre 6 et 7, le code en ligne appelle les
+   signatures que le push a supprimées (§E.72) : la fenêtre se compte en minutes, pas en heures.
+
 **G.5 — Le diagnostic s'éprouve par MUTATION.** Écrire le contrôle ne suffit pas : il faut casser
 délibérément la règle et vérifier que le contrôle **rougit**, puis la rétablir. C'est ainsi qu'ont été
 trouvés E.7 et E.8. Plusieurs commits en portent la trace explicite (`c7cc8e6` : « 62 contrôles,

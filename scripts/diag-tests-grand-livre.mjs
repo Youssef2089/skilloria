@@ -203,6 +203,23 @@ else {
 ok(sigDefauts.length === 0, 'F. le test « une fonction, une signature » compte les surcharges du schéma public, exceptions à raison',
   sigDefauts.length ? `${relative(ROOT, CHEMIN_SIGNATURE)} : ${sigDefauts.join(', ')}` : undefined)
 
+// ── G. La requête de staging (point 2.13) : UNE instruction, un SELECT, rien qui écrive ──
+//  Elle se colle sur staging : une écriture glissée là s'exécuterait sur une base réelle (§G.6).
+const CHEMIN_REQUETE = join(ROOT, 'supabase', 'verifications', 'staging-avant-push.sql')
+let req = ''
+try { req = sansCommentaires(lire(CHEMIN_REQUETE)).replace(/'(?:[^']|'')*'/g, "''") } catch { /* absente : rouge */ }
+const reqDefauts = []
+if (!req.trim()) reqDefauts.push('absente')
+else {
+  const instructions = req.split(';').filter((x) => x.trim() !== '')
+  if (instructions.length !== 1) reqDefauts.push(`${instructions.length} instructions`)
+  if (!/^\s*select\b/i.test(req)) reqDefauts.push('ne commence pas par select')
+  const ecrit = req.match(/\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|call|perform|copy|vacuum|lock|comment|refresh|reindex|cluster)\b|\bdo\s*\$|\bset\s+(?:local\s+|session\s+)?\w+\s*(?:=|to)\b|\b\w+\s*\.\s*(?:nextval|setval|pg_terminate_backend|pg_cancel_backend)\b|\b(?:nextval|setval|pg_terminate_backend|pg_cancel_backend|dblink\w*|http_\w+|net\.\w+)\s*\(/gi)
+  if (ecrit) reqDefauts.push(`mots d'écriture : ${[...new Set(ecrit.map((x) => x.toLowerCase().trim()))].join(', ')}`)
+}
+ok(reqDefauts.length === 0, 'G. la requête de staging est UNE instruction SELECT, sans rien qui écrive',
+  reqDefauts.length ? `${relative(ROOT, CHEMIN_REQUETE)} : ${reqDefauts.join(', ')}` : undefined)
+
 // ── E. La commande de test ne vise jamais la base liée ──
 const INTERDIT = new RegExp('test\\s+db\\s+--' + 'linked|test\\s+db\\s+--' + 'db-url')
 const RACINES = ['CLAUDE.md', 'AGENTS.md', 'package.json', 'docs', 'scripts', 'supabase/tests']
