@@ -32,11 +32,11 @@ begin
   -- SONDE — les deux voies sont ACCEPTÉES sous leur champ (freelance : un état
   -- vers un autre ; CDI : depuis l'absence d'état), puis annulées.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'disponibilite_basculee', 'reussi', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'disponibilite_basculee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                jsonb_build_object('champ', 'availability_status', 'de', 'available', 'vers', 'unavailable'),
                                null::uuid, null::numeric, null::text);
-    v_id2 := public.journaliser(gen_random_uuid(), 'disponibilite_basculee', 'reussi', 'utilisateur',
+    v_id2 := public.journaliser(gen_random_uuid(), 'disponibilite_basculee', 'reussi', 'systeme',
                                 null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                 jsonb_build_object('champ', 'cdi_status', 'de', null, 'vers', 'searching'),
                                 null::uuid, null::numeric, null::text);
@@ -51,7 +51,7 @@ begin
   end;
   -- SONDE — une DATE de disponibilité est REFUSÉE (la liste blanche tient) : des codes, pas des dates.
   begin
-    perform public.journaliser(gen_random_uuid(), 'disponibilite_basculee', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'disponibilite_basculee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                '{"champ":"availability_status","de":"available","vers":"unavailable","availability_date":"2026-10-01"}'::jsonb,
                                null::uuid, null::numeric, null::text);

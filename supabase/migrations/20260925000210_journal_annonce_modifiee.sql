@@ -32,7 +32,7 @@ begin
   end if;
   -- SONDE — la forme exacte que la route envoie est ACCEPTÉE, puis annulée.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'annonce_modifiee', 'reussi', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'annonce_modifiee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
                                jsonb_build_object('champs', jsonb_build_array('title', 'skills_required'), 'statut_annonce', 'draft', 'organization_id', gen_random_uuid()),
                                null::uuid, null::numeric, null::text);
@@ -47,7 +47,7 @@ begin
   end;
   -- SONDE — le CONTENU d'un champ est REFUSÉ (la liste blanche tient) : seuls les noms passent.
   begin
-    perform public.journaliser(gen_random_uuid(), 'annonce_modifiee', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'annonce_modifiee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
                                '{"champs":["title"],"title":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

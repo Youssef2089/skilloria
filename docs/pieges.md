@@ -3536,6 +3536,41 @@ prédicat dans toute RPC qui insère `transactions`.
 
 ---
 
+<a id="e70"></a>
+### E.70 — UNE SONDE QUI VIOLE UNE CONTRAINTE DE LA TABLE QU'ELLE SONDE N'ÉPROUVE RIEN : ELLE ARRÊTE LA MIGRATION — et seize migrations l'ont fait sans avoir jamais tourné.
+
+**Le cas, trouvé le 26/09/2026 en relisant une postcondition pour en copier la méthode.** Les sondes
+de l'étape 2 du grand livre appelaient leur écrivain — `journaliser()` ou la RPC métier — avec
+l'origine `'utilisateur'` et un acteur **nul** : `(v_piece, null, 'utilisateur', null::uuid, null::text, …)`.
+Or la table porte `grand_livre_acteur_si_humain` : *un geste humain a toujours un acteur*. Chaque
+insertion aurait levé **23514**, le gestionnaire `when others` l'aurait relancée (ce n'est pas
+`SONDE_ANNULEE`), et la migration se serait arrêtée. **36 appels, 16 migrations.**
+
+**Pourquoi personne ne l'a vu — deux étages, et le second est le vrai piège.**
+① Les sondes qui ont besoin d'une ligne réelle (un couple annonce-expert, une annonce en brouillon)
+sont **sautées sur base vierge**, et le disent. Le rejeu local (§G.4 bis) les aurait laissées passer ;
+staging les aurait arrêtées — c'est exactement l'avertissement de §G.4 bis.
+② Mais **22 des 36** ne demandaient **aucune** donnée : un appel direct à `journaliser()` avec des
+identifiants aléatoires. Elles auraient levé **sur n'importe quelle base, vierge comprise**. Ce qui
+veut dire que les migrations du lot **n'avaient jamais été rejouées**, nulle part — et que chaque
+postcondition donnait pour « exécutée » ce qu'elle n'avait jamais exécuté. Le contrôle statique,
+lui, était vert : il vérifiait que la sonde **existe et a la bonne forme**, jamais qu'elle **peut
+passer** (§E.67, la même famille).
+
+**La parade.** ① Les 36 appels passent l'origine `'systeme'`, qui n'exige pas d'acteur : la sonde
+éprouve l'**écrivain SQL**, pas l'identité de l'acteur — les sondes qui ont besoin d'un acteur réel
+(l'acceptation d'invitation, le départ d'un membre) en **lisent** un en base. Aucune de ces
+migrations n'était appliquée : corrigées **en place**. ② **La propriété est gardée, pas la liste** :
+`diag-grand-livre` balaie **toutes** les postconditions et rougit sur une origine humaine suivie
+d'un acteur nul, et sur un écosystème aléatoire passé à `journaliser()` (clé étrangère vers
+`domains`, la même classe) — éprouvé en restaurant les anciennes sondes : rouge, en les nommant.
+
+> **Ce que la règle ne couvre pas, et c'est dit.** Les autres contraintes de la table (sujet ⇔ type,
+> coût ⇔ unité) ne sont pas balayées : aucune sonde ne les viole aujourd'hui, et le balayage ne les
+> cherche pas. **La seule preuve complète reste le rejeu** — `db reset --local` **puis** staging.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

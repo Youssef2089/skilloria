@@ -105,7 +105,7 @@ begin
     raise notice 'postcondition : sonde decliner_candidature SAUTEE — aucune candidature en transition admise (base vierge)';
   else
     begin
-      v_ok := public.decliner_candidature(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_ok := public.decliner_candidature(v_piece, null::uuid, 'systeme', null::uuid, null::text,
                                           v_cand, v_domaine, v_org, 'sonde', array['received', 'in_review', 'shortlisted']);
       if v_ok is distinct from true
          or not exists (select 1 from public.candidatures c where c.id = v_cand and c.status = 'rejected' and c.status_reason = 'sonde') then
@@ -117,7 +117,7 @@ begin
         raise exception 'postcondition NON TENUE : la ligne candidature_declinee manque ou ne porte pas son detail';
       end if;
       -- LE REJEU : transition désormais invalide — false, et aucune seconde ligne.
-      v_ok2 := public.decliner_candidature(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_ok2 := public.decliner_candidature(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
                                            v_cand, v_domaine, v_org, 'sonde', array['received', 'in_review', 'shortlisted']);
       select count(*) into v_lignes from public.grand_livre g where g.type_action = 'candidature_declinee' and g.sujet_id = v_cand;
       if v_ok2 is distinct from false or v_lignes <> 1 then

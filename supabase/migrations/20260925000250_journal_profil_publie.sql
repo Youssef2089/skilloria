@@ -32,11 +32,11 @@ begin
   -- SONDE — la première publication (jamais vérifié) et la republication d'un
   -- profil approuvé sont ACCEPTÉES, puis annulées.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'profil_publie', 'reussi', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'profil_publie', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                jsonb_build_object('deja_visible', false, 'verification_avant', null),
                                null::uuid, null::numeric, null::text);
-    v_id2 := public.journaliser(gen_random_uuid(), 'profil_publie', 'reussi', 'utilisateur',
+    v_id2 := public.journaliser(gen_random_uuid(), 'profil_publie', 'reussi', 'systeme',
                                 null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                 jsonb_build_object('deja_visible', true, 'verification_avant', 'approved'),
                                 null::uuid, null::numeric, null::text);
@@ -51,7 +51,7 @@ begin
   end;
   -- SONDE — un champ du profil est REFUSÉ (la liste blanche tient).
   begin
-    perform public.journaliser(gen_random_uuid(), 'profil_publie', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'profil_publie', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                '{"deja_visible":false,"title":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

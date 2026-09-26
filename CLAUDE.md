@@ -283,6 +283,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.67](docs/pieges.md#e67) | UNE POSTCONDITION QUI COMPARE UNE CHAÎNE RENDUE PAR POSTGRES PARIE SUR UN FORMAT — et jamais exécutée, elle arrête un déploiement sur un faux négatif. |
 | [E.68](docs/pieges.md#e68) | UN JOURNAL BEST-EFFORT MENT DÉJÀ : sept traces d'audit sur des réglages d'argent n'ont jamais existé. La parade est le TYPE, pas la consigne. |
 | [E.69](docs/pieges.md#e69) | UN `on conflict` SANS LE PRÉDICAT DE L'INDEX PARTIEL N'INFÈRE RIEN : 42P10 au premier paiement, pendant que « la clé est unique en base » reste vert. |
+| [E.70](docs/pieges.md#e70) | UNE SONDE QUI VIOLE UNE CONTRAINTE DE LA TABLE QU'ELLE SONDE N'ÉPROUVE RIEN : elle arrête la migration — 16 migrations l'ont fait sans avoir jamais tourné. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

@@ -825,21 +825,21 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   const INAPTE = stripSql(read(migration('journal_refus_expert_inapte')))
   const iPostI = INAPTE.indexOf('do $post$')
   const postI = iPostI < 0 ? '' : INAPTE.slice(iPostI)
-  ok(/journaliser\(gen_random_uuid\(\), 'refus_expert_inapte', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('raison', 'ne_pas_deranger', 'publication_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postI),
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_expert_inapte', 'refuse', 'systeme',[\s\S]{0,300}?jsonb_build_object\('raison', 'ne_pas_deranger', 'publication_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postI),
     'expert inapte : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
   ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postI), 'expert inapte : un texte libre est REFUSÉ (sonde exécutée)')
   // Les refus de garde : même forme.
   const GARDE = stripSql(read(migration('journal_refus_garde_eligibilite')))
   const iPostG = GARDE.indexOf('do $post$')
   const postG = iPostG < 0 ? '' : GARDE.slice(iPostG)
-  ok(/journaliser\(gen_random_uuid\(\), 'refus_garde_eligibilite', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('code', 'already_applied', 'profile_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postG),
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_garde_eligibilite', 'refuse', 'systeme',[\s\S]{0,300}?jsonb_build_object\('code', 'already_applied', 'profile_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postG),
     'refus de garde : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
   ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postG), 'refus de garde : un texte libre est REFUSÉ (sonde exécutée)')
   // Le quota de CV : même forme.
   const QUOTA = stripSql(read(migration('journal_refus_quota_cv')))
   const iPostQ = QUOTA.indexOf('do $post$')
   const postQ = iPostQ < 0 ? '' : QUOTA.slice(iPostQ)
-  ok(/journaliser\(gen_random_uuid\(\), 'refus_quota_cv', 'refuse', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('quota', 'cv_parsing', 'limite', 3, 'fenetre_heures', 24, 'reset_at', now\(\), 'compte', 3\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postQ),
+  ok(/journaliser\(gen_random_uuid\(\), 'refus_quota_cv', 'refuse', 'systeme',[\s\S]{0,300}?jsonb_build_object\('quota', 'cv_parsing', 'limite', 3, 'fenetre_heures', 24, 'reset_at', now\(\), 'compte', 3\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(postQ),
     'quota de CV : la forme exacte que le code envoie est ÉCRITE au statut imposé, puis annulée')
   ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(postQ), 'quota de CV : un texte libre est REFUSÉ (sonde exécutée)')
   // La candidature déclinée : transition relue, rejeu sans seconde ligne.
@@ -881,7 +881,7 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   {
     const MODIFIEE = stripSql(read(migration('journal_annonce_modifiee')))
     const P = MODIFIEE.slice(Math.max(0, MODIFIEE.indexOf('do $post$')))
-    ok(/journaliser\(gen_random_uuid\(\), 'annonce_modifiee', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('champs', jsonb_build_array\('title', 'skills_required'\), 'statut_annonce', 'draft', 'organization_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
+    ok(/journaliser\(gen_random_uuid\(\), 'annonce_modifiee', 'reussi', 'systeme',[\s\S]{0,300}?jsonb_build_object\('champs', jsonb_build_array\('title', 'skills_required'\), 'statut_annonce', 'draft', 'organization_id', gen_random_uuid\(\)\)[\s\S]{0,400}?raise exception 'SONDE_ANNULEE'/.test(P),
       'modifiée : la forme exacte que la route envoie (noms de champs) est ÉCRITE, puis annulée')
     ok(/"champs":\["title"\],"title":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'modifiée : le CONTENU d’un champ est REFUSÉ (sonde exécutée)')
   }
@@ -915,21 +915,21 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   {
     const CV = stripSql(read(migration('journal_cv_televerse')))
     const P = CV.slice(Math.max(0, CV.indexOf('do $post$')))
-    ok(/journaliser\(gen_random_uuid\(\), 'cv_televerse', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'done', 'premier_consentement', true, 'experiences', \d+, 'formations', \d+, 'langues', \d+\)[\s\S]{0,800}?journaliser\(gen_random_uuid\(\), 'cv_televerse', 'echoue', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'failed', 'premier_consentement', false\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
+    ok(/journaliser\(gen_random_uuid\(\), 'cv_televerse', 'reussi', 'systeme',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'done', 'premier_consentement', true, 'experiences', \d+, 'formations', \d+, 'langues', \d+\)[\s\S]{0,800}?journaliser\(gen_random_uuid\(\), 'cv_televerse', 'echoue', 'systeme',[\s\S]{0,300}?jsonb_build_object\('octets', \d+, 'analyse', 'failed', 'premier_consentement', false\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
       'CV : les deux formes que le module écrit (analyse faite, en échec) sont ÉCRITES, puis annulées')
     ok(/"cv_hash"|"hash"/.test(P) && /when sqlstate 'GL004'/.test(P), 'CV : l’empreinte du fichier est REFUSÉE par la liste blanche (sonde exécutée)')
   }
   {
     const PUBLIE = stripSql(read(migration('journal_profil_publie')))
     const P = PUBLIE.slice(Math.max(0, PUBLIE.indexOf('do $post$')))
-    ok(/journaliser\(gen_random_uuid\(\), 'profil_publie', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('deja_visible', false, 'verification_avant', null\)[\s\S]{0,700}?jsonb_build_object\('deja_visible', true, 'verification_avant', 'approved'\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
+    ok(/journaliser\(gen_random_uuid\(\), 'profil_publie', 'reussi', 'systeme',[\s\S]{0,300}?jsonb_build_object\('deja_visible', false, 'verification_avant', null\)[\s\S]{0,700}?jsonb_build_object\('deja_visible', true, 'verification_avant', 'approved'\)[\s\S]{0,600}?raise exception 'SONDE_ANNULEE'/.test(P),
       'profil publié : la première publication (sans vérification d’avant) et la republication sont ÉCRITES, puis annulées')
     ok(/"title":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'profil publié : un champ du profil est REFUSÉ (sonde exécutée)')
   }
   {
     const MODIF = stripSql(read(migration('journal_profil_modifie')))
     const P = MODIF.slice(Math.max(0, MODIF.indexOf('do $post$')))
-    ok(/journaliser\(gen_random_uuid\(\), 'profil_modifie', 'reussi', 'utilisateur',[\s\S]{0,300}?jsonb_build_object\('champs', jsonb_build_array\('title', 'skills'\), 'blocs', jsonb_build_array\('experiences'\)\)[\s\S]{0,500}?raise exception 'SONDE_ANNULEE'/.test(P),
+    ok(/journaliser\(gen_random_uuid\(\), 'profil_modifie', 'reussi', 'systeme',[\s\S]{0,300}?jsonb_build_object\('champs', jsonb_build_array\('title', 'skills'\), 'blocs', jsonb_build_array\('experiences'\)\)[\s\S]{0,500}?raise exception 'SONDE_ANNULEE'/.test(P),
       'profil modifié : la forme exacte que le module écrit (noms de champs, noms de blocs) est ÉCRITE, puis annulée')
     ok(/"summary":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'profil modifié : le CONTENU d’un champ est REFUSÉ (sonde exécutée)')
   }
@@ -1107,6 +1107,35 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
       'membres : les TROIS faces sont exécutées et RELUES — rôle et retrait par un AUTRE, départ par le membre LUI-MÊME')
     ok(/v_r <> 'inchange' or v_n <> 1/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'membres : le retrait rejoué rend « inchangé » sans seconde ligne (le verrou), et tout est annulé')
+  }
+  // ── UNE SONDE QUI VIOLE UNE CONTRAINTE DE LA TABLE NE PROUVE RIEN : ELLE ARRÊTE LA MIGRATION (§E.70) ──
+  //  Mesuré le 26/09/2026 : 36 appels de sonde, sur 16 migrations, journalisaient
+  //  un geste d'UTILISATEUR sans ACTEUR — `grand_livre_acteur_si_humain` refuse
+  //  (23514). Une partie ne demandait aucune donnée : elle aurait levé sur une base
+  //  vierge. Aucune de ces migrations n'avait tourné. La propriété, balayée sur
+  //  TOUTES les postconditions : une origine humaine n'est jamais suivie d'un
+  //  acteur nul, et l'écosystème d'un appel direct à journaliser() n'est jamais
+  //  un uuid aléatoire (clé étrangère vers domains).
+  {
+    const fautes = []
+    for (const f of TOUTES_MIGRATIONS) {
+      const src = SQL_PAR_MIGRATION.get(f)
+      const i = src.indexOf('do $post$')
+      if (i < 0) continue
+      const post = src.slice(i)
+      for (const m of post.matchAll(/'(utilisateur|administrateur)',\s*null\b/gi)) fautes.push(`${f} : origine ${m[1]} sans acteur`)
+      for (let from = 0; ; ) {
+        const k = post.indexOf('journaliser(', from)
+        if (k < 0) break
+        from = k + 'journaliser('.length
+        if (/\w/.test(post[k - 1] ?? ' ')) continue
+        const a = decouperArguments(blocApres(post.slice(k), 'journaliser(', '(', ')') ?? '')
+        if (/gen_random_uuid/.test(a[6] ?? '')) fautes.push(`${f} : écosystème aléatoire`)
+      }
+    }
+    ok(fautes.length === 0,
+      `aucune sonde ne viole une contrainte du grand livre — origine humaine ⇒ acteur, écosystème réel ou nul (${TOUTES_MIGRATIONS.length} migrations balayées)`,
+      fautes.slice(0, 6).join('\n         ') || undefined)
   }
   // Le moteur : une migration par étape, chacune sonde la forme exacte que le module écrit, dans les DEUX sens.
   const sondeRecherche = (suffixe, code, statut, forme, statutRefuse) => {

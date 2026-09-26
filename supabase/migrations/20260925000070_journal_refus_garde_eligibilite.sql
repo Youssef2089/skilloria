@@ -31,7 +31,7 @@ begin
   end if;
   -- SONDE — la forme exacte que le code envoie est ACCEPTÉE, au statut imposé, puis annulée.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'refus_garde_eligibilite', 'refuse', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'refus_garde_eligibilite', 'refuse', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
                                jsonb_build_object('code', 'already_applied', 'profile_id', gen_random_uuid()),
                                null::uuid, null::numeric, null::text);
@@ -46,7 +46,7 @@ begin
   end;
   -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
-    perform public.journaliser(gen_random_uuid(), 'refus_garde_eligibilite', 'refuse', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'refus_garde_eligibilite', 'refuse', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
                                '{"code":"already_applied","message":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

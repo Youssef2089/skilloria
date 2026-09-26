@@ -110,7 +110,7 @@ begin
     raise notice 'postcondition : sonde cloturer_annonce SAUTEE — aucune annonce publiee (base vierge)';
   else
     begin
-      v_ok := public.cloturer_annonce(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_ok := public.cloturer_annonce(v_piece, null::uuid, 'systeme', null::uuid, null::text,
                                       v_pub.id, v_pub.domain_id, v_pub.organization_id, array['published']);
       if v_ok is distinct from true then
         raise exception 'postcondition NON TENUE : la cloture n a pas abouti';
@@ -126,7 +126,7 @@ begin
         raise exception 'postcondition NON TENUE : la ligne annonce_depubliee manque ou ne porte pas son detail';
       end if;
       -- LE REJEU : false, aucune seconde ligne.
-      v_ok2 := public.cloturer_annonce(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_ok2 := public.cloturer_annonce(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
                                        v_pub.id, v_pub.domain_id, v_pub.organization_id, array['published']);
       select count(*) into v_lignes from public.grand_livre g where g.type_action = 'annonce_depubliee' and g.sujet_id = v_pub.id;
       if v_ok2 is distinct from false or v_lignes <> 1 then
@@ -141,7 +141,7 @@ begin
   end if;
   -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
-    perform public.journaliser(gen_random_uuid(), 'annonce_depubliee', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'annonce_depubliee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
                                '{"de":"published","vers":"archived","reason":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

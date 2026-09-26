@@ -31,7 +31,7 @@ begin
   end if;
   -- SONDE — la forme exacte que le module écrit est ACCEPTÉE, puis annulée.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'profil_modifie', 'reussi', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'profil_modifie', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                jsonb_build_object('champs', jsonb_build_array('title', 'skills'), 'blocs', jsonb_build_array('experiences')),
                                null::uuid, null::numeric, null::text);
@@ -46,7 +46,7 @@ begin
   end;
   -- SONDE — le CONTENU d'un champ est REFUSÉ (la liste blanche tient) : seuls les noms passent.
   begin
-    perform public.journaliser(gen_random_uuid(), 'profil_modifie', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'profil_modifie', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                '{"champs":["summary"],"summary":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

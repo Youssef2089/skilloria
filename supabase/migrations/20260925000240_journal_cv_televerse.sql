@@ -33,11 +33,11 @@ begin
   -- faite (statut reussi, comptes), l'analyse en échec (statut echoue, sans
   -- comptes) — puis annulées.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'cv_televerse', 'reussi', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'cv_televerse', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                jsonb_build_object('octets', 184320, 'analyse', 'done', 'premier_consentement', true, 'experiences', 4, 'formations', 2, 'langues', 3),
                                null::uuid, null::numeric, null::text);
-    v_id2 := public.journaliser(gen_random_uuid(), 'cv_televerse', 'echoue', 'utilisateur',
+    v_id2 := public.journaliser(gen_random_uuid(), 'cv_televerse', 'echoue', 'systeme',
                                 null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                 jsonb_build_object('octets', 184320, 'analyse', 'failed', 'premier_consentement', false),
                                 null::uuid, null::numeric, null::text);
@@ -52,7 +52,7 @@ begin
   end;
   -- SONDE — l'EMPREINTE du fichier est REFUSÉE (la liste blanche tient) : elle identifie un contenu.
   begin
-    perform public.journaliser(gen_random_uuid(), 'cv_televerse', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'cv_televerse', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                '{"octets":184320,"analyse":"done","cv_hash":"9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"}'::jsonb,
                                null::uuid, null::numeric, null::text);

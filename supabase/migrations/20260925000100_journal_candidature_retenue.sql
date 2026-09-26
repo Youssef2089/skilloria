@@ -109,7 +109,7 @@ begin
     raise notice 'postcondition : sonde retenir_candidature SAUTEE — aucune candidature devoilee en base';
   else
     begin
-      v_quand := public.retenir_candidature(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_quand := public.retenir_candidature(v_piece, null::uuid, 'systeme', null::uuid, null::text,
                                             v_cand, v_domaine, v_org, array['unlocked']);
       if v_quand is null
          or not exists (select 1 from public.candidatures c where c.id = v_cand and c.status = 'selected' and c.selected_at = v_quand) then
@@ -122,7 +122,7 @@ begin
         raise exception 'postcondition NON TENUE : la ligne candidature_retenue manque ou ne porte pas son detail';
       end if;
       -- LE REJEU : transition désormais invalide — null, et aucune seconde ligne.
-      v_quand2 := public.retenir_candidature(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_quand2 := public.retenir_candidature(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
                                              v_cand, v_domaine, v_org, array['unlocked']);
       select count(*) into v_lignes from public.grand_livre g where g.type_action = 'candidature_retenue' and g.sujet_id = v_cand;
       if v_quand2 is not null or v_lignes <> 1 then

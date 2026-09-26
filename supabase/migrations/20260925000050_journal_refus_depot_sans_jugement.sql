@@ -99,7 +99,7 @@ begin
   end if;
   -- SONDE — un statut autre que `refuse` est REFUSÉ par la base pour cette action (GL003).
   begin
-    perform public.journaliser(gen_random_uuid(), 'refus_depot_sans_jugement', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'refus_depot_sans_jugement', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, null::text, null::uuid,
                                '{"cause":"plafond"}'::jsonb, null::uuid, null::numeric, null::text);
     raise exception 'postcondition NON TENUE : refus_depot_sans_jugement accepte le statut reussi';
@@ -119,7 +119,7 @@ begin
   else
     begin
       perform public.ouvrir_depot_candidature(v_pub, v_prof, v_domaine, 'sonde', v_piece);
-      v_solde := public.solder_depot_en_echec(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_solde := public.solder_depot_en_echec(v_piece, null::uuid, 'systeme', null::uuid, null::text,
                                               v_pub, v_prof, 'plafond', 'sonde : panne simulee');
       select d.id into v_id from public.candidature_depots d where d.publication_id = v_pub and d.profile_id = v_prof and d.etat = 'echec' and d.cause = 'plafond';
       if v_solde is distinct from true or v_id is null then

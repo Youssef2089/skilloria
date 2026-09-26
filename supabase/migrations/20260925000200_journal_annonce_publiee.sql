@@ -121,7 +121,7 @@ begin
     raise notice 'postcondition : sonde publier_annonce SAUTEE — aucun brouillon (base vierge)';
   else
     begin
-      v_res := public.publier_annonce(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res := public.publier_annonce(v_piece, null::uuid, 'systeme', null::uuid, null::text,
                                       v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
                                       'published', 8.5, 'ai_publication_quality', '{"score":8.5,"notes":"sonde","flags":[]}'::jsonb);
       if v_res is null or v_res ->> 'status' <> 'published' or (v_res ->> 'published_at') is null then
@@ -137,7 +137,7 @@ begin
         raise exception 'postcondition NON TENUE : la ligne annonce_publiee manque ou ne porte pas son detail';
       end if;
       -- LE REJEU : le statut n'est plus admis, null, aucune seconde ligne.
-      v_res2 := public.publier_annonce(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res2 := public.publier_annonce(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
                                        v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
                                        'published', 8.5, 'ai_publication_quality', '{}'::jsonb);
       select count(*) into v_lignes from public.grand_livre g where g.type_action = 'annonce_publiee' and g.sujet_id = v_pub.id;
@@ -146,7 +146,7 @@ begin
       end if;
       -- LE VERDICT QUI NE PUBLIE PAS : verdict écrit, aucune ligne.
       update public.publications set status = 'draft', published_at = null where id = v_pub.id;
-      v_res2 := public.publier_annonce(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res2 := public.publier_annonce(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
                                        v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
                                        'pending_review', 4.0, 'ai_publication_quality', '{}'::jsonb);
       select count(*) into v_lignes from public.grand_livre g where g.type_action = 'annonce_publiee' and g.sujet_id = v_pub.id;
@@ -162,7 +162,7 @@ begin
   end if;
   -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
-    perform public.journaliser(gen_random_uuid(), 'annonce_publiee', 'reussi', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'annonce_publiee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
                                '{"type":"mission","title":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

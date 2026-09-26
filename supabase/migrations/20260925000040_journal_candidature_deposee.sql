@@ -254,7 +254,7 @@ begin
          or not exists (select 1 from public.candidature_depots d where d.publication_id = v_pub and d.profile_id = v_prof and d.piece = v_piece and d.etat = 'en_cours') then
         raise exception 'postcondition NON TENUE : le journal du depot ne porte pas la piece';
       end if;
-      v_res := public.inserer_candidature_jugee(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res := public.inserer_candidature_jugee(v_piece, null::uuid, 'systeme', null::uuid, null::text,
         jsonb_build_object('publication_id', v_pub, 'profile_id', v_prof, 'match_id', v_match, 'domain_id', v_domaine,
                            'ai_match_score', 7, 'ai_assessment', jsonb_build_object('reason', 'sonde', 'pitch_org', 'sonde', 'model', 'sonde'),
                            'ai_model', 'sonde', 'status', 'received', 'preview', '{}'::jsonb),
@@ -273,7 +273,7 @@ begin
         raise exception 'postcondition NON TENUE : la ligne candidature_deposee manque ou ne porte pas son detail';
       end if;
       -- LA CONCURRENTE : même couple, autre pièce — rien n'est écrit, rien n'est journalisé.
-      v_res2 := public.inserer_candidature_jugee(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res2 := public.inserer_candidature_jugee(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
         jsonb_build_object('publication_id', v_pub, 'profile_id', v_prof, 'match_id', v_match, 'domain_id', v_domaine,
                            'ai_match_score', 7, 'ai_assessment', jsonb_build_object('reason', 'sonde', 'pitch_org', 'sonde', 'model', 'sonde'),
                            'ai_model', 'sonde', 'status', 'received', 'preview', '{}'::jsonb),

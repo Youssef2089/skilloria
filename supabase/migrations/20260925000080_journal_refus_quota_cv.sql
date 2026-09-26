@@ -29,7 +29,7 @@ begin
   end if;
   -- SONDE — la forme exacte que le code envoie est ACCEPTÉE, au statut imposé, puis annulée.
   begin
-    v_id := public.journaliser(gen_random_uuid(), 'refus_quota_cv', 'refuse', 'utilisateur',
+    v_id := public.journaliser(gen_random_uuid(), 'refus_quota_cv', 'refuse', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                jsonb_build_object('quota', 'cv_parsing', 'limite', 3, 'fenetre_heures', 24, 'reset_at', now(), 'compte', 3),
                                null::uuid, null::numeric, null::text);
@@ -44,7 +44,7 @@ begin
   end;
   -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
-    perform public.journaliser(gen_random_uuid(), 'refus_quota_cv', 'refuse', 'utilisateur',
+    perform public.journaliser(gen_random_uuid(), 'refus_quota_cv', 'refuse', 'systeme',
                                null::uuid, null::text, null::uuid, 'profiles', gen_random_uuid(),
                                '{"quota":"cv_parsing","message":"texte libre"}'::jsonb,
                                null::uuid, null::numeric, null::text);

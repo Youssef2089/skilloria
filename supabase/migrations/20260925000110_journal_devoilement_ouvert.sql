@@ -140,7 +140,7 @@ begin
     raise notice 'postcondition : sonde devoiler_candidature SAUTEE — aucune candidature en transition admise (base vierge)';
   else
     begin
-      v_res := public.devoiler_candidature(v_piece, null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res := public.devoiler_candidature(v_piece, null::uuid, 'systeme', null::uuid, null::text,
                                            v_cand, array['received', 'in_review', 'shortlisted'], now() + interval '15 days', false);
       if v_res ->> 'issue' <> 'devoilee' or (v_res ->> 'conversation_id') is null then
         raise exception 'postcondition NON TENUE : le devoilement n a pas abouti [%]', v_res;
@@ -156,7 +156,7 @@ begin
         raise exception 'postcondition NON TENUE : la ligne devoilement_ouvert manque ou ne porte pas son detail';
       end if;
       -- LE REJEU : « déjà », même conversation, aucune seconde ligne.
-      v_res2 := public.devoiler_candidature(gen_random_uuid(), null::uuid, 'utilisateur', null::uuid, null::text,
+      v_res2 := public.devoiler_candidature(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
                                             v_cand, array['received', 'in_review', 'shortlisted'], now() + interval '15 days', true);
       select count(*) into v_lignes from public.grand_livre g where g.type_action = 'devoilement_ouvert' and g.sujet_id = v_cand;
       if v_res2 ->> 'issue' <> 'deja' or v_res2 ->> 'conversation_id' <> v_res ->> 'conversation_id' or v_lignes <> 1 then

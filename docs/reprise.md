@@ -51,6 +51,12 @@
 (série statique ; 5 muets attendus : 3 écartés parce qu'ils écrivent, 2 qui plantent sur l'environnement Windows) ·
 mutation du nouveau contrôle, **après** le commit.
 
+## ⚠️ Les migrations du lot n'ont JAMAIS tourné (§E.70)
+
+Mesuré le 26/09/2026 : 22 sondes ne demandant aucune donnée auraient levé sur une base vierge — donc
+aucune migration de l'étape 2 n'avait été rejouée. Corrigées en place (non appliquées nulle part) et
+gardées par un contrôle de classe. **Le rejeu sur base jetable avant staging n'est pas une formalité.**
+
 ## Migrations depuis `origin/feat/sprint-archi-orga`
 
 `git diff --name-only origin/feat/sprint-archi-orga -- supabase/migrations` — à rejouer sur une base jetable
