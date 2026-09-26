@@ -107,7 +107,7 @@ export const CLES_DETAIL = {
   membre_invite: ['role_in_org', 'domain_validation_passed', 'email_already_exists'],
   invitation_renvoyee: [],
   invitation_acceptee: [],
-  invitation_revoquee: [],
+  invitation_revoquee: ['de', 'vers', 'role_in_org'],
   membre_retire: [],
   membre_parti: [],
   role_membre_change: [],

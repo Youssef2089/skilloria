@@ -1,3 +1,4 @@
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
@@ -48,6 +49,13 @@ const ROLE_LABELS: Record<string, Record<string, string>> = {
   de: { admin: 'Administrator', editor: 'Bearbeiter', viewer: 'Leser' },
 }
 
+/**
+ * D'OÙ l'on peut encore agir sur une invitation. La liste part EN PARAMÈTRE
+ * à la RPC : la fonction SQL ne porte aucun littéral de statut, et la garde
+ * applicative ci-dessous lit la MÊME liste — un seul endroit à changer.
+ */
+const INVITATION_MODIFIABLE = ['pending'] as const
+
 type Ctx = { params: Promise<{ id: string }> }
 
 export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
@@ -59,6 +67,8 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // ── LA DURÉE DE VALIDITÉ EST LUE ICI, PAR LA ROUTE ───────────────────────
   //  Elle vivait EN DUR, et dans DEUX fichiers (celui-ci et son jumeau).
@@ -101,19 +111,34 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   if (!inv || inv.organization_id !== org.id) {
     return json({ error: 'Invitation not found', code: 'not_found' }, 404)
   }
-  if (inv.status !== 'pending') {
+  if (!(INVITATION_MODIFIABLE as readonly string[]).includes(inv.status)) {
     return json({ error: 'Invitation not pending', code: 'not_pending' }, 409)
   }
 
   // ── Révocation ──────────────────────────────────────────────────────────────
   if (action === 'revoke') {
-    const { error: upErr } = await admin
-      .from('organization_invitations')
-      .update({ status: 'revoked', updated_at: new Date().toISOString() })
-      .eq('id', inv.id)
+    // ── LA RÉVOCATION ET SA LIGNE, EN UN SEUL APPEL (§D.26) ────────────────
+    //  La transition ET l'appartenance sont REJOUÉES sous verrou, dans la
+    //  fonction. La lecture ci-dessus date d'avant : deux administrateurs qui
+    //  révoquent au même instant franchissaient tous les deux la garde, et la
+    //  seconde révocation écrivait une seconde ligne au grand livre.
+    //  Zéro ligne rend `false` — la route répond 409, jamais un 200 qui n'a
+    //  rien fait (§E.27). Les statuts admis partent EN PARAMÈTRE : la fonction
+    //  SQL ne porte aucun littéral de statut, la garde et elle lisent la même
+    //  constante.
+    const { data: revoquee, error: upErr } = await admin.rpc('revoquer_invitation', {
+      ...parametresJournal(journal),
+      p_ecosysteme_id: auth.domain.id,
+      p_invitation_id: inv.id,
+      p_organization_id: org.id,
+      p_statuts_admis: [...INVITATION_MODIFIABLE],
+    })
     if (upErr) {
       console.error('[me/invitations/:id] revoke failed', upErr.message)
       return json({ error: 'Revoke failed', code: 'db_error' }, 500)
+    }
+    if (revoquee !== true) {
+      return json({ error: 'Invitation not pending', code: 'not_pending' }, 409)
     }
     await logAudit({
       supabaseAdmin: admin,
