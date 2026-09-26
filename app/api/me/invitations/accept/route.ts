@@ -3,6 +3,7 @@ import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { hashInvitationToken } from '@/lib/invitation-token'
 import { applyInvitation } from '@/lib/invitation-accept'
 import { joinBlockReason } from '@/lib/org-members'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -35,6 +36,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce naît à l'ENTRÉE du geste, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const admin = auth.supabaseAdmin
 
@@ -156,9 +159,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const result = await applyInvitation({
     admin,
+    journal,
     invitation,
     userId: auth.user.id,
-    verifiedEmail,
     domainId: auth.domain.id,
   })
 

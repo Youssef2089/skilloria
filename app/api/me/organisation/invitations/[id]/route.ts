@@ -12,6 +12,7 @@ import { renderInvitationEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { siteOriginPourRequete } from '@/lib/site-url'
+import { INVITATION_MODIFIABLE } from '@/lib/invitation-accept'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -48,13 +49,6 @@ const ROLE_LABELS: Record<string, Record<string, string>> = {
   es: { admin: 'Administrador', editor: 'Editor', viewer: 'Lector' },
   de: { admin: 'Administrator', editor: 'Bearbeiter', viewer: 'Leser' },
 }
-
-/**
- * D'OÙ l'on peut encore agir sur une invitation. La liste part EN PARAMÈTRE
- * à la RPC : la fonction SQL ne porte aucun littéral de statut, et la garde
- * applicative ci-dessous lit la MÊME liste — un seul endroit à changer.
- */
-const INVITATION_MODIFIABLE = ['pending'] as const
 
 type Ctx = { params: Promise<{ id: string }> }
 

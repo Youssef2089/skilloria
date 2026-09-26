@@ -106,7 +106,7 @@ export const CLES_DETAIL = {
   telephone_verifie: ['methode'],
   membre_invite: ['role_in_org', 'domain_validation_passed', 'email_already_exists'],
   invitation_renvoyee: ['role_in_org', 'expires_at'],
-  invitation_acceptee: [],
+  invitation_acceptee: ['organization_id', 'role_in_org', 'deja_membre', 'reintegre'],
   invitation_revoquee: ['de', 'vers', 'role_in_org'],
   membre_retire: [],
   membre_parti: [],

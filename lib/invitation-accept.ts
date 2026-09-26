@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
+import { parametresJournal, type ContexteJournal } from '@/lib/journal/contexte'
 
 /**
  * lib/invitation-accept.ts — logique d'acceptation d'invitation partagée par
@@ -10,92 +11,71 @@ import { logAudit } from '@/lib/audit'
  *
  * Dans les DEUX cas, l'acceptation exige que l'email de l'invitation corresponde
  * à l'email VÉRIFIÉ du user connecté (comparaison insensible à la casse). La
- * RLS n'autorisant pas un futur membre à s'insérer lui-même, l'INSERT dans
- * organization_members se fait en service-role.
+ * RLS n'autorisant pas un futur membre à s'insérer lui-même, l'écriture se fait
+ * en service-role — par la RPC `accepter_invitation()` (§D.26).
  */
+
+/**
+ * D'OÙ l'on peut encore agir sur une invitation — l'accepter, la révoquer, la
+ * renvoyer. La liste part EN PARAMÈTRE aux trois RPC : aucune fonction SQL ne
+ * porte de littéral de statut, et les gardes applicatives lisent la MÊME liste.
+ */
+export const INVITATION_MODIFIABLE = ['pending'] as const
 
 export type AcceptResult =
   | { ok: true; organizationId: string; alreadyMember: boolean }
   | { ok: false; code: 'not_found' | 'expired' | 'not_pending' | 'email_mismatch' | 'db_error' }
 
 /**
- * Applique une invitation déjà résolue (ligne complète) pour le user donné.
- * `verifiedEmail` DOIT être l'email vérifié du user (le caller garantit
- * email_verified = true avant d'appeler — A4).
+ * Applique une invitation déjà résolue pour le compte qui accepte.
+ *
+ * ═══ LES GARDES SONT REJOUÉES EN BASE, SOUS VERROU ════════════════════════
+ *   Statut, échéance et adresse vérifiée étaient jugés ici, sur une lecture
+ *   d'avant — deux clics simultanés les franchissaient tous les deux — puis
+ *   l'appartenance et l'invitation s'écrivaient en DEUX requêtes, et l'échec de
+ *   la seconde était avalé : un membre entrait, l'invitation restait acceptable.
+ *   `accepter_invitation()` verrouille l'invitation, rejoue les gardes (l'adresse
+ *   est LUE sur le compte, jamais reçue d'ici), écrit l'appartenance, solde
+ *   l'invitation et journalise `invitation_acceptee` : tout, ou rien.
+ *
+ *   L'appelant garantit `email_verified` avant d'appeler (A4) et le dit à
+ *   l'utilisateur ; la base le revérifie, parce qu'une garde qui repose sur
+ *   l'appelant n'est qu'une promesse.
  */
 export async function applyInvitation(params: {
   admin: SupabaseClient
-  invitation: {
-    id: string
-    organization_id: string
-    email: string
-    role_in_org: string
-    status: string
-    expires_at: string
-    invited_by: string | null
-  }
+  journal: ContexteJournal
+  invitation: { id: string; organization_id: string; role_in_org: string }
   userId: string
-  verifiedEmail: string
-  /** Le domaine de l'ACTEUR qui accepte — jamais nul : `audit_logs.domain_id` est NOT NULL. */
+  /** L'écosystème de la LIGNE — celui du compte qui accepte. `audit_logs.domain_id` est NOT NULL. */
   domainId: string
 }): Promise<AcceptResult> {
-  const { admin, invitation, userId, verifiedEmail, domainId } = params
+  const { admin, journal, invitation, userId, domainId } = params
 
-  if (invitation.status !== 'pending') return { ok: false, code: 'not_pending' }
-  if (new Date(invitation.expires_at).getTime() <= Date.now()) return { ok: false, code: 'expired' }
-  if (invitation.email.trim().toLowerCase() !== verifiedEmail.trim().toLowerCase()) {
-    return { ok: false, code: 'email_mismatch' }
-  }
-
-  // ── Déjà membre ? (idempotence : réactive une ligne 'removed', ne duplique pas) ──
-  const { data: existing, error: exErr } = await admin
-    .from('organization_members')
-    .select('id, status')
-    .eq('organization_id', invitation.organization_id)
-    .eq('user_id', userId)
-    .maybeSingle()
-  if (exErr) {
-    console.error('[invitation-accept] member lookup failed', exErr.message)
+  const { data, error } = await admin.rpc('accepter_invitation', {
+    ...parametresJournal(journal),
+    p_ecosysteme_id: domainId,
+    p_invitation_id: invitation.id,
+    p_statuts_admis: [...INVITATION_MODIFIABLE],
+  })
+  if (error) {
+    console.error('[invitation-accept] accepter_invitation failed', error.message)
     return { ok: false, code: 'db_error' }
   }
-
-  let alreadyMember = false
-  if (existing) {
-    if (existing.status === 'active') {
-      alreadyMember = true
-    } else {
-      // Réintégration : on réactive la ligne avec le rôle du token.
-      const { error: upErr } = await admin
-        .from('organization_members')
-        .update({ role_in_org: invitation.role_in_org, status: 'active', updated_at: new Date().toISOString() })
-        .eq('id', existing.id)
-      if (upErr) {
-        console.error('[invitation-accept] member reactivate failed', upErr.message)
-        return { ok: false, code: 'db_error' }
-      }
-    }
-  } else {
-    const { error: insErr } = await admin.from('organization_members').insert({
-      organization_id: invitation.organization_id,
-      user_id: userId,
-      role_in_org: invitation.role_in_org,
-      status: 'active',
-      invited_by: invitation.invited_by,
-    })
-    if (insErr) {
-      console.error('[invitation-accept] member insert failed', insErr.message)
+  const verdict = (data ?? {}) as { issue?: string; organization_id?: string; deja_membre?: boolean }
+  switch (verdict.issue) {
+    case 'acceptee':
+      break
+    case 'introuvable':
+      return { ok: false, code: 'not_found' }
+    case 'not_pending':
+    case 'expired':
+    case 'email_mismatch':
+      return { ok: false, code: verdict.issue }
+    default:
+      // Une issue inconnue n'est pas un succès (§E.30) : rien ne dit ce qui a été écrit.
+      console.error('[invitation-accept] issue inconnue', verdict)
       return { ok: false, code: 'db_error' }
-    }
-  }
-
-  // ── Marque l'invitation acceptée ────────────────────────────────────────────
-  const { error: invUpErr } = await admin
-    .from('organization_invitations')
-    .update({ status: 'accepted', accepted_at: new Date().toISOString() })
-    .eq('id', invitation.id)
-  if (invUpErr) {
-    console.error('[invitation-accept] invitation update failed', invUpErr.message)
-    // Le membre est déjà en place : on ne renvoie pas d'erreur bloquante.
   }
 
   await logAudit({
@@ -108,5 +88,5 @@ export async function applyInvitation(params: {
     detail: { organization_id: invitation.organization_id, role_in_org: invitation.role_in_org },
   })
 
-  return { ok: true, organizationId: invitation.organization_id, alreadyMember }
+  return { ok: true, organizationId: invitation.organization_id, alreadyMember: verdict.deja_membre === true }
 }

@@ -25,17 +25,17 @@
 | (c) le moteur, deux sens | `recherche_lancee`, `_filtree`, `_classee`, `_correspondances`, `_notifiee`, `_terminee`, `_echouee`, `_abandonnee` |
 | (d) annonce, profil, CV, disponibilité | `annonce_publiee`, `annonce_modifiee`, `annonce_depubliee`, `annonce_expiree`, `cv_televerse`, `profil_publie`, `profil_modifie`, `disponibilite_basculee` |
 | (e) comptes | `compte_suspendu`, `compte_reactive`, `compte_valide`, `compte_refuse`, `session_revoquee`, `suppression_programmee`, `suppression_annulee`, `email_change`, `mot_de_passe_change`, `telephone_verifie` |
-| (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee` |
+| (e) gouvernance | `membre_invite`, `invitation_revoquee` (`bd77104`), `invitation_renvoyee`, `invitation_acceptee` |
 
-**Compte : 44 / 55.**
+**Compte : 45 / 55.**
 
 ## En cours
 
-- (e) gouvernance : `invitation_acceptee` — `app/api/me/invitations/accept` et `lib/invitation-accept.ts`.
+- (e) gouvernance : `role_membre_change`, `membre_retire`, `membre_parti` — par `maj_membre_organisation()` (le seul chemin d’écriture sur un membre), code DÉRIVÉ du geste, ancienne signature supprimée.
 
 ## Reste, dans l'ordre
 
-1. (e) `membre_retire`, `membre_parti`, `role_membre_change`.
+1. (e) terminé avec la ligne ci-dessus.
 2. (f) `sous_traitance_publiee`, `sous_traitance_candidature`.
 3. (g) `inactivite_avertie`, `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin` ; `message_envoye` ;
    **les « dix routes sans trace »** : la liste n'est écrite nulle part dans le dépôt — elle sera **mesurée**
