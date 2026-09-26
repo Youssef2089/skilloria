@@ -1,0 +1,131 @@
+-- ════════════════════════════════════════════════════════════════════════════
+--  LES FABRIQUES DES TESTS DU GRAND LIVRE — incluses par chaque test (\ir).
+-- ════════════════════════════════════════════════════════════════════════════
+--
+--  Fonctions `pg_temp` : elles meurent avec la session, rien ne survit.
+--  Extension `.psql`, pas `.sql` : `supabase test db` ne la prend pas pour un test.
+--
+--  CHEMINS NORMAUX, AUCUN CONTOURNEMENT (point 2.1) :
+--   · un compte naît par `auth.users` → `on_auth_user_created` → `handle_new_user`,
+--     et la fabrique VÉRIFIE que `public.users` existe (le trigger avale certaines
+--     erreurs : un rôle inconnu ne crée pas de miroir) ;
+--   · une organisation naît par `creer_organisation_avec_admin()`, avec son siège ;
+--   · une annonce publiée passe par `publier_annonce()` ; une candidature par
+--     `ouvrir_depot_candidature()` puis `inserer_candidature_jugee()` ;
+--   · jamais `session_replication_role`, jamais un trigger désactivé.
+--  RIEN EN DUR : l'écosystème et la zone de travail sont LUS en base.
+--  RGPD : aucune vraie donnée — adresses en `.invalid`, noms « Sonde ».
+-- ─────────────────────────────────────────────────────────────────────────────
+
+-- L'écosystème : un domaine ACTIF, lu en base (le paramétrage de production en sème un).
+create or replace function pg_temp.fab_domaine() returns uuid
+language plpgsql as $$
+declare v uuid;
+begin
+  select d.id into v from public.domains d where d.active order by d.slug limit 1;
+  if v is null then raise exception 'fabrique : aucun domaine actif en base'; end if;
+  return v;
+end $$;
+
+-- Un compte, par le parcours d'inscription. p_role : 'expert' | 'cdi' | 'entreprise' | 'cabinet'.
+create or replace function pg_temp.fab_compte(p_role text) returns uuid
+language plpgsql as $$
+declare
+  v_id   uuid := gen_random_uuid();
+  v_slug text;
+begin
+  select d.slug into v_slug from public.domains d where d.id = pg_temp.fab_domaine();
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
+          'sonde+' || v_id || '@exemple.invalid', '', now(), '{}'::jsonb,
+          jsonb_build_object('role', p_role, 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Essai'),
+          now(), now());
+  if not exists (select 1 from public.users u where u.id = v_id) then
+    raise exception 'fabrique : handle_new_user n a PAS cree public.users pour % (role %)', v_id, p_role;
+  end if;
+  return v_id;
+end $$;
+
+-- Un administrateur plateforme : le parcours de création d'administrateur (compte, puis type admin, actif).
+create or replace function pg_temp.fab_admin() returns uuid
+language plpgsql as $$
+declare v uuid := pg_temp.fab_compte('entreprise');
+begin
+  update public.users set user_type = 'admin', status = 'active' where id = v;
+  return v;
+end $$;
+
+-- Le profil d'un expert fraîchement inscrit (p_role : 'expert' ou 'cdi').
+create or replace function pg_temp.fab_profil(p_role text default 'expert') returns uuid
+language plpgsql as $$
+declare
+  v_user uuid := pg_temp.fab_compte(p_role);
+  v      uuid;
+begin
+  select p.id into v from public.profiles p where p.user_id = v_user;
+  if v is null then raise exception 'fabrique : handle_new_user n a PAS cree le profil de %', v_user; end if;
+  return v;
+end $$;
+
+-- Une organisation, née avec son administrateur et son siège.
+create or replace function pg_temp.fab_organisation(p_admin uuid) returns uuid
+language plpgsql as $$
+declare v uuid;
+begin
+  v := public.creer_organisation_avec_admin(p_admin, pg_temp.fab_domaine(), 'client', 'Sonde SAS', 'FR');
+  if not exists (select 1 from public.organizations o where o.id = v and o.siege_admin_membre_id is not null) then
+    raise exception 'fabrique : l organisation % est nee sans siege', v;
+  end if;
+  return v;
+end $$;
+
+-- Une annonce en brouillon (p_type : 'mission' | 'offre' | 'sous_traitance'), zone de travail lue en base.
+create or replace function pg_temp.fab_brouillon(p_org uuid, p_type text default 'mission') returns uuid
+language plpgsql as $$
+declare
+  v      uuid;
+  v_zone uuid;
+begin
+  select z.id into v_zone from public.work_zones z order by z.id limit 1;
+  if v_zone is null then raise exception 'fabrique : aucune zone de travail en base'; end if;
+  insert into public.publications (organization_id, domain_id, type, title, description, work_zone_ids, status)
+  values (p_org, pg_temp.fab_domaine(), p_type, 'Sonde', 'Annonce de sonde', array[v_zone], 'draft')
+  returning id into v;
+  return v;
+end $$;
+
+-- Une annonce PUBLIÉE, par le chemin de publication (sa propre pièce).
+create or replace function pg_temp.fab_annonce_publiee(p_org uuid, p_admin uuid, p_type text default 'mission') returns uuid
+language plpgsql as $$
+declare
+  v   uuid := pg_temp.fab_brouillon(p_org, p_type);
+  v_r jsonb;
+begin
+  v_r := public.publier_annonce(gen_random_uuid(), null, 'utilisateur', p_admin, 'client',
+                                v, pg_temp.fab_domaine(), p_org, array['draft'],
+                                'published', 8, 'sonde', '{}'::jsonb);
+  if v_r ->> 'status' is distinct from 'published' then raise exception 'fabrique : publication echouee [%]', v_r; end if;
+  return v;
+end $$;
+
+-- Une candidature jugée, par le dépôt en deux temps (sa propre pièce).
+create or replace function pg_temp.fab_candidature(p_pub uuid, p_profil uuid) returns uuid
+language plpgsql as $$
+declare
+  v_piece uuid := gen_random_uuid();
+  v_r     jsonb;
+begin
+  perform public.ouvrir_depot_candidature(p_pub, p_profil, pg_temp.fab_domaine(), 'sonde', v_piece);
+  v_r := public.inserer_candidature_jugee(v_piece, null, 'systeme', null, null,
+    jsonb_build_object('publication_id', p_pub, 'profile_id', p_profil, 'domain_id', pg_temp.fab_domaine(),
+                       'ai_match_score', 7, 'ai_assessment', jsonb_build_object('reason', 'sonde', 'pitch_org', 'sonde', 'model', 'sonde'),
+                       'ai_model', 'sonde', 'status', 'received', 'preview', '{}'::jsonb),
+    'sonde');
+  if v_r ->> 'id' is null then raise exception 'fabrique : candidature non creee'; end if;
+  return (v_r ->> 'id')::uuid;
+end $$;
+
+-- Le nombre de lignes du grand livre sous une pièce (un geste = UNE ligne, sauf exception dite).
+create or replace function pg_temp.lignes(p_piece uuid) returns bigint
+language sql as $$ select count(*) from public.grand_livre g where g.piece = p_piece $$;

@@ -49,7 +49,8 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 | 2.11 passif SANS ligne : annonces marquées par la migration (`annonce_active()`) ; dévoilements par la date de mise en service (`constats_mise_en_service`, issue fermée `constate`/`passif`/`deja`) ; §E.72 la règle des signatures supprimées ; secrets du Vault → requête de staging (la tâche reste HTTP : la règle des dévoilements vit en TS) ; index unique, colonnes, index §E.69, surcharges → requête de staging | fait | ce commit |
 | 2.7 le chevauchement s'écrit : `refus_recherche_en_cours` (migration `20260926000000`, écrivain unique, sur `occupe` seulement) ; la liste fermée compte 56 actions ; langue des codes reportée, écrite dans CLAUDE.md | fait | voir `git log` |
 | 2.8 les portes latérales : 13 mesurées, 12 fermées (migration `20260926000010`), `profiles_self_update` reste ouverte — DÉFAUT NOMMÉ, arbitrage (les bascules de disponibilité des tableaux de bord écrivent `profiles` depuis le navigateur et n'écrivent pas `disponibilite_basculee`) ; `diag-portes-laterales` | fait, arbitrage demandé | ce commit |
-| 2.1, 2.4, 2.12, 2.13 | à faire | — |
+| 2.1 les tests pgTAP : **22 fichiers, 157 assertions** (et non 24 fichiers : les gestes d'une même famille partagent un fichier — invitations, membres, purges, réglages ; plus `socle` et `refus_recherche_en_cours`) ; **38 fonctions créées depuis le socle, 38 appelées** (les 35 de l'inventaire, les 7 sans sonde comprises, plus les 3 du socle) ; 33/56 actions citées, 23 au gel à raisons (22 écrites par le TypeScript, `journal_nettoye` sans écrivain avant l'étape 4) ; `diag-tests-grand-livre` ; CLAUDE.md §G.4 ter. **AUCUN test n'a tourné** : pas de Docker ici — `test db --local` est à lancer par Youssef | fait, non exécuté | ce commit |
+| 2.4, 2.12, 2.13 | à faire | — |
 
 ## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 

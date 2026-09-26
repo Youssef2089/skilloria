@@ -74,7 +74,7 @@ npm run db:pull          # pull remote schema into a migration
 npm run db:lint         # lint the schema
 ```
 
-There is **no test framework**. Verification is done via ad-hoc diagnostic scripts in `scripts/` (`diag-*.mjs`, run with `node`), which connect to Supabase with the service-role key and exercise real flows (matching, verification, messaging). Use them as the pattern when you need to validate a backend change end-to-end.
+**⚠️ PÉRIMÉ depuis le 26/09/2026 — voir §G.4 ter** : la base a des tests **pgTAP** (`supabase/tests/database/`, lancés par `npx supabase test db --local`), et toute action nouvelle du grand livre arrive avec son test. Le reste de ce paragraphe vaut toujours pour le code applicatif. ~~There is **no test framework**.~~ Verification is done via ad-hoc diagnostic scripts in `scripts/` (`diag-*.mjs`, run with `node`), which connect to Supabase with the service-role key and exercise real flows (matching, verification, messaging). Use them as the pattern when you need to validate a backend change end-to-end.
 
 Environment is targeted per-remote with `supabase link <ref>` (staging ref `wnayuerhakekxccgimeg`); the linked ref lives in gitignored `supabase/.temp/`, so `config.toml` itself is env-agnostic.
 
@@ -367,6 +367,23 @@ marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **
 > ⚠️ **UNE BASE VIERGE NE REJOUE PAS LES CAS DE DONNÉES.** Les postconditions qui comparent des
 > totaux, comptent des lignes antérieures ou tolèrent un passé daté passent **trivialement** sur du
 > vide. Le reset prouve le **DDL et la logique** ; pas ce qui dépend des lignes de staging.
+
+**G.4 ter — LES TESTS pgTAP : TOUTE ACTION NOUVELLE ARRIVE AVEC SON TEST.**
+Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/09/2026, 2 des 34
+écrivains du grand livre avaient exécuté leur écriture. Les tests font tourner **chaque** fonction.
+· **Où** : `supabase/tests/database/grand_livre/*.test.sql`, un fichier par geste (ou famille), et
+  `_fabriques.psql` (inclus par `\ir` ; extension `.psql` pour que l'outil ne le prenne pas pour un test).
+· **Comment** : `npx supabase test db --local`, sur la base rejouée par `db reset --local` — **jamais**
+  sur la base liée ni par URL (le contrôle rougit si la commande apparaît avec l'une ou l'autre).
+· **Forme** : `begin;` … `rollback;` — rien ne survit ; chaque test fabrique ses données par les
+  **chemins normaux** (un compte naît par `auth.users` → `handle_new_user`, et la fabrique vérifie que
+  `public.users` existe ; une organisation naît avec son siège), exécute la fonction, vérifie l'effet
+  métier **et exactement une ligne** sous la pièce du geste, le refus et le rejeu quand il y en a.
+  Jamais `session_replication_role`, jamais un trigger désactivé.
+· **Gardé** par [scripts/diag-tests-grand-livre.mjs](scripts/diag-tests-grand-livre.mjs) : toute fonction
+  créée depuis le socle est appelée par un test, toute action de la liste fermée est testée **ou** au gel
+  avec sa raison (écrite par le TypeScript) — le gel ne fait que descendre. **Il ne dit pas que les tests
+  passent** : seul `test db --local` le dit, et c'est Youssef qui le lance.
 
 **G.5 — Le diagnostic s'éprouve par MUTATION.** Écrire le contrôle ne suffit pas : il faut casser
 délibérément la règle et vérifier que le contrôle **rougit**, puis la rétablir. C'est ainsi qu'ont été
