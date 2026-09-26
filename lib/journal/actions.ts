@@ -56,6 +56,8 @@ export const ACTIONS_JOURNAL = [
   'journal_nettoye',
   // refus — nommés explicitement, statut imposé « refuse » en base
   'refus_plafond_atteint', 'refus_expert_inapte', 'refus_garde_eligibilite', 'refus_quota_cv', 'refus_depot_sans_jugement',
+  // une recherche écartée parce qu'une autre tient le bail de l'expert (§D.22) — migration `journal_refus_recherche_en_cours`
+  'refus_recherche_en_cours',
 ] as const
 
 export type TypeAction = (typeof ACTIONS_JOURNAL)[number]
@@ -171,4 +173,5 @@ export const CLES_DETAIL = {
   refus_garde_eligibilite: ['code', 'profile_id'],
   refus_quota_cv: ['quota', 'limite', 'fenetre_heures', 'reset_at', 'compte'],
   refus_depot_sans_jugement: ['publication_id', 'profile_id', 'cause', 'tentative'],
+  refus_recherche_en_cours: ['tache'],
 } as const satisfies Record<TypeAction, readonly string[]>

@@ -9,7 +9,7 @@ import { buildAnnonceQuery, buildExpertDocument, documentUtilisable } from './do
 import { rerankerTout, type DocumentANoter } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, pickRel, type NotifySpec } from './shared'
-import { JournalDeRecherche } from './journal-de-recherche'
+import { JournalDeRecherche, refusRechercheEnCours } from './journal-de-recherche'
 import type { VerdictExpert } from './types'
 import {
   COLONNES_COMPTE,
@@ -219,6 +219,11 @@ export async function runMatchingForExpert(args: {
       profileId,
       bail,
     })
+    // L'HISTORIQUE DES PASSAGES EST COMPLET (décision du 26/09/2026) : une
+    // recherche ÉCARTÉE parce qu'une autre tient le bail s'écrit, sous la pièce du
+    // geste qui l'a déclenchée. Un bail illisible (`erreur`) est une panne, pas un
+    // refus : il ne s'écrit pas ici (§E.22).
+    if (bail === 'occupe') await refusRechercheEnCours(supabaseAdmin, args.journal, profileId)
     return {
       status: 'empty_pool',
       proposals: [],

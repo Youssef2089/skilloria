@@ -229,10 +229,23 @@ function listesBlanchesSql() {
 section('A. La liste fermée des actions — SQL et TypeScript disent la même chose')
 let codesSqlGlobal = new Set()
 {
-  const iSeed = SQL.indexOf('insert into public.grand_livre_actions (code, famille, statut_impose, libelle_key) values')
-  const seed = iSeed < 0 ? '' : SQL.slice(iSeed, SQL.indexOf('on conflict (code)', iSeed))
-  const lignes = [...seed.matchAll(/\(\s*'([a-z0-9_]+)',\s*'([a-z]+)',\s*(null|'[a-z]+'),\s*'([a-z0-9_.]+)'\s*\)/g)]
-    .map((m) => ({ code: m[1], famille: m[2], impose: m[3] === 'null' ? null : m[3].slice(1, -1), cle: m[4] }))
+  // LA LISTE S'ÉTEND PAR MIGRATION : le seed du socle, PUIS chaque migration ultérieure qui
+  // insère dans grand_livre_actions (même forme d'insertion) — lues TOUTES, jamais une liste
+  // de fichiers tenue à la main (§E.61).
+  const lignes = []
+  for (const f of TOUTES_MIGRATIONS) {
+    const src = SQL_PAR_MIGRATION.get(f)
+    for (let from = 0; ; ) {
+      const iSeed = src.indexOf('insert into public.grand_livre_actions (code, famille, statut_impose, libelle_key) values', from)
+      if (iSeed < 0) break
+      const fin = src.indexOf('on conflict (code)', iSeed)
+      const seed = src.slice(iSeed, fin < 0 ? undefined : fin)
+      from = iSeed + 10
+      for (const m of seed.matchAll(/\(\s*'([a-z0-9_]+)',\s*'([a-z]+)',\s*(null|'[a-z]+'),\s*'([a-z0-9_.]+)'\s*\)/g)) {
+        lignes.push({ code: m[1], famille: m[2], impose: m[3] === 'null' ? null : m[3].slice(1, -1), cle: m[4], f })
+      }
+    }
+  }
   const codesSql = new Set(lignes.map((l) => l.code))
   codesSqlGlobal = codesSql
   const ts = stripTs(read('lib/journal/actions.ts'))
@@ -251,8 +264,10 @@ let codesSqlGlobal = new Set()
   ok(manquantes.length === 0, 'les quinze actions imposées par le mandat sont là (refus nommés, trois purges, journal, les manquantes)',
     manquantes.length ? `manquantes : ${manquantes.join(', ')}` : undefined)
   const refus = lignes.filter((l) => l.code.startsWith('refus_'))
-  ok(refus.length === 5 && refus.every((l) => l.impose === 'refuse' && l.famille === 'refus'),
-    'chaque « refus_… » est de famille refus et IMPOSE le statut refuse')
+  ok(refus.length >= 5 && refus.every((l) => l.impose === 'refuse' && l.famille === 'refus'),
+    `chaque « refus_… » est de famille refus et IMPOSE le statut refuse (${refus.length} refus nommés)`)
+  const doublons = lignes.map((l) => l.code).filter((c, i, t) => t.indexOf(c) !== i)
+  ok(doublons.length === 0, 'aucune action n’est insérée deux fois dans la liste fermée, toutes migrations confondues', doublons.join(', ') || undefined)
   ok(lignes.every((l) => l.cle === `journal.actions.${l.code}`), 'chaque clé i18n est journal.actions.<code>')
   ok(/constraint grand_livre_actions_refus_impose\s+check \(famille <> 'refus' or statut_impose = 'refuse'\)/.test(SQL),
     'la base tient : famille refus ⇒ statut imposé refuse')
@@ -846,6 +861,9 @@ section('D ter. Chaque action branchée écrit LÀ où le geste a lieu — ancr�
     { code: 'role_membre_change', fichier: 'app/api/admin/user-org-role/route.ts', bloc: 'export async function PATCH(', motif: /requireReauth\(request, auth\.user\.id\)[\s\S]{0,120}?const journal = contexteDepuisAuth\(auth\)[\s\S]*?majMembreOrganisation\(auth\.supabaseAdmin, journal, \{\s*membreId: member\.id,[\s\S]{0,200}?ecosystemeId: t\.domain_id,[\s\S]{0,80}?forcer: lastAdminBypassed,/, quoi: 'plateforme : le dépannage passe le contexte (origine administrateur) et l’écosystème de la CIBLE ; le forçage reste nommé' },
     { code: 'membre_retire', fichier: 'app/api/me/organisation/members/[id]/route.ts', bloc: 'export async function DELETE(', motif: /const journal = contexteDepuisAuth\(auth\)[\s\S]*?majMembreOrganisation\(auth\.supabaseAdmin, journal, \{\s*membreId: target\.id,\s*ecosystemeId: auth\.domain\.id,\s*nouveauStatut: 'removed',/, quoi: 'le retrait passe le contexte ; la base dérive « retiré » (la ligne d’un AUTRE — la route interdit la sienne)' },
     { code: 'membre_parti', fichier: 'app/api/me/organisation/leave/route.ts', bloc: 'export async function POST(', motif: /requireAuth\(request\)[\s\S]{0,200}?const journal = contexteDepuisAuth\(auth\)[\s\S]*?majMembreOrganisation\(admin, journal, \{\s*membreId: myRow\.id as string,\s*ecosystemeId: auth\.domain\.id,\s*nouveauStatut: 'removed',/, quoi: 'le départ passe le contexte ; la base dérive « parti » (la ligne de l’ACTEUR lui-même)' },
+    // ── 2.7 : la recherche écartée parce qu'une autre tient le bail ──
+    { code: 'refus_recherche_en_cours', fichier: 'lib/matching/journal-de-recherche.ts', bloc: 'export async function refusRechercheEnCours(', motif: /journaliserDans\(admin, journal, \{\s*type: 'refus_recherche_en_cours',\s*statut: 'refuse',\s*sujet: \{ type: 'profiles', id: profileId \},\s*detail: \{ tache: journal\.tache \},\s*\}\)/, quoi: 'l’écrivain unique : au statut imposé, sujet le profil, la tâche seule en détail, sous la pièce du geste' },
+    { code: 'refus_recherche_en_cours', fichier: 'lib/matching/run-for-expert.ts', bloc: 'export async function runMatchingForExpert(', motif: (b) => /if \(bail !== 'pris'\) \{[\s\S]*?if \(bail === 'occupe'\) await refusRechercheEnCours\(supabaseAdmin, args\.journal, profileId\)[\s\S]*?return \{/.test(b) && (b.match(/refusRechercheEnCours\(/g) || []).length === 1, quoi: 'le refus s’écrit sur « occupé » SEULEMENT (une panne de bail n’est pas un refus), avant le retour, sous le contexte du geste' },
     // ── G : le message envoyé ──
     { code: 'message_envoye', fichier: 'app/api/conversations/[id]/messages/route.ts', bloc: 'export async function POST(', motif: (b) => /requireAuth\(request\)[\s\S]{0,200}?const journal = contexteDepuisAuth\(auth\)/.test(b) && /\.rpc\('envoyer_message', \{\s*\.\.\.parametresJournal\(journal\),\s*p_conversation_id: convId,\s*p_statuts_admis: \[\.\.\.CONVERSATION_OUVERTE\],\s*p_contenu: content,/.test(b) && /envoi\.issue === 'fermee'\) return json\(\{[^}]*\}, 409\)/.test(b) && !/\.from\('messages'\)\s*\.insert\(/.test(b) && !/\.from\('conversations'\)\s*\.update\(\{ last_message_at/.test(b) && /isExpired\(conv\.expires_at\)/.test(b), quoi: 'la route envoie par la RPC, avec le contexte ouvert à l’entrée et les statuts PARTAGÉS avec sa garde ; fil fermé entre-temps → 409 ; plus d’insertion ni de mise à jour directes ; l’expiration reste jugée par sa source unique' },
     // ── G : les trois purges (un écrivain, trois codes) et l'avertissement d'inactivité ──
@@ -1010,7 +1028,15 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   //  dont le statut imposé — seed du socle, puis toute mise à jour — est CONTRAIRE.
   {
     const impose = new Map()
-    for (const m of SQL.matchAll(/\(\s*'([a-z0-9_]+)',\s*'[a-z]+',\s*(null|'[a-z]+'),/g)) impose.set(m[1], m[2] === 'null' ? null : m[2].slice(1, -1))
+    // Le statut imposé : TOUTES les insertions dans la liste fermée (le socle, puis les actions
+    // ajoutées par migration), puis toute mise à jour — jamais le seul seed du socle (§E.61).
+    for (const f of TOUTES_MIGRATIONS) {
+      const src = SQL_PAR_MIGRATION.get(f)
+      const i = src.indexOf('insert into public.grand_livre_actions (code, famille, statut_impose, libelle_key) values')
+      if (i < 0) continue
+      const seed = src.slice(i, src.indexOf('on conflict (code)', i))
+      for (const m of seed.matchAll(/\(\s*'([a-z0-9_]+)',\s*'[a-z]+',\s*(null|'[a-z]+'),/g)) impose.set(m[1], m[2] === 'null' ? null : m[2].slice(1, -1))
+    }
     for (const f of TOUTES_MIGRATIONS) {
       for (const m of SQL_PAR_MIGRATION.get(f).matchAll(/set statut_impose\s*=\s*(null|'[a-z]+')\s+where code = '([a-z0-9_]+)'/g)) impose.set(m[2], m[1] === 'null' ? null : m[1].slice(1, -1))
     }

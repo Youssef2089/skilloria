@@ -88,6 +88,30 @@ export type CauseDEchec =
   | 'lots_en_echec'
   | 'reconciliation_en_panne'
 
+/**
+ * LE REFUS D'UNE RECHERCHE QUI N'A PAS COMMENCÉ — une autre tient déjà le bail
+ * de cet expert (§D.22). L'écrivain UNIQUE de `refus_recherche_en_cours`.
+ *
+ * Ce n'est ni un échec (rien n'a échoué) ni une fin (aucune recherche n'a
+ * commencé) : c'est un REFUS nommé, au statut que la base impose, sous la PIÈCE
+ * du geste qui a déclenché le passage (clic ou tâche). Sujet : le profil.
+ * L'écosystème est celui du geste — le profil n'est pas lu, et un refus ne le
+ * lit pas. Seul `occupe` s'écrit : un bail illisible est une PANNE (§E.22).
+ * Un journal qui refuse LÈVE, comme toute étape du moteur.
+ */
+export async function refusRechercheEnCours(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  profileId: string,
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'refus_recherche_en_cours',
+    statut: 'refuse',
+    sujet: { type: 'profiles', id: profileId },
+    detail: { tache: journal.tache },
+  })
+}
+
 export class JournalDeRecherche {
   constructor(
     private readonly admin: SupabaseClient,
