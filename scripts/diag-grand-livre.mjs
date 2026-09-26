@@ -1210,6 +1210,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/create table if not exists public\.constats_mise_en_service/.test(FERME) && /insert into public\.constats_mise_en_service \(constat\) values \('devoilement_ferme'\)/.test(FERME)
       && /date de mise en service du constat manque/.test(P),
       'dévoilement fermé : la date de MISE EN SERVICE est posée par la migration (par environnement) et relue par la postcondition')
+    // Le passif des ANNONCES : marqué par la migration, par la source SQL de la règle, sans ligne.
+    const EXP = stripSql(read(migration('journal_annonce_expiree')))
+    const iPassif = EXP.indexOf('do $passif$')
+    ok(iPassif >= 0 && iPassif < EXP.indexOf('cron.schedule(') && iPassif < EXP.indexOf('do $post$')
+      && /set expiration_constatee_at = now\(\)[\s\S]*?not public\.annonce_active\(p\.status, p\.expires_at, p\.published_at, v_vie\)/.test(EXP.slice(iPassif))
+      && !/journaliser\(/.test(EXP.slice(iPassif, EXP.indexOf('$passif$;', iPassif))),
+      'annonces expirées : le PASSIF est marqué par la migration AVANT la planification, par annonce_active() (la source SQL), SANS aucune ligne au grand livre')
     ok(/now\(\) \+ interval '1 day'\);[\s\S]{0,200}?when sqlstate '22023'/.test(P), 'dévoilement fermé : une fin d’échange FUTURE est refusée (sonde exécutée)')
     ok(/"message":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'dévoilement fermé : un texte libre est REFUSÉ (sonde exécutée)')
   }
