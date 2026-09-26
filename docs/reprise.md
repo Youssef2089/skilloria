@@ -32,29 +32,30 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
-## ⛔ ARRÊT — ARBITRAGE REQUIS (26/09/2026)
+## ⛔ PHASE A — ON ATTEND LE REJEU LOCAL (26/09/2026)
 
-Les routes qui changent un état sans trace sont **mesurées** (`node scripts/mesure-routes-sans-trace.mjs`) :
-63 écrivent, 35 tracent, **28 non**. Le détail en trois groupes est en **§H.3 ter** d'architecture.md.
-**Sept gestes métier n'ont AUCUNE action dans la liste fermée** (inscription expert, préinscription
-organisation, création d'administrateur, annonce créée en brouillon, mission écartée, événement Stripe
-rouvert, tâche lancée à la main) : le critère « 55 actions » ne peut pas les couvrir honnêtement.
-Le mandat dit de s'arrêter sur un fait mesuré qui contredit la conception. **Le lot attend Youssef.**
+Le premier `npx supabase db reset --local` s'est arrêté sur `liste_blanche_par_action` : les chemins d'un
+détail sortaient en double. **Corrigé**, et la relecture des 45 postconditions a trouvé **quatre** autres
+sondes qui auraient arrêté la chaîne (§E.71 de pieges.md). **Aucune migration nouvelle n'est écrite tant
+que les 45 ne passent pas en local.** Youssef relance, rend la sortie ; on recommence jusqu'au vert.
+Staging est intact.
 
-Ce qu'il faut trancher :
-1. les 7 gestes : actions nouvelles (lesquelles, quels noms) **ou** hors du grand livre, par écrit ;
-2. les 14 routes rattachables : `reglage_modifie` pour la taxonomie et les écosystèmes, `profil_modifie`
-   pour le CV, l'identité et l'organisation — à valider ;
-3. les 7 routes hors périmètre (lecture, technique) — à confirmer.
+## PHASE B — APRÈS LE FEU VERT DU REJEU LOCAL (décisions de Youssef, 26/09/2026)
 
-## Reste, dans l'ordre — APRÈS l'arbitrage
-
-1. Brancher les 14 routes (et les actions nouvelles si l'arbitrage en crée).
-2. Vérifier (a)–(d) complètes — (a) ne l'est **pas** : la taxonomie et les écosystèmes ne tracent rien.
-3. `journal_nettoye` : l'écrivain SQL du nettoyage (le batch), avancé en fin d'étape 2.
-4. Rendre le contrôle STRICT : toute action sans écrivain rougit ; le rapport donne N sur N. La mesure des
-   routes devient un contrôle (cliquet sur les exceptions nommées, chacune avec sa raison, §G.8).
-5. Étapes 3 et 4.
+1. **Les 7 gestes deviennent des actions** : inscription d'un expert, préinscription d'une organisation,
+   création d'un administrateur, annonce créée en brouillon, mission écartée par l'expert, événement Stripe
+   rouvert à la main, tâche lancée à la main.
+2. **La règle des rattachements** : le nom d'une action dit ce qui s'est passé — si filtrer sur une action
+   rend des lignes qui ne sont pas ce que son nom annonce, c'est une action distincte. **Distinctes, imposées** :
+   `taxonomie_modifiee`, `ecosysteme_modifie`, `organisation_modifiee`, `identite_modifiee`,
+   `cv_reinitialise` (son détail dit que le profil sort de la vitrine). **Les neuf autres rattachements**
+   de §H.3 ter : appliquer la règle, garder ceux qui la tiennent, rendre la liste gardé/séparé.
+3. **Les 7 routes hors périmètre sont confirmées** — chacune ÉCRITE dans la liste d'exclusion du contrôle,
+   avec sa raison (aucune exclusion silencieuse).
+4. **Critère de fin** : 55 + 7 + les actions séparées. CHAQUE action a EXACTEMENT UN appelant, sauf le
+   nettoyage (`journal_nettoye`), qui vient avec l'écran. Le rapport donne le compte exact. Le contrôle
+   devient STRICT et la mesure des routes devient un contrôle (exceptions nommées, §G.8).
+5. Puis l'**étape 3** (colonne `piece` sur les sous-journaux) et l'**étape 4** (l'écran et le batch).
 
 ## Validations à rejouer avant chaque commit
 

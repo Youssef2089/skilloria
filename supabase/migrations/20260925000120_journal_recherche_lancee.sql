@@ -18,6 +18,16 @@ update public.grand_livre_actions
    set cles_detail = array['tentative', 'tache']::text[]
  where code = 'recherche_lancee';
 
+-- UN LANCEMENT EST TOUJOURS RÉUSSI, ET C'EST LA BASE QUI LE TIENT. Le module
+-- n'écrit que `reussi` : un run qui échoue avant le point de non-retour n'écrit
+-- PAS de lancement (il écrit `recherche_echouee`). Le seed du socle ne
+-- l'imposait pas, et la sonde ci-dessous le prétendait pourtant : elle aurait
+-- vu `refuse` ACCEPTÉ et arrêté la migration sur n'importe quelle base.
+-- Trouvé en relisant les postconditions après le premier rejeu local.
+update public.grand_livre_actions
+   set statut_impose = 'reussi'
+ where code = 'recherche_lancee';
+
 
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
@@ -61,6 +71,10 @@ begin
     null;
   end;
   -- SONDE — un lancement n'est pas un refus : le statut « refuse » est REFUSÉ (GL003).
+  -- L'imposition est LUE d'abord : sans elle, la sonde prouverait une règle absente.
+  if (select statut_impose from public.grand_livre_actions where code = 'recherche_lancee') is distinct from 'reussi' then
+    raise exception 'postcondition NON TENUE : recherche_lancee n impose pas le statut reussi';
+  end if;
   begin
     perform public.journaliser(gen_random_uuid(), 'recherche_lancee', 'refuse', 'tache_planifiee',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),

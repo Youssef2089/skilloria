@@ -78,6 +78,10 @@ declare
   v_piece uuid := gen_random_uuid();
   v_ok    boolean;
   v_ok2   boolean;
+  -- Un numéro qu'aucun compte réel ne peut porter : indicatif +999 NON attribué, tiré au
+  -- hasard. Un numéro fixe de recette pouvait déjà être VÉRIFIÉ sur un compte, et l'index
+  -- unique partiel aurait arrêté la migration (23505).
+  v_tel   text := '+999' || lpad((floor(random() * 1e10))::bigint::text, 10, '0');
 begin
   if to_regprocedure('public.verifier_telephone(uuid, uuid, text, uuid, text, uuid, text, text)') is null then
     raise exception 'postcondition NON TENUE : verifier_telephone manque ou a change de signature';
@@ -95,7 +99,7 @@ begin
   else
     begin
       v_ok := public.verifier_telephone(v_piece, null::uuid, 'utilisateur', v_user, 'client',
-                                        v_user, '+33600000000', 'otp_sms');
+                                        v_user, v_tel, 'otp_sms');
       if v_ok is distinct from true then
         raise exception 'postcondition NON TENUE : la verification n a pas abouti';
       end if;
@@ -106,11 +110,11 @@ begin
                       where g.piece = v_piece and g.type_action = 'telephone_verifie' and g.statut = 'reussi'
                         and g.sujet_type = 'users' and g.sujet_id = v_user
                         and g.detail ->> 'methode' = 'otp_sms'
-                        and g.detail::text not like '%+33600000000%') then
+                        and g.detail::text not like '%' || v_tel || '%') then
         raise exception 'postcondition NON TENUE : la ligne manque, ne porte pas la methode, ou porte le NUMERO';
       end if;
       v_ok2 := public.verifier_telephone(gen_random_uuid(), null::uuid, 'utilisateur', v_user, 'client',
-                                         gen_random_uuid(), '+33600000001', 'otp_sms');
+                                         gen_random_uuid(), v_tel || '9', 'otp_sms');
       if v_ok2 is distinct from false then
         raise exception 'postcondition NON TENUE : un compte inconnu a ete verifie [%]', v_ok2;
       end if;

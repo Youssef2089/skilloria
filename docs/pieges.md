@@ -3571,6 +3571,47 @@ d'un acteur nul, et sur un écosystème aléatoire passé à `journaliser()` (cl
 
 ---
 
+<a id="e71"></a>
+### E.71 — UNE SONDE QUI SUPPOSE LA RÉPONSE D'UNE FONCTION JAMAIS EXÉCUTÉE TESTE SON AUTEUR, PAS LA FONCTION. Le premier rejeu local en a arrêté une ; la relecture en a trouvé quatre autres.
+
+**Le cas, 26/09/2026.** `npx supabase db reset --local` s'est arrêté sur la **première** migration de la nuit :
+`grand_livre_chemins()` rendait `{a.b,a.c,l[].x,l[].x,t,v}` — un chemin par **élément** de tableau. La
+postcondition avait raison : une liste blanche est un **ensemble**, et « les chemins d'un détail » décrivent
+sa **forme**. La fonction rend désormais des chemins **distincts**, dans un ordre en collation `"C"` ; le
+refus GL004 nomme chaque clé fautive **une** fois (sondé). Aucun autre appelant ne dépendait des doublons.
+
+**La relecture des 45 postconditions, pour la même famille — ce qu'elle a trouvé :**
+
+| Migration | Ce que la sonde supposait | Ce qui se serait passé |
+|---|---|---|
+| `journal_recherche_lancee` | que `recherche_lancee` **impose** `reussi` (elle attendait GL003 sur `refuse`) | le seed ne l'imposait pas : l'écriture est **acceptée**, la migration s'arrête — **sur toute base** |
+| `journal_annonce_expiree` | que la fonction constate **l'annonce que la sonde a choisie** (`limit 1` sans ordre) | la fonction trie par date de publication : avec deux annonces expirées, elle en constate une **autre** — arrêt sur staging |
+| `journal_compte_suspendu` | que le compte choisi (`limit 1`, **administrateurs compris**) peut être suspendu | l'occupant du siège plateforme est tenu par une clé étrangère : 23503, arrêt — selon l'ordre des lignes |
+| `journal_telephone_verifie` | que `+33600000000` n'est vérifié sur **aucun** compte | index unique partiel sur les numéros vérifiés : un numéro de recette fixe est exactement ce qu'une base de test contient |
+
+Les deux premières **familles** du mandat — un `array_agg` comparé à un tableau littéral, un résultat calculé
+par une fonction jamais exécutée — n'avaient qu'**un** représentant chacune (les chemins, la sonde GL003). Les
+trois autres sont une troisième forme, **dépendante des données** : la sonde choisit une ligne réelle au hasard
+et **suppose** que la fonction répondra sur **celle-là**, ou qu'**aucune contrainte** ne la concerne. Sur base
+vierge elles sont sautées ; c'est staging qui les aurait arrêtées.
+
+**Les parades.** ① `grand_livre_chemins()` : `select distinct … collate "C"`. ② `recherche_lancee` impose
+`reussi` en base — la sonde lit l'imposition **avant** de la sonder. ③ Le constat est lu **sur la ligne de sa
+pièce**, pas supposé. ④ La suspension et les purges excluent les **administrateurs**. ⑤ Le téléphone est tiré au
+hasard dans l'indicatif **non attribué** `+999`.
+
+**Gardé par `diag-grand-livre`, sur la PROPRIÉTÉ** : les chemins sont distincts et ordonnés en `"C"`, la
+postcondition compare en `"C"` et sonde le nom unique dans GL004 ; et **toute** sonde GL003 d'un appel direct
+vise une action qui **impose** un statut contraire (les sept du dépôt balayées, le refus du type inconnu excepté
+nommément). Éprouvé en restaurant les anciennes migrations : quatre rouges.
+
+> ⚠️ **Ce qui n'est PAS gardé, et ne peut pas l'être statiquement** : la troisième forme — une sonde qui
+> suppose l'identité de la ligne que la fonction traitera, ou l'absence d'une contrainte sur une ligne réelle.
+> Elle ne se voit qu'en relisant la sonde **contre la fonction et le schéma**, et elle ne se **prouve** qu'au
+> rejeu sur une base qui porte des données — staging, pas la base jetable (§G.4 bis).
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

@@ -792,6 +792,52 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   ok(/when sqlstate 'GL005'/.test(postB), 'une fois : la même écriture rejouée LÈVE GL005 (sonde exécutée)')
   ok(/grand_livre_chemins\('\{"a":\{"b":1,"c":null\}[\s\S]{0,200}?array\['a\.b', 'a\.c', 'l\[\]\.x', 't', 'v'\]/.test(postB),
     'la fonction pure des chemins est EXÉCUTÉE sur un objet imbriqué, un tableau, un nul, deux vides')
+  // ── LES CHEMINS SONT UN ENSEMBLE (défaut trouvé par le premier rejeu local, 26/09/2026) ──
+  //  La première version émettait un chemin par ÉLÉMENT de tableau : `l[].x` deux
+  //  fois pour deux objets, et le refus GL004 nommait une clé fautive autant de fois
+  //  qu'elle se répétait. La propriété : la DERNIÈRE définition rend des chemins
+  //  DISTINCTS, dans un ordre qui ne dépend pas de la collation du serveur ; la
+  //  postcondition compare en collation "C" et sonde le nom UNIQUE dans GL004.
+  {
+    const chemins = derniereDefinition('public.grand_livre_chemins(').corps
+    ok(/select distinct\b/.test(chemins) && /collate "C"/.test(chemins) && /order by/.test(chemins),
+      'les chemins d’un détail sont un ENSEMBLE : distincts, dans un ordre stable (collation "C")',
+      'un tableau de deux objets a UN chemin l[].x, pas deux — la liste blanche est un ensemble')
+    ok((postB.match(/array_agg\(c order by c collate "C"\)/g) || []).length >= 2 && !/array_agg\(c order by c\)/.test(postB),
+      'la postcondition compare les chemins triés en collation "C" — jamais selon celle du serveur')
+    ok(/"l":\[\{"courriel":"a"\},\{"courriel":"b"\}\][\s\S]{0,400}?when sqlstate 'GL004'[\s\S]{0,300}?<> 1 then/.test(postB),
+      'une clé fautive RÉPÉTÉE dans un tableau est nommée UNE fois par GL004 (sonde exécutée)')
+  }
+  // ── UNE SONDE GL003 NE PROUVE QUE CE QUE LA BASE IMPOSE (défaut trouvé en relisant, 26/09/2026) ──
+  //  `recherche_lancee` n'imposait aucun statut, et sa postcondition attendait GL003
+  //  sur « refuse » : l'écriture aurait été ACCEPTÉE, la migration arrêtée. Classe :
+  //  toute sonde qui attend GL003 d'un appel DIRECT à journaliser() vise une action
+  //  dont le statut imposé — seed du socle, puis toute mise à jour — est CONTRAIRE.
+  {
+    const impose = new Map()
+    for (const m of SQL.matchAll(/\(\s*'([a-z0-9_]+)',\s*'[a-z]+',\s*(null|'[a-z]+'),/g)) impose.set(m[1], m[2] === 'null' ? null : m[2].slice(1, -1))
+    for (const f of TOUTES_MIGRATIONS) {
+      for (const m of SQL_PAR_MIGRATION.get(f).matchAll(/set statut_impose\s*=\s*(null|'[a-z]+')\s+where code = '([a-z0-9_]+)'/g)) impose.set(m[2], m[1] === 'null' ? null : m[1].slice(1, -1))
+    }
+    const fautes = []
+    let sondes = 0
+    for (const f of TOUTES_MIGRATIONS) {
+      const src = SQL_PAR_MIGRATION.get(f)
+      const post = src.slice(Math.max(0, src.indexOf('do $post$')))
+      for (const m of post.matchAll(/journaliser\(\s*[^,]+,\s*'([a-z0-9_]+)',\s*'([a-z]+)'[\s\S]{0,700}?when sqlstate '([A-Z0-9]+)'/g)) {
+        if (m[3] !== 'GL003') continue
+        sondes++
+        // Une action HORS de la liste fermée : la sonde prouve le refus du TYPE
+        // (GL003 « type inconnu »), pas un statut imposé — légitime.
+        if (!impose.has(m[1]) && !codesSqlGlobal.has(m[1])) continue
+        const i = impose.get(m[1])
+        if (!i || i === m[2]) fautes.push(`${f} : ${m[1]} envoyé « ${m[2]} », imposé ${i ? `« ${i} »` : 'RIEN'}`)
+      }
+    }
+    ok(sondes >= 4 && fautes.length === 0,
+      `toute sonde GL003 vise une action qui IMPOSE un statut contraire (${sondes} sonde(s) balayée(s))`,
+      fautes.join('\n         ') || undefined)
+  }
   // La migration des réglages a la sienne, exécutée elle aussi.
   const REGLAGES = stripSql(read(migration('journal_reglages')))
   const iPostR = REGLAGES.indexOf('do $post$')
@@ -1038,7 +1084,7 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const TEL = stripSql(read(migration('journal_telephone_verifie')))
     const P = TEL.slice(Math.max(0, TEL.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.verifier_telephone\(uuid, uuid, text, uuid, text, uuid, text, text\)'\) is null/.test(P), 'téléphone : la signature est vérifiée par TYPES')
-    ok(/g\.detail::text not like '%\+33600000000%'/.test(P) && /u\.phone_verified\)? then/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
+    ok(/v_tel\s+text := '\+999' \|\|/.test(P) && /g\.detail::text not like '%' \|\| v_tel \|\| '%'/.test(P) &&/u\.phone_verified\)? then/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'téléphone : la ligne écrite est RELUE et l’absence du NUMÉRO y est vérifiée (pas seulement la présence de la méthode), puis annulée')
     ok((P.match(/public\.verifier_telephone\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_ok2 is distinct from false/.test(P),
       'téléphone : un compte inconnu rend false SANS écrire (sonde exécutée)')

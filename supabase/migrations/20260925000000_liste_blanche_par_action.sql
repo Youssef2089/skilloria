@@ -60,42 +60,44 @@ update public.grand_livre_actions
 
 
 -- ── ② LES CHEMINS D'UN DÉTAIL — pure, exécutable par la postcondition ──────
+-- LES CHEMINS D'UN DÉTAIL DÉCRIVENT SA FORME, PAS SON CONTENU : c'est un
+-- ENSEMBLE. Un tableau de deux objets a UN chemin `l[].x`, pas deux — la liste
+-- blanche est un ensemble, et le refus GL004 doit nommer chaque clé fautive
+-- UNE fois. Rendus DISTINCTS, dans un ordre STABLE (collation "C" : l'ordre ne
+-- dépend pas de la collation du serveur).
+-- La première version, récursive en PL/pgSQL, émettait un chemin par ÉLÉMENT
+-- de tableau : sa propre postcondition l'a arrêtée au premier rejeu local.
+-- Les feuilles : un scalaire (JSON null compris), un objet vide, un tableau
+-- vide. Un objet vide À LA RACINE n'a aucun chemin.
 create or replace function public.grand_livre_chemins(p jsonb, p_prefixe text default '')
 returns setof text
-language plpgsql
+language sql
 immutable
 as $$
-declare
-  v_k text;
-  v_v jsonb;
-begin
-  if p is null then
-    return;
-  end if;
-  if jsonb_typeof(p) = 'object' then
-    if p = '{}'::jsonb then
-      if p_prefixe <> '' then return next p_prefixe; end if;
-      return;
-    end if;
-    for v_k, v_v in select key, value from jsonb_each(p) loop
-      return query
-        select * from public.grand_livre_chemins(v_v, case when p_prefixe = '' then v_k else p_prefixe || '.' || v_k end);
-    end loop;
-    return;
-  elsif jsonb_typeof(p) = 'array' then
-    if p = '[]'::jsonb then
-      return next p_prefixe;
-      return;
-    end if;
-    for v_v in select value from jsonb_array_elements(p) loop
-      return query select * from public.grand_livre_chemins(v_v, p_prefixe || '[]');
-    end loop;
-    return;
-  else
-    return next p_prefixe;
-    return;
-  end if;
-end;
+  with recursive n(chemin, valeur) as (
+    select coalesce(p_prefixe, ''), p
+     where p is not null
+    union all
+    select case when e.cle is null then n.chemin || '[]'
+                when n.chemin = '' then e.cle
+                else n.chemin || '.' || e.cle end,
+           e.valeur
+      from n
+      cross join lateral (
+        select o.key as cle, o.value as valeur
+          from jsonb_each(case when jsonb_typeof(n.valeur) = 'object' then n.valeur else '{}'::jsonb end) o
+        union all
+        select null::text, a.value
+          from jsonb_array_elements(case when jsonb_typeof(n.valeur) = 'array' then n.valeur else '[]'::jsonb end) a
+      ) e
+  )
+  select distinct n.chemin collate "C"
+    from n
+   where (jsonb_typeof(n.valeur) not in ('object', 'array')
+          or n.valeur = '{}'::jsonb
+          or n.valeur = '[]'::jsonb)
+     and not (n.chemin = '' and n.valeur = '{}'::jsonb)
+   order by 1
 $$;
 
 
@@ -249,10 +251,22 @@ begin
   end if;
 
   -- LA FONCTION PURE S'EXÉCUTE : objets imbriqués, tableau d'objets, nul, vide.
-  select array_agg(c order by c) into v_chem
+  --   Un tableau de DEUX objets : un chemin, pas deux. Tri en collation "C" : la
+  --   comparaison ne dépend pas de la collation du serveur.
+  select array_agg(c order by c collate "C") into v_chem
     from public.grand_livre_chemins('{"a":{"b":1,"c":null},"l":[{"x":1},{"x":2}],"v":{},"t":[]}'::jsonb) as c;
   if v_chem is distinct from array['a.b', 'a.c', 'l[].x', 't', 'v']::text[] then
     raise exception 'postcondition NON TENUE : grand_livre_chemins rend % au lieu de {a.b,a.c,l[].x,t,v}', v_chem;
+  end if;
+  --   Tableaux imbriqués, tableau de scalaires, racine vide, nul SQL.
+  select array_agg(c order by c collate "C") into v_chem
+    from public.grand_livre_chemins('{"m":[[1,2],[3]],"s":[1,2,3],"o":[{"p":{"q":1}},{"p":{"q":2,"r":3}}]}'::jsonb) as c;
+  if v_chem is distinct from array['m[][]', 'o[].p.q', 'o[].p.r', 's[]']::text[] then
+    raise exception 'postcondition NON TENUE : grand_livre_chemins rend % au lieu de {m[][],o[].p.q,o[].p.r,s[]}', v_chem;
+  end if;
+  if exists (select 1 from public.grand_livre_chemins('{}'::jsonb))
+     or exists (select 1 from public.grand_livre_chemins(null::jsonb)) then
+    raise exception 'postcondition NON TENUE : un detail vide ou nul a des chemins';
   end if;
 
   -- SONDE ① — une clé hors liste est REFUSÉE et NOMMÉE (GL004).
@@ -264,6 +278,17 @@ begin
   exception when sqlstate 'GL004' then
     if sqlerrm not like '%email_facturation%' then
       raise exception 'postcondition NON TENUE : le refus GL004 ne NOMME pas la cle fautive (%)', sqlerrm;
+    end if;
+  end;
+  -- SONDE ① bis — une clé fautive RÉPÉTÉE dans un tableau est nommée UNE fois.
+  begin
+    perform public.journaliser(gen_random_uuid(), 'ip_effacees', 'reussi', 'systeme',
+                               null::uuid, null::text, null::uuid, 'sonde', gen_random_uuid(),
+                               '{"mois":12,"l":[{"courriel":"a"},{"courriel":"b"}]}'::jsonb);
+    raise exception 'postcondition NON TENUE : journaliser a ACCEPTE une cle hors liste blanche dans un tableau';
+  exception when sqlstate 'GL004' then
+    if (length(sqlerrm) - length(replace(sqlerrm, 'l[].courriel', ''))) / length('l[].courriel') <> 1 then
+      raise exception 'postcondition NON TENUE : le refus GL004 ne nomme pas l[].courriel exactement UNE fois (%)', sqlerrm;
     end if;
   end;
   -- SONDE ② — une clé personnelle NOUVELLE, imbriquée, est refusée par la liste blanche

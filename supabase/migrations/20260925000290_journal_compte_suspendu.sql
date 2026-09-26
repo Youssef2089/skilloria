@@ -116,9 +116,13 @@ begin
   -- SONDE — un compte réel non suspendu : suspendu (ligne relue), rejoué (le
   -- statut n'est plus admis : null, aucune seconde ligne), puis réactivé (la
   -- SECONDE action, sous la même fonction). Sans compte : sautée, et dite.
+  -- JAMAIS un administrateur : l'occupant du siège plateforme est référencé par
+  -- une clé étrangère sur `users (id, admin_disponible)` — le suspendre la
+  -- violerait et arrêterait la migration ; et la cible ne doit pas être l'acteur.
   select u.id, u.status into v_user
     from public.users u
    where u.status is distinct from 'suspended'
+     and u.user_type is distinct from 'admin'
    limit 1;
   select u.id into v_acteur from public.users u where u.user_type = 'admin' limit 1;
   if v_user.id is null or v_acteur is null then

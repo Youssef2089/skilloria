@@ -180,21 +180,27 @@ begin
         if v_n <> 1 then
           raise exception 'postcondition NON TENUE : un constat attendu, % constate(s)', v_n;
         end if;
-        if not exists (select 1 from public.publications p where p.id = v_pub and p.expiration_constatee_at is not null) then
-          raise exception 'postcondition NON TENUE : le marqueur n est pas pose';
+        -- QUELLE annonce a été constatée : celle que la FONCTION a choisie (elle
+        -- trie par date de publication), lue sur la ligne de SA pièce — pas celle
+        -- que la sonde a trouvée. Avec deux annonces expirées en base, supposer
+        -- que c'est la même faisait échouer une migration juste.
+        select g.sujet_id into v_pub
+          from public.grand_livre g
+         where g.piece = v_piece and g.type_action = 'annonce_expiree' and g.statut = 'reussi'
+           and g.origine = 'tache_planifiee' and g.acteur_id is null
+           and g.sujet_type = 'publications'
+           and (g.detail ->> 'vie_annonce_jours')::integer = v_vie;
+        get diagnostics v_n2 = row_count;
+        if v_n2 <> 1 or v_pub is null then
+          raise exception 'postcondition NON TENUE : la ligne annonce_expiree manque ou ne porte pas son detail [% ligne(s)]', v_n2;
         end if;
-        if not exists (select 1 from public.grand_livre g
-                        where g.piece = v_piece and g.type_action = 'annonce_expiree' and g.statut = 'reussi'
-                          and g.origine = 'tache_planifiee' and g.acteur_id is null
-                          and g.sujet_type = 'publications' and g.sujet_id = v_pub
-                          and (g.detail ->> 'vie_annonce_jours')::integer = v_vie) then
-          raise exception 'postcondition NON TENUE : la ligne annonce_expiree manque ou ne porte pas son detail';
+        if not exists (select 1 from public.publications p
+                        where p.id = v_pub and p.expiration_constatee_at is not null
+                          and not public.annonce_active(p.status, p.expires_at, p.published_at, v_vie)) then
+          raise exception 'postcondition NON TENUE : le marqueur n est pas pose, ou l annonce constatee est active';
         end if;
-        -- LE SECOND PASSAGE sur la même annonce : rien (le marqueur tient).
-        update public.publications set expiration_constatee_at = expiration_constatee_at where id = v_pub;
-        v_n2 := (select count(*) from public.publications p
-                  where p.id = v_pub and p.expiration_constatee_at is null);
-        if v_n2 <> 0 then
+        -- LE SECOND PASSAGE : l'annonce constatée a quitté la file.
+        if exists (select 1 from public.publications p where p.id = v_pub and p.expiration_constatee_at is null) then
           raise exception 'postcondition NON TENUE : l annonce constatee est encore dans la file';
         end if;
         raise exception 'SONDE_ANNULEE';
