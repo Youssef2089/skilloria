@@ -43,6 +43,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > · *Je cherche une décision déjà arbitrée* → **§D ci-dessous**, puis **§P4** (produit) pour ce qui
 >   est éteint exprès.
 > · *Je cherche une valeur chiffrée et qui peut la changer* → **§P3** (produit).
+>
+> **LA RÈGLE DE LECTURE — décision de Youssef, 26/09/2026 : MINIMISER LE COÛT.** Ce fichier est
+> l'**index**, chargé à chaque session. Dans `docs/`, on ne lit **que** les sections qui touchent ce qu'on
+> fait, trouvées par cet index et par une recherche par mots-clés — **rien d'autre**. Elle remplace la
+> lecture intégrale des quatre fichiers. **Chaque rapport donne la liste de ce qui a été lu**, pour que la
+> relecture de ce qui manquait reste possible.
 
 @AGENTS.md
 
