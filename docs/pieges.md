@@ -3446,6 +3446,15 @@ sprint (§E.61).
 sur une vraie base, et **ça reste vrai après ce correctif** : la parade est de **rejouer les
 migrations sur une base locale jetable** (`npx supabase db reset --local`) **avant tout `db push`**.
 
+> **LA FORME VOISINE, VUE AU REJEU DU 26/09/2026 : UNE LIGNE « TENUE » APRÈS UNE SONDE SAUTÉE.**
+> Les 45 migrations du grand livre sont passées en local — et **24** avaient sauté une sonde faute de
+> données, tout en finissant par « postcondition tenue : … naissent ensemble ». La fonction du geste
+> n'avait **pas** tourné ; la ligne l'affirmait quand même. **La parade** : un drapeau `v_sautee`, posé
+> après **chaque** notice « SAUTEE », et une ligne finale qui se dédouble — « postcondition **PARTIELLE**
+> — une sonde SAUTÉE… » ou « tenue ». Gardé par `diag-grand-livre` sur **toute** migration qui peut sauter
+> une sonde ; le socle, déjà appliqué, est au gel avec sa raison. Et ce que la sonde ne prouve plus sur une
+> base vide, **les tests pgTAP le prouvent** (`supabase/tests/`, §G.4 ter).
+
 ---
 
 <a id="e68"></a>

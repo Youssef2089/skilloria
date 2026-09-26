@@ -142,6 +142,7 @@ update public.grand_livre_actions
 --  membre de rien. Tout est défait par SONDE_ANNULEE.
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_inv    record;
   v_user   record;
@@ -167,6 +168,7 @@ begin
    limit 1;
   if v_inv.id is null or v_user.id is null then
     raise notice 'postcondition : sonde accepter_invitation SAUTEE — aucune invitation en attente ou aucun compte verifie sans organisation (base vierge)';
+    v_sautee := true;
   else
     begin
       update public.organization_invitations
@@ -241,6 +243,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : invitation_acceptee — appartenance, invitation soldee et ligne ensemble ; adresse, statut et echeance rejoues sous verrou ; rejeu sans seconde ligne ; adresse refusee';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : invitation_acceptee — appartenance, invitation soldee et ligne ensemble ; adresse, statut et echeance rejoues sous verrou ; rejeu sans seconde ligne ; adresse refusee';
+  else
+    raise notice 'postcondition tenue : invitation_acceptee — appartenance, invitation soldee et ligne ensemble ; adresse, statut et echeance rejoues sous verrou ; rejeu sans seconde ligne ; adresse refusee';
+  end if;
 end
 $post$;

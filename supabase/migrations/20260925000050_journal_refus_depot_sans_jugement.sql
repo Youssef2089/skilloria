@@ -82,6 +82,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles    text[];
   v_pub     uuid;
   v_prof    uuid;
@@ -116,6 +117,7 @@ begin
    limit 1;
   if v_pub is null then
     raise notice 'postcondition : sonde solder_depot_en_echec SAUTEE — aucun couple libre en base (base vierge)';
+    v_sautee := true;
   else
     begin
       perform public.ouvrir_depot_candidature(v_pub, v_prof, v_domaine, 'sonde', v_piece);
@@ -138,6 +140,10 @@ begin
       end if;
     end;
   end if;
-  raise notice 'postcondition tenue : refus_depot_sans_jugement — le journal du depot et le refus naissent ensemble';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : refus_depot_sans_jugement — le journal du depot et le refus naissent ensemble';
+  else
+    raise notice 'postcondition tenue : refus_depot_sans_jugement — le journal du depot et le refus naissent ensemble';
+  end if;
 end
 $post$;

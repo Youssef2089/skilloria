@@ -524,6 +524,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_sig    text;
   v_id     bigint;
   v_cles   text[];
@@ -607,6 +608,7 @@ begin
   select id into v_acteur from public.users order by created_at limit 1;
   if v_acteur is null then
     raise notice 'postcondition : sonde regler_durees_place SAUTEE — aucun compte en base (base vierge)';
+    v_sautee := true;
   else
     begin
       select vie_annonce_jours, fenetre_echange_jours, invitation_jours, conservation_ip_mois
@@ -623,6 +625,10 @@ begin
       end if;
     end;
   end if;
-  raise notice 'postcondition tenue : reglage_modifie a un ecrivain unique, sept RPC metier y passent';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : reglage_modifie a un ecrivain unique, sept RPC metier y passent';
+  else
+    raise notice 'postcondition tenue : reglage_modifie a un ecrivain unique, sept RPC metier y passent';
+  end if;
 end
 $post$;

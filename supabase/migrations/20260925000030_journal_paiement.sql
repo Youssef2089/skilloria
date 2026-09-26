@@ -114,6 +114,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles    text[];
   v_org     uuid;
   v_facture text := 'in_sonde_' || replace(gen_random_uuid()::text, '-', '');
@@ -134,6 +135,7 @@ begin
   select id into v_org from public.organizations order by created_at limit 1;
   if v_org is null then
     raise notice 'postcondition : sonde enregistrer_paiement SAUTEE — aucune organisation en base (base vierge)';
+    v_sautee := true;
   else
     begin
       v_id := public.enregistrer_paiement(gen_random_uuid(),
@@ -178,6 +180,10 @@ begin
       end if;
     end;
   end if;
-  raise notice 'postcondition tenue : paiement_recu — la piece comptable et sa ligne naissent ensemble, le rejeu n ecrit rien';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : paiement_recu — la piece comptable et sa ligne naissent ensemble, le rejeu n ecrit rien';
+  else
+    raise notice 'postcondition tenue : paiement_recu — la piece comptable et sa ligne naissent ensemble, le rejeu n ecrit rien';
+  end if;
 end
 $post$;

@@ -129,6 +129,7 @@ on conflict (job_name) do nothing;
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles  text[];
   v_vie   integer;
   v_pub   uuid;
@@ -164,6 +165,7 @@ begin
   select d.vie_annonce_jours into v_vie from public.duree_reglages d where d.ligne_unique;
   if v_vie is null then
     raise notice 'postcondition : sonde constater_annonces_expirees SAUTEE — duree_reglages vide (base vierge)';
+    v_sautee := true;
   else
     select p.id into v_pub
       from public.publications p
@@ -174,6 +176,7 @@ begin
      limit 1;
     if v_pub is null then
       raise notice 'postcondition : sonde constater_annonces_expirees SAUTEE — aucune annonce expiree a constater';
+      v_sautee := true;
     else
       begin
         v_n := public.constater_annonces_expirees(v_piece, v_vie, 1);
@@ -221,6 +224,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : annonce_expiree — colonne, index, constat relu une fois, tache planifiee et cataloguee, texte libre refuse';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : annonce_expiree — colonne, index, constat relu une fois, tache planifiee et cataloguee, texte libre refuse';
+  else
+    raise notice 'postcondition tenue : annonce_expiree — colonne, index, constat relu une fois, tache planifiee et cataloguee, texte libre refuse';
+  end if;
 end
 $post$;

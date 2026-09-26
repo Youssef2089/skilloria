@@ -196,6 +196,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_prof   record;
   v_org    uuid;
@@ -224,6 +225,7 @@ begin
   select o.id into v_org from public.organizations o where o.verification_status is not null limit 1;
   if v_acteur is null or v_prof.id is null then
     raise notice 'postcondition : sonde statuer_sur_expert SAUTEE — aucun profil arbitrable ou aucun administrateur (base vierge)';
+    v_sautee := true;
   else
     begin
       -- L'EXPERT : approuvé, ligne relue ; rejoué (le statut n'est plus admis),
@@ -288,6 +290,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : compte_valide / compte_refuse — un ecrivain, deux objets, transition rejouee sous verrou, rejeu null, motif en texte libre refuse';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : compte_valide / compte_refuse — un ecrivain, deux objets, transition rejouee sous verrou, rejeu null, motif en texte libre refuse';
+  else
+    raise notice 'postcondition tenue : compte_valide / compte_refuse — un ecrivain, deux objets, transition rejouee sous verrou, rejeu null, motif en texte libre refuse';
+  end if;
 end
 $post$;

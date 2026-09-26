@@ -206,6 +206,7 @@ update public.grand_livre_actions
 --  annule tout.
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_org     uuid;
   v_user    uuid;
   v_autre   uuid;
@@ -237,6 +238,7 @@ begin
   select u.id into v_autre from public.users u where u.id is distinct from v_user limit 1;
   if v_org is null or v_user is null or v_autre is null then
     raise notice 'postcondition : sonde maj_membre_organisation SAUTEE — aucune organisation ou pas deux comptes (base vierge)';
+    v_sautee := true;
   else
     begin
       insert into public.organization_members (organization_id, user_id, role_in_org, status)
@@ -296,6 +298,10 @@ begin
       end if;
     end;
   end if;
-  raise notice 'postcondition tenue : maj_membre_organisation — trois actions derivees du geste, ancienne signature supprimee, refus sans ligne, retrait rejoue sans seconde ligne';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : maj_membre_organisation — trois actions derivees du geste, ancienne signature supprimee, refus sans ligne, retrait rejoue sans seconde ligne';
+  else
+    raise notice 'postcondition tenue : maj_membre_organisation — trois actions derivees du geste, ancienne signature supprimee, refus sans ligne, retrait rejoue sans seconde ligne';
+  end if;
 end
 $post$;

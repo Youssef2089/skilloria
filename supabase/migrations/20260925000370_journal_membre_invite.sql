@@ -95,6 +95,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_org    uuid;
   v_acteur uuid;
@@ -115,6 +116,7 @@ begin
   select u.id into v_acteur from public.users u limit 1;
   if v_org is null or v_acteur is null then
     raise notice 'postcondition : sonde creer_invitation SAUTEE — aucune organisation ou aucun compte (base vierge)';
+    v_sautee := true;
   else
     begin
       v_res := public.creer_invitation(
@@ -155,6 +157,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : membre_invite — invitation et ligne naissent ensemble, l adresse est SUR l invitation et ABSENTE du journal';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : membre_invite — invitation et ligne naissent ensemble, l adresse est SUR l invitation et ABSENTE du journal';
+  else
+    raise notice 'postcondition tenue : membre_invite — invitation et ligne naissent ensemble, l adresse est SUR l invitation et ABSENTE du journal';
+  end if;
 end
 $post$;

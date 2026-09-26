@@ -97,6 +97,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67, §E.70) ───────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_conv   record;
   v_auteur uuid;
@@ -115,6 +116,7 @@ begin
   select u.id into v_auteur from public.users u limit 1;
   if v_conv.id is null or v_auteur is null then
     raise notice 'postcondition : sonde envoyer_message SAUTEE — aucune conversation (base vierge)';
+    v_sautee := true;
   else
     begin
       -- UN STATUT NON ADMIS : rien d'écrit.
@@ -156,6 +158,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : message_envoye — message, date du fil et ligne ensemble, statut rejoue sous verrou, contenu refuse';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : message_envoye — message, date du fil et ligne ensemble, statut rejoue sous verrou, contenu refuse';
+  else
+    raise notice 'postcondition tenue : message_envoye — message, date du fil et ligne ensemble, statut rejoue sous verrou, contenu refuse';
+  end if;
 end
 $post$;

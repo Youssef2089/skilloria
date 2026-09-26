@@ -198,6 +198,7 @@ update public.grand_livre_actions
 --  l'avertissement écrit ses deux issues.
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_n      integer;
   v_user   record;
   v_admin  uuid;
@@ -222,6 +223,7 @@ begin
   select u.id into v_admin from public.users u where u.user_type = 'admin' limit 1;
   if v_user.id is null or v_admin is null then
     raise notice 'postcondition : sondes des purges SAUTEES — aucun compte ou aucun administrateur (base vierge)';
+    v_sautee := true;
   else
     begin
       -- UN MOTIF INCONNU : refusé AVANT d'écrire.
@@ -310,6 +312,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : trois purges sous trois noms par un ecrivain, jalon et ligne ensemble, deja purge sans rien ; avertissement aux deux issues';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : trois purges sous trois noms par un ecrivain, jalon et ligne ensemble, deja purge sans rien ; avertissement aux deux issues';
+  else
+    raise notice 'postcondition tenue : trois purges sous trois noms par un ecrivain, jalon et ligne ensemble, deja purge sans rien ; avertissement aux deux issues';
+  end if;
 end
 $post$;

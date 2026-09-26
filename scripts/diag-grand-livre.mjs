@@ -1213,6 +1213,37 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/"content_length":12[\s\S]{0,300}?when sqlstate 'GL004'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'message : la longueur du contenu est REFUSÉE par la liste blanche, tout est annulé')
   }
+  // ── UNE LIGNE « TENUE » NE DIT QUE CE QUI A ÉTÉ VÉRIFIÉ (point 2.2, §E.67) ──
+  //  Le rejeu local du 26/09/2026 : 24 migrations sur 45 ont SAUTÉ une sonde faute
+  //  de données, et leur dernière ligne affirmait pourtant « naissent ensemble ».
+  //  La propriété : toute postcondition qui peut sauter une sonde pose un drapeau
+  //  après CHAQUE notice « SAUTEE », et sa ligne finale se dédouble — PARTIELLE si
+  //  le drapeau est posé, « tenue » sinon.
+  //  GEL (exemptions, §G.8) : des migrations DÉJÀ APPLIQUÉES, qu'on ne touche pas.
+  {
+    const GEL_SAUTEE = new Map([
+      ['20260924000040_grand_livre.sql', 'appliquée sur staging — le socle ; ne se modifie plus'],
+    ])
+    const fautes = []
+    let gardees = 0
+    for (const f of TOUTES_MIGRATIONS) {
+      const src = SQL_PAR_MIGRATION.get(f)
+      const i = src.indexOf('do $post$')
+      const post = i < 0 ? '' : src.slice(i)
+      const notices = [...post.matchAll(/raise notice '[^']*SAUTEE[^;]*;\s*\n\s*(v_sautee := true;)?/g)]
+      if (!notices.length) continue
+      if (GEL_SAUTEE.has(f)) continue
+      gardees++
+      if (!/^\s*v_sautee boolean := false;/m.test(post)) fautes.push(`${f} : pas de drapeau déclaré`)
+      if (notices.some((m) => !m[1])) fautes.push(`${f} : une notice SAUTEE n'est pas suivie de v_sautee := true`)
+      if (!/if v_sautee then\s*raise notice 'postcondition PARTIELLE[^']*'[^;]*;\s*else\s*raise notice 'postcondition tenue/.test(post)) fautes.push(`${f} : la ligne finale ne se dédouble pas`)
+    }
+    ok(fautes.length === 0 && gardees >= 24,
+      `une postcondition qui peut SAUTER une sonde le DIT dans sa ligne finale (${gardees} migration(s), gel : ${GEL_SAUTEE.size} appliquée(s))`,
+      fautes.slice(0, 6).join('\n         ') || undefined)
+    const gelFaux = [...GEL_SAUTEE.keys()].filter((f) => !TOUTES_MIGRATIONS.includes(f) || !/SAUTEE/.test(SQL_PAR_MIGRATION.get(f)))
+    ok(gelFaux.length === 0, 'le gel ne nomme que des migrations qui existent et qui sautent — il ne peut que se vider', gelFaux.join(', ') || undefined)
+  }
   // ── UNE SONDE QUI VIOLE UNE CONTRAINTE DE LA TABLE NE PROUVE RIEN : ELLE ARRÊTE LA MIGRATION (§E.70) ──
   //  Mesuré le 26/09/2026 : 36 appels de sonde, sur 16 migrations, journalisaient
   //  un geste d'UTILISATEUR sans ACTEUR — `grand_livre_acteur_si_humain` refuse

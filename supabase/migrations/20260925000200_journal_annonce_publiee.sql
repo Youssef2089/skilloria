@@ -95,6 +95,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_pub    record;
   v_piece  uuid := gen_random_uuid();
@@ -119,6 +120,7 @@ begin
    limit 1;
   if v_pub.id is null then
     raise notice 'postcondition : sonde publier_annonce SAUTEE — aucun brouillon (base vierge)';
+    v_sautee := true;
   else
     begin
       v_res := public.publier_annonce(v_piece, null::uuid, 'systeme', null::uuid, null::text,
@@ -170,6 +172,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : annonce_publiee — mise en ligne et ligne naissent ensemble, le rejeu est null, pending_review n ecrit pas de ligne, texte libre refuse';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : annonce_publiee — mise en ligne et ligne naissent ensemble, le rejeu est null, pending_review n ecrit pas de ligne, texte libre refuse';
+  else
+    raise notice 'postcondition tenue : annonce_publiee — mise en ligne et ligne naissent ensemble, le rejeu est null, pending_review n ecrit pas de ligne, texte libre refuse';
+  end if;
 end
 $post$;

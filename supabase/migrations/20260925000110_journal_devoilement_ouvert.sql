@@ -114,6 +114,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_cand   uuid;
   v_piece  uuid := gen_random_uuid();
@@ -138,6 +139,7 @@ begin
    limit 1;
   if v_cand is null then
     raise notice 'postcondition : sonde devoiler_candidature SAUTEE — aucune candidature en transition admise (base vierge)';
+    v_sautee := true;
   else
     begin
       v_res := public.devoiler_candidature(v_piece, null::uuid, 'systeme', null::uuid, null::text,
@@ -169,6 +171,10 @@ begin
       end if;
     end;
   end if;
-  raise notice 'postcondition tenue : devoilement_ouvert — conversation, bascule et ligne naissent ensemble, le rejeu est « deja »';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : devoilement_ouvert — conversation, bascule et ligne naissent ensemble, le rejeu est « deja »';
+  else
+    raise notice 'postcondition tenue : devoilement_ouvert — conversation, bascule et ligne naissent ensemble, le rejeu est « deja »';
+  end if;
 end
 $post$;

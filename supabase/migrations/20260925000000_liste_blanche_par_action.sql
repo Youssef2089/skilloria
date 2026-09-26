@@ -195,6 +195,7 @@ $fn$;
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_sig    text;
   v_id     bigint;
   v_piece  uuid;
@@ -326,6 +327,7 @@ begin
   select id into v_acteur from public.users order by created_at limit 1;
   if v_acteur is null then
     raise notice 'postcondition : sonde regler_durees_place SAUTEE — aucun compte en base (base vierge)';
+    v_sautee := true;
   else
     begin
       select vie_annonce_jours, fenetre_echange_jours, invitation_jours, conservation_ip_mois
@@ -349,6 +351,10 @@ begin
   end if;
 
   select count(*) into v_n from public.grand_livre_actions where cardinality(cles_detail) > 0;
-  raise notice 'postcondition tenue : liste blanche par action (GL004), une fois par cle (GL005) — % action(s) declarent leur detail', v_n;
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : liste blanche par action (GL004), une fois par cle (GL005) — % action(s) declarent leur detail', v_n;
+  else
+    raise notice 'postcondition tenue : liste blanche par action (GL004), une fois par cle (GL005) — % action(s) declarent leur detail', v_n;
+  end if;
 end
 $post$;

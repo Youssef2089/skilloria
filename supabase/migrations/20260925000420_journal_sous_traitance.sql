@@ -184,6 +184,7 @@ update public.grand_livre_actions
 --  sous-transaction annulée : chaque type écrit SON code, et pas l'autre.
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_pub    record;
   v_prof   record;
@@ -217,6 +218,7 @@ begin
    limit 1;
   if v_pub.id is null or v_prof.id is null then
     raise notice 'postcondition : sonde sous-traitance SAUTEE — aucun brouillon ou aucun profil libre (base vierge)';
+    v_sautee := true;
   else
     begin
       -- UNE SOUS-TRAITANCE PUBLIÉE : sous son nom.
@@ -259,6 +261,10 @@ begin
       end if;
     end;
   end if;
-  raise notice 'postcondition tenue : sous-traitance — publiee et postulee sous leur nom, une mission sous le sien';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : sous-traitance — publiee et postulee sous leur nom, une mission sous le sien';
+  else
+    raise notice 'postcondition tenue : sous-traitance — publiee et postulee sous leur nom, une mission sous le sien';
+  end if;
 end
 $post$;

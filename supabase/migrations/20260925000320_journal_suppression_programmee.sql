@@ -106,6 +106,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_user   uuid;
   v_piece  uuid := gen_random_uuid();
@@ -131,6 +132,7 @@ begin
    limit 1;
   if v_user is null then
     raise notice 'postcondition : sonde programmer_suppression_compte SAUTEE — aucun compte non administrateur (base vierge)';
+    v_sautee := true;
   else
     begin
       v_res := public.programmer_suppression_compte(v_piece, null::uuid, 'utilisateur', v_user, 'client',
@@ -171,6 +173,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : suppression_programmee — ancienne signature supprimee, jalon et ligne naissent ensemble, un compte inconnu n ecrit rien, donnee personnelle refusee';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : suppression_programmee — ancienne signature supprimee, jalon et ligne naissent ensemble, un compte inconnu n ecrit rien, donnee personnelle refusee';
+  else
+    raise notice 'postcondition tenue : suppression_programmee — ancienne signature supprimee, jalon et ligne naissent ensemble, un compte inconnu n ecrit rien, donnee personnelle refusee';
+  end if;
 end
 $post$;

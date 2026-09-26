@@ -96,6 +96,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles   text[];
   v_user   record;
   v_piece  uuid := gen_random_uuid();
@@ -127,6 +128,7 @@ begin
   select u.id into v_acteur from public.users u where u.user_type = 'admin' limit 1;
   if v_user.id is null or v_acteur is null then
     raise notice 'postcondition : sonde changer_statut_compte SAUTEE — aucun compte ou aucun administrateur (base vierge)';
+    v_sautee := true;
   else
     begin
       v_res := public.changer_statut_compte(v_piece, null::uuid, 'administrateur', v_acteur, 'admin',
@@ -172,6 +174,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : compte_suspendu / compte_reactive — bascule et ligne naissent ensemble, le rejeu est null, la seconde action passe par la meme fonction, donnee personnelle refusee';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : compte_suspendu / compte_reactive — bascule et ligne naissent ensemble, le rejeu est null, la seconde action passe par la meme fonction, donnee personnelle refusee';
+  else
+    raise notice 'postcondition tenue : compte_suspendu / compte_reactive — bascule et ligne naissent ensemble, le rejeu est null, la seconde action passe par la meme fonction, donnee personnelle refusee';
+  end if;
 end
 $post$;

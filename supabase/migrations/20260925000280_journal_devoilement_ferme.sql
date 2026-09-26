@@ -87,6 +87,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles  text[];
   v_cand  uuid;
   v_piece uuid := gen_random_uuid();
@@ -119,6 +120,7 @@ begin
    limit 1;
   if v_cand is null then
     raise notice 'postcondition : sonde constater_devoilement_ferme SAUTEE — aucune candidature devoilee (base vierge)';
+    v_sautee := true;
   else
     begin
       v_ok := public.constater_devoilement_ferme(v_piece, v_cand, now() - interval '1 day');
@@ -161,6 +163,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : devoilement_ferme — colonne, index, constat relu une fois, fin future refusee, texte libre refuse';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : devoilement_ferme — colonne, index, constat relu une fois, fin future refusee, texte libre refuse';
+  else
+    raise notice 'postcondition tenue : devoilement_ferme — colonne, index, constat relu une fois, fin future refusee, texte libre refuse';
+  end if;
 end
 $post$;

@@ -73,6 +73,7 @@ update public.grand_livre_actions
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
 do $post$
 declare
+  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
   v_cles  text[];
   v_user  uuid;
   v_piece uuid := gen_random_uuid();
@@ -96,6 +97,7 @@ begin
   select u.id into v_user from public.users u limit 1;
   if v_user is null then
     raise notice 'postcondition : sonde verifier_telephone SAUTEE — aucun compte (base vierge)';
+    v_sautee := true;
   else
     begin
       v_ok := public.verifier_telephone(v_piece, null::uuid, 'utilisateur', v_user, 'client',
@@ -135,6 +137,10 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : telephone_verifie — drapeau et ligne naissent ensemble, la ligne porte la methode sans le numero, un compte inconnu n ecrit rien';
+  if v_sautee then
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : telephone_verifie — drapeau et ligne naissent ensemble, la ligne porte la methode sans le numero, un compte inconnu n ecrit rien';
+  else
+    raise notice 'postcondition tenue : telephone_verifie — drapeau et ligne naissent ensemble, la ligne porte la methode sans le numero, un compte inconnu n ecrit rien';
+  end if;
 end
 $post$;
