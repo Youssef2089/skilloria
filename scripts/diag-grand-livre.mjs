@@ -1213,6 +1213,67 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/"content_length":12[\s\S]{0,300}?when sqlstate 'GL004'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'message : la longueur du contenu est REFUSÉE par la liste blanche, tout est annulé')
   }
+  // ── UNE SONDE NE LAISSE RIEN : TOUT APPEL QUI ÉCRIT EST DANS UN BLOC ANNULÉ (point 2.3) ──
+  //  Périmètre : les postconditions (do $post$) de TOUTES les migrations ; « appel qui
+  //  écrit » = un appel à une fonction SQL dont la DERNIÈRE définition insère, modifie
+  //  ou supprime (ou écrit au grand livre), hors littéraux, plus tout INSERT/UPDATE/
+  //  DELETE écrit en clair. Il est SÛR si un bloc englobant est ANNULÉ (il lève
+  //  'SONDE_ANNULEE' et son gestionnaire relance toute autre erreur), ou si le bloc le
+  //  plus proche ATTEND une erreur nommée (`when sqlstate '…' then`) et lève
+  //  « NON TENUE » après l'appel — si l'erreur ne vient pas, toute la migration avorte.
+  //  Audit du 26/09/2026 : 161 appels, 161 sûrs. L'annulation n'est ni un UPDATE ni un
+  //  DELETE : le verrou du grand livre ne s'y oppose pas, et aucune ligne n'en reste.
+  {
+    const ecritSql = new Set([...DEFINITIONS_COURANTES].filter(([n, d]) => ECRIVAINS_SQL.has(n)
+      || /\b(insert\s+into|update\s+(public\.)?\w+|delete\s+from)\b/i.test(d.corps)).map(([n]) => n))
+    // GEL (exemptions, §G.8) : migrations DÉJÀ APPLIQUÉES, d'une forme antérieure, qu'on ne touche plus.
+    // Chaque raison commence par LÉGITIME ou DÉFAUT NOMMÉ.
+    const GEL_BLOC = new Map([
+      ['20260923000050_tarif_par_recherche.sql', 'LÉGITIME — appliquée ; attend check_violation par un drapeau lu après le bloc, insère PUIS supprime sa sonde, et compte les survivants à la fin : rien ne reste, forme antérieure'],
+      ['20260924000010_audit_sans_donnee_personnelle.sql', 'LÉGITIME — appliquée ; appelle audit_logs_nettoyer_compte() sur un compte INEXISTANT (uuid aléatoire) et relit ZÉRO ligne touchée : rien ne peut rester'],
+      ['20260923000060_plafond_par_acteur.sql', 'DÉFAUT NOMMÉ — appliquée ; MODIFIE un réglage réel (ai_spend_seuils_acteur) puis le RESTAURE hors bloc annulé : la restauration est une discipline, pas une garde — sans effet aujourd’hui (valeur remise), à ne jamais recopier'],
+    ])
+    let total = 0
+    const hors = []
+    for (const f of TOUTES_MIGRATIONS) {
+      if (GEL_BLOC.has(f)) continue
+      const src = SQL_PAR_MIGRATION.get(f)
+      const i = src.indexOf('do $post$')
+      if (i < 0) continue
+      const post = src.slice(i)
+      const blocs = []
+      const pile = []
+      for (const m of post.matchAll(/\bbegin\b|\bend\s*;|\bend\s+(if|loop|case)\b/gi)) {
+        if (/^begin$/i.test(m[0])) pile.push(m.index)
+        else if (/^end\s*;$/i.test(m[0])) { const a = pile.pop(); if (a !== undefined) blocs.push([a, m.index]) }
+      }
+      const annule = (a, b) => { const c = post.slice(a, b); return /raise exception 'SONDE_ANNULEE'/.test(c) && /exception when others then\s*if sqlerrm <> 'SONDE_ANNULEE' then\s*raise;/.test(c) }
+      const appels = []
+      for (const n of ecritSql) {
+        for (const m of post.matchAll(new RegExp('\\b(?:public\\.)?' + n + '\\s*\\(', 'g'))) {
+          const ligne = post.slice(post.lastIndexOf('\n', m.index) + 1, m.index)
+          if (/to_regprocedure|string_agg/.test(ligne) || (ligne.match(/'/g) || []).length % 2) continue
+          appels.push({ pos: m.index, quoi: n })
+        }
+      }
+      for (const m of post.matchAll(/^\s*(insert into|update public\.|delete from)\s*\S+/gim)) appels.push({ pos: m.index, quoi: m[0].trim() })
+      for (const a of appels) {
+        total++
+        const englobants = blocs.filter(([x, y]) => a.pos > x && a.pos < y).sort((p, q) => q[0] - p[0])
+        const proche = englobants[0]
+        // Une erreur ATTENDUE, par son code (`sqlstate 'GL004'`) ou par son nom (`check_violation`) — jamais `others`.
+        const attendu = proche && /exception when (sqlstate '[0-9A-Z]{5}'|(?!others\b)[a-z_]+) then/.test(post.slice(proche[0], proche[1]))
+          && /raise exception 'postcondition NON TENUE/.test(post.slice(a.pos, proche[1]))
+        if (!englobants.some(([x, y]) => annule(x, y)) && !attendu) hors.push(`${f} : ${a.quoi}`)
+      }
+    }
+    ok(total >= 161 && hors.length === 0,
+      `toute sonde qui écrit est dans un bloc ANNULÉ, ou attend une erreur nommée — rien n'en reste (${total} appel(s) balayé(s), gel : ${GEL_BLOC.size})`,
+      hors.slice(0, 6).join('\n         ') || undefined)
+    const defauts = [...GEL_BLOC.values()].filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
+    ok([...GEL_BLOC.values()].every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ) — /.test(r)) && [...GEL_BLOC.keys()].every((f) => TOUTES_MIGRATIONS.includes(f)),
+      `le gel du bloc annulé : chaque entrée existe et dit LÉGITIME ou DÉFAUT NOMMÉ (${defauts} défaut(s) nommé(s))`)
+  }
   // ── UNE LIGNE « TENUE » NE DIT QUE CE QUI A ÉTÉ VÉRIFIÉ (point 2.2, §E.67) ──
   //  Le rejeu local du 26/09/2026 : 24 migrations sur 45 ont SAUTÉ une sonde faute
   //  de données, et leur dernière ligne affirmait pourtant « naissent ensemble ».

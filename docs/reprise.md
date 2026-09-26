@@ -32,7 +32,21 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
-## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, EN ATTENTE DE L'OK (26/09/2026)
+## ▶ ÉTAPE 2 — LE COMPLÉMENT, EN COURS (GO de Youssef le 26/09/2026)
+
+Un commit par point ; ce tableau se met à jour **à chaque commit**. L'arrêt est à la fin de l'étape 2.
+Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien d'autre n'est ouvert.
+
+| Point | État | Commit |
+|---|---|---|
+| Règle de lecture (CLAUDE.md) | fait | `2e80de3` |
+| 2.9 parité i18n — `diag-parite-i18n` (éprouvé : orpheline es, manquante de → rouge) | fait | voir `git log` |
+| 2.10 lint 65/25 — `diag-lint-cliquet` (éprouvé : 66/26 → rouge) | fait | voir `git log` |
+| 2.2 les 24 lignes « tenue » → PARTIELLE si une sonde saute (garde éprouvée) | fait | voir `git log` |
+| 2.3 le bloc annulé gardé (172 appels, gel 3 dont 1 défaut nommé) ; trous de `grand_livre.id` documentés | fait | ce commit |
+| 2.5, 2.6, 2.11, 2.1, 2.4, 2.7, 2.8, 2.12, 2.13 | à faire | — |
+
+## ⛔ ARRÊT 1 — AUDIT DU COMPLÉMENT RENDU, OK REÇU (26/09/2026)
 
 **Où on en est.** Phase A acceptée : le rejeu local passe les 45, `db lint` est vide. Mais **24 des 45 ont
 sauté une sonde** faute de données. Le complément (étapes 1 et 2 du prompt du 26/09) : l'audit ci-dessous

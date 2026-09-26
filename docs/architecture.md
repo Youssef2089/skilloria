@@ -2927,6 +2927,21 @@ moteur écrit ses étapes sous des types différents ; un message, une candidatu
 chacun leur sujet. Ce n'est pas le contrôle qui promet « ni zéro, ni deux » : c'est la base qui tient
 « ni deux », et le contrôle qui compte « ni zéro » (un écrivain par action).
 
+**`grand_livre.id` a des TROUS, et c'est normal — il ne prouve JAMAIS qu'une ligne manque.** C'est une
+identité (`bigint generated always as identity`) : un numéro pris dans une transaction annulée n'est pas
+rendu. Les sondes des migrations (un bloc annulé par sonde), un geste qui échoue après avoir journalisé
+(GL005, une contrainte métier qui lève), une transaction avortée : tous consomment des numéros. **L'écran et
+le batch de nettoyage ne lisent jamais un trou comme une ligne manquante** ; une ligne se cherche par sa
+**pièce**, son sujet ou sa date, jamais par la continuité de `id`. La pièce n'est pas une numérotation légale
+continue (c'est un `uuid`) — le grand livre n'est pas un journal de factures.
+
+**Une sonde ne laisse rien.** Tout appel qui écrit dans une postcondition est dans un bloc qui lève
+`SONDE_ANNULEE` et relance toute autre erreur, ou dans un bloc qui attend une erreur nommée et lève « NON
+TENUE » si elle ne vient pas (toute la migration avorte alors). L'annulation n'est ni un UPDATE ni un
+DELETE : le verrou ne s'y oppose pas. Gardé par `diag-grand-livre` sur toute la chaîne (172 appels au
+26/09/2026) ; trois migrations appliquées d'une forme antérieure sont au gel, dont **un défaut nommé**
+(`plafond_par_acteur` modifie puis restaure un réglage réel — une discipline, à ne jamais recopier).
+
 **Le partitionnement attend, et il ne changera pas le modèle.** 127 lignes d'audit en cinq mois. La
 **date est en tête** de chaque index de filtre dès aujourd'hui — un partitionnement par mois gardera
 les index locaux et élaguera par période sans toucher aux colonnes, à `journaliser()` ni à l'écran.

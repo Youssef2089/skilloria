@@ -360,6 +360,9 @@ tourné sur une base.** Une postcondition jamais exécutée est une **affirmatio
 `npx supabase db reset --local` rejoue les 135 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
+> **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé
+> (`SONDE_ANNULEE`) ou attend une erreur nommée — gardé par `diag-grand-livre`. `grand_livre.id` a donc des
+> **trous normaux** : il ne prouve jamais qu'une ligne manque (§D.26 d'architecture).
 > ⚠️ **UNE BASE VIERGE NE REJOUE PAS LES CAS DE DONNÉES.** Les postconditions qui comparent des
 > totaux, comptent des lignes antérieures ou tolèrent un passé daté passent **trivialement** sur du
 > vide. Le reset prouve le **DDL et la logique** ; pas ce qui dépend des lignes de staging.
