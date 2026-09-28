@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { organisationModifiee } from '@/lib/organisations/journal-organisation'
 import {
   BUCKET_LOGOS_ORG,
   LOGO_TAILLE_MAX_OCTETS,
@@ -115,6 +117,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (ctx.erreur) return ctx.erreur
   const { auth, org } = ctx
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // Le refus de role vient AVANT toute lecture du corps : on ne consomme pas
   // 2 Mo de reseau pour repondre 403 ensuite.
@@ -183,6 +187,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
+  // Le grand livre (§D.26, phase B) : le logo est une propriété de l'organisation.
+  const ligne = await organisationModifiee(auth.supabaseAdmin, journal, { organizationId: org.id, operation: 'logo_depose' })
+  if (!ligne.ok) {
+    console.error('[organisation] grand livre en échec après écriture', { orgId: org.id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', organization_id: org.id }, 500)
+  }
+
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
@@ -208,6 +219,8 @@ export async function DELETE(request: NextRequest): Promise<Response> {
   }
   if (ctx.erreur) return ctx.erreur
   const { auth, org } = ctx
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   if (org.role_in_org !== 'admin') {
     return json({ error: 'Admin role required', code: 'not_org_admin' }, 403)
@@ -239,6 +252,13 @@ export async function DELETE(request: NextRequest): Promise<Response> {
   if (dbErr) {
     console.error('[organisation/logo] drapeau non retiré', { orgId: org.id, msg: dbErr.message })
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+
+  // Le grand livre (§D.26, phase B) : le logo retiré.
+  const ligne = await organisationModifiee(auth.supabaseAdmin, journal, { organizationId: org.id, operation: 'logo_retire' })
+  if (!ligne.ok) {
+    console.error('[organisation] grand livre en échec après écriture', { orgId: org.id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', organization_id: org.id }, 500)
   }
 
   await logAudit({

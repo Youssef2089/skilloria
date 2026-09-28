@@ -5,10 +5,11 @@
 --   taxonomie_modifiee : l'administrateur — branche et spécialité, créée / modifiée / supprimée
 --   ecosysteme_cree    : l'administrateur — l'écosystème et sa configuration
 --   ecosysteme_modifie : l'administrateur — les champs, l'activation, le visuel déposé et retiré
+--   organisation_modifiee : l'administrateur d'organisation — client, cabinet, ESN, et l'organisation personnelle d'un expert
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(12);
+select plan(15);
 
 -- Une ligne telle que l'écrivain l'écrit : acteur l'administrateur (origine administrateur).
 create or replace function pg_temp.ecrire(p_piece uuid, p_code text, p_admin uuid, p_dom uuid, p_sujet_type text, p_sujet uuid, p_detail jsonb)
@@ -16,6 +17,14 @@ returns void language plpgsql as $$
 begin
   perform public.journaliser(p_piece, p_code, 'reussi', 'administrateur', p_admin, 'admin', p_dom,
                              p_sujet_type, p_sujet, p_detail, null::uuid, null::numeric, null::text);
+end $$;
+
+-- La fiche d'organisation, telle que l'écrivain l'écrit : acteur l'administrateur de l'organisation, AUCUN écosystème.
+create or replace function pg_temp.ecrire_org(p_piece uuid, p_acteur uuid, p_type_acteur text, p_org uuid, p_detail jsonb)
+returns void language plpgsql as $$
+begin
+  perform public.journaliser(p_piece, 'organisation_modifiee', 'reussi', 'utilisateur', p_acteur, p_type_acteur, null::uuid,
+                             'organizations', p_org, p_detail, null::uuid, null::numeric, null::text);
 end $$;
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
@@ -26,6 +35,9 @@ declare
   v_sp    uuid;
   v_eco   uuid;
   v_q     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
+  v_r     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
+  v_o     uuid[];
+  v_org   uuid[];
   v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
 begin
   -- ── taxonomie_modifiee : une branche, puis une spécialité, créées comme les routes les créent ──
@@ -110,6 +122,28 @@ begin
   return next throws_ok(format($q$select pg_temp.ecrire(%L, 'ecosysteme_modifie', %L, %L, 'domains', %L, '{"operation":"modification","tagline":"Sonde"}'::jsonb)$q$,
                                gen_random_uuid(), v_admin, v_eco, v_eco),
                         'GL004', null, 'ecosysteme_modifie : une valeur (l''accroche) est refusée');
+
+  -- ── organisation_modifiee : client, cabinet, ESN (champs, logo) ; l'organisation personnelle d'un expert (champs) ──
+  v_o := array[pg_temp.fab_compte('entreprise'), pg_temp.fab_compte('cabinet'), pg_temp.fab_compte('cabinet'), pg_temp.fab_compte('expert')];
+  v_org := array[pg_temp.fab_organisation(v_o[1]),
+                 public.creer_organisation_avec_admin(v_o[2], v_dom, 'cabinet', 'Sonde Cabinet', 'FR'),
+                 public.creer_organisation_avec_admin(v_o[3], v_dom, 'esn', 'Sonde ESN', 'FR'),
+                 public.creer_organisation_avec_admin(p_user_id => v_o[4], p_domain_id => v_dom, p_org_type => 'freelance',
+                                                      p_company_name => 'Sonde perso', p_country => 'FR', p_owner_user_id => v_o[4])];
+  perform pg_temp.ecrire_org(v_r[1], v_o[1], 'client', v_org[1], '{"operation":"modification","champs":["website","city"]}'::jsonb);
+  perform pg_temp.ecrire_org(v_r[2], v_o[1], 'client', v_org[1], '{"operation":"logo_depose","champs":[]}'::jsonb);
+  perform pg_temp.ecrire_org(v_r[3], v_o[2], 'cabinet', v_org[2], '{"operation":"logo_retire","champs":[]}'::jsonb);
+  perform pg_temp.ecrire_org(v_r[4], v_o[3], 'cabinet', v_org[3], '{"operation":"modification","champs":["description"]}'::jsonb);
+  perform pg_temp.ecrire_org(v_r[5], v_o[4], 'expert_freelance', v_org[4], '{"operation":"modification","champs":["name"]}'::jsonb);
+  return next ok((select count(*) from public.grand_livre g where g.piece = any (v_r[1:5]) and g.type_action = 'organisation_modifiee'
+                    and g.ecosysteme_id is null and g.sujet_type = 'organizations') = 5,
+                 'organisation modifiée : client (champs, logo), cabinet (logo retiré), ESN, expert (organisation personnelle) — cinq lignes, sans écosystème');
+  return next ok(exists (select 1 from public.grand_livre g where g.piece = v_r[1] and g.detail -> 'champs' = '["website", "city"]'::jsonb)
+                 and exists (select 1 from public.grand_livre g where g.piece = v_r[5] and g.acteur_type = 'expert_freelance' and g.sujet_id = v_org[4]),
+                 'les NOMS des champs ; l''expert agit sur SON organisation personnelle');
+  return next throws_ok(format($q$select pg_temp.ecrire_org(%L, %L, 'client', %L, '{"operation":"modification","website":"https://exemple.invalid"}'::jsonb)$q$,
+                               v_r[6], v_o[1], v_org[1]),
+                        'GL004', null, 'organisation_modifiee : une valeur (le site) est refusée');
 end $$;
 
 select * from pg_temp.essai();

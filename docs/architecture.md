@@ -202,6 +202,10 @@ actions, clé étrangère du grand livre).
 > visuel retiré ; l'OPÉRATION du détail distingue `activation`/`desactivation` (elles ouvrent ou ferment
 > l'écosystème) de `modification` et des deux gestes de visuel. Noms de champs, clés de traductions, type de visuel —
 > jamais une valeur. Même écrivain, même test.
+> · `journal_organisation_modifiee` (2.2) — `organisation_modifiee` (organisation) : PATCH de la fiche, logo déposé,
+> logo retiré (client, cabinet, ESN ; l'organisation personnelle d'un expert pour les champs, jamais de logo §D.8) ;
+> l'opération et les NOMS des champs ; AUCUN écosystème (une organisation en rejoint plusieurs). Écrivain :
+> `lib/organisations/journal-organisation.ts`. Test : `grand_livre/rattachements.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { requireAuth, AuthError, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { organisationModifiee } from '@/lib/organisations/journal-organisation'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -158,6 +160,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // ── Garde ADMIN ACTIF ───────────────────────────────────────────────────────
   // `requireAuth` résout déjà l'organisation via organization_members filtré sur
@@ -283,6 +287,17 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
   if (!updated) {
     return json({ error: 'Organization not found', code: 'not_found' }, 404)
+  }
+
+  // Le grand livre (§D.26, phase B) : les NOMS des champs, jamais leurs valeurs.
+  const ligne = await organisationModifiee(auth.supabaseAdmin, journal, {
+    organizationId: org.id,
+    operation: 'modification',
+    champs: Object.keys(patch),
+  })
+  if (!ligne.ok) {
+    console.error('[organisation] grand livre en échec après écriture', { orgId: org.id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', organization_id: org.id }, 500)
   }
 
   // Audit best-effort : on trace les CHAMPS touchés, pas leurs valeurs.

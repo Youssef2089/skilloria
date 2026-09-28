@@ -54,6 +54,8 @@ export const ACTIONS_JOURNAL = [
   // organisation
   'membre_invite', 'invitation_renvoyee', 'invitation_acceptee', 'invitation_revoquee',
   'membre_retire', 'membre_parti', 'role_membre_change',
+  // la fiche d'organisation (champs, logo) — lib/organisations/journal-organisation.ts
+  'organisation_modifiee',
   // commerce
   'paiement_recu', 'plafond_atteint',
   // un événement de paiement coincé, rouvert à la main — écrit par rouvrir_evenement_stripe()
@@ -142,6 +144,7 @@ export const CLES_DETAIL = {
   membre_retire: ['organization_id', 'membre_user_id', 'role_de', 'role_vers', 'statut_de', 'statut_vers', 'siege_transfere', 'siege_libere'],
   membre_parti: ['organization_id', 'membre_user_id', 'role_de', 'role_vers', 'statut_de', 'statut_vers', 'siege_transfere', 'siege_libere'],
   role_membre_change: ['organization_id', 'membre_user_id', 'role_de', 'role_vers', 'statut_de', 'statut_vers', 'siege_transfere', 'siege_libere'],
+  organisation_modifiee: ['operation', 'champs', 'champs[]'],
   paiement_recu: [
     'transaction_id', 'organization_id', 'package_id',
     'stripe_invoice_id', 'stripe_event_id',
