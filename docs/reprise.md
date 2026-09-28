@@ -5,7 +5,25 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 11, en cours).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 11).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+
+## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
+
+**Terminé.** Les trois étapes du mandat sont faites : 71 actions, un écrivain chacune (contrôle strict) ; la pièce
+dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
+**Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
+
+**Au prochain push** — une seule migration en attente, `retrait_anciennes_signatures` (§E.72, étape 3) :
+coller d'abord la requête de staging (sa ligne ⓪ doit dire `journal_nettoyage`), puis la séquence de §G.4 ter.
+Après ce push, déclarer le nouvel état en ⓪ et vider les deux listes du `with` (`diag-requete-staging` le demande).
+
+**Restent à faire, par Youssef :**
+1. **L'essai d'inscription sur staging** — un expert freelance, un expert CDI, une organisation, une invitation
+   acceptée ; et un lien de confirmation expiré. Chacun doit laisser sa ligne au grand livre (`compte_cree`, puis
+   `expert_inscrit` / `organisation_preinscrite` / `invitation_acceptee`).
+2. **La saisie des durées, quand il voudra nettoyer** — Administration → Grand livre → « Conservation et
+   nettoyage » : la conservation et le plancher légal, famille par famille. Elles sont nées VIDES : **tant qu'une
+   famille n'a pas ses deux valeurs, rien ne s'y efface**. Rien ne presse.
 
 ## Le mandat, en une phrase par étape
 
@@ -41,7 +59,7 @@ Tag local `sauvegarde-avant-menage` posé sur `90366d3` avant tout.
 |---|---|---|
 | 1.1 Retrait des anciennes signatures | **fait** | Migration `retrait_anciennes_signatures` : `stripe_event_claim(text, text, jsonb, boolean)` et `admin_cron_run_now(text, uuid)` supprimées (APRÈS le déploiement — il est fait). L'exception de `une_signature.test.sql` retirée. `ecritures_effectives.test.sql` appelait encore `stripe_event_claim` → `stripe_event_reclamer` (il aurait cassé). **Défaut trouvé dans l'outil** : le rejeu des migrations tient les fonctions par nom, et un `drop` de l'ancienne surcharge y effaçait la NOUVELLE `admin_cron_run_now` — corrigé (le `drop` ne retire que la signature de la dernière définition ; carte identique avant/après sur les 156 migrations). `diag-billing-fondations` : l'ancienne est retirée et personne ne l'appelle, la remplaçante est révoquée au navigateur. |
 | 1.2 La requête de staging | **fait** | Réécrite : 28 lignes → 13. **⓪ état** (dernière migration appliquée, par son nom : `journal_nettoyage` ; périmée sinon), **①–② prochain push** (deux listes en tête : les 2 signatures que 1.1 retire, rien de créé), **③–⑩ invariants** (aucune surcharge hors ce que le push retire, index unique du grand livre, index partiel des transactions, secrets du Vault, extensions, aucune politique d'écriture client sur une table journalisée, aucune politique sur `grand_livre`, aucun droit d'écriture du navigateur sur `grand_livre`). **⑪–⑫** gardées de l'ancienne (16, 18 : les colonnes de `handle_new_user`, tenues ÉGALES à ses insertions ; `speciality_id` absente — §E.73). Sorties : les lignes d'avant les pushs faits (6, 7, 8, 9, 11, 13, 15, 17, 19, 21–28), les volumes « à lire » (14, 20) et ① (doublons : l'index unique les interdit, ④ le vérifie). ⑩ ancienne aurait rougi AVANT ce push (l'ancienne surcharge y est attendue) ; la liste des tables de ⑫ avait perdu `grand_livre_conservation`, `matches`, `stripe_events`. **Garde** : `diag-requete-staging` (nouveau) et `diag-portes-laterales` (couverture de la liste) ; §E.80. |
-| 1.3 Ce fichier | à faire | |
+| 1.3 Ce fichier | **fait** | En tête : « terminé et déployé », le prochain push (une migration en attente, la ⓪ à redéclarer ensuite), et les deux choses qui restent à Youssef. La section « les migrations n'ont jamais tourné » marquée historique. |
 | Étape 2 — l'audit de la porte d'inscription | à faire | lecture seule, puis arrêt |
 
 ## ⛔ ARRÊT 10 — LE REJEU LOCAL : 39 FICHIERS, 352 TESTS, 3 ÉCHECS — CORRIGÉS (28/09/2026)
@@ -624,7 +642,10 @@ Ces huit points font la requête unique de 2.8.
 (série statique ; 5 muets attendus : 3 écartés parce qu'ils écrivent, 2 qui plantent sur l'environnement Windows) ·
 mutation du nouveau contrôle, **après** le commit.
 
-## ⚠️ Les migrations du lot n'ont JAMAIS tourné (§E.70)
+## ⚠️ Les migrations du lot n'ont JAMAIS tourné (§E.70) — HISTORIQUE
+
+> **Ce n'est plus vrai** : depuis, rejouées en local par Youssef (ARRÊT 10), puis appliquées sur staging le
+> 28/09/2026. La règle qui en sort reste : **le rejeu sur base jetable avant staging n'est pas une formalité.**
 
 Mesuré le 26/09/2026 : 22 sondes ne demandant aucune donnée auraient levé sur une base vierge — donc
 aucune migration de l'étape 2 n'avait été rejouée. Corrigées en place (non appliquées nulle part) et
