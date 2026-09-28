@@ -64,7 +64,12 @@ const ecritSql = (n) => { const c = defs.get(n); return !!c && /\b(insert\s+into
 const libs = walk('lib').map((f) => [f, strip(read(f))])
 const fonctions = []
 for (const [f, s] of libs) {
-  const decl = [...s.matchAll(/(?:export )?(?:async )?function (\w+)\(|export class (\w+)/g)]
+  // ⚠️ UNE FONCTION GÉNÉRIQUE EST UNE DÉCLARATION (\`function journaliser<A …>(\`). Le motif d'origine
+  //    exigeait \`nom(\` : il ratait les génériques, et le corps de la déclaration PRÉCÉDENTE — la classe
+  //    JournalError — avalait ceux de journaliser() et journaliserDans(). La classe devenait « traçante »,
+  //    puis contexteDepuisAuth() qui la lève : toute route qui ouvrait un contexte passait pour tracée,
+  //    sans écrire une ligne. Vu par mutation le 28/09/2026 (§G.5) : le faux vert dans le sens rassurant.
+  const decl = [...s.matchAll(/(?:export )?(?:async )?function (\w+)\s*(?:<[^(]*>)?\(|export class (\w+)/g)]
   decl.forEach((m, k) => fonctions.push({ f, nom: m[1] ?? m[2], corps: s.slice(m.index, k + 1 < decl.length ? decl[k + 1].index : undefined) }))
 }
 const journalise = (corps, conn) => /\bjournaliserDans\(|\bjournaliser\(|\bjournaliserReglage\(/.test(corps)
