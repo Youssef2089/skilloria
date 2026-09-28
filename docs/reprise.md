@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026.** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 8).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## Le mandat, en une phrase par étape
 
@@ -30,7 +30,96 @@
 | (g) RGPD | `compte_purge_demande`, `compte_purge_inactivite`, `compte_purge_admin`, `inactivite_avertie` |
 | messagerie | `message_envoye` |
 
-**Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
+**Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 8 — PHASE B, ÉTAPE 2 FAITE (28/09/2026). ARRÊT AUX PLANCHERS LÉGAUX.
+
+**Les planchers légaux sont la décision de Youssef.** Tout le reste est construit ; tant qu'ils ne sont pas écrits
+(par migration), **rien ne s'efface** : chaque famille reste « à arbitrer » et l'écran le dit.
+
+**Le décompte (2.8).** **71 actions**, chacune **exactement un écrivain** — contrôlé (`diag-grand-livre` : « ni deux »
+et, désormais STRICT, « ni zéro ») :
+56 (au départ) + **7 gestes** (`expert_inscrit`, `organisation_preinscrite`, `administrateur_cree`, `annonce_creee`,
+`mission_ecartee`, `evenement_stripe_rouvert`, `tache_lancee_a_la_main`) + **1 séparée par la règle du nom**
+(`sous_traitance_creee`, comme la publication — non prévue au mandat, dite) + **1 de la décision A** (`compte_cree`) +
+**6 rattachements** (`taxonomie_modifiee`, `ecosysteme_cree`, `ecosysteme_modifie`, `organisation_modifiee`,
+`identite_modifiee`, `cv_reinitialise`). `journal_nettoye` a désormais son écrivain (`nettoyer_journal`).
+**Routes** : 65 écrivent, **58 laissent une ligne**, **7 exclues nommément** avec leur raison (`diag-routes-tracees`).
+**Tests** : 60 fonctions appelées par 32 tests de `grand_livre/` (276 assertions) + `inscription/compte_cree` (22) ;
+49 actions testées en SQL, 22 au gel (écrites en TypeScript, forme tenue par C bis).
+
+**Migrations nouvelles (17, toutes AVANT le déploiement, aucune appliquée n'est touchée)** : `journal_compte_cree`,
+`journal_expert_inscrit`, `journal_organisation_preinscrite`, `journal_administrateur_cree`, `journal_annonce_creee`,
+`journal_mission_ecartee`, `journal_evenement_stripe_rouvert`, `journal_tache_lancee_a_la_main`,
+`journal_taxonomie_modifiee`, `journal_ecosysteme_cree`, `journal_ecosysteme_modifie`, `journal_organisation_modifiee`,
+`journal_identite_modifiee`, `journal_cv_reinitialise`, `piece_sous_journaux`, `journal_lecture`, `journal_nettoyage`
+(`20260928000020` → `…000180`). La décision B (la route supprimée) n'a pas de migration. Rien n'a tourné sur une base.
+
+**Validations** : `tsc` 0 hors `.next/` ; `next build` : **compilé** (« Compiled successfully »), la vérification de
+types bute sur UN fichier généré périmé, `.next/dev/types/validator.ts`, qui cite la route supprimée (décision B) —
+filtré (`.next/`) ; sa suppression m'a été refusée, elle est l'étape 0 ci-dessous. Lint **65/25** (cliquet vert) ;
+parité **3915 clés** ; cliquet des migrations vert ; série `diag` **110 verts / 0 rouge / 5 muets** (les mêmes cinq).
+
+**Ce qui a été lu** : `handle_new_user` (`inscription_specialites`), `handle_email_confirmed` et `trigger_purge_cron`
+(`ecritures_effectives`), `admin_cron_run_now` (`cron_manual_run`), `stripe_event_claim` (`stripe_fondations`),
+`journaliser_reglage` (`journal_reglages`), `journaliser` et `exiger_ecriture` (`liste_blanche_par_action`) ; les routes
+`register-expert`, `register-org`, `create-admin`, `publications` POST, `dismiss`, `facturation` POST,
+`cron-jobs/[name]/run`, les six de la taxonomie, les trois des écosystèmes, `me/organisation` (+ logo), `me/identity`,
+`profile/cv/reset`, `stripe/webhook`, les cinq tâches `cron/*` ; `lib/auth-signup`, `lib/audit`, `lib/ai-budget`,
+`lib/cron/verdict-de-run`, `lib/matching/shared` ; `scripts/creer-premier-administrateur.mjs` ; l'écran
+`/admin/consommation`, `/auth/callback`, les primitives `PageHeader`, `EmptyState`, `StatusPill`, `MasterDetail`,
+`GlobalBackButton`, `lib/nav-config` ; les contrôles `diag-grand-livre`, `diag-tests-grand-livre`,
+`diag-postconditions-structure`, `diag-ecritures-effectives`, `diag-admin-create`, `diag-billing-socle`,
+`diag-billing-fondations`, `diag-cron-supervision` ; `docs/pieges.md` §E.77 ; le schéma (`supabase/.temp/schema.sql`).
+
+**Ce que les routes d'inscription vérifient et que `handle_new_user` ne vérifie pas** — donc ce qu'un appel DIRECT à
+l'API d'authentification (clé publique) contourne aujourd'hui : **le téléphone vérifié par OTP** (barrière anti-multicompte,
+unicité) ; **l'acceptation des CGU** (horodatage, version) ; **la spécialité ou sa précision « Autre » OBLIGATOIRE**
+(le trigger admet un expert sans aucune) ; le format du slug, de l'adresse, du nom, du mot de passe ; **les domaines
+d'adresse bloqués ou publics** et l'unicité du domaine et de l'identifiant d'entreprise (organisation) ; **la naissance
+de l'organisation** elle-même (un compte `client`/`cabinet` direct naît sans organisation). Ce que le trigger vérifie
+désormais : rôle, écosystème actif, rôle Gratuit, taxonomie (règle UNIQUE), voie et pièce (IN006). **La trace, elle,
+ne se contourne plus** : un compte né par appel direct a sa ligne `compte_cree` (origine système, voie nulle) et
+AUCUNE ligne sœur sous sa pièce — c'est ce qui le signale.
+
+**DETTES NOMMÉES (§E.72)** : `stripe_event_claim(text, text, jsonb, boolean)` et `admin_cron_run_now(text, uuid)` sont
+appelées par le code EN LIGNE — gardées, à supprimer par une migration du déploiement SUIVANT (la requête de staging
+㉘ les attend présentes). **Limites dites** : `expert-relance` et `match-retry` gardent une pièce par élément ; un audit
+hors de tout contexte de journal reste sans pièce ; `diag-routes-tracees` juge le fichier, pas la méthode.
+
+### Les planchers légaux — PROPOSITION (à arbitrer par Youssef ; à faire relire par un juriste)
+
+Un plancher porte sur l'**âge de la ligne** (date de l'écriture). Une obligation qui court « à compter de la fermeture
+du compte » ne se traduit donc pas exactement : le plancher proposé la couvre largement.
+
+| Famille | Plancher proposé | Source |
+|---|---|---|
+| `commerce` (paiements, plafonds, événement rouvert) | **120 mois** | Code de commerce, **art. L123-22** : documents comptables et pièces justificatives conservés **dix ans**. (Le LPF, art. L102 B, dit six ans : le plus long l'emporte.) |
+| `compte` (création, inscription, validation, suspension, e-mail, mot de passe…) | **60 mois** (minimum légal strict : 12 mois) | Minimum : **décret n° 2021-1362** (LCEN, art. 6-II) — les données fournies à la création d'un compte sont conservées **un an** après sa fermeture. Proposé : **Code civil, art. 2224** — prescription de **cinq ans** des actions personnelles : la preuve de la relation (CGU acceptées, validations) doit survivre au délai d'action. |
+| `organisation` (préinscription, membres, fiche) | **60 mois** | Code civil, art. 2224 (relation contractuelle avec l'organisation). |
+| `rgpd` (purges, avertissements, IP effacées) | **60 mois** | RGPD, art. 5.2 (principe de responsabilité : prouver qu'on a effacé) + Code civil art. 2224 pour la durée — **aucun texte ne fixe ce chiffre** : c'est une prudence, dite comme telle. |
+| `administration`, `refus` | **12 mois** | **CNIL, délibération n° 2021-122** (recommandation sur la journalisation) : **six mois à un an**, davantage si justifié. Les réglages d'argent (tarifs, offres) passent par `reglage_modifie` : si Youssef les veut sous la règle commerciale, 120 mois. |
+| `annonce`, `profil`, `recherche`, `candidature`, `devoilement`, `messagerie` | **0** (aucun plancher légal) | Aucune obligation de conservation trouvée pour ces traces (identifiants seulement). À noter pour `candidature` : l'action en discrimination se prescrit par cinq ans (Code du travail, art. L1134-5) — si Youssef veut pouvoir répondre d'une sélection, 60 mois. |
+| `journal` | **sans objet** | Jamais nettoyée (contrainte) : ce sont les traces des nettoyages. |
+
+**Pour appliquer la décision** : une migration (tronc, `0xxxxx`, strictement après `20260928000180`) qui pose
+`update public.grand_livre_conservation set plancher_mois = … where famille = …` — puis l'administrateur règle la
+conservation de chaque famille depuis `/admin/journal` (journalisé `reglage_modifie`), au-dessus du plancher.
+
+### Les étapes de Youssef, dans l'ordre
+
+0. **Supprimer le fichier généré périmé** `.next/dev/types/validator.ts` (ou relancer `npm run dev` une fois, qui le
+   régénère) — il cite la route `DELETE /api/profile/cv` supprimée ; `next build` s'arrête sinon à la vérification de types.
+1. **Arbitrer les planchers** (tableau ci-dessus) : me dire les chiffres, j'écris la migration.
+2. **Rejouer en local** : `node scripts/verifier-version-postgres.mjs`, puis `npx supabase db reset --local`,
+   `npx supabase db lint -s public --level error`, `npx supabase test db --local` — les 17 migrations nouvelles,
+   les 11 fichiers de test nouveaux et la fabrique `fab_admin` changée n'ont JAMAIS tourné (§E.70).
+3. **Requête de staging** (`supabase/verifications/staging-avant-push.sql`) : aucune ligne ÉCART (㉔–㉘ ajoutées).
+4. `npm run build`, puis `npx supabase db push` (il reprend à `journal_annonce_publiee`, les 29 du lot S puis les 17 de
+   la phase B), **puis le déploiement dans la foulée** (§E.72).
+5. **À faire avant toute démonstration** (reporté) : l'essai d'inscription d'un expert sur staging, freelance ET CDI, de
+   bout en bout — e-mail de confirmation compris ; et, au passage, un lien de confirmation expiré pour voir le message.
+6. **Au déploiement suivant** : la migration qui supprime les deux anciennes signatures (dettes nommées).
 
 ## ▶ PHASE B, ÉTAPE 2 — DÉCISIONS DE YOUSSEF SUR L'AUDIT (28/09/2026)
 
