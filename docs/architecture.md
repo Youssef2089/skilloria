@@ -3310,6 +3310,16 @@ notée » et avait exactement le même trou. Le refermer demande un balayage pé
 place libre, donc une tâche planifiée — un lot à lui seul, et un arbitrage de coût. **Mesure requise
 avant** : combien d'annonces ont aujourd'hui une place incluse non attribuée.
 
+**H.4 — LA PORTE D'INSCRIPTION RESTE OUVERTE À UN APPEL DIRECT. AUDIT RENDU LE 28/09/2026, NON TRANCHÉ.**
+Un compte créé en appelant le service d'authentification avec la clé publique passe `handle_new_user` (rôle,
+écosystème, taxonomie) mais échappe à tout ce que vérifient les routes : téléphone, CGU, formats, domaines
+d'adresse, unicité du domaine et du SIREN, création de l'organisation. Il laisse sa ligne `compte_cree` ; il
+devient actif à la confirmation de l'adresse ; aucune garde ne lit `cgu_accepted_at` ni `phone_verified`. Borné
+par la vérification humaine qu'exigent la mise en relation et le dépôt (§D.20). **Et le consentement aux CGU d'un
+invité n'est enregistré nulle part** (case vérifiée dans le navigateur seulement). Options, coûts et
+recommandation — une preuve signée par le serveur, vérifiée par `handle_new_user` — dans
+[reprise.md](reprise.md), ARRÊT 11.
+
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
 **Palette**

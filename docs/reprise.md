@@ -50,7 +50,7 @@ Après ce push, déclarer le nouvel état en ⓪ et vider les deux listes du `wi
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
-## ⛔ ARRÊT 11 — LE MÉNAGE DU DÉPLOIEMENT, PUIS L'AUDIT DE LA PORTE D'INSCRIPTION (en cours, 28/09/2026)
+## ⛔ ARRÊT 11 — LE MÉNAGE DU DÉPLOIEMENT EST FAIT ; L'AUDIT DE LA PORTE D'INSCRIPTION EST RENDU (28/09/2026)
 
 **Le grand livre est en ligne sur staging** : les 17 migrations de la phase B appliquées, le code déployé (Youssef).
 Tag local `sauvegarde-avant-menage` posé sur `90366d3` avant tout.
@@ -60,7 +60,81 @@ Tag local `sauvegarde-avant-menage` posé sur `90366d3` avant tout.
 | 1.1 Retrait des anciennes signatures | **fait** | Migration `retrait_anciennes_signatures` : `stripe_event_claim(text, text, jsonb, boolean)` et `admin_cron_run_now(text, uuid)` supprimées (APRÈS le déploiement — il est fait). L'exception de `une_signature.test.sql` retirée. `ecritures_effectives.test.sql` appelait encore `stripe_event_claim` → `stripe_event_reclamer` (il aurait cassé). **Défaut trouvé dans l'outil** : le rejeu des migrations tient les fonctions par nom, et un `drop` de l'ancienne surcharge y effaçait la NOUVELLE `admin_cron_run_now` — corrigé (le `drop` ne retire que la signature de la dernière définition ; carte identique avant/après sur les 156 migrations). `diag-billing-fondations` : l'ancienne est retirée et personne ne l'appelle, la remplaçante est révoquée au navigateur. |
 | 1.2 La requête de staging | **fait** | Réécrite : 28 lignes → 13. **⓪ état** (dernière migration appliquée, par son nom : `journal_nettoyage` ; périmée sinon), **①–② prochain push** (deux listes en tête : les 2 signatures que 1.1 retire, rien de créé), **③–⑩ invariants** (aucune surcharge hors ce que le push retire, index unique du grand livre, index partiel des transactions, secrets du Vault, extensions, aucune politique d'écriture client sur une table journalisée, aucune politique sur `grand_livre`, aucun droit d'écriture du navigateur sur `grand_livre`). **⑪–⑫** gardées de l'ancienne (16, 18 : les colonnes de `handle_new_user`, tenues ÉGALES à ses insertions ; `speciality_id` absente — §E.73). Sorties : les lignes d'avant les pushs faits (6, 7, 8, 9, 11, 13, 15, 17, 19, 21–28), les volumes « à lire » (14, 20) et ① (doublons : l'index unique les interdit, ④ le vérifie). ⑩ ancienne aurait rougi AVANT ce push (l'ancienne surcharge y est attendue) ; la liste des tables de ⑫ avait perdu `grand_livre_conservation`, `matches`, `stripe_events`. **Garde** : `diag-requete-staging` (nouveau) et `diag-portes-laterales` (couverture de la liste) ; §E.80. **Rouge trouvé par la série à l'arrêt, après le commit** : la garde G de `diag-tests-grand-livre` exigeait que la requête commence par `select` — elle admet maintenant `with` (les mots d'écriture restent refusés partout : un `with … delete` rougit, éprouvé). |
 | 1.3 Ce fichier | **fait** | En tête : « terminé et déployé », le prochain push (une migration en attente, la ⓪ à redéclarer ensuite), et les deux choses qui restent à Youssef. La section « les migrations n'ont jamais tourné » marquée historique. |
-| Étape 2 — l'audit de la porte d'inscription | à faire | lecture seule, puis arrêt |
+| Étape 2 — l'audit de la porte d'inscription | **rendu** | lecture seule — ci-dessous ; recommandation (b) ; arrêt |
+
+### Étape 2 — LA PORTE D'INSCRIPTION : L'AUDIT (lecture seule). Rien n'est corrigé ; trois décisions à Youssef.
+
+**Lu pour cet audit** : `handle_new_user` et `handle_email_confirmed` (dernières définitions), `lib/auth-signup.ts`,
+`app/api/auth/public/register-expert/route.ts`, `app/api/auth/register-org/route.ts`, `app/[locale]/invitation/[token]/page.tsx`,
+`lib/invitation-accept.ts`, `lib/admin/admin-invitation.ts`, `app/api/admin/create-admin/route.ts`, `lib/phone-otp-token.ts`,
+`lib/matching/eligibilite.ts`, `supabase/config.toml` ; balayage de `cgu_accepted_at`, `phone_verified`, `auth.signUp`,
+`admin.createUser`, `signInWithOtp`/`OAuth`/`Anonymously` dans `app/`, `lib/`, `components/`, `scripts/`.
+
+**Le constat, mesuré dans le dépôt.**
+1. **Quatre chemins créent un compte, tous par `handle_new_user`** : l'expert et l'organisation (route serveur,
+   `auth.signUp` sur un client à clé PUBLIQUE — le seul qui envoie l'e-mail de confirmation, piège P1 de
+   `lib/auth-signup.ts`) ; l'invité (`auth.signUp` **dans le navigateur**) ; l'administrateur (`admin.createUser`,
+   route et script). **La route serveur et l'appel direct frappent donc le même point d'entrée** : fermer
+   l'inscription publique de Supabase fermerait aussi les deux routes.
+2. **Ce que la base vérifie** (`handle_new_user`) : rôle connu (IN001), écosystème présent et actif (IN002, IN003),
+   rôle « Gratuit » (IN004), branche et spécialité pour un expert (IN005), voie et pièce cohérentes **si elles sont
+   données** (IN006). **Ce qu'elle ne vérifie pas** : téléphone vérifié et unique, CGU acceptées, formats (noms,
+   longueur de `speciality_other`), domaines d'adresse refusés ou publics, unicité du domaine d'e-mail et du
+   SIREN, création de l'organisation. Un appel direct avec `role: 'entreprise'` crée un client **sans organisation**.
+3. **Après confirmation de l'adresse, le compte est actif** (`handle_email_confirmed` : `draft` → `active`), et
+   **aucune garde** ne lit `cgu_accepted_at` ni `phone_verified` (écrits par les deux routes seulement).
+4. **Ce qui borne le dommage** : être mis en relation et déposer une candidature exigent `verification_status =
+   'approved'` (`lib/matching/eligibilite.ts`, §D.20/§D.21) — une vérification humaine. Reste possible sans elle :
+   téléverser un CV (dépense IA, quota par compte — multiplié par le nombre de comptes), demander une
+   vérification (bruit pour l'administration), faire partir des e-mails de confirmation vers n'importe quelle
+   adresse, un compte par personne sans le téléphone qui les distingue.
+5. **Trouvé en chemin, indépendant de la porte — point 10 de la checklist** : **le consentement aux CGU d'un
+   invité n'est enregistré nulle part.** La case est vérifiée dans le navigateur seulement ; ni l'inscription de
+   l'invité ni l'acceptation n'écrivent `cgu_accepted_at` / `cgu_version`.
+6. **NON VÉRIFIÉ** : les réglages d'authentification de staging (confirmation d'adresse exigée, inscription
+   ouverte, fournisseurs OAuth, connexion anonyme, limites de débit) vivent dans le tableau de bord ; `config.toml`
+   n'a aucune section `[auth]`. Ils se lisent sans écrire, en public : `GET <url>/auth/v1/settings`.
+7. Commentaire faux, sans effet : `inscription/organisation/confirmation/page.tsx` dit l'e-mail « déclenché par
+   `generateLink` » — c'est `auth.signUp` (P1).
+
+**LES OPTIONS**
+
+| | (a) Fermer l'inscription publique, tout créer au serveur | (b) La règle dans la base : une PREUVE signée par le serveur | (c) Le crochet Supabase « avant création » |
+|---|---|---|---|
+| **Le mécanisme** | Réglage « Allow new users to sign up » coupé ; les routes créent par `admin.createUser` puis `admin.generateLink`, et envoient elles-mêmes la confirmation (Resend). L'invité passe par une route serveur. | Après TOUTES ses vérifications, la route signe un jeton (HMAC-SHA256 sur l'e-mail, le rôle, l'écosystème, la voie, la pièce, la taxonomie, le téléphone, la version des CGU, l'échéance) ; `handle_new_user` le vérifie (`pgcrypto`, secret au Vault comme `cron_secret`) et refuse sinon — même mécanisme que IN001–IN006, déjà prouvé : le compte n'est pas créé, aucun e-mail ne part. | La même vérification, dans une fonction branchée comme « Before User Created » dans le tableau de bord. |
+| **Pour l'utilisateur** | Formulaires inchangés. **L'e-mail de confirmation devient le nôtre**, dans sa langue (quatre langues à écrire). Invité : sa route peut le confirmer d'office (le lien reçu prouve l'adresse) — un e-mail de moins, à décider. | **Rien ne change** pour l'expert et l'organisation ; l'e-mail de Supabase reste. Invité : l'inscription passe par une route serveur (qui enregistre enfin ses CGU). | Comme (b). |
+| **Ce que ça ferme** | Toute la surface de création publique d'Auth (inscription, OTP qui crée, premier OAuth, anonyme). | **Toute création de `auth.users` sans preuve du serveur** — inscription publique, OTP, OAuth, anonyme, et même un `admin.createUser` d'un chemin serveur qui aurait oublié de signer. Et le jeton permet d'écrire téléphone, CGU (et, si on le veut, l'organisation) **dans la même transaction** que le compte — là où c'est aujourd'hui un second `update` rattrapé par `atomicCleanup`. | Comme (b). |
+| **Ce que ça ne ferme pas** | Rien de ce qui passe par la clé de service. La règle reste dans la route seule. | L'appel direct reçoit toujours une réponse (refus « Database error saving new user ») : des tentatives, pas de compte. | Idem. |
+| **Coût et risque** | Un réglage **posé à la main** par environnement, hors dépôt (§E.10) — à garder par un contrôle qui lit `/auth/v1/settings`. Réécriture de `lib/auth-signup.ts`, un modèle d'e-mail en quatre langues, la route de l'invité. **Non mesuré** : que `generateLink` accepte de créer un compte quand l'inscription est coupée. Aucun test pgTAP possible (c'est de la configuration GoTrue). | Une migration, `lib/jeton-inscription.ts`, cinq appelants (deux routes, la route de l'invité à créer, la création d'administrateur, le script), la fabrique des tests pgTAP (chaque test crée ses comptes par `handle_new_user` : elle signera avec un secret de test posé dans la transaction), des tests (jeton forgé, expiré, pour une autre adresse : refusés), les erreurs de l'invité en quatre langues. **Un secret en deux copies** (Vercel et Vault de chaque base) à changer ensemble, comme `cron_secret` ; la requête de staging le compte par son nom. L'échéance du jeton est un réglage (aucune valeur dans le code). **NON VÉRIFIÉ** : `pgcrypto` présent sur staging (Supabase l'installe dans `extensions` par défaut) — une ligne de la requête de staging le dira. | Réglage hors dépôt (§E.10), disponibilité **NON VÉRIFIÉE**, et rien qu'un trigger ne fasse déjà. |
+
+**MA RECOMMANDATION : (b)**, avec la route serveur de l'invité **dans le même lot**. C'est la sécurité **en base**
+(point 5) : versionnée, rejouée, testée, indépendante d'un réglage qu'on peut rebasculer d'un clic ; elle ferme
+aussi les chemins serveur qui oublieraient une vérification ; elle ne touche ni aux formulaires ni à l'e-mail de
+confirmation ; et elle ferme le trou des CGU de l'invité (point 10) en écrivant le consentement dans la même
+transaction que le compte. **(a) pas maintenant** : elle remplace l'e-mail de Supabase par le nôtre sur la foi d'un
+comportement de `generateLink` non mesuré, et repose sur un réglage hors dépôt ; son seul gain sur (b) — que les
+tentatives refusées n'atteignent pas la base — ne vaut ce prix que si les tentatives deviennent un volume.
+**(c) non** : (b) sans le versionnement.
+
+**Les trois décisions de Youssef, avant tout code :**
+1. **L'option** — (b) recommandée.
+2. **L'invité** : son adresse est-elle confirmée d'office par sa route (le lien d'invitation prouve la boîte),
+   ou reçoit-il encore l'e-mail de confirmation ?
+3. **L'organisation** : sa création entre-t-elle dans la transaction du compte (plus d'organisation orpheline
+   ni de nettoyage), ou reste-t-elle dans la route ?
+
+
+### Les étapes de Youssef
+1. **Au prochain push** (une seule migration : `retrait_anciennes_signatures`), la séquence de §G.4 ter : la version
+   de Postgres, `db reset --local`, `db lint`, `test db --local` (`une_signature` n'a plus d'exception), **la requête
+   de staging — sa ligne ⓪ doit dire `journal_nettoyage`, aucun ÉCART** —, `npm run build`, `db push`, puis le
+   déploiement aussitôt.
+2. **Juste après ce push** : la ligne ⓪ doit passer à `retrait_anciennes_signatures` et les deux listes se vider —
+   à faire faire par la session suivante ; `diag-requete-staging` dit quand c'est juste.
+3. **L'essai d'inscription sur staging** : un expert freelance, un expert CDI, une organisation, une invitation
+   acceptée, et un lien de confirmation expiré — chacun avec sa ligne au grand livre.
+4. **Les durées, quand tu voudras nettoyer** : Administration → Grand livre → « Conservation et nettoyage ».
+5. **Trancher les trois décisions de la porte d'inscription** ci-dessus (l'option, l'invité, l'organisation).
 
 ## ⛔ ARRÊT 10 — LE REJEU LOCAL : 39 FICHIERS, 352 TESTS, 3 ÉCHECS — CORRIGÉS (28/09/2026)
 
