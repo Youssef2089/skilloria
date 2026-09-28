@@ -212,6 +212,19 @@ actions, clé étrangère du grand livre).
 > · `journal_cv_reinitialise` (2.2) — `cv_reinitialise` (profil) : la remise à zéro complète du CV ; la ligne dit
 > `retire_de_la_vitrine` (visibilité LUE avant) et `avait_un_fichier`. Écrivain : `lib/profil/journal-profil.ts`.
 > Même test (freelance, CDI).
+> · `piece_sous_journaux` (2.5) — `piece uuid` NULLABLE et indexée (partiel) sur `audit_logs`, `ai_spend_events`,
+> `stripe_events`, `cron_run_log`, `notifications` ; **aucune reprise**. `trigger_purge_cron` fait naître la pièce du
+> passage (ou reprend celle du geste, réglage de transaction `skilloria.piece_geste` posé par `admin_cron_run_now`),
+> la pose sur `cron_run_log` et l'envoie dans le corps HTTP avec `log_id` ; le guichet `sousVerdictDeRun` la passe
+> au travail ; `constats`, `purge-deletions`, `purge-inactive` écrivent sous elle. **`stripe_event_reclamer`** : la
+> réclamation de `stripe_event_claim` à l'identique + la pièce de la livraison, dans la même instruction (nom nouveau,
+> pas une surcharge : PostgREST). `logAudit` (65 appels), `enregistrerDepense`, les notifications (moteur, dépôt,
+> vérification, dévoilement, sélection, messagerie, approbation/refus) reçoivent la pièce du contexte ouvert.
+> **Limites dites** : `expert-relance` et `match-retry` gardent une pièce PAR élément (chaque recherche est un
+> geste) — la pièce du passage ne relie pas leurs lignes ; un audit écrit hors de tout contexte de journal
+> (préférences, locale, planification des tâches…) reste sans pièce. **DETTES NOMMÉES (§E.72)** : `stripe_event_claim`
+> et l'ancienne `admin_cron_run_now(text, uuid)` sont appelées par le code EN LIGNE — leur suppression est une
+> migration du déploiement SUIVANT. Test : `grand_livre/piece_sous_journaux.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

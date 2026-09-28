@@ -50,10 +50,16 @@ export type AuditLogParams = {
    * la plupart n'ont rien de sensible.
    */
   request?: NextRequest | Request | null
+  /**
+   * La PIÈCE du geste (§D.26, phase B 2.5) : la même que ses lignes au grand livre. Fournie
+   * dès qu'un contexte de journal est ouvert ; absente, la colonne reste nulle (aucune
+   * pièce inventée pour un geste qui n'en a pas).
+   */
+  piece?: string | null
 }
 
 export async function logAudit(params: AuditLogParams): Promise<void> {
-  const { supabaseAdmin, user_id, domain_id, action, entity_type, entity_id, detail, request } =
+  const { supabaseAdmin, user_id, domain_id, action, entity_type, entity_id, detail, request, piece } =
     params
 
   try {
@@ -66,6 +72,7 @@ export async function logAudit(params: AuditLogParams): Promise<void> {
       detail: detail ?? null,
       ip_address: request ? extractIp(request) : null,
       user_agent: request ? extractUserAgent(request) : null,
+      piece: piece ?? null,
     })
 
     if (error) {

@@ -401,6 +401,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   //  L'audit passe donc AVANT : une annonce publiée sans trace d'audit est un
   //  trou de traçabilité, et c'est précisément l'écriture qui doit survivre.
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

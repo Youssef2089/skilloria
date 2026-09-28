@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
+import type { Piece } from '@/lib/journal/piece'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
 import { contexteDeTache, type ContexteJournal } from '@/lib/journal/contexte'
@@ -77,7 +78,7 @@ function unauthorized(): Response {
 // (purgeAccount), partagée avec la purge des comptes INACTIFS. Cette route ne
 // garde que la SÉLECTION des comptes échus (deletion_scheduled_at <= now()).
 
-async function handle(request: NextRequest): Promise<Response> {
+async function handle(request: NextRequest, piece: Piece | null): Promise<Response> {
   const secret = process.env.CRON_SECRET
   if (!secret) {
     console.error('[purge] CRON_SECRET missing')
@@ -93,7 +94,7 @@ async function handle(request: NextRequest): Promise<Response> {
   }
   // La pièce du PASSAGE naît à l'entrée, avant toute écriture (§D.26) :
   // une ligne par compte purgé, toutes sous cette pièce.
-  const journal = contexteDeTache(JOB)
+  const journal = contexteDeTache(JOB, piece)
 
   const admin = getAdmin()
 
@@ -223,6 +224,7 @@ async function purger(admin: SupabaseClient, journal: ContexteJournal): Promise<
           others_available: others,
         })
         await logAudit({
+          piece: journal.piece,
           supabaseAdmin: admin,
           user_id: u.id,
           domain_id: u.domain_id,
@@ -283,10 +285,10 @@ async function purger(admin: SupabaseClient, journal: ContexteJournal): Promise<
  *    oublie est toujours celle de l'échec, qu'on ne joue jamais.
  */
 export async function GET(request: NextRequest): Promise<Response> {
-  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
+  return sousVerdictDeRun(request, JOB, getAdmin, (piece) => handle(request, piece))
 }
 
 // POST accepté aussi (déclenchement manuel/scripté éventuel).
 export async function POST(request: NextRequest): Promise<Response> {
-  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
+  return sousVerdictDeRun(request, JOB, getAdmin, (piece) => handle(request, piece))
 }

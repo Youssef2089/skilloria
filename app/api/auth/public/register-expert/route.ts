@@ -402,6 +402,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Domaine déjà résolu plus haut (domainId) — réutilisé pour l'audit.
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin,
       user_id,
       domain_id: domainId,

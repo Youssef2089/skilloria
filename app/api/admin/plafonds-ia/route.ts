@@ -285,6 +285,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   //  chercher une coupure de service dans un changement de bruit.
   if (Object.keys(plafonds).length > 0) {
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin: admin,
       user_id: auth.user.id,
       domain_id: auth.domain.id,
@@ -301,6 +302,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
   if (Object.keys(seuils).length > 0) {
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin: admin,
       user_id: auth.user.id,
       domain_id: auth.domain.id,
@@ -318,6 +320,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   if (Object.keys(plafondsActeur).length > 0) {
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin: admin,
       user_id: auth.user.id,
       domain_id: auth.domain.id,

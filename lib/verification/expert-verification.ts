@@ -321,8 +321,10 @@ async function notifyExpertResult(args: {
   locale: Locale
   verification_status: 'approved' | 'pending_admin_review' | 'rejected'
   reason: string | null
+  /** La pièce de la vérification (§D.26, phase B 2.5). */
+  piece: string
 }): Promise<void> {
-  const { supabaseAdmin, user_id, domain_id, user_type, locale, verification_status, reason } = args
+  const { supabaseAdmin, user_id, domain_id, user_type, locale, verification_status, reason, piece } = args
   const titles: Record<Locale, Record<string, string>> = {
     fr: {
       approved: 'Votre profil est vérifié ✓',
@@ -372,7 +374,7 @@ async function notifyExpertResult(args: {
   const linkUrl = dashboardUrlForUserType(user_type)
   try {
     await supabaseAdmin.from('notifications').insert({
-      user_id, domain_id,
+      user_id, domain_id, piece,
       type: 'verification_result',
       channel: 'inapp',
       title: titles[locale][verification_status] ?? titles.fr[verification_status],
@@ -691,6 +693,7 @@ export async function runExpertVerification(args: {
   //     vers /dashboard/cdi vs /dashboard/freelance.
   if (user?.id) {
     await notifyExpertResult({
+      piece: journal.piece,
       supabaseAdmin,
       user_id: user.id,
       domain_id: row.domain_id,

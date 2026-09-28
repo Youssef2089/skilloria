@@ -342,6 +342,8 @@ export async function enregistrerDepense(
     units: number
     cost_usd: number
     context?: Record<string, unknown>
+    /** La pièce du geste qui a dépensé (§D.26, phase B 2.5). */
+    piece?: string | null
   },
 ): Promise<void> {
   // ⚠️ NE LÈVE JAMAIS, SUR AUCUN CHEMIN.
@@ -360,6 +362,7 @@ export async function enregistrerDepense(
       units: Math.max(0, Math.round(args.units)),
       cost_usd: Math.max(0, args.cost_usd),
       context: args.context ?? null,
+      piece: args.piece ?? null,
     })
     if (error) {
       console.error('[budget] DÉPENSE NON ENREGISTRÉE — le plafond va dériver', {
@@ -524,6 +527,7 @@ export async function enregistrerDepenseIA(
       action: args.action,
       units: unitesBrutes(args.consommation),
       cost_usd: cout ?? 0,
+      piece: args.journal.piece,
       context: {
         model: args.consommation.model,
         action: args.action,

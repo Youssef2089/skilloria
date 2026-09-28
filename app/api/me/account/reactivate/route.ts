@@ -49,6 +49,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   const { data: userRow, error: userErr } = await auth.supabaseAdmin
     .from('users')
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // est revenu ; la visibilité du profil, elle, n'est restaurée que si elle
   // était acquise ET que le profil est encore complet. La ligne dit les deux.
   try {
-    await suppressionAnnulee(auth.supabaseAdmin, contexteDepuisAuth(auth), {
+    await suppressionAnnulee(auth.supabaseAdmin, journal, {
       userId: auth.user.id,
       visibiliteRestauree: restoreVisible,
       avaitUnProfil,
@@ -223,6 +225,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.user.domain_id,

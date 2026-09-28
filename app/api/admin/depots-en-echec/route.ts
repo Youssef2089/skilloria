@@ -275,6 +275,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  candidate). Celle-ci dit qui a appuyé sur le bouton. Les confondre ferait
   //  disparaître l'un des deux actes.
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: admin,
     user_id: auth.user.id,
     // Convention des actions tracées : `domain_id` = domaine de l'ACTEUR (colonne

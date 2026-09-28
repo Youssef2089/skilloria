@@ -317,9 +317,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
 
-  // Le sous-journal d'audit garde le détail (IP, user-agent) — best-effort.
+  // Le sous-journal d'audit garde le détail (IP, user-agent) — best-effort — sous la MÊME pièce.
   await logAudit({
     supabaseAdmin: admin,
+    piece,
     user_id: auth.user.id,
     domain_id: auth.domain.id,
     action: 'durees_place_updated',

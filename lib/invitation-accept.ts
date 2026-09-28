@@ -79,6 +79,7 @@ export async function applyInvitation(params: {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: admin,
     user_id: userId,
     domain_id: domainId,

@@ -1,5 +1,6 @@
 import { NextRequest, after } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
+import type { Piece } from '@/lib/journal/piece'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { purgeAccount, type PurgeableUser } from '@/lib/account-purge'
 import { contexteDeTache, parametresJournal, type ContexteJournal } from '@/lib/journal/contexte'
@@ -139,12 +140,14 @@ function slugOf(domains: WarnRow['domains']): string | null {
  */
 async function tracerAvertissement(
   admin: SupabaseClient,
+  piece: string,
   u: WarnRow,
   action: 'inactivity_warning_sent' | 'inactivity_warning_failed',
   issue: { demande_email_id: string | null; marquage_pose: boolean | null; cause: string | null },
 ): Promise<void> {
   await logAudit({
     supabaseAdmin: admin,
+    piece,
     user_id: u.id,
     domain_id: u.domain_id,
     action,
@@ -198,7 +201,7 @@ async function constaterAvertissement(
   return true
 }
 
-async function handle(request: NextRequest): Promise<Response> {
+async function handle(request: NextRequest, piece: Piece | null): Promise<Response> {
   const secret = process.env.CRON_SECRET
   if (!secret) {
     console.error('[purge-inactive] CRON_SECRET missing')
@@ -212,7 +215,7 @@ async function handle(request: NextRequest): Promise<Response> {
   // La pièce du PASSAGE naît à l'entrée, avant toute écriture (§D.26) : les
   // purges et les avertissements du passage la portent — y compris à travers
   // `after()`, qui la capture comme n'importe quelle valeur.
-  const journal = contexteDeTache(JOB)
+  const journal = contexteDeTache(JOB, piece)
 
   let admin: SupabaseClient
   try {
@@ -330,7 +333,7 @@ async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): 
           // avertissement, aucune purge : ce compte resterait éligible À VIE,
           // en silence. La trace le rend cherchable.
           await constaterAvertissement(admin, journal, u, { envoye: false, cause: 'sans_email' })
-          await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
+          await tracerAvertissement(admin, journal.piece, u, 'inactivity_warning_failed', {
             demande_email_id: null, marquage_pose: null, cause: 'sans_email',
           })
           continue
@@ -364,7 +367,7 @@ async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): 
             // prochain passage — l'audit le dit, pour qu'un double envoi se lise
             // comme tel et non comme un bug inexpliqué.
             const marque = await constaterAvertissement(admin, journal, u, { envoye: true, demandeEmailId: res.id })
-            await tracerAvertissement(admin, u, 'inactivity_warning_sent', {
+            await tracerAvertissement(admin, journal.piece, u, 'inactivity_warning_sent', {
               // Accusé de réception de la DEMANDE par Resend — pas une preuve
               // de remise (§E.19).
               demande_email_id: res.id,
@@ -377,7 +380,7 @@ async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): 
               code: res.code,
             })
             await constaterAvertissement(admin, journal, u, { envoye: false, cause: res.code })
-            await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
+            await tracerAvertissement(admin, journal.piece, u, 'inactivity_warning_failed', {
               demande_email_id: null, marquage_pose: null, cause: res.code,
             })
           }
@@ -389,7 +392,7 @@ async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): 
           // Le message d'une exception peut citer l'adresse : il reste dans la
           // console, la trace ne porte que la CLASSE de la panne.
           await constaterAvertissement(admin, journal, u, { envoye: false, cause: 'exception' })
-          await tracerAvertissement(admin, u, 'inactivity_warning_failed', {
+          await tracerAvertissement(admin, journal.piece, u, 'inactivity_warning_failed', {
             demande_email_id: null, marquage_pose: null, cause: 'exception',
           })
         }
@@ -422,10 +425,10 @@ async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): 
  *    oublie est toujours celle de l'échec, qu'on ne joue jamais.
  */
 export async function GET(request: NextRequest): Promise<Response> {
-  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
+  return sousVerdictDeRun(request, JOB, getAdmin, (piece) => handle(request, piece))
 }
 
 // POST accepté aussi (déclenchement manuel/scripté éventuel).
 export async function POST(request: NextRequest): Promise<Response> {
-  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
+  return sousVerdictDeRun(request, JOB, getAdmin, (piece) => handle(request, piece))
 }

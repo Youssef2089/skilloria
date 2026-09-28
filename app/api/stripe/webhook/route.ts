@@ -151,14 +151,17 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  `false` = événement déjà reçu (ou en cours de traitement par une autre
   //  livraison). On répond 200 et on NE FAIT RIEN. C'est ce qui garantit qu'un
   //  événement rejoué trois fois ne crédite pas trois fois.
-  const { data: claimed, error: claimErr } = await admin.rpc('stripe_event_claim', {
+  //  La réclamation pose AUSSI la pièce de cette livraison (phase B 2.5), dans la même
+  //  instruction : l'événement, sa ligne `paiement_recu` et l'audit la partagent.
+  const { data: claimed, error: claimErr } = await admin.rpc('stripe_event_reclamer', {
     p_id: event.id,
     p_type: event.type,
     p_payload: event as unknown as Record<string, unknown>,
     p_livemode: event.livemode,
+    p_piece: journal.piece,
   })
   if (claimErr) {
-    console.error('[stripe:webhook] stripe_event_claim a échoué', event.id, claimErr.message)
+    console.error('[stripe:webhook] stripe_event_reclamer a échoué', event.id, claimErr.message)
     // 500 : Stripe rejouera. Rien n'a été traité, rien n'est incohérent.
     return json({ error: 'Journal unavailable', code: 'event_claim_failed' }, 500)
   }

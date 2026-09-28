@@ -302,6 +302,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // Audit best-effort : on trace les CHAMPS touchés, pas leurs valeurs.
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

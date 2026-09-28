@@ -406,6 +406,7 @@ export async function PATCH(
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

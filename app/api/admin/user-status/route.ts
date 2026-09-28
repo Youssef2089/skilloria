@@ -219,6 +219,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     // Convention des actions déjà tracées : domaine de l'ACTEUR (NOT NULL).

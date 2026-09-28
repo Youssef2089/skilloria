@@ -354,6 +354,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── 6. Audit log + return ───────────────────────────────────────────────
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

@@ -589,6 +589,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     // pour un seul événement auraient divergé dès la première reformulation.
     const inapp = newMessageInappLabels(otherUserLocale, senderFirstLast, content)
     const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert({
+      piece: journal.piece,
       user_id: otherUserId,
       domain_id: cand.domain_id,
       type: NOTIF_TYPE,
@@ -622,6 +623,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
 
   // ── Audit ───────────────────────────────────────────────────────────────
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: cand.domain_id,

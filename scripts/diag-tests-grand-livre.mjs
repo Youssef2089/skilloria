@@ -175,7 +175,11 @@ let assertions = 0
 for (const f of tests) {
   const s = sansCommentaires(lire(join(TESTS, f)))
   const plan = s.match(/select\s+plan\((\d+)\)/i)
-  const nexts = (s.match(/\breturn\s+next\b/gi) ?? []).length
+  // Un \`return next skip(…)\` est l'AUTRE branche d'un \`if\` : il tient la place des assertions de la
+  // branche qui ne tourne pas (pgTAP compte skip(…, n) pour n). Il ne s'ajoute donc pas à elles —
+  // compté, il ferait exiger un plan que pgTAP rejetterait (le motif de inscription/roles.test.sql).
+  const skips = (s.match(/\breturn\s+next\s+skip\s*\(/gi) ?? []).length
+  const nexts = (s.match(/\breturn\s+next\b/gi) ?? []).length - skips
   assertions += nexts
   const defauts = []
   if (!/^\s*(?:--[^\n]*\n\s*)*begin;/i.test(s)) defauts.push('ne commence pas par begin;')

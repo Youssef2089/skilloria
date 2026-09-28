@@ -126,6 +126,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

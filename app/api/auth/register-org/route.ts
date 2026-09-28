@@ -555,6 +555,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     // via la modale post-login. Ici on laisse l'org en
     // verification_status='pending_provider_check' (posé à l'INSERT).
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin,
       user_id,
       domain_id: domainRow.id,

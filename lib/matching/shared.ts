@@ -91,8 +91,10 @@ export type BilanNotifications = {
 export async function notifyAndFlip(args: {
   supabaseAdmin: SupabaseClient
   specs: NotifySpec[]
+  /** La pièce du run (§D.26, phase B 2.5) : la même que sa ligne `recherche_notifiee`. */
+  piece: string
 }): Promise<BilanNotifications> {
-  const { supabaseAdmin, specs } = args
+  const { supabaseAdmin, specs, piece } = args
   const bilan: BilanNotifications = { demandees: specs.length, deja_notifiees: 0, posees: 0, paquets_en_echec: 0, renonce: false }
   if (specs.length === 0) return bilan
 
@@ -163,6 +165,7 @@ export async function notifyAndFlip(args: {
       link_url: `/dashboard/${segment}/missions/${s.publication_id}`,
       status: NOTIFICATION_STATUS,
       entity_id: s.publication_id,
+      piece,
     })
   }
 

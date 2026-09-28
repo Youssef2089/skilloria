@@ -539,7 +539,7 @@ async function executerRunExpert(args: {
       })
     }
     if (specs.length > 0) {
-      const bilan = await notifyAndFlip({ supabaseAdmin, specs })
+      const bilan = await notifyAndFlip({ supabaseAdmin, specs, piece: journal.piece })
       notifies = specs.length
       // La ligne des notifications : ce que l'envoi a FAIT, pas ce qu'on lui a demandé.
       await recherche.notifiee(bilan)

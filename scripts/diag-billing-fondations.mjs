@@ -283,6 +283,21 @@ ok(
   !/create\s+policy[\s\S]{0,200}?stripe_events/i.test(sql),
   'aucune policy sur stripe_events (service-role uniquement, modèle usage_counters)',
 )
+// LA RÉCLAMATION QUI PORTE LA PIÈCE (phase B 2.5) — mêmes propriétés que stripe_event_claim, vérifiées sur
+// sa DERNIÈRE définition (§E.34) : un seul insert, aucun accès avant lui, ON CONFLICT (id), seul un échec se rejoue.
+{
+  const { rejouerMigrations } = await import('./lib/schema-migrations.mjs')
+  const corps = rejouerMigrations().fonctions.get('stripe_event_reclamer')?.corps ?? ''
+  ok(corps !== '', 'la fonction stripe_event_reclamer est définie')
+  const premier = corps.search(/public\.stripe_events/i)
+  ok((corps.match(/insert\s+into\s+public\.stripe_events/gi) || []).length === 1
+       && premier !== -1 && /insert\s+into\s+$/i.test(corps.slice(Math.max(0, premier - 60), premier).replace(/\s+/g, ' ').replace(/ $/, ' ')),
+     "stripe_event_reclamer : UN insert, et c'est le PREMIER accès à la table")
+  ok(/on\s+conflict\s*\(\s*id\s*\)\s+do\s+update/i.test(corps) && /where\s+se\.status\s*=\s*'failed'/i.test(corps),
+     'stripe_event_reclamer : idempotence par ON CONFLICT (id), seul un échec se rejoue')
+  ok(/piece\s*=\s*excluded\.piece/i.test(corps), 'stripe_event_reclamer : la pièce de la livraison est posée dans la même instruction')
+}
+
 for (const fn of ['stripe_event_claim', 'stripe_event_mark']) {
   ok(
     new RegExp(`revoke\\s+all\\s+on\\s+function\\s+public\\.${fn}[\\s\\S]{0,160}?from\\s+public,\\s*anon,\\s*authenticated`, 'i').test(sql),

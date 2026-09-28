@@ -303,6 +303,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     // Convention : `domain_id` = domaine de l'ACTEUR. Celui de la cible va dans

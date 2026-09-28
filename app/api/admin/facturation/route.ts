@@ -422,6 +422,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const ligne = { id: evenementId, type: issue.type ?? '', received_at: issue.recu_le ?? '' }
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

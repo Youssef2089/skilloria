@@ -135,6 +135,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
       return json({ error: 'Invitation not pending', code: 'not_pending' }, 409)
     }
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin: admin,
       user_id: auth.user.id,
       domain_id: auth.domain.id,
@@ -173,6 +174,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: admin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

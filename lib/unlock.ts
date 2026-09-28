@@ -184,6 +184,7 @@ export async function performUnlock(
       const loc = normalizeNotifLocale(u?.locale ?? null)
       const linkUrl = `${dashboardUrlForUserType(u?.user_type ?? null)}/missions/${candRow.publication_id}`
       const { error: notifErr } = await admin.from('notifications').insert({
+        piece: opts.journal.piece,
         user_id: pwu.user_id,
         domain_id: candRow.domain_id,
         type: NOTIF_TYPE,
@@ -203,6 +204,7 @@ export async function performUnlock(
   // (4) Audit best-effort — detail.auto distingue l'auto-dévoilement de l'unlock manuel.
   if (didFlip) {
     await logAudit({
+      piece: opts.journal.piece,
       supabaseAdmin: admin,
       user_id: opts.actorUserId,
       domain_id: candRow.domain_id,

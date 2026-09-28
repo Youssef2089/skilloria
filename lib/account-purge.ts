@@ -207,6 +207,7 @@ export async function purgeAccount(
 
   await logAudit({
     supabaseAdmin: admin,
+    piece: contexte.journal.piece,
     user_id: uid,
     domain_id: u.domain_id,
     action: 'account_purged',

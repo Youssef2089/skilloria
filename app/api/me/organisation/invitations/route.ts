@@ -76,6 +76,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   // ── LA DURÉE DE VALIDITÉ EST LUE ICI, PAR LA ROUTE ───────────────────────
   //  Elle vivait EN DUR, et dans DEUX fichiers (celui-ci et son jumeau).
@@ -236,7 +238,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  ni l'une ni l'autre ne ressortent dans la ligne du journal, qui vit en
   //  AJOUT SEUL et qu'aucune purge ne viendrait nettoyer.
   const { data: insertedBrut, error: insErr } = await admin.rpc('creer_invitation', {
-    ...parametresJournal(contexteDepuisAuth(auth)),
+    ...parametresJournal(journal),
     p_ecosysteme_id: auth.domain.id,
     p_invitation: {
       organization_id: org.id,
@@ -260,6 +262,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: admin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

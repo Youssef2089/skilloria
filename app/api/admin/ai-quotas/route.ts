@@ -140,6 +140,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

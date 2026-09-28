@@ -53,6 +53,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
@@ -183,7 +185,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  seraient deux moitiés du même défaut. Les deux refus n'écrivent rien —
   //  il n'y a pas de suppression à journaliser.
   const resProgrammation = await auth.supabaseAdmin.rpc('programmer_suppression_compte', {
-    ...parametresJournal(contexteDepuisAuth(auth)),
+    ...parametresJournal(journal),
     p_user_id: auth.user.id,
     p_scheduled_at: scheduledAt,
     p_grace_jours: GRACE_DAYS,
@@ -210,6 +212,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.user.domain_id,

@@ -673,10 +673,12 @@ export async function deposerCandidature(args: {
     publicationId,
     candidatureId: row.id,
     domainId: profileRow.domain_id,
+    piece: args.journal.piece,
   })
 
   // ── Audit ───────────────────────────────────────────────────────────────
   await logAudit({
+    piece: args.journal.piece,
     supabaseAdmin,
     // L'AUTEUR DE L'ACTE EST L'EXPERT, sur les deux chemins. Une relance
     // d'administrateur écrit SA propre ligne d'audit, séparément : deux actes
@@ -806,7 +808,7 @@ async function solderJournalEnEchec(
  */
 async function notifierOrganisation(
   admin: SupabaseClient,
-  args: { publicationId: string; candidatureId: string; domainId: string },
+  args: { publicationId: string; candidatureId: string; domainId: string; piece: string },
 ): Promise<void> {
   try {
     //  On charge aussi le TYPE d'org (+ propriétaire pour l'org perso) afin de
@@ -925,6 +927,7 @@ async function notifierOrganisation(
         link_url: linkUrl,
         status: 'pending',
         entity_id: args.candidatureId,
+        piece: args.piece,
       }
     })
     if (rows.length === 0) return

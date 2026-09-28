@@ -120,6 +120,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,
@@ -171,6 +172,7 @@ export async function DELETE(request: NextRequest, ctx: Ctx): Promise<Response> 
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,

@@ -38,6 +38,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
@@ -73,7 +75,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Auth), avant l'audit best-effort (§E.68). Un journal qui refuse le DIT :
   // le mot de passe EST changé, et un 200 muet le ferait oublier.
   try {
-    await motDePasseChange(auth.supabaseAdmin, contexteDepuisAuth(auth), { userId: auth.user.id })
+    await motDePasseChange(auth.supabaseAdmin, journal, { userId: auth.user.id })
   } catch (err) {
     if (!(err instanceof JournalError)) throw err
     console.error('[me/password] grand livre en échec après le changement', err.message)
@@ -81,6 +83,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.user.domain_id,

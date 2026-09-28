@@ -42,6 +42,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
@@ -82,7 +84,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // avant l'audit best-effort (§E.68). `etape: 'demande'` : l'adresse n'a PAS
   // encore changé, et la ligne ne le prétend pas.
   try {
-    await emailChange(auth.supabaseAdmin, contexteDepuisAuth(auth), { userId: auth.user.id, etape: 'demande' })
+    await emailChange(auth.supabaseAdmin, journal, { userId: auth.user.id, etape: 'demande' })
   } catch (err) {
     if (!(err instanceof JournalError)) throw err
     console.error('[me/email] grand livre en échec après la demande', err.message)
@@ -90,6 +92,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.user.domain_id,

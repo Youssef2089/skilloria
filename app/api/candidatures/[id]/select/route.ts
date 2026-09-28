@@ -243,6 +243,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       // le badge "Mission remportée" / "Poste décroché" + accès convo).
       const linkUrl = `${dashboardUrlForUserType(u?.user_type ?? null)}/candidatures`
       const { error: notifErr } = await auth.supabaseAdmin.from('notifications').insert({
+        piece: journal.piece,
         user_id: pwu.user_id,
         domain_id: candRow.domain_id,
         type: NOTIF_TYPE,
@@ -262,6 +263,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   // ── Audit best-effort ──────────────────────────────────────────────────
   if (didFlip) {
     await logAudit({
+      piece: journal.piece,
       supabaseAdmin: auth.supabaseAdmin,
       user_id: auth.user.id,
       domain_id: candRow.domain_id,

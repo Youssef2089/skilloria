@@ -36,6 +36,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   const apiKey = process.env.VONAGE_API_KEY
   const apiSecret = process.env.VONAGE_API_SECRET
@@ -158,7 +160,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  L'unicité reste celle de la base : la violation (23505) remonte telle
   //  quelle, la transaction entière est annulée, et aucune ligne n'est écrite.
   const { error: updErr } = await auth.supabaseAdmin.rpc('verifier_telephone', {
-    ...parametresJournal(contexteDepuisAuth(auth)),
+    ...parametresJournal(journal),
     p_user_id: auth.user.id,
     p_phone: phone,
     p_methode: 'otp_sms',
@@ -174,6 +176,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.user.domain_id,

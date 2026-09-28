@@ -32,6 +32,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée (§D.26) : la ligne ET l'audit la portent.
+  const journal = contexteDepuisAuth(auth)
 
   const newToken = generateSessionToken()
   const setRes = await setSessionToken({
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Un journal qui refuse le DIT : les sessions SONT révoquées, la trace
   // manque, et un 200 muet ferait croire l'inverse.
   try {
-    await sessionRevoquee(auth.supabaseAdmin, contexteDepuisAuth(auth), { userId: auth.user.id })
+    await sessionRevoquee(auth.supabaseAdmin, journal, { userId: auth.user.id })
   } catch (err) {
     if (!(err instanceof JournalError)) throw err
     console.error('[me/sessions/revoke-others] grand livre en échec après rotation', err.message)
@@ -62,6 +64,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.user.domain_id,

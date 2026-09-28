@@ -174,7 +174,7 @@ ok(
 // ─────────────────────────────────────────────────────────────────────────────
 section('3. Idempotence par contrainte de base')
 
-ok(/stripe_event_claim/.test(route), 'la route réclame l\'événement via stripe_event_claim')
+ok(/\.rpc\('stripe_event_reclamer', \{[\s\S]{0,300}?p_piece: journal\.piece,/.test(route), 'la route réclame l\'événement via stripe_event_reclamer, avec la pièce de la livraison (phase B 2.5 — stripe_event_claim reste jusqu\'au déploiement suivant, §E.72)')
 ok(
   !/from\(['"]stripe_events['"]\)/.test(route),
   'la route ne lit ni n\'écrit stripe_events directement',

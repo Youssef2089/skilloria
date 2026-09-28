@@ -1,6 +1,7 @@
 import { contexteDeTache } from '@/lib/journal/contexte'
 import { NextRequest } from 'next/server'
 import { sousVerdictDeRun } from '@/lib/cron/verdict-de-run'
+import type { Piece } from '@/lib/journal/piece'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { prendreBailRun, rendreBailRun } from '@/lib/cron/bail-de-run'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
@@ -64,7 +65,7 @@ function getAdmin(): SupabaseClient {
   })
 }
 
-async function handle(request: NextRequest): Promise<Response> {
+async function handle(request: NextRequest, piece: Piece | null): Promise<Response> {
   const secret = process.env.CRON_SECRET
   if (!secret) {
     console.error('[constats] CRON_SECRET absent')
@@ -92,7 +93,7 @@ async function handle(request: NextRequest): Promise<Response> {
 
   try {
     // LA PIÈCE DU PASSAGE (§D.26) — toutes les lignes de ce passage la portent.
-    const journal = contexteDeTache(JOB)
+    const journal = contexteDeTache(JOB, piece)
 
     // LA DURÉE DE VIE EN VIGUEUR, lue par la route, jamais devinée : la règle
     // d'expiration est celle du schéma (annonce_active), et sa durée vient de
@@ -208,9 +209,9 @@ async function handle(request: NextRequest): Promise<Response> {
  *    écrit son verdict elle-même, au lieu de le poser chez pg_net où il expire.
  */
 export async function GET(request: NextRequest): Promise<Response> {
-  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
+  return sousVerdictDeRun(request, JOB, getAdmin, (piece) => handle(request, piece))
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
-  return sousVerdictDeRun(request, JOB, getAdmin, () => handle(request))
+  return sousVerdictDeRun(request, JOB, getAdmin, (piece) => handle(request, piece))
 }

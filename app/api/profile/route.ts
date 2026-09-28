@@ -785,6 +785,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin,
     user_id: user.id,
     domain_id: user.domain_id,

@@ -40,9 +40,14 @@
 //    exécution, et il avait raison : c'était §E.29 dans la parade elle-même.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { estPiece, type Piece } from '@/lib/journal/piece'
 
-/** Ce que le pilote met dans le corps. Rien d'autre n'y est attendu. */
-type CorpsDePilote = { log_id?: unknown }
+/**
+ * Ce que le pilote met dans le corps : l'identifiant de la ligne du passage, et sa
+ * PIÈCE (§D.26, phase B 2.5) — née dans `trigger_purge_cron`, ou celle du geste de
+ * l'administrateur qui a lancé le passage à la main.
+ */
+type CorpsDePilote = { log_id?: unknown; piece?: unknown }
 
 /**
  * CE QU'ON A TROUVÉ DANS LE CORPS — trois états, jamais deux.
@@ -56,7 +61,7 @@ type CorpsDePilote = { log_id?: unknown }
  *    Les deux ont la même forme en mémoire et jamais le même sens.
  */
 export type IdentifiantDeJournal =
-  | { etat: 'present'; logId: number }
+  | { etat: 'present'; logId: number; piece: Piece | null }
   /** Pas de corps, pas de champ : l'appel ne vient pas du pilote. */
   | { etat: 'absent' }
   /** Un corps est arrivé et n'a pas pu être lu. Anomalie, pas cas normal. */
@@ -84,7 +89,8 @@ export async function lireIdentifiantDeJournal(request: Request): Promise<Identi
   if (!Number.isInteger(n) || n <= 0) {
     return { etat: 'illisible', cause: `log_id inexploitable : ${JSON.stringify(v)}` }
   }
-  return { etat: 'present', logId: n }
+  // La pièce : un uuid, sinon aucune (le passage aura la sienne, née dans la tâche).
+  return { etat: 'present', logId: n, piece: estPiece(brut.piece) ? brut.piece : null }
 }
 
 /**
@@ -159,6 +165,11 @@ export async function ecrireVerdictDeRun(
  *    le corps d'une requête ne se lit qu'une fois, et une tâche qui lèverait
  *    tout de suite laisserait sinon la ligne ouverte sans qu'on sache laquelle.
  *
+ * ⚠️ IL PASSE LA PIÈCE DU PASSAGE AU TRAVAIL (phase B 2.5) : une tâche qui l'emploie
+ *    (`contexteDeTache(JOB, piece)`) écrit ses lignes sous la pièce de sa ligne
+ *    `cron_run_log` — et, lancée à la main, sous celle du geste de l'administrateur.
+ *    Absente (appel hors pilote), le travail reçoit `null` et la tâche crée la sienne.
+ *
  * ⚠️ IL RELAIE L'EXCEPTION APRÈS AVOIR ÉCRIT. Une tâche qui lève doit lever —
  *    l'avaler ici transformerait une panne en succès silencieux, exactement la
  *    classe qu'on ferme (§E.22). Ce qui change est qu'elle laisse une trace.
@@ -167,12 +178,12 @@ export async function sousVerdictDeRun(
   request: Request,
   job: string,
   admin: () => SupabaseClient,
-  travail: () => Promise<Response>,
+  travail: (piece: Piece | null) => Promise<Response>,
 ): Promise<Response> {
   const identifiant = await lireIdentifiantDeJournal(request)
   let reponse: Response
   try {
-    reponse = await travail()
+    reponse = await travail(identifiant.etat === 'present' ? identifiant.piece : null)
   } catch (err) {
     await ecrireVerdictDeRun(admin(), {
       identifiant,

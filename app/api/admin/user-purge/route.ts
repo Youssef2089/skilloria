@@ -308,6 +308,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   // Traçabilité de L'AUTEUR. `purgeAccount` a déjà écrit `account_purged` sur
   // la cible : celle-ci dit que c'est arrivé, celle-là dit qui l'a décidé.
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     // Convention des actions déjà tracées : `domain_id` = domaine de l'ACTEUR

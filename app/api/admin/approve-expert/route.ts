@@ -144,6 +144,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const locale = normalizeLocale(u?.locale ?? null)
   try {
     await auth.supabaseAdmin.from('notifications').insert({
+      piece: journal.piece,
       user_id: row.user_id,
       domain_id: row.domain_id,
       type: 'verification_result',
@@ -159,6 +160,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   await logAudit({
+    piece: journal.piece,
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
     domain_id: auth.domain.id,
