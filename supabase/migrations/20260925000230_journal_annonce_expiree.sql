@@ -51,6 +51,7 @@ create or replace function public.constater_annonces_expirees(
 as $fn$
 declare
   v_n integer := 0;
+  v_k integer;
   r   record;
 begin
   if p_piece is null then
@@ -76,6 +77,8 @@ begin
     update public.publications
        set expiration_constatee_at = now()
      where id = r.id;
+    get diagnostics v_k = row_count;
+    perform public.exiger_ecriture(v_k, 'constater_annonces_expirees : publications');
 
     perform public.journaliser(
       p_piece, 'annonce_expiree', 'reussi', 'tache_planifiee',

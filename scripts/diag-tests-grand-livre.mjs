@@ -38,6 +38,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, dirname, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { rejouerMigrations } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const MIGRATIONS = join(ROOT, 'supabase', 'migrations')
@@ -62,6 +63,8 @@ const DECLENCHEURS = {
   grand_livre_ajout_seul: "'GL001'",
   // Le trigger d'inscription (on_auth_user_created) : il tourne quand un test insère dans auth.users.
   handle_new_user: 'insert into auth.users',
+  // Le trigger de confirmation (on_auth_user_email_confirmed) : il tourne quand un test confirme une adresse.
+  handle_email_confirmed: 'update auth.users set email_confirmed_at',
 }
 
 // LE GEL — une raison par entrée (§G.8). Il ne fait que descendre.
@@ -217,6 +220,40 @@ else {
 }
 ok(sigDefauts.length === 0, 'F. le test « une fonction, une signature » compte les surcharges du schéma public, exceptions à raison',
   sigDefauts.length ? `${relative(ROOT, CHEMIN_SIGNATURE)} : ${sigDefauts.join(', ')}` : undefined)
+
+// ── I. L'ÉCRITURE D'ABORD, LA RELECTURE ENSUITE (T.3, §E.74) ──
+//  Une sous-requête lit l'instantané pris au DÉBUT de l'instruction : dans
+//  `ok(public.f(…) and exists (select …))`, elle ne voit pas ce que f vient d'écrire.
+//  Six assertions ont échoué ainsi le 28/09/2026, six autres de même forme n'avaient pas
+//  encore tourné. Qui ÉCRIT se déduit des corps (point fixe par les appels), pas d'une liste.
+{
+  const { fonctions } = rejouerMigrations()
+  const ecrit = new Set()
+  const direct = /(?<!\bfor\s)(?<!\bdo\s)\b(?:insert\s+into|update\s+(?:only\s+)?(?:public\.)?[a-z_][a-z0-9_]*(?:\s+[a-z_][a-z0-9_]*)?\s+set|delete\s+from)\b/i
+  for (const [nom, def] of fonctions) if (direct.test(def.corps.replace(/'(?:[^']|'')*'/g, "''"))) ecrit.add(nom)
+  for (let change = true; change; ) {
+    change = false
+    for (const [nom, def] of fonctions) {
+      if (ecrit.has(nom)) continue
+      if ([...ecrit].some((e) => new RegExp(`\\bpublic\\.${e}\\s*\\(`, 'i').test(def.corps))) { ecrit.add(nom); change = true }
+    }
+  }
+  const fautes = []
+  for (const p of tousLesTests) {
+    const s = sansCommentaires(lire(p))
+    for (const m of s.matchAll(/return\s+next\b[\s\S]*?;\s*\n/g)) {
+      const bloc = m[0].replace(/\$q\$[\s\S]*?\$q\$/g, "''")
+      if (/\bthrows_ok\b|\blives_ok\b/.test(bloc)) continue
+      const ecrivains = [...bloc.matchAll(/\bpublic\.([a-z_][a-z0-9_]*)\s*\(/gi)].map((x) => x[1].toLowerCase()).filter((f) => ecrit.has(f))
+      if (ecrivains.length && /\(\s*select\b/i.test(bloc)) {
+        fautes.push(`${relative(ROOT, p)}:${s.slice(0, m.index).split('\n').length} (${[...new Set(ecrivains)].join(', ')})`)
+      }
+    }
+  }
+  ok(ecrit.size > 20 && fautes.length === 0,
+    `I. aucune assertion n'appelle une fonction qui écrit ET ne relit dans la même instruction (${ecrit.size} fonctions qui écrivent)`,
+    fautes.length ? `${fautes.join(' · ')} — appelle d'abord (v := public.f(…)), relis ensuite` : undefined)
+}
 
 // ── H. plpgsql_check sur chaque fonction de trigger AVEC SA TABLE (T.2, §E.73) ──
 //  `db lint` appelle plpgsql_check sans table : une fonction de trigger n'y est pas vérifiée.

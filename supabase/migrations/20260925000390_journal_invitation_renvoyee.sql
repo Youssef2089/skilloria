@@ -42,6 +42,7 @@ create or replace function public.renvoyer_invitation(
 as $fn$
 declare
   v_i record;
+  v_n integer;
 begin
   if p_piece is null then
     raise exception 'renvoyer_invitation : la piece est obligatoire' using errcode = 'GL002';
@@ -65,6 +66,8 @@ begin
          expires_at = p_expires_at,
          updated_at = now()
    where i.id = p_invitation_id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'renvoyer_invitation : organization_invitations');
 
   perform public.journaliser(
     p_piece, 'invitation_renvoyee', 'reussi', p_origine,

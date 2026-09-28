@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(8);
+select plan(11);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -13,6 +13,10 @@ declare
   v_r     jsonb;
   v_id    bigint;
 begin
+  -- ── exiger_ecriture : le compte attendu passe, tout autre lève EC001 (§E.74) ──
+  return next lives_ok($q$select public.exiger_ecriture(1, 'sonde')$q$, 'exiger_ecriture : une ligne attendue, une touchée — passe');
+  return next throws_ok($q$select public.exiger_ecriture(0, 'sonde')$q$, 'EC001', null, 'exiger_ecriture : zéro ligne touchée — EC001');
+  return next throws_ok($q$select public.exiger_ecriture(2, 'sonde', 3)$q$, 'EC001', null, 'exiger_ecriture : un compte différent de l''attendu — EC001');
   -- ── identifiant_derive ──
   return next ok(public.identifiant_derive('reglage', 'x') = public.identifiant_derive('reglage', 'x')
                  and public.identifiant_derive('reglage', 'x') <> public.identifiant_derive('cron_job', 'x'),

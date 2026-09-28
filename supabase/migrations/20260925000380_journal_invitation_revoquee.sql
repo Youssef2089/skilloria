@@ -36,6 +36,7 @@ create or replace function public.revoquer_invitation(
 as $fn$
 declare
   v_i record;
+  v_n integer;
 begin
   if p_piece is null then
     raise exception 'revoquer_invitation : la piece est obligatoire' using errcode = 'GL002';
@@ -55,6 +56,8 @@ begin
      set status = 'revoked',
          updated_at = now()
    where i.id = p_invitation_id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'revoquer_invitation : organization_invitations');
 
   perform public.journaliser(
     p_piece, 'invitation_revoquee', 'reussi', p_origine,

@@ -15,6 +15,7 @@ declare
   v_inv    uuid;
   v_ligne  uuid;
   v_p      uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
+  v_issue  text;
 begin
   v_inv := (public.creer_invitation(v_p[1], null, 'utilisateur', v_admin, 'client', v_dom,
              jsonb_build_object('organization_id', v_org, 'email', (select email from public.users where id = v_membre), 'token', 'hash_m',
@@ -31,12 +32,16 @@ begin
   return next ok(public.maj_membre_organisation(v_p[4], null, 'utilisateur', v_admin, 'client', v_dom, v_ligne, 'viewer', null, false) = 'inchange'
                  and pg_temp.lignes(v_p[4]) = 0,
                  'un geste sans changement n''écrit rien');
-  return next ok(public.maj_membre_organisation(v_p[5], null, 'utilisateur', v_admin, 'client', v_dom, v_ligne, 'editor', null, false) = 'ok'
+  -- L'écriture D'ABORD, la relecture ENSUITE (§E.74) : la sous-requête sur grand_livre lisait l'instantané
+  -- d'avant le geste — les trois échecs du 28/09/2026 (4, 5, 8), pas le produit.
+  v_issue := public.maj_membre_organisation(v_p[5], null, 'utilisateur', v_admin, 'client', v_dom, v_ligne, 'editor', null, false);
+  return next ok(v_issue = 'ok'
                  and pg_temp.lignes(v_p[5]) = 1
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[5] and g.type_action = 'role_membre_change'
                               and g.detail ->> 'role_de' = 'viewer' and g.detail ->> 'role_vers' = 'editor'),
                  'role_membre_change : le rôle change, UNE ligne, de/vers');
-  return next ok(public.maj_membre_organisation(v_p[6], null, 'utilisateur', v_admin, 'client', v_dom, v_ligne, null, 'removed', false) = 'ok'
+  v_issue := public.maj_membre_organisation(v_p[6], null, 'utilisateur', v_admin, 'client', v_dom, v_ligne, null, 'removed', false);
+  return next ok(v_issue = 'ok'
                  and pg_temp.lignes(v_p[6]) = 1
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[6] and g.type_action = 'membre_retire'),
                  'membre_retire : la ligne d''un AUTRE passe à removed → retrait, UNE ligne');
@@ -51,7 +56,8 @@ begin
   perform public.accepter_invitation(gen_random_uuid(), null, 'utilisateur', v_membre, 'client', v_dom, v_inv, array['pending']);
   return next ok(exists (select 1 from public.organization_members m where m.id = v_ligne and m.status = 'active'),
                  'le membre est réintégré par l''acceptation');
-  return next ok(public.maj_membre_organisation(v_p[8], null, 'utilisateur', v_membre, 'client', v_dom, v_ligne, null, 'removed', false) = 'ok'
+  v_issue := public.maj_membre_organisation(v_p[8], null, 'utilisateur', v_membre, 'client', v_dom, v_ligne, null, 'removed', false);
+  return next ok(v_issue = 'ok'
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[8] and g.type_action = 'membre_parti' and g.acteur_id = v_membre)
                  and pg_temp.lignes(v_p[8]) = 1,
                  'membre_parti : sa PROPRE ligne passe à removed → départ, UNE ligne');

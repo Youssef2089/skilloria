@@ -43,6 +43,7 @@ as $fn$
 declare
   v_u   record;
   v_res text;
+  v_n   integer;
 begin
   if p_piece is null then
     raise exception 'programmer_suppression_compte : la piece est obligatoire' using errcode = 'GL002';
@@ -62,6 +63,8 @@ begin
     update public.users
        set deletion_scheduled_at = p_scheduled_at
      where id = p_user_id;
+    get diagnostics v_n = row_count;
+    perform public.exiger_ecriture(v_n, 'programmer_suppression_compte : users');
   exception when foreign_key_violation then
     -- La cible occupe encore le siege : une transaction concurrente l'y a
     -- remise. On refuse proprement plutot que de laisser remonter une erreur

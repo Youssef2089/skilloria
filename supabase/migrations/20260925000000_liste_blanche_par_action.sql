@@ -106,6 +106,31 @@ create unique index if not exists grand_livre_une_fois_idx
   on public.grand_livre (piece, type_action, coalesce(sujet_id, '00000000-0000-0000-0000-000000000000'::uuid));
 
 
+-- ── ③ bis UNE ÉCRITURE SANS EFFET NE PASSE JAMAIS EN SILENCE — la fonction unique ─
+--  Ajoutée le 28/09/2026 (lot T.3, §E.74). Une RPC qui verrouille une ligne puis la
+--  met à jour par son identifiant ne peut toucher ZÉRO ligne que sur anomalie — une
+--  politique forcée, un trigger qui annule, une ligne disparue. Rendue telle quelle,
+--  l'anomalie passait pour un succès ; rendue en `false`, pour un rejeu (§E.22).
+--  Chaque écriture de ce genre appelle `exiger_ecriture()` juste après son
+--  `get diagnostics … row_count` : la transaction lève EC001, nommée, et la ligne
+--  du grand livre qui aurait suivi n'est jamais écrite. Un zéro LÉGITIME (une
+--  écriture conditionnelle dont le WHERE est la garde) ne l'appelle pas : il rend
+--  son issue nommée — c'est `diag-ecritures-effectives` qui tient la différence.
+create or replace function public.exiger_ecriture(p_lignes bigint, p_ou text, p_attendu bigint default 1)
+  returns void
+  language plpgsql
+  set search_path to 'public'
+as $fn$
+begin
+  if p_lignes is distinct from p_attendu then
+    raise exception 'ecriture sans effet : % — % ligne(s) touchee(s), % attendue(s)', p_ou, coalesce(p_lignes::text, 'aucune mesure'), p_attendu
+      using errcode = 'EC001';
+  end if;
+end;
+$fn$;
+revoke all on function public.exiger_ecriture(bigint, text, bigint) from public, anon, authenticated;
+
+
 -- ── ④ journaliser() — même signature, deux barrières, une clé ───────────────
 create or replace function public.journaliser(
   p_piece          uuid,
@@ -209,8 +234,18 @@ declare
   v_ip     integer;
   v_n      integer;
 begin
+  -- exiger_ecriture : le compte attendu passe, tout autre lève EC001 (aucune donnée requise).
+  perform public.exiger_ecriture(1, 'postcondition');
+  perform public.exiger_ecriture(3, 'postcondition', 3);
+  begin
+    perform public.exiger_ecriture(0, 'postcondition');
+    raise exception 'postcondition NON TENUE : exiger_ecriture laisse passer une ecriture sans effet';
+  exception when sqlstate 'EC001' then
+    null;
+  end;
   for v_sig in
     select s from unnest(array[
+      'public.exiger_ecriture(bigint, text, bigint)',
       'public.grand_livre_chemins(jsonb, text)',
       'public.journaliser(uuid, text, text, text, uuid, text, uuid, text, uuid, jsonb, uuid, numeric, text)',
       'public.regler_durees_place(uuid, uuid, uuid, uuid, integer, integer, integer, integer, jsonb)',

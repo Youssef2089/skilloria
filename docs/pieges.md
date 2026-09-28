@@ -306,8 +306,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **138** migrations : **57 insertions vues, 45 analysées, 2208 valeurs confrontées** (mesuré le
-28/09/2026 ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
+Sur les **139** migrations : **57 insertions vues, 45 analysées, 2208 valeurs confrontées** (mesuré le
+28/09/2026 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
@@ -3689,6 +3689,43 @@ ne cite une colonne ni une table supprimée.
 
 **Ce qui ne garde toujours rien.** Le SQL **dynamique** (`execute format(…)`) : une chaîne, que ni le contrôle ni
 plpgsql_check ne lisent. Seule l'exécution le dit — d'où les tests.
+
+---
+
+<a id="e74"></a>
+### E.74 — UNE SOUS-REQUÊTE LIT L'INSTANTANÉ DU DÉBUT DE SON INSTRUCTION — et une écriture qui ne touche rien passe pour un succès.
+
+**Le cas mesuré, côté test.** Le 28/09/2026, six assertions pgTAP échouent (`annonce_depubliee` 2,
+`invitations` 4 et 13, `membres` 4, 5, 8). L'hypothèse de départ — la fermeture des portes latérales aurait retiré
+des droits à une RPC exécutée avec ceux de l'appelant — est **fausse**, et prouvée fausse : les quatre RPC sont
+`SECURITY DEFINER` avec `search_path` fixe, les tests tournent en `postgres`, propriétaire des tables. La cause :
+`ok(public.cloturer_annonce(…) and exists (select … where status = 'archived'))`. La sous-requête lit
+l'instantané pris **au début de l'instruction**, avant l'`UPDATE` que la fonction appelée dans la même instruction
+exécute. Preuve dans les résultats mêmes : les assertions suivantes (une ligne sous la pièce, le détail
+`published → archived`), écrites dans des instructions séparées, **passaient**. Six autres assertions de même
+forme n'avaient pas encore tourné. **Le produit n'avait pas tort ; le test ne s'affaiblit pas** — la même
+assertion s'écrit après l'écriture : `v := public.f(…); return next ok(v and exists (…))`.
+Gardé par `diag-tests-grand-livre` (I) : aucune assertion n'appelle une fonction qui écrit **et** ne relit dans la
+même instruction — qui écrit se déduit des corps, par point fixe sur les appels, pas d'une liste.
+
+**Le cas mesuré, côté produit — et c'est la classe que Youssef a demandée.** Une RPC verrouille une ligne, la
+relit, puis la met à jour par son identifiant. Zéro ligne n'y est possible que sur anomalie (politique forcée,
+trigger qui annule, ligne disparue). Balayage de **toutes** les fonctions (dernière définition, triggers
+compris) : **66 écritures** ; dans le lot du grand livre, 16 sans vérification, et `cloturer_annonce` rendait
+`false` — l'anomalie se lisait comme un **rejeu** (§E.22) ; avant le socle, 8 fonctions où zéro est une anomalie,
+dont `handle_email_confirmed`, qui **avalait toute erreur** (`when others → raise warning`) : un compte confirmé
+côté auth restait `draft` côté produit, sans un mot.
+
+**La parade est UNE fonction** : `exiger_ecriture(v_n, 'où', attendu)` après `get diagnostics v_n = row_count`,
+SQLSTATE **EC001**. Le lot est corrigé en place ; les huit fonctions appliquées, par `ecritures_effectives`.
+Un zéro **légitime** (écriture conditionnelle dont le `WHERE` est la garde, lot, nettoyage) n'appelle pas la
+fonction : il rend son issue nommée, et `diag-ecritures-effectives` exige qu'il soit **au gel avec sa raison**
+(39 au 28/09/2026, chacune lue dans le code — deux raisons écrites de mémoire étaient fausses et ont été
+corrigées avant le commit). Le vrai appelant est éprouvé : `appelant.test.sql` joue les RPC en `service_role`
+(elles écrivent et journalisent) et en `authenticated` (refus 42501, et l'écriture directe de la table ne touche rien).
+
+**Ce qui ne garde rien** : que le compte **attendu** soit le bon (le contrôle vérifie qu'on le demande) ; le SQL
+dynamique.
 
 ---
 

@@ -42,6 +42,7 @@ as $fn$
 declare
   v_c record;
   v_m record;
+  v_n integer;
 begin
   if p_piece is null then
     raise exception 'envoyer_message : la piece est obligatoire' using errcode = 'GL002';
@@ -69,6 +70,8 @@ begin
   update public.conversations c
      set last_message_at = v_m.created_at
    where c.id = p_conversation_id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'envoyer_message : conversations');
 
   perform public.journaliser(
     p_piece, 'message_envoye', 'reussi', p_origine,

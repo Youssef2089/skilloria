@@ -368,6 +368,7 @@ declare
   v_cabinet  integer;
   v_collab   integer;
   v_unset    uuid[];
+  v_n        integer;
 begin
   -- ── 1. Existence + état, avec verrou de ligne pour sérialiser deux
   --       transferts concurrents sur la même offre.
@@ -443,11 +444,15 @@ begin
      set is_default = false,
          updated_at = now()
    where id = any (v_unset);
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'set_default_package : packages (defauts defaits)', cardinality(v_unset));
 
   update public.packages
      set is_default = true,
          updated_at = now()
    where id = p_package_id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'set_default_package : packages (nouveau defaut)');
 
   -- ── 5. Contrôle final sur l'état RÉEL : toute incohérence annule la
   --       transaction entière — la ligne de journal comprise, écrite après.

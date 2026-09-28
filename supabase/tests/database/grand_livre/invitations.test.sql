@@ -27,6 +27,7 @@ declare
   v_inv3   uuid;
   v_p      uuid[] := array(select gen_random_uuid() from generate_series(1, 12));
   v_r      jsonb;
+  v_b      boolean;
 begin
   select u.email into v_email from public.users u where u.id = v_invite;
   -- ── membre_invite ──
@@ -41,8 +42,10 @@ begin
                                                 array['pending'], 'jeton_autre', now() + interval '7 days')
                  and pg_temp.lignes(v_p[2]) = 0,
                  'invitation_renvoyee : une autre organisation ne renvoie rien');
-  return next ok(public.renvoyer_invitation(v_p[3], null, 'utilisateur', v_admin, 'client', v_dom, v_inv, v_org,
-                                            array['pending'], 'jeton_neuf', now() + interval '8 days')
+  -- L'écriture D'ABORD, la relecture ENSUITE (§E.74).
+  v_b := public.renvoyer_invitation(v_p[3], null, 'utilisateur', v_admin, 'client', v_dom, v_inv, v_org,
+                                    array['pending'], 'jeton_neuf', now() + interval '8 days');
+  return next ok(v_b
                  and exists (select 1 from public.organization_invitations i where i.id = v_inv and i.token = 'jeton_neuf'),
                  'invitation_renvoyee : le jeton neuf est posé');
   return next ok(pg_temp.lignes(v_p[3]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[3]
@@ -68,11 +71,13 @@ begin
   return next ok(v_r ->> 'issue' = 'not_pending' and pg_temp.lignes(v_p[7]) = 0, 'invitation_acceptee : le rejeu est refusé, sans ligne');
   -- ── invitation_revoquee ──
   v_inv3 := pg_temp.inviter(v_org, v_admin, 'tiers+' || gen_random_uuid() || '@exemple.invalid', v_p[8]);
-  return next ok(not public.revoquer_invitation(v_p[9], null, 'utilisateur', v_admin, 'client', v_dom, v_inv3, gen_random_uuid(), array['pending'])
+  v_b := public.revoquer_invitation(v_p[9], null, 'utilisateur', v_admin, 'client', v_dom, v_inv3, gen_random_uuid(), array['pending']);
+  return next ok(not v_b
                  and exists (select 1 from public.organization_invitations i where i.id = v_inv3 and i.status = 'pending')
                  and pg_temp.lignes(v_p[9]) = 0,
                  'invitation_revoquee : une autre organisation ne révoque rien');
-  return next ok(public.revoquer_invitation(v_p[10], null, 'utilisateur', v_admin, 'client', v_dom, v_inv3, v_org, array['pending'])
+  v_b := public.revoquer_invitation(v_p[10], null, 'utilisateur', v_admin, 'client', v_dom, v_inv3, v_org, array['pending']);
+  return next ok(v_b
                  and exists (select 1 from public.organization_invitations i where i.id = v_inv3 and i.status = 'revoked'),
                  'invitation_revoquee : l''invitation est révoquée');
   return next ok(pg_temp.lignes(v_p[10]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[10]

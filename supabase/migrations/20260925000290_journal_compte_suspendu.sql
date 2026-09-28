@@ -39,6 +39,7 @@ create or replace function public.changer_statut_compte(
 as $fn$
 declare
   v_u record;
+  v_n integer;
 begin
   if p_piece is null then
     raise exception 'changer_statut_compte : la piece est obligatoire' using errcode = 'GL002';
@@ -77,6 +78,8 @@ begin
      set status = p_nouveau_statut,
          updated_at = now()
    where u.id = p_user_id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'changer_statut_compte : users');
 
   perform public.journaliser(
     p_piece,

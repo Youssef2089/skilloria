@@ -86,7 +86,12 @@ function citationsCode(table) {
   const out = []
   for (const f of [...fichiers('app'), ...fichiers('lib'), ...fichiers('components'), ...fichiers('scripts')]) {
     if (f === 'scripts/diag-tables-mortes.mjs') continue
-    if (new RegExp(`\\b${table}\\b`).test(sansCommentairesTs(read(f)))) out.push(f)
+    // Une CITATION est une REQUÊTE — `.from('t')`, ou `from|into|update|join t` dans un SQL embarqué —,
+    // pas le mot : le 28/09/2026, la clé de gel `rate_limit_check:rate_limit_hits:1` de
+    // diag-ecritures-effectives faisait rougir ce contrôle sans qu'aucun code n'interroge la table (§E.34).
+    const src = sansCommentairesTs(read(f))
+    const requete = new RegExp(`\\.from\\(\\s*['"\`]${table}['"\`]|\\b(?:from|into|update|join)\\s+(?:public\\.)?${table}\\b`, 'i')
+    if (requete.test(src)) out.push(f)
   }
   return out
 }

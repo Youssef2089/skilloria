@@ -54,6 +54,7 @@ declare
   v_m          record;
   v_deja       boolean := false;
   v_reintegre  boolean := false;
+  v_n          integer;
 begin
   if p_piece is null then
     raise exception 'accepter_invitation : la piece est obligatoire' using errcode = 'GL002';
@@ -97,6 +98,8 @@ begin
              status      = 'active',
              updated_at  = now()
        where m.id = v_m.id;
+      get diagnostics v_n = row_count;
+      perform public.exiger_ecriture(v_n, 'accepter_invitation : organization_members (reintegration)');
       v_reintegre := true;
     end if;
   else
@@ -109,6 +112,8 @@ begin
          accepted_at = now(),
          updated_at  = now()
    where i.id = v_i.id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'accepter_invitation : organization_invitations');
 
   perform public.journaliser(
     p_piece, 'invitation_acceptee', 'reussi', p_origine,

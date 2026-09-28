@@ -58,9 +58,9 @@ begin
      and p.organization_id = p_organization_id
      and p.status = v_de;
   get diagnostics v_n = row_count;
-  if v_n = 0 then
-    return false;
-  end if;
+  -- La ligne est verrouillée et son statut vient d'être relu : zéro ligne n'est pas
+  -- un rejeu (celui-ci rend false plus haut), c'est une anomalie — elle se nomme.
+  perform public.exiger_ecriture(v_n, 'cloturer_annonce : publications');
 
   perform public.journaliser(
     p_piece, 'annonce_depubliee', 'reussi', p_origine,

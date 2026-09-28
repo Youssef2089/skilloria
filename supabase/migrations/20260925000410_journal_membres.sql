@@ -66,6 +66,7 @@ declare
   v_transfere    boolean := false;
   v_libere       boolean := false;
   v_cand         uuid;
+  v_n            integer;
 begin
   if p_piece is null then
     raise exception 'maj_membre_organisation : la piece est obligatoire' using errcode = 'GL002';
@@ -120,6 +121,8 @@ begin
           update public.organizations
              set siege_admin_membre_id = v_cand
            where id = v_org;
+          get diagnostics v_n = row_count;
+          perform public.exiger_ecriture(v_n, 'maj_membre_organisation : organizations (transfert du siege)');
           v_transfere := true;
           exit;
         exception when foreign_key_violation then
@@ -135,6 +138,8 @@ begin
         -- ── LA PORTE DU DEPANNAGE PLATEFORME (inchangée) ──────────────────
         perform set_config('skilloria.liberation_siege_admin', 'oui', true);
         update public.organizations set siege_admin_membre_id = null where id = v_org;
+        get diagnostics v_n = row_count;
+        perform public.exiger_ecriture(v_n, 'maj_membre_organisation : organizations (liberation du siege)');
         perform set_config('skilloria.liberation_siege_admin', '', true);
         v_libere := true;
       end if;
@@ -147,6 +152,8 @@ begin
            status      = v_statut_cible,
            updated_at  = now()
      where id = p_membre_id;
+    get diagnostics v_n = row_count;
+    perform public.exiger_ecriture(v_n, 'maj_membre_organisation : organization_members');
   exception when foreign_key_violation then
     return 'dernier_admin';
   end;

@@ -15,10 +15,13 @@ declare
   v_u     uuid := pg_temp.fab_compte('expert');
   v_email text;
   v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 7));
+  v_ok    boolean;
 begin
   select u.email into v_email from public.users u where u.id = v_a;
-  return next ok(public.anonymiser_compte(v_p[1], null, 'tache_planifiee', null, null, v_a, 'purge+' || v_a || '@deleted.invalid',
-                                          'inactivite', true, null, true, 2)
+  -- L'écriture D'ABORD, la relecture ENSUITE (§E.74).
+  v_ok := public.anonymiser_compte(v_p[1], null, 'tache_planifiee', null, null, v_a, 'purge+' || v_a || '@deleted.invalid',
+                                   'inactivite', true, null, true, 2);
+  return next ok(v_ok
                  and exists (select 1 from public.users u where u.id = v_a and u.anonymized_at is not null and u.status = 'archived'
                               and u.first_name is null and u.email = 'purge+' || v_a || '@deleted.invalid'),
                  'inactivité : le compte est anonymisé, le jalon posé');
@@ -39,12 +42,14 @@ begin
                                gen_random_uuid(), v_u),
                         '22023', null, 'un motif inconnu est refusé AVANT d''écrire');
   -- L'AVERTISSEMENT D'INACTIVITÉ : les deux issues.
-  return next ok(public.constater_avertissement_inactivite(v_p[5], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', false, null, 'resend_refuse')
+  v_ok := public.constater_avertissement_inactivite(v_p[5], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', false, null, 'resend_refuse');
+  return next ok(v_ok
                  and exists (select 1 from public.users u where u.id = v_u and u.inactivity_warning_sent_at is null)
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[5] and g.type_action = 'inactivite_avertie'
                               and g.statut = 'echoue' and g.detail ->> 'cause' = 'resend_refuse'),
                  'avertissement non parti : ligne échouée avec sa cause, AUCUN marqueur');
-  return next ok(public.constater_avertissement_inactivite(v_p[6], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', true, 'msg_sonde', null)
+  v_ok := public.constater_avertissement_inactivite(v_p[6], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', true, 'msg_sonde', null);
+  return next ok(v_ok
                  and exists (select 1 from public.users u where u.id = v_u and u.inactivity_warning_sent_at is not null)
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[6] and g.type_action = 'inactivite_avertie' and g.statut = 'reussi'),
                  'avertissement parti : le marqueur ET la ligne réussie');

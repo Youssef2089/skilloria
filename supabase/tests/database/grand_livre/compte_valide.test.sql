@@ -17,6 +17,7 @@ declare
   v_p3     uuid := gen_random_uuid();
   v_p4     uuid := gen_random_uuid();
   v_p5     uuid := gen_random_uuid();
+  v_id     bigint;
   v_r      jsonb;
 begin
   select p.verification_status into v_statut from public.profiles p where p.id = v_profil;
@@ -45,10 +46,10 @@ begin
                   and g.type_action = 'compte_valide' and g.sujet_type = 'organizations' and g.ecosysteme_id is null),
                  'la ligne d''organisation n''a pas d''écosystème (une organisation en rejoint plusieurs)');
   -- L'écrivain unique, appelé EN DIRECT : le code dérive du verdict, un arbitrage sans auteur est refusé.
+  v_id := public.journaliser_verification(v_p5, null, 'administrateur', v_admin, 'admin', null,
+                                          'profiles', v_profil, false, '{"has_reason":false}'::jsonb);
   return next ok(exists (select 1 from public.grand_livre g
-                          where g.id = public.journaliser_verification(v_p5, null, 'administrateur', v_admin, 'admin', null,
-                                                                      'profiles', v_profil, false, '{"has_reason":false}'::jsonb)
-                            and g.type_action = 'compte_refuse' and g.piece = v_p5),
+                          where g.id = v_id and g.type_action = 'compte_refuse' and g.piece = v_p5),
                  'journaliser_verification : approuve=false → compte_refuse, sous la pièce donnée');
   return next throws_ok(format($q$select public.journaliser_verification(%L, null, 'systeme', null, null, null, 'profiles', %L, true, '{}'::jsonb)$q$,
                                gen_random_uuid(), v_profil),

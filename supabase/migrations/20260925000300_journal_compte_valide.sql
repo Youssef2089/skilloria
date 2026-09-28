@@ -86,6 +86,7 @@ as $fn$
 declare
   v_p     record;
   v_quand timestamptz;
+  v_n     integer;
 begin
   select p.id, p.user_id, p.domain_id, p.verification_status
     into v_p
@@ -103,6 +104,8 @@ begin
          review_reason       = p_motif
    where p.id = p_profile_id
   returning p.verified_at into v_quand;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'statuer_sur_expert : profiles');
 
   -- Le drapeau agrégé du compte suit la décision, dans la MÊME transaction :
   -- il pilote des gardes, et le laisser dériver rendrait un expert approuvé
@@ -110,6 +113,8 @@ begin
   update public.users u
      set is_verified = p_approuve
    where u.id = v_p.user_id;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'statuer_sur_expert : users');
 
   perform public.journaliser_verification(
     p_piece, p_piece_origine, p_origine, p_acteur_id, p_acteur_type,
@@ -148,6 +153,7 @@ as $fn$
 declare
   v_o     record;
   v_quand timestamptz;
+  v_n     integer;
 begin
   select o.id, o.verification_status
     into v_o
@@ -167,6 +173,8 @@ begin
          review_reason = p_motif
    where o.id = p_organization_id
   returning o.verified_at into v_quand;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'statuer_sur_organisation : organizations');
 
   perform public.journaliser_verification(
     p_piece, p_piece_origine, p_origine, p_acteur_id, p_acteur_type,

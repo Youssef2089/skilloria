@@ -293,6 +293,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.71](docs/pieges.md#e71) | UNE SONDE QUI SUPPOSE LA RÉPONSE D'UNE FONCTION JAMAIS EXÉCUTÉE TESTE SON AUTEUR — les chemins en double, et quatre sondes qui supposaient la ligne traitée ou l'absence d'une contrainte. |
 | [E.72](docs/pieges.md#e72) | UNE SIGNATURE APPELÉE PAR LE CODE EN LIGNE NE SE SUPPRIME QU'AU DÉPLOIEMENT SUIVANT : ajout, déploiement, puis suppression — jamais les trois ensemble en production. |
 | [E.73](docs/pieges.md#e73) | UNE FONCTION DE TRIGGER QUI CITE UNE COLONNE SUPPRIMÉE PASSE LE LINT ET LE CONTRÔLE STATIQUE : quatre semaines sans inscription d'expert. |
+| [E.74](docs/pieges.md#e74) | UNE SOUS-REQUÊTE LIT L'INSTANTANÉ DU DÉBUT DE SON INSTRUCTION — et une écriture qui ne touche rien passe pour un succès. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -359,7 +360,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 138 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 139 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé

@@ -40,6 +40,7 @@ declare
   v_c        record;
   v_conv     uuid;
   v_unlocked timestamptz;
+  v_n        integer;
 begin
   if p_piece is null then
     raise exception 'devoiler_candidature : la piece est obligatoire' using errcode = 'GL002';
@@ -82,6 +83,8 @@ begin
          unlocked_at = now()
    where c.id = p_candidature_id
   returning c.unlocked_at into v_unlocked;
+  get diagnostics v_n = row_count;
+  perform public.exiger_ecriture(v_n, 'devoiler_candidature : candidatures');
 
   -- (3) LA LIGNE — sujet la candidature, l'origine du dévoilement dans le détail.
   perform public.journaliser(

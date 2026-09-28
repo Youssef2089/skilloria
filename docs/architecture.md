@@ -100,6 +100,19 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`ecritures_effectives` (28/09/2026) — ET `exiger_ecriture()` : UNE ÉCRITURE SANS EFFET LÈVE EC001.** La fonction
+> unique vit dans `liste_blanche_par_action` (première migration du lot, non poussée) ; le lot l'appelle en place
+> (18 écritures : invitations, membres, statuts de compte, arbitrages, dévoilement, message, suppression programmée,
+> défaut du catalogue, constat d'expiration — `cloturer_annonce` ne rend plus `false` sur une anomalie). Les huit
+> fonctions déjà appliquées où zéro est une anomalie sont recréées par `ecritures_effectives`, à signature et
+> droits identiques : `handle_email_confirmed` (qui n'avale plus ses erreurs), `stripe_event_mark`,
+> `solder_relance_expert`, `echouer_relance_expert` (sql → plpgsql), `programmer_relance_expert`,
+> `marquer_tentative_relance`, `trigger_purge_cron`, `liberer_siege_plateforme`. **Ordre : indifférent** (même
+> `db push` que `exiger_ecriture`). Postcondition exécutée sans donnée : cinq sondes sur un identifiant inventé
+> lèvent EC001. Les appelants TypeScript journalisent déjà l'erreur (`stripe:webhook`, `relance`) : l'EC001 y
+> remplace un silence. Gardé par [`diag-ecritures-effectives`](../scripts/diag-ecritures-effectives.mjs) (toutes les
+> fonctions, 66 écritures : 27 exigent, 39 au gel à raisons) ; §E.74.
+
 > **`inscription_specialites` (28/09/2026) — TOUTE INSCRIPTION D'EXPERT ÉCHOUAIT DEPUIS LE 01/09/2026.**
 > `handle_new_user` insérait `profiles.speciality_id`, supprimée par `profil_annonce_multivalues` au profit de
 > `speciality_ids uuid[]` : « column "speciality_id" of relation "profiles" does not exist », sur staging comme en
