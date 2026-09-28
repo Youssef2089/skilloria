@@ -29,6 +29,8 @@
 export const ACTIONS_JOURNAL = [
   // annonce
   'annonce_publiee', 'annonce_modifiee', 'annonce_depubliee', 'annonce_expiree', 'sous_traitance_publiee',
+  // le brouillon — deux noms, comme la publication (migration `journal_annonce_creee`)
+  'annonce_creee', 'sous_traitance_creee',
   // profil
   'cv_televerse', 'profil_publie', 'profil_modifie', 'disponibilite_basculee',
   // recherche — une ligne par ÉTAPE de run, jamais par lot ni par profil (§D.26)
@@ -82,6 +84,8 @@ export const CLES_DETAIL = {
   annonce_modifiee: ['champs', 'champs[]', 'statut_annonce', 'organization_id'],
   annonce_depubliee: ['de', 'vers', 'organization_id'],
   annonce_expiree: ['vie_annonce_jours'],
+  annonce_creee: ['type', 'organization_id'],
+  sous_traitance_creee: ['organization_id', 'organisation_personnelle_creee'],
   // Les faces « sous-traitance » de publier_annonce() et inserer_candidature_jugee() : même détail que leur jumelle.
   sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
   cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues'],

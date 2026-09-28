@@ -4,6 +4,8 @@ import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { ensurePersonalOrg } from '@/lib/collaboration/ensure-personal-org'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { isActivePublished } from '@/lib/publications/expiry'
@@ -206,6 +208,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // AUCUNE lecture des durées ici, et c'est délibéré : POST crée un BROUILLON.
   // Il ne dérive aucune expiration, donc il n'a aucune durée à connaître — la
@@ -229,6 +233,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   // ── Résolution de l'ORGANISATION ─────────────────────────────────────────
   let orgId: string
+  let personnelleCreee = false
   if (input.type === 'sous_traitance') {
     // C'EST ICI, ET NULLE PART AILLEURS, que naît l'organisation personnelle
     // d'un expert. Elle était créée au chargement des écrans de collaboration :
@@ -246,6 +251,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       return json({ error: ensured.message, code: ensured.code }, ensured.status)
     }
     orgId = ensured.organizationId
+    personnelleCreee = ensured.created
 
     // ⚠️ `requireOrgRole` est DÉLIBÉRÉMENT CONTOURNÉ ICI, ET SUR CE SEUL CHEMIN.
     //   Il lit `auth.organization`, résolu par requireAuth AVANT l'exécution de
@@ -328,6 +334,32 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (insertErr || !row) {
     console.error('[publications:POST] insert failed', insertErr?.message)
     return json({ error: 'Insert failed', code: 'db_error' }, 500)
+  }
+
+  // ── Le grand livre : le brouillon, sous SON nom (§D.26, phase B) ────────
+  //    Un besoin de sous-traitance n'est pas une annonce d'organisation : il
+  //    s'écrit à part, comme à la publication. Journal APRÈS écriture, même
+  //    pièce (§C.21) : un journal qui refuse se DIT, avec l'identifiant écrit.
+  try {
+    if (input.type === 'sous_traitance') {
+      await journaliserDans(auth.supabaseAdmin, journal, {
+        type: 'sous_traitance_creee',
+        statut: 'reussi',
+        sujet: { type: 'publications', id: row.id },
+        detail: { organization_id: orgId, organisation_personnelle_creee: personnelleCreee },
+      })
+    } else {
+      await journaliserDans(auth.supabaseAdmin, journal, {
+        type: 'annonce_creee',
+        statut: 'reussi',
+        sujet: { type: 'publications', id: row.id },
+        detail: { type: input.type, organization_id: orgId },
+      })
+    }
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[publications:POST] grand livre en échec après écriture', { id: row.id, message: err.message })
+    return json({ error: 'Journal failed', code: 'journal_error', publication_id: row.id }, 500)
   }
 
   // ── Audit best-effort ───────────────────────────────────────────────────

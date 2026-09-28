@@ -168,6 +168,11 @@ actions, clé étrangère du grand livre).
 > `create-admin` (origine administrateur) et `scripts/creer-premier-administrateur.mjs` (jour zéro, origine
 > système, `jour_zero`). La fabrique `fab_admin` des tests naît par ce chemin. Test :
 > `grand_livre/administrateur_cree.test.sql`.
+> · `journal_annonce_creee` — **`annonce_creee`** (client, cabinet, ESN : mission, offre ; `type`, `organization_id`)
+> et **`sous_traitance_creee`** (collaboration entre experts, freelance et CDI ; `organization_id`,
+> `organisation_personnelle_creee`) : le brouillon, sous DEUX noms comme la publication (la règle du nom, et le
+> précédent `annonce_publiee`/`sous_traitance_publiee`). Écrivain : `POST /api/publications`, journal après
+> écriture, `journal_error` avec l'identifiant écrit. Test : `grand_livre/annonce_creee.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
