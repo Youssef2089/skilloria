@@ -316,7 +316,9 @@ if (!req.trim()) reqDefauts.push('absente')
 else {
   const instructions = req.split(';').filter((x) => x.trim() !== '')
   if (instructions.length !== 1) reqDefauts.push(`${instructions.length} instructions`)
-  if (!/^\s*select\b/i.test(req)) reqDefauts.push('ne commence pas par select')
+  // Un « with » en tête est admis (28/09/2026, les deux listes du prochain push, §E.80) : c'est toujours UNE
+  // lecture, et un « with » qui écrirait (« with x as (delete … returning …) ») porte un mot d'écriture, refusé ci-dessous.
+  if (!/^\s*(?:select|with)\b/i.test(req)) reqDefauts.push('ne commence ni par select ni par with')
   const ecrit = req.match(/\b(insert|update|delete|merge|drop|alter|create|truncate|grant|revoke|call|perform|copy|vacuum|lock|comment|refresh|reindex|cluster)\b|\bdo\s*\$|\bset\s+(?:local\s+|session\s+)?\w+\s*(?:=|to)\b|\b\w+\s*\.\s*(?:nextval|setval|pg_terminate_backend|pg_cancel_backend)\b|\b(?:nextval|setval|pg_terminate_backend|pg_cancel_backend|dblink\w*|http_\w+|net\.\w+)\s*\(/gi)
   if (ecrit) reqDefauts.push(`mots d'écriture : ${[...new Set(ecrit.map((x) => x.toLowerCase().trim()))].join(', ')}`)
 }
