@@ -3813,6 +3813,34 @@ l'héritage (les migrations appliquées sur staging au 28/09, gelées — résol
 métier et n'écrit aucune table publique dans une postcondition, et chaque ligne de fin renvoie à un fichier qui
 existe. **Ce qu'il ne voit pas** : une RPC appelée sur un identifiant LU dans un référentiel ; le SQL dynamique.
 
+<a id="e78"></a>
+### E.78 — UN DÉCOUPAGE QUI RATE UNE FORME DE DÉCLARATION DONNE À SA VOISINE LE CORPS DES AUTRES — et une mention n'est pas un appel.
+
+**Le cas mesuré (28/09/2026, phase B, 2.3).** La mesure des routes sans trace est devenue un contrôle strict,
+[`diag-routes-tracees`](../scripts/diag-routes-tracees.mjs). Éprouvé par mutation **après** son commit : la route
+`dismiss` privée de sa RPC journalisante (elle écrivait `matches` directement) **restait verte**. Deux défauts,
+empilés :
+① le découpage des fonctions de `lib/` exigeait `function nom(` — il **ratait les génériques**
+(`function journaliser<A …>(`). Le corps de la déclaration précédente, la classe `JournalError`, s'étendait alors
+jusqu'à la suivante reconnue et **avalait** `journaliser()` et `journaliserDans()` : la classe devenait « traçante »,
+puis `contexteDepuisAuth()`, qui la lève. **Toute route qui ouvrait un contexte de journal passait pour tracée**, sans
+écrire une ligne — 59 fonctions « traçantes », 55 après correction ;
+② une fois ① corrigé, la route `me/identity` privée de son appel à `identiteModifiee()` restait verte : son
+**import** du nom suffisait. Une mention n'est pas un appel — le motif exige désormais `nom(`.
+Aucune route n'était tracée par ces seuls faux (toujours 56 sur 63) : le défaut était dormant, et il aurait couvert
+le premier oubli.
+
+**La règle.** Un contrôle qui reconnaît un fait par une recherche textuelle se DÉFINIT par ses formes : chaque forme
+qu'il ne connaît pas (un générique, une fonction fléchée, un alias) est un endroit où il ment — et il ment dans le
+sens rassurant quand l'erreur étend une zone « saine ». La parade n'est pas de deviner toutes les formes : c'est la
+**mutation** (§G.5), qui les trouve une par une ; et une campagne ne s'arrête pas à la première mutation qui mord.
+
+**Le contrôle** : les cinq mutations sont écrites dans [docs/reprise.md](reprise.md) (route `dismiss`, exclusion
+périmée, exclusion sans raison, `me/identity`, `create-admin` sur une RPC inconnue) — toutes mordent.
+**Ce qu'il ne voit toujours pas** : la granularité est le fichier, pas la méthode (les preuves D ter de
+`diag-grand-livre` couvrent la méthode) ; une fonction fléchée exportée (`export const f = async () =>`) n'est pas
+une déclaration pour lui.
+
 ---
 
 <a id="e9"></a>
