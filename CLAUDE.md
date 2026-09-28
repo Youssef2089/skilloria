@@ -298,6 +298,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.76](docs/pieges.md#e76) | UN APPEL À UNE FONCTION REFUSÉE AU NAVIGATEUR TUAIT LE SERVEUR EN 17.6.1.104 (supautils, corrigé ≥ 17.6.1.121) — cause VÉRIFIÉE ; la base liée se vérifie avant tout déploiement. |
 | [E.77](docs/pieges.md#e77) | UNE SONDE SUR DONNÉE RÉELLE A ARRÊTÉ LE PUSH DE STAGING À MI-CHEMIN — et en production elle toucherait de vraies personnes. La structure dans la migration, le comportement par les tests. |
 | [E.78](docs/pieges.md#e78) | UN DÉCOUPAGE QUI RATE UNE FORME DE DÉCLARATION DONNE À SA VOISINE LE CORPS DES AUTRES — et une mention n'est pas un appel. Vu par mutation, dormant, rassurant. |
+| [E.79](docs/pieges.md#e79) | `cron.job` NE S'ÉCRIT PAS DIRECTEMENT, PAS MÊME PAR POSTGRES — les fonctions de pg_cron seulement ; un test qui écrit l'état à la main ne prouve pas le geste. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

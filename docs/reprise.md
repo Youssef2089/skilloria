@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 9).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 10).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## Le mandat, en une phrase par étape
 
@@ -31,6 +31,32 @@
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 10 — LE REJEU LOCAL : 39 FICHIERS, 352 TESTS, 3 ÉCHECS — CORRIGÉS (28/09/2026)
+
+On s'est arrêté AVANT le déploiement. Les trois échecs du rejeu de Youssef :
+
+| Échec | Cause | Correction |
+|---|---|---|
+| `evenement_stripe_rouvert`, test 3 « le motif n'est PAS au grand livre » | **Le TEST avait tort — prouvé.** Il cherchait « sonde » dans tout le détail ; l'identifiant FABRIQUÉ de l'événement vaut `evt_sonde_…` et figure légitimement au détail (`stripe_event_id`). Le produit ne construit que quatre clés (`stripe_event_id`, `type_evenement`, `recu_le`, `organization_id` — `rouvrir_evenement_stripe`, migration `journal_evenement_stripe_rouvert`) ; la liste blanche n'a pas de `motif` ; le motif ne va qu'à `stripe_events.error` et à l'audit | Le test prouve désormais sans ambiguïté : un marqueur qui n'existe que dans le motif (`MOTIF-LIBRE-7Q3Z`), absent du détail ; le jeu EXACT des quatre clés ; et la base REFUSE une clé `motif` (GL004). Plan 7 → 8 |
+| `tache_lancee_a_la_main` : « permission denied for table job » | Le test désactivait sa tâche par `update cron.job` : pas même `postgres` n'écrit `cron.job` | `cron.alter_job(jobid, active := false)`, comme le produit. **La classe balayée** (SQL et TypeScript) : AUCUNE écriture directe dans le produit — `admin_cron_set_active` et `admin_cron_set_schedule` passent par `cron.alter_job`, `admin_cron_run_now` rejoue sans écrire `cron.job`. **Chaque geste de l'écran est prouvé** : `supabase/tests/database/taches_planifiees/gestes.test.sql` (12 : voir, suspendre, réactiver, tâche inconnue, replanifier, horaire refusé sans effet, suggérer, lancer, historique, fermeture). **Garde** : `diag-cron-supervision` section C (migrations, tests, `app/`, `lib/`), éprouvée par mutation. **§E.79** |
+| `une_signature` : `admin_cron_run_now` a deux signatures | Voulu (§E.72) mais l'exception n'était pas écrite | Exception écrite dans le test, avec sa raison : l'ancienne `(text, uuid)` est appelée par le code en ligne jusqu'au déploiement de la phase B, **retirée par la migration du déploiement suivant** — alors la ligne rougit (« plus une surcharge ») et se retire |
+
+**Lu pour cet arrêt** : les trois tests ; `rouvrir_evenement_stripe` ; `journaliser` (pas de retrait des nulls) ;
+`admin_cron_set_active`, `admin_cron_set_schedule`, `cron_build_schedule`, `admin_cron_chain_violations`,
+`admin_cron_jobs_overview`, `admin_cron_job_runs` (dernières définitions) ; les routes `cron-jobs/*` (appels RPC) ;
+`diag-cron-supervision` section C.
+
+### Les étapes de Youssef
+1. **Relancer les tests en local** : `npx supabase db reset --local` puis `npx supabase test db --local`. Les trois
+   échecs doivent être partis ; un fichier de test de plus (`taches_planifiees/gestes.test.sql`).
+2. **Si tout est vert** : la suite de l'ARRÊT 9 — la requête de staging (aucun ÉCART), `npm run build`,
+   `npx supabase db push`, puis le déploiement aussitôt.
+3. **Dans l'administration, Grand livre, en bas** : saisir le plancher légal et la conservation de chaque famille.
+4. **Avant toute démonstration** : l'inscription d'un expert sur staging (freelance et CDI), et un lien de
+   confirmation expiré.
+5. **Au déploiement suivant** : la migration qui retire `stripe_event_claim` et l'ancienne `admin_cron_run_now` —
+   et, dans le même commit, la ligne d'exception de `une_signature.test.sql`.
 
 ## ⛔ ARRÊT 9 — PLANCHERS : TOUT EST PARAMÉTRABLE ; LES TROIS POINTS DE LA RELECTURE (28/09/2026)
 

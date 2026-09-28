@@ -15,11 +15,14 @@ declare
                            'sonde_off_' || left(md5(random()::text), 8)];
   v_p      uuid[] := array(select gen_random_uuid() from generate_series(1, 4));
   v_r      record;
+  v_jobid  bigint;
 begin
   perform cron.schedule(v_jobs[1], '0 0 1 1 *', 'select 1');
   perform cron.schedule(v_jobs[2], '0 0 1 1 *', 'select 1/0');
-  perform cron.schedule(v_jobs[3], '0 0 1 1 *', 'select 1');
-  update cron.job set active = false where jobname = v_jobs[3];
+  -- cron.job ne s'écrit JAMAIS directement (pas même par postgres : « permission denied for table job », §E.79) :
+  -- on passe par les fonctions de pg_cron, comme le produit (admin_cron_set_active → cron.alter_job).
+  v_jobid := cron.schedule(v_jobs[3], '0 0 1 1 *', 'select 1');
+  perform cron.alter_job(v_jobid, active := false);
 
   -- ── une tâche SQL pure : lancée, une ligne de journal manuelle posée, la ligne du grand livre ──
   select * into v_r from public.admin_cron_run_now(v_p[1], null, 'administrateur', v_admin, 'admin', v_jobs[1]);

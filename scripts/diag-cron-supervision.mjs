@@ -183,6 +183,27 @@ for (const forbidden of ['cron.schedule', 'cron.alter_job', 'cron.unschedule']) 
   ok(!readFns.includes(forbidden), `lot 0 en LECTURE SEULE : aucun appel a ${forbidden}`)
 }
 
+// ── cron.job NE S'ÉCRIT JAMAIS DIRECTEMENT (§E.79, rejeu local du 28/09/2026) ─────────────────
+//  « permission denied for table job » : pas même le rôle postgres n'écrit cron.job. Activer, suspendre,
+//  replanifier, planifier passent par cron.alter_job / cron.schedule / cron.unschedule. Balayé : TOUTES les
+//  migrations, TOUS les tests pgTAP, app/ et lib/ (un \`.schema('cron')\` y serait une écriture PostgREST).
+//  \`cron.job_run_details\` est une autre table — sa purge est légitime, le motif ne la vise pas (\b + pas de _).
+{
+  const { readdirSync: rd, statSync: st } = await import('node:fs')
+  const tout = (d, o = []) => { for (const e of rd(join(ROOT, d))) { const p = d + '/' + e; if (st(join(ROOT, p)).isDirectory()) tout(p, o); else o.push(p) } return o }
+  const directe = /\b(update\s+cron\.job|insert\s+into\s+cron\.job|delete\s+from\s+cron\.job)(?![_a-z])/i
+  const fautifs = []
+  for (const p of [...tout('supabase/migrations'), ...tout('supabase/tests')].filter((f) => /\.(sql|psql)$/.test(f))) {
+    if (directe.test(stripComments(read(p)))) fautifs.push(p)
+  }
+  for (const p of [...tout('app'), ...tout('lib')].filter((f) => /\.tsx?$/.test(f))) {
+    if (/\.schema\(\s*['"]cron['"]\s*\)/.test(read(p))) fautifs.push(p)
+  }
+  ok(fautifs.length === 0,
+    'cron.job ne s’écrit jamais directement — ni migration, ni test, ni code (les fonctions de pg_cron seulement)',
+    fautifs.join(', ') || undefined)
+}
+
 // ═══ D. P4 — LE CATALOGUE ET SES INVARIANTS ════════════════════════════════
 section('D. Catalogue')
 

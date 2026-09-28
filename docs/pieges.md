@@ -3841,6 +3841,32 @@ périmée, exclusion sans raison, `me/identity`, `create-admin` sur une RPC inco
 `diag-grand-livre` couvrent la méthode) ; une fonction fléchée exportée (`export const f = async () =>`) n'est pas
 une déclaration pour lui.
 
+<a id="e79"></a>
+### E.79 — `cron.job` NE S'ÉCRIT PAS DIRECTEMENT, PAS MÊME PAR POSTGRES — et un test qui l'écrit ne prouve pas le geste de l'écran.
+
+**Le cas mesuré (28/09/2026, rejeu local de Youssef : 39 fichiers, 352 tests, 3 échecs).** Le test
+`grand_livre/tache_lancee_a_la_main.test.sql` désactivait sa tâche fabriquée par `update cron.job set active = false` :
+**ERROR: permission denied for table job**. Sur Supabase, `cron.job` appartient au rôle d'administration de
+l'extension ; le rôle `postgres` n'y a pas le droit d'écriture. Il passe par les fonctions de pg_cron —
+`cron.schedule`, `cron.unschedule`, `cron.alter_job` — qui vérifient elles-mêmes à qui appartient la tâche.
+
+**La classe, balayée.** Tout ce qui, dans le PRODUIT, écrirait directement `cron.job` casserait de la même façon.
+Mesuré : **aucun** site. `admin_cron_set_active` (activer, suspendre) et `admin_cron_set_schedule` (replanifier)
+passent par `cron.alter_job` ; `admin_cron_run_now` (lancer) LIT la commande et la rejoue, sans rien écrire dans
+`cron.job` ; les migrations planifient par `cron.schedule` ; le TypeScript n'écrit rien dans le schéma `cron`
+(ses mentions de `cron.job` sont des commentaires). Seul le TEST fautait — mais il fautait parce qu'il n'imitait
+pas le produit : **un test qui écrit l'état à la main à la place du geste ne prouve pas le geste**. Et les deux
+gestes d'édition de l'écran n'étaient prouvés par AUCUN test.
+
+**La parade.** Le test désactive par `cron.alter_job`, comme le produit ; chaque geste de l'écran des tâches
+planifiées tourne dans `supabase/tests/database/taches_planifiees/gestes.test.sql` (voir, suspendre, réactiver, tâche
+inconnue, replanifier, horaire refusé sans effet, suggérer, lancer, historique, fermeture au navigateur).
+
+**Le contrôle** : `diag-cron-supervision`, section C — aucune écriture directe dans `cron.job` (`update`, `insert`,
+`delete`) dans les migrations, les tests pgTAP, ni de `.schema('cron')` dans `app/` et `lib/`. `cron.job_run_details`
+est une autre table, que la purge vise légitimement : le motif ne la touche pas. Éprouvé par mutation (l'ancienne
+ligne du test remise : rouge). **Ce qu'il ne voit pas** : le SQL dynamique (`execute format(...)`).
+
 ---
 
 <a id="e9"></a>

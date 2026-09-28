@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(7);
+select plan(8);
 
 create or replace function pg_temp.evenement(p_id text, p_statut text, p_recu timestamptz) returns void
 language plpgsql as $$
@@ -26,9 +26,9 @@ begin
   perform pg_temp.evenement(v_ids[3], 'processed', now() - interval '2 hours');
 
   -- ── coincé : rouvert, et la ligne s'écrit ──
-  v_r := public.rouvrir_evenement_stripe(v_p[1], null, 'administrateur', v_admin, 'admin', v_ids[1], 'relivraison demandée par la sonde', v_limite);
+  v_r := public.rouvrir_evenement_stripe(v_p[1], null, 'administrateur', v_admin, 'admin', v_ids[1], 'MOTIF-LIBRE-7Q3Z relivraison demandée', v_limite);
   return next ok(v_r ->> 'issue' = 'rouvert' and exists (select 1 from public.stripe_events e where e.id = v_ids[1]
-                   and e.status = 'failed' and e.error like 'rouvert manuellement — %'),
+                   and e.status = 'failed' and e.error like 'rouvert manuellement — MOTIF-LIBRE-7Q3Z%'),
                  'coincé : l''événement passe failed, le motif est dans stripe_events.error');
   return next ok(pg_temp.lignes(v_p[1]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[1]
                    and g.type_action = 'evenement_stripe_rouvert' and g.acteur_id = v_admin and g.acteur_type = 'admin'
@@ -36,8 +36,16 @@ begin
                    and g.detail ->> 'stripe_event_id' = v_ids[1] and g.detail ->> 'type_evenement' = 'invoice.paid'
                    and g.ecosysteme_id is null),
                  'coincé : UNE ligne, sujet DÉRIVÉ de l''identifiant Stripe, l''identifiant lui-même dans le détail');
-  return next ok(not exists (select 1 from public.grand_livre g where g.piece = v_p[1] and g.detail::text like '%sonde%'),
-                 'le motif (texte libre) n''est PAS au grand livre');
+  -- Le motif porte un marqueur qui n'existe nulle part ailleurs : l'identifiant fabriqué de l'événement
+  -- (`evt_sonde_…`) figure légitimement au détail, et chercher « sonde » l'attrapait lui (échec du 28/09/2026).
+  return next ok(not exists (select 1 from public.grand_livre g where g.piece = v_p[1] and g.detail::text like '%MOTIF-LIBRE-7Q3Z%')
+                 and (select array_agg(k order by k) from public.grand_livre g, jsonb_object_keys(g.detail) k where g.piece = v_p[1])
+                     = array['organization_id', 'recu_le', 'stripe_event_id', 'type_evenement'],
+                 'le motif (texte libre) n''est PAS au grand livre : le détail porte exactement quatre clés, des identifiants');
+  return next throws_ok(format($q$select public.journaliser(%L, 'evenement_stripe_rouvert', 'reussi', 'administrateur', %L, 'admin', null::uuid,
+                                 'stripe_events', %L, '{"stripe_event_id":"x","motif":"texte libre"}'::jsonb, null::uuid, null::numeric, null::text)$q$,
+                               gen_random_uuid(), v_admin, gen_random_uuid()),
+                        'GL004', null, 'la liste blanche REFUSE une clé motif (GL004) — aucun texte libre ne peut entrer');
   -- ── trop récent, ou déjà clos : non coincé, rien ne change, rien ne s'écrit ──
   v_r := public.rouvrir_evenement_stripe(v_p[2], null, 'administrateur', v_admin, 'admin', v_ids[2], 'trop tot pour rouvrir', v_limite);
   return next ok(v_r ->> 'issue' = 'non_coince' and pg_temp.lignes(v_p[2]) = 0
