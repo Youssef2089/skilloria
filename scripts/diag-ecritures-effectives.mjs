@@ -65,7 +65,7 @@ const GEL = {
   'pourvoir_siege_admin_si_vacant:organizations:1': 'LÉGITIME : « si vacant » — conditionnel sur siege_admin_membre_id is null, zéro veut dire « déjà pourvu »',
   'pourvoir_siege_plateforme_si_vacant:plateforme:1': 'LÉGITIME : « si vacant » — conditionnel sur siege_admin_user_id is null, zéro veut dire « déjà pourvu »',
   // ── les fonctions du grand livre ──
-  'constater_devoilement_ferme:candidatures:1': `${L} l'issue « deja » (constat déjà posé)`,
+  'constater_devoilement_ferme:candidatures:1': `${L} une issue NOMMÉE — « deja » (constat déjà posé), « change » (statut changé depuis la lecture), « introuvable »`,
   'decliner_candidature:candidatures:1': `${L} false (statut hors des statuts admis)`,
   'retenir_candidature:candidatures:1': `${L} null (statut hors des statuts admis)`,
   'publier_annonce:publications:1': `${L} null (brouillon absent ou d'une autre organisation)`,

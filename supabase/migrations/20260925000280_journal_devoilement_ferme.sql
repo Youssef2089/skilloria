@@ -9,12 +9,20 @@
 --  personne n'agit, aucune colonne ne bascule — l'état de vie d'une
 --  candidature est DÉRIVÉ à la lecture (lib/candidatures/lifecycle.ts,
 --  source unique, qui décide « échange refermé »). Le constat est donc
---  DÉCIDÉ en TypeScript par cette source, et cette fonction ne juge rien
---  d'autre que ce qu'un marqueur exige : la candidature est encore dévoilée
---  (`unlocked` — `selected` reste active sans limite, §D.5) et jamais
---  constatée. Marqueur (`fermeture_constatee_at`) et ligne naissent dans la
---  même transaction, une fois. Pas de jumeau SQL de la règle : aucune
---  seconde expression de « refermé » n'existe dans le schéma.
+--  DÉCIDÉ en TypeScript par cette source, et cette fonction ne juge rien.
+--  UNE RÈGLE, UNE DÉFINITION (T.5, 28/09/2026) : elle portait `status =
+--  'unlocked'` — une SECONDE définition, partielle, de « quels statuts
+--  referment » (§D.5 : `selected` reste actif). Si la règle TypeScript
+--  changeait, le SQL aurait refusé en silence, en rendant « déjà ». Elle reçoit
+--  désormais `p_statut_lu` — le statut que la tâche a LU puis JUGÉ par
+--  `deriveCandidatureLifecycle` — et ne vérifie que ceci : rien n'a changé
+--  depuis la lecture (comparer puis poser), et la candidature n'est pas déjà
+--  constatée. La fin d'échange (`p_fin_echange`) vient aussi du TypeScript
+--  (`effectiveConversationExpiry`) ; le SQL la LIT (refus d'une fin future,
+--  comparaison à la mise en service), il ne la calcule jamais.
+--  Marqueur (`fermeture_constatee_at`) et ligne naissent dans la même
+--  transaction, une fois. Issues fermées : constate · passif · deja · change
+--  (le statut a bougé depuis la lecture : la tâche relira) · introuvable.
 -- ─────────────────────────────────────────────────────────────────────────────
 
 -- ── ① LA COLONNE-MARQUEUR ────────────────────────────────────────────────────
@@ -54,10 +62,15 @@ on conflict (constat) do nothing;
 
 
 -- ── ② LE CONSTAT — marqueur et ligne, dans la même transaction ──────────────
+-- L'ancienne signature (sans le statut lu) n'a jamais quitté ce lot ; la retirer
+-- garantit une seule signature sur toute base qui l'aurait rejouée.
+drop function if exists public.constater_devoilement_ferme(uuid, uuid, timestamptz);
+
 create or replace function public.constater_devoilement_ferme(
   p_piece          uuid,
   p_candidature_id uuid,
-  p_fin_echange    timestamptz
+  p_fin_echange    timestamptz,
+  p_statut_lu      text
 ) returns text
   language plpgsql
   security definer
@@ -69,12 +82,16 @@ as $fn$
 declare
   v_c      record;
   v_depuis timestamptz;
+  v_marque timestamptz;
 begin
   if p_piece is null then
     raise exception 'constater_devoilement_ferme : la piece est obligatoire' using errcode = 'GL002';
   end if;
   if p_fin_echange is null or p_fin_echange > now() then
     raise exception 'constater_devoilement_ferme : la fin d echange doit etre passee (%)', p_fin_echange using errcode = '22023';
+  end if;
+  if p_statut_lu is null then
+    raise exception 'constater_devoilement_ferme : le statut lu et juge par la tache est obligatoire' using errcode = '22023';
   end if;
   select m.depuis into v_depuis from public.constats_mise_en_service m where m.constat = 'devoilement_ferme';
   if v_depuis is null then
@@ -85,10 +102,15 @@ begin
      set fermeture_constatee_at = now()
    where c.id = p_candidature_id
      and c.fermeture_constatee_at is null
-     and c.status = 'unlocked'
+     and c.status = p_statut_lu
   returning c.domain_id, c.publication_id, c.profile_id, c.unlocked_at into v_c;
   if not found then
-    return 'deja';
+    -- Zéro ligne : on dit LAQUELLE des trois raisons, sans en inventer une.
+    select c.fermeture_constatee_at into v_marque from public.candidatures c where c.id = p_candidature_id;
+    if not found then
+      return 'introuvable';
+    end if;
+    return case when v_marque is not null then 'deja' else 'change' end;
   end if;
   -- LE PASSIF : refermé AVANT la mise en service — marqueur, pas de ligne.
   if p_fin_echange < v_depuis then
@@ -109,8 +131,8 @@ begin
 end;
 $fn$;
 
-revoke all on function public.constater_devoilement_ferme(uuid, uuid, timestamptz) from public, anon, authenticated;
-grant execute on function public.constater_devoilement_ferme(uuid, uuid, timestamptz) to service_role;
+revoke all on function public.constater_devoilement_ferme(uuid, uuid, timestamptz, text) from public, anon, authenticated;
+grant execute on function public.constater_devoilement_ferme(uuid, uuid, timestamptz, text) to service_role;
 
 
 -- ── ③ LA LISTE BLANCHE ───────────────────────────────────────────────────────
@@ -130,7 +152,8 @@ declare
   v_ok2   text;
   v_n     integer;
 begin
-  if to_regprocedure('public.constater_devoilement_ferme(uuid, uuid, timestamptz)') is null then
+  if to_regprocedure('public.constater_devoilement_ferme(uuid, uuid, timestamptz, text)') is null
+     or to_regprocedure('public.constater_devoilement_ferme(uuid, uuid, timestamptz)') is not null then
     raise exception 'postcondition NON TENUE : constater_devoilement_ferme manque ou a change de signature';
   end if;
   if (select m.depuis from public.constats_mise_en_service m where m.constat = 'devoilement_ferme') is null then
@@ -162,7 +185,7 @@ begin
   else
     begin
       -- LE PASSIF D'ABORD : une fin ANTÉRIEURE à la mise en service → marqueur, AUCUNE ligne.
-      v_ok := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now() - interval '1 day');
+      v_ok := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now() - interval '1 day', 'unlocked');
       if v_ok is distinct from 'passif'
          or not exists (select 1 from public.candidatures c where c.id = v_cand and c.fermeture_constatee_at is not null)
          or exists (select 1 from public.grand_livre g where g.type_action = 'devoilement_ferme' and g.sujet_id = v_cand) then
@@ -170,7 +193,7 @@ begin
       end if;
       update public.candidatures set fermeture_constatee_at = null where id = v_cand;
       -- LE CONSTAT : une fin à la mise en service ou après (ici, maintenant) → marqueur ET ligne.
-      v_ok := public.constater_devoilement_ferme(v_piece, v_cand, now());
+      v_ok := public.constater_devoilement_ferme(v_piece, v_cand, now(), 'unlocked');
       if v_ok is distinct from 'constate' then
         raise exception 'postcondition NON TENUE : le constat n a pas abouti [%]', v_ok;
       end if;
@@ -181,7 +204,7 @@ begin
                         and g.detail ->> 'fin_echange' is not null and g.detail ->> 'publication_id' is not null) then
         raise exception 'postcondition NON TENUE : la ligne devoilement_ferme manque ou ne porte pas son detail';
       end if;
-      v_ok2 := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now());
+      v_ok2 := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now(), 'unlocked');
       select count(*) into v_n from public.grand_livre g where g.type_action = 'devoilement_ferme' and g.sujet_id = v_cand;
       if v_ok2 is distinct from 'deja' or v_n <> 1 then
         raise exception 'postcondition NON TENUE : le rejeu a constate ou journalise une seconde fois [% / % ligne(s)]', v_ok2, v_n;
@@ -195,7 +218,7 @@ begin
   end if;
   -- SONDE — une fin d'échange FUTURE est REFUSÉE : on ne constate pas ce qui n'est pas arrivé.
   begin
-    perform public.constater_devoilement_ferme(gen_random_uuid(), gen_random_uuid(), now() + interval '1 day');
+    perform public.constater_devoilement_ferme(gen_random_uuid(), gen_random_uuid(), now() + interval '1 day', 'unlocked');
     raise exception 'postcondition NON TENUE : une fin d echange future a ete acceptee';
   exception when sqlstate '22023' then
     null;

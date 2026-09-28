@@ -140,6 +140,7 @@ async function handle(request: NextRequest): Promise<Response> {
     }
     let devoilementsFermes = 0
     let devoilementsPassif = 0
+    let devoilementsChanges = 0
     for (const c of (devoilees ?? []) as unknown as Devoilee[]) {
       const fil = Array.isArray(c.conversations) ? (c.conversations[0] ?? null) : c.conversations
       const vie = deriveCandidatureLifecycle(
@@ -156,6 +157,9 @@ async function handle(request: NextRequest): Promise<Response> {
         p_piece: journal.piece,
         p_candidature_id: c.id,
         p_fin_echange: fin.toISOString(),
+        // UNE RÈGLE, UNE DÉFINITION (T.5) : le statut que CETTE lecture a jugé. La base ne
+        // redéfinit pas « quels statuts referment » ; elle vérifie que rien n'a changé depuis.
+        p_statut_lu: c.status,
       })
       if (cErr) {
         console.error('[constats] dévoilement : constat en échec', { candidatureId: c.id, message: cErr.message })
@@ -166,6 +170,9 @@ async function handle(request: NextRequest): Promise<Response> {
       // l'historique, décision du 26/09/2026). Une issue inconnue n'est pas un succès.
       if (constate === 'constate') devoilementsFermes++
       else if (constate === 'passif') devoilementsPassif++
+      // `change` : le statut a bougé entre la lecture et l'écriture (retenue, archivée…) — la
+      // règle se rejugera au prochain passage, sur l'état vrai. `introuvable` : la ligne a disparu.
+      else if (constate === 'change' || constate === 'introuvable') devoilementsChanges++
       else if (constate !== 'deja') {
         console.error('[constats] dévoilement : issue inconnue', { candidatureId: c.id, issue: constate })
         return json({ error: 'Unknown outcome', code: 'db_error', etape: 'devoilements_fermes', annonces_expirees: annoncesExpirees, devoilements_fermes: devoilementsFermes }, 500)
@@ -182,6 +189,8 @@ async function handle(request: NextRequest): Promise<Response> {
         devoilements_fermes: devoilementsFermes,
         /** Fermetures ANTÉRIEURES à la mise en service : marquées, sans ligne au grand livre. */
         devoilements_passif: devoilementsPassif,
+        /** Statut changé (ou ligne disparue) entre la lecture et le constat : rejugé au prochain passage. */
+        devoilements_changes: devoilementsChanges,
         limite: LIMITE_PAR_PASSAGE,
       },
       200,
