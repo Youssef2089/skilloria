@@ -136,18 +136,33 @@ ok(
   'les métadonnées n’envoient JAMAIS role:"admin" au trigger',
   'il tomberait dans la branche « rôle inconnu » et ne créerait aucun miroir',
 )
+// LA BASCULE VIT EN BASE depuis la phase B (28/09/2026) : promouvoir_administrateur()
+// fait les trois écritures ET écrit administrateur_cree dans la même transaction. On la
+// lit dans sa DERNIÈRE définition (§E.34), et la route doit l'appeler avec le rôle Admin.
+const promotion = rejouerMigrations().fonctions.get('promouvoir_administrateur')?.corps ?? ''
+ok(promotion !== '', 'la dernière définition de promouvoir_administrateur est trouvée dans les migrations')
 for (const [needle, label] of [
-  [/user_type: 'admin'/, 'user_type = admin'],
-  [/role_id: roleRow\.id/, 'role_id = rôle commercial « Admin »'],
-  [/status: 'active'/, 'status = active'],
+  [/user_type\s*= 'admin'/, 'user_type = admin'],
+  [/role_id\s*= p_role_id/, 'role_id = rôle commercial « Admin »'],
+  [/status\s*= 'active'/, 'status = active'],
 ]) {
-  ok(needle.test(createRoute), `bascule : ${label}`)
+  ok(needle.test(promotion), `bascule : ${label} (en base)`)
 }
+ok(
+  /\.rpc\('promouvoir_administrateur', \{\s*\.\.\.parametresJournal\(journal\),\s*p_user_id: newUserId,\s*p_role_id: roleRow\.id,/.test(createRoute)
+    && !/\.from\('users'\)\s*\.update\(/.test(createRoute),
+  'la route promeut par la fonction, avec la pièce du geste et le rôle Admin — plus aucune écriture directe',
+)
 // PIÈGE 3 — le contrôle qui coûte cher s'il saute.
 ok(
-  /status: 'active'/.test(createRoute),
+  /status\s*= 'active'/.test(promotion),
   'bascule : status passe bien à `active`',
   'countOtherAvailablePlatformAdmins ne compte QUE les actifs — un admin en draft ne compterait pas',
+)
+ok(
+  /u\.user_type = 'client'\s*and exists \(select 1 from auth\.users a\s*where a\.id = u\.id and a\.raw_user_meta_data ->> 'voie' = 'administrateur'\)/.test(promotion)
+    && /errcode = 'AD001'/.test(promotion) && /errcode = 'AD002'/.test(promotion),
+  'la base refuse de promouvoir un compte qui n’a pas été créé pour l’administration (AD001) ou pour un acteur non administrateur (AD002)',
 )
 ok(
   /ADMIN_ROLE_NAME = 'Admin'/.test(createRoute) && /admin_role_missing/.test(createRoute),

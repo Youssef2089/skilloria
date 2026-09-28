@@ -8,7 +8,7 @@ import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 // Cleanup atomique : le MÊME que les deux routes d'inscription publiques.
 // `auth.admin.deleteUser` ne cascade pas sur public.users — cf. piège P3.
 import { atomicCleanup } from '@/lib/auth-signup'
-import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { sendAdminInvitation } from '@/lib/admin/admin-invitation'
 
 export const runtime = 'nodejs'
@@ -65,7 +65,11 @@ export const dynamic = 'force-dynamic'
  *   `users_user_type_check` admet DÉJÀ 'admin' (baseline) : la bascule ne viole
  *   aucune contrainte et n'a jamais eu besoin de migration.
  *
- * ═══ LES TROIS ÉCRITURES DE LA BASCULE ═════════════════════════════════════
+ * ═══ LES TROIS ÉCRITURES DE LA BASCULE — EN BASE, AVEC SA LIGNE ══════════════
+ *   Faites par `promouvoir_administrateur()` (migration `journal_administrateur_cree`),
+ *   qui écrit `administrateur_cree` dans la même transaction et REFUSE en base un
+ *   compte qui n'a pas été créé pour l'administration (AD001) ou un acteur qui
+ *   n'est pas administrateur (AD002). Le script du jour zéro appelle la même.
  *   - `user_type = 'admin'`   : le rôle réel.
  *   - `role_id = <Admin>`     : rôle COMMERCIAL, sans objet pour un
  *                               administrateur, mais une lecture en base doit
@@ -267,20 +271,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Account mirror missing', code: 'mirror_missing' }, 500)
   }
 
-  // ── Bascule vers le rôle réel ────────────────────────────────────────────
-  const { error: promoteErr } = await auth.supabaseAdmin
-    .from('users')
-    .update({
-      user_type: 'admin',
-      role_id: roleRow.id,
-      // 'active' : cf. § LES TROIS ÉCRITURES. Un admin en 'draft' ne serait pas
-      // compté comme disponible par l'anti-lock-out plateforme.
-      status: 'active',
-      email_verified: true,
-    })
-    .eq('id', newUserId)
-  if (promoteErr) {
-    console.error('[admin:create-admin] promotion failed', promoteErr.message)
+  // ── Bascule vers le rôle réel — et sa ligne, dans la même fonction ─────────
+  //    user_type 'admin', role_id Admin, status 'active' (cf. § LES TROIS ÉCRITURES :
+  //    un admin en 'draft' ne serait pas compté par l'anti-lock-out plateforme).
+  //    La ligne suit l'issue RÉELLE : 'echoue' est écrite par la fonction elle-même.
+  const { data: promotion, error: promoteErr } = await auth.supabaseAdmin.rpc('promouvoir_administrateur', {
+    ...parametresJournal(journal),
+    p_user_id: newUserId,
+    p_role_id: roleRow.id,
+  })
+  if (promoteErr || promotion !== 'reussi') {
+    console.error('[admin:create-admin] promotion failed', promoteErr?.message ?? `issue ${String(promotion)}`)
     await atomicCleanup(auth.supabaseAdmin, { userId: newUserId })
     return json({ error: 'Could not promote to admin', code: 'promote_failed' }, 500)
   }

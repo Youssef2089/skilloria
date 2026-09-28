@@ -57,6 +57,7 @@ const GEL = {
   'audit_logs_nettoyer_compte:audit_logs:1': 'LÉGITIME : nettoyage par lot des traces du compte — rend son compte, zéro veut dire « rien à nettoyer »',
   'reserver_place_annonce:publications:1': 'LÉGITIME : nettoyage par lot des places d\'annonces qui ne sont plus actives — zéro veut dire « rien à libérer »',
   'reserver_place_annonce:publications:2': 'LÉGITIME : conditionnel (place_active is null) — la fonction rend `found`, c\'est son issue',
+  'promouvoir_administrateur:users:1': 'LÉGITIME : conditionnel (client créé pour l’administration) — `if not found` lève le refus NOMMÉ AD001, que le gestionnaire ÉCRIT (administrateur_cree échouée) ; la fonction rend « echoue »',
   'solder_relance_expert:profiles:1': 'LÉGITIME : conditionnel (relance due avant le début du passage) — `if found` choisit la branche ; la seconde écriture, elle, exige son compte',
   'rendre_bail:baux:1': 'LÉGITIME : un bail déjà rendu, ou expiré puis repris par un autre, n\'a rien à rendre — conditionnel sur finished_at is null',
   'reserver_place_incluse:candidatures:1': 'LÉGITIME : conditionnel (place_incluse is null) — la fonction rend `found`, c\'est son issue',

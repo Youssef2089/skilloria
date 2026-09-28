@@ -54,6 +54,8 @@ export const ACTIONS_JOURNAL = [
   'paiement_recu', 'plafond_atteint',
   // administration
   'reglage_modifie',
+  // la promotion d'un compte créé pour l'administration — écrite par promouvoir_administrateur()
+  'administrateur_cree',
   // rgpd — les trois purges sont SÉPARÉES : elles ne se relisent pas de la même façon
   'inactivite_avertie', 'compte_purge_inactivite', 'compte_purge_demande', 'compte_purge_admin', 'ip_effacees',
   // journal — méta, à part : visible même quand on filtre l'administration
@@ -169,6 +171,7 @@ export const CLES_DETAIL = {
     // catalogue Stripe
     'mode', 'synchronisees', 'synchronisees[]', 'refusees', 'refusees[]', 'en_echec', 'en_echec[]', 'cause',
   ],
+  administrateur_cree: ['jour_zero', 'cause'],
   inactivite_avertie: ['echeance_purge', 'demande_email_id', 'cause'],
   // Les trois purges : UN écrivain (`anonymiser_compte()`), le code dérivé du motif, la même forme.
   compte_purge_inactivite: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],

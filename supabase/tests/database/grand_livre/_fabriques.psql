@@ -47,13 +47,33 @@ begin
   return v_id;
 end $$;
 
--- Un administrateur plateforme : le parcours de création d'administrateur (compte, puis type admin, actif).
+-- Un administrateur plateforme : le parcours de création d'administrateur — un compte créé POUR
+-- l'administration (rôle de pont 'entreprise', voie déclarée 'administrateur'), puis la promotion
+-- par promouvoir_administrateur(), comme create-admin et le script du jour zéro (sa propre pièce).
 create or replace function pg_temp.fab_admin() returns uuid
 language plpgsql as $$
-declare v uuid := pg_temp.fab_compte('entreprise');
+declare
+  v_id   uuid := gen_random_uuid();
+  v_slug text;
+  v_role uuid;
 begin
-  update public.users set user_type = 'admin', status = 'active' where id = v;
-  return v;
+  select d.slug into v_slug from public.domains d where d.id = pg_temp.fab_domaine();
+  select r.id into v_role from public.roles r where r.name = 'Admin' and r.active;
+  if v_role is null then raise exception 'fabrique : role Admin actif introuvable'; end if;
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
+          'sonde+' || v_id || '@exemple.invalid', '', now(), '{}'::jsonb,
+          jsonb_build_object('role', 'entreprise', 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Admin',
+                             'voie', 'administrateur'),
+          now(), now());
+  if not exists (select 1 from public.users u where u.id = v_id) then
+    raise exception 'fabrique : handle_new_user n a PAS cree public.users pour l administrateur %', v_id;
+  end if;
+  if public.promouvoir_administrateur(gen_random_uuid(), null, 'systeme', null, null, v_id, v_role) is distinct from 'reussi' then
+    raise exception 'fabrique : la promotion de % a echoue', v_id;
+  end if;
+  return v_id;
 end $$;
 
 -- Le profil d'un expert fraîchement inscrit (p_role : 'expert' ou 'cdi').

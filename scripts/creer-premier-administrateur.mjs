@@ -35,7 +35,8 @@
 //   5. VERIFIE QUE LE MIROIR EXISTE. C'est le controle a ne jamais retirer : le
 //      point mort du trigger ne remonte aucune erreur. Miroir absent ⇒ le
 //      compte auth est supprime, et le script echoue proprement ;
-//   6. bascule vers le role reel : user_type 'admin', role_id Admin,
+//   6. bascule vers le role reel, par promouvoir_administrateur() (qui ecrit
+//      administrateur_cree dans la meme transaction) : user_type 'admin', role_id Admin,
 //      status 'active' (un administrateur en 'draft' ne serait pas compte comme
 //      disponible par l'anti-lock-out plateforme), email_verified ;
 //   7. VERIFIE QUE LE SIEGE D'ADMINISTRATEUR PLATEFORME EST POURVU. Il l'est par
@@ -286,18 +287,24 @@ if (errMiroir || !miroir) {
 
 // ─── 6. BASCULE VERS LE ROLE REEL ────────────────────────────────────────────
 
-const { error: errBascule } = await db
-  .from('users')
-  .update({
-    user_type: 'admin',
-    role_id: role.id,
-    // 'active' et pas 'draft' : `countOtherAvailablePlatformAdmins` ne compte
-    // QUE les 'active'. Un administrateur reste en 'draft' existerait sans etre
-    // compte, et l'anti-lock-out plateforme le croirait absent.
-    status: 'active',
-    email_verified: true,
-  })
-  .eq('id', idNouveau)
+// La bascule ET sa ligne `administrateur_cree`, dans une seule fonction (phase B) :
+// user_type 'admin', role_id Admin, status 'active', email verifie. Origine
+// `systeme`, sans acteur : le jour zero n'a personne pour creer le premier.
+// Un echec y est ECRIT (ligne echouee, cause) avant que ce script ne nettoie.
+const { data: issueBascule, error: errBascule0 } = await db.rpc('promouvoir_administrateur', {
+  p_piece: piece,
+  p_piece_origine: null,
+  p_origine: 'systeme',
+  p_acteur_id: null,
+  p_acteur_type: null,
+  p_user_id: idNouveau,
+  p_role_id: role.id,
+})
+const errBascule = errBascule0 ?? (issueBascule === 'reussi' ? null : { message: `promotion refusee (${issueBascule}) — la ligne administrateur_cree dit la cause` })
+
+// 'active' et pas 'draft' : `countOtherAvailablePlatformAdmins` ne compte QUE
+// les 'active'. Un administrateur reste en 'draft' existerait sans etre compte,
+// et l'anti-lock-out plateforme le croirait absent. La fonction le pose.
 
 if (errBascule) {
   console.error('')

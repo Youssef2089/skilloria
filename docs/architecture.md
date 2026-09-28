@@ -160,6 +160,14 @@ actions, clé étrangère du grand livre).
 > (client, cabinet, ESN) sous la pièce de `compte_cree` ; réussie, sujet l'organisation (`org_type`,
 > `domaine_public`) ; échouée, sujet le compte (`cause`, `compte_nettoye`, `organisation_nettoyee`). Même écrivain,
 > même test.
+> · `journal_administrateur_cree` — `administrateur_cree` (administration) et **`promouvoir_administrateur()`** :
+> la bascule d'un compte créé pour l'administration (user_type admin, rôle Admin, actif, adresse vérifiée) ET sa
+> ligne dans la même fonction — succès dans le bloc, échec dans le gestionnaire (cause = SQLSTATE). Refus en base :
+> **AD002** acteur d'origine administrateur qui n'est pas un administrateur actif (levé, sans ligne) ; **AD001** compte
+> qui n'est pas un client créé avec la voie déclarée `administrateur` (ligne échouée). Deux appelants, un écrivain :
+> `create-admin` (origine administrateur) et `scripts/creer-premier-administrateur.mjs` (jour zéro, origine
+> système, `jour_zero`). La fabrique `fab_admin` des tests naît par ce chemin. Test :
+> `grand_livre/administrateur_cree.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
