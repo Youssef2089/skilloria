@@ -182,6 +182,9 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         extraActivePaths: [ADMIN_ROOT_ROUTE],
       },
       { key: 'experts', href: '/admin/experts', labelKey: 'nav_experts', iconKey: 'user' },
+      // LES DOMAINES D'ADRESSE que la règle d'inscription lit (bloqués, publics) : rangés sous la
+      // validation des organisations, parce qu'ils décident laquelle peut se préinscrire (§D.27).
+      { key: 'domaines-adresse', href: '/admin/domaines-adresse', labelKey: 'nav_domaines_adresse', iconKey: 'building' },
     ],
   },
   {

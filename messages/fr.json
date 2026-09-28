@@ -2466,6 +2466,7 @@
       "section_validation": "Validation",
       "nav_organisations": "Organisations",
       "nav_experts": "Experts",
+      "nav_domaines_adresse": "Domaines d’adresse",
       "nav_experts_soon": "bientôt",
       "section_commerce": "Commerce",
       "nav_packages": "Packages",
@@ -4891,5 +4892,42 @@
     "acteur_non_admin": "Seul un administrateur actif peut créer un administrateur.",
     "organisation_deja_inscrite": "Cette organisation vient d’être inscrite par quelqu’un d’autre. Demandez une invitation à son administrateur.",
     "administrateur_non_promu": "L’inscription est momentanément indisponible. Réessayez dans quelques minutes ; si cela persiste, contactez-nous."
+  },
+  "admin_domaines_adresse": {
+    "title": "Domaines d’adresse",
+    "intro": "Deux listes que la règle d’inscription lit. Chaque ajout et chaque retrait laisse une ligne au grand livre.",
+    "bloques": {
+      "title": "Domaines bloqués",
+      "help": "Une organisation ne peut pas se préinscrire avec une adresse de ces domaines (par exemple des messageries jetables).",
+      "empty": "Aucun domaine bloqué."
+    },
+    "publics": {
+      "title": "Domaines publics",
+      "help": "Messageries grand public (gmail.com, outlook.com…) : l’inscription est acceptée, mais le domaine n’est pas réservé à une organisation — plusieurs peuvent le partager.",
+      "empty": "Aucun domaine public."
+    },
+    "domain_label": "Domaine",
+    "domain_placeholder": "exemple.com",
+    "reason_label": "Raison",
+    "reason_placeholder": "Raison (facultative)",
+    "add": "Ajouter",
+    "remove": "Retirer",
+    "reactivate": "Réactiver",
+    "active": "Actif",
+    "inactive": "Retiré",
+    "saving": "Enregistrement…",
+    "loading": "Chargement…",
+    "unavailable": "Les listes n’ont pas pu être lues. Rien n’est affiché plutôt qu’une liste qui paraîtrait vide.",
+    "retry": "Réessayer",
+    "save_failed": "L’enregistrement a échoué. Réessayez dans un instant.",
+    "added": "{domain} est ajouté.",
+    "removed": "{domain} est retiré.",
+    "unchanged": "Rien à changer : c’était déjà le cas.",
+    "refus": {
+      "liste_inconnue": "Liste inconnue. Rechargez la page.",
+      "domaine_invalide": "Ce n’est pas un nom de domaine. Saisissez-le sans « @ » ni « http » (exemple : exemple.com).",
+      "dans_l_autre_liste": "Ce domaine est actif dans l’autre liste. Retirez-le d’abord : un domaine ne peut pas être à la fois bloqué et public.",
+      "domaine_inconnu": "Ce domaine n’est pas dans la liste. Rechargez la page."
+    }
   }
 }

@@ -2466,6 +2466,7 @@
       "section_validation": "Validation",
       "nav_organisations": "Organisations",
       "nav_experts": "Experts",
+      "nav_domaines_adresse": "Email domains",
       "nav_experts_soon": "soon",
       "section_commerce": "Commerce",
       "nav_packages": "Packages",
@@ -4891,5 +4892,42 @@
     "acteur_non_admin": "Only an active administrator can create an administrator.",
     "organisation_deja_inscrite": "This organisation has just been registered by someone else. Ask its administrator for an invitation.",
     "administrateur_non_promu": "Sign-up is temporarily unavailable. Please try again in a few minutes; if it persists, contact us."
+  },
+  "admin_domaines_adresse": {
+    "title": "Email domains",
+    "intro": "Two lists read by the sign-up rule. Every addition and removal leaves an entry in the ledger.",
+    "bloques": {
+      "title": "Blocked domains",
+      "help": "An organisation cannot pre-register with an address from these domains (for example disposable mailboxes).",
+      "empty": "No blocked domain."
+    },
+    "publics": {
+      "title": "Public domains",
+      "help": "Consumer mailboxes (gmail.com, outlook.com…): sign-up is accepted, but the domain is not reserved for one organisation — several can share it.",
+      "empty": "No public domain."
+    },
+    "domain_label": "Domain",
+    "domain_placeholder": "example.com",
+    "reason_label": "Reason",
+    "reason_placeholder": "Reason (optional)",
+    "add": "Add",
+    "remove": "Remove",
+    "reactivate": "Reactivate",
+    "active": "Active",
+    "inactive": "Removed",
+    "saving": "Saving…",
+    "loading": "Loading…",
+    "unavailable": "The lists could not be read. Nothing is shown rather than a list that would look empty.",
+    "retry": "Retry",
+    "save_failed": "Saving failed. Please try again in a moment.",
+    "added": "{domain} has been added.",
+    "removed": "{domain} has been removed.",
+    "unchanged": "Nothing to change: it was already the case.",
+    "refus": {
+      "liste_inconnue": "Unknown list. Reload the page.",
+      "domaine_invalide": "This is not a domain name. Enter it without “@” or “http” (for example: example.com).",
+      "dans_l_autre_liste": "This domain is active in the other list. Remove it there first: a domain cannot be both blocked and public.",
+      "domaine_inconnu": "This domain is not in the list. Reload the page."
+    }
   }
 }

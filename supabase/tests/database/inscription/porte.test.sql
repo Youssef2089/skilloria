@@ -173,7 +173,7 @@ begin
                  'ESN : un compte cabinet, une organisation esn');
   -- ── un domaine PUBLIC ne se réserve pas ──
   v_email := 'sonde@public-' || v_ids[13] || '.invalid';
-  insert into public.public_email_domains (email_domain, reason, active) values ('public-' || v_ids[13] || '.invalid', 'sonde', true);
+  perform public.regler_domaine_adresse(gen_random_uuid(), v_admin, v_dom, 'publics', 'public-' || v_ids[13] || '.invalid', true, 'sonde');
   perform pg_temp.fab_auth(v_ids[13], v_email, pg_temp.fab_signer(v_email, pg_temp.fab_meta('entreprise', v_ids[13])), false);
   return next ok(exists (select 1 from public.organizations o where o.id = pg_temp.org_de(v_ids[13]) and o.email_domain is null)
                  and exists (select 1 from public.grand_livre g where g.sujet_id = pg_temp.org_de(v_ids[13])
@@ -281,7 +281,7 @@ begin
   return next is(pg_temp.tenter(v_ids[27], pg_temp.fab_email(v_ids[27]), v_m), 'IN010 inscription refusee : invalid_phone',
                  'un téléphone hors E.164 : invalid_phone');
   -- ── les domaines d'adresse ──
-  insert into public.blocked_email_domains (email_domain, reason, active) values (v_ids[28] || '.invalid', 'sonde', true);
+  perform public.regler_domaine_adresse(gen_random_uuid(), v_admin, v_dom, 'bloques', v_ids[28] || '.invalid', true, 'sonde');
   v_m := pg_temp.signee(v_ids[28], 'entreprise');
   return next ok(pg_temp.tenter(v_ids[28], pg_temp.fab_email(v_ids[28]), v_m) = 'IN010 inscription refusee : email_domain_blocked'
                  and pg_temp.rien(v_ids[28])

@@ -45,7 +45,7 @@ with
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index.
-  -- Ce push : les six fonctions de la porte d'inscription (§D.27).
+  -- Ce push : les six fonctions de la porte d'inscription et l'écrivain des domaines d'adresse (§D.27).
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
       ('fonction', 'preuve_inscription_canonique'),
@@ -53,7 +53,8 @@ with
       ('fonction', 'preuve_inscription_refus'),
       ('fonction', 'numero_identification_normalise'),
       ('fonction', 'numero_identification_refus'),
-      ('fonction', 'inscription_refus')
+      ('fonction', 'inscription_refus'),
+      ('fonction', 'regler_domaine_adresse')
     ) v(genre, nom)
   )
 
@@ -126,11 +127,11 @@ from (values
      where p.schemaname = 'public'
        and p.cmd in ('ALL', 'INSERT', 'UPDATE', 'DELETE')
        and p.roles && array['anon', 'authenticated', 'public']::name[]
-       and p.tablename in ('ai_model_tarifs', 'ai_quotas', 'ai_spend_caps', 'ai_spend_seuils_acteur', 'audit_logs',
+       and p.tablename in ('ai_model_tarifs', 'ai_quotas', 'ai_spend_caps', 'ai_spend_seuils_acteur', 'audit_logs', 'blocked_email_domains',
                            'candidature_depots', 'candidatures', 'conversations', 'cron_run_log', 'duree_reglages',
                            'grand_livre', 'grand_livre_actions', 'grand_livre_conservation', 'matches',
                            'matching_settings', 'messages', 'organization_invitations', 'organization_members',
-                           'organizations', 'packages', 'profiles', 'publications', 'session_logs', 'stripe_events',
+                           'organizations', 'packages', 'profiles', 'public_email_domains', 'publications', 'session_logs', 'stripe_events',
                            'transactions', 'users', 'verification_providers'))),
 
   -- ⑨ Le grand livre se lit par `lire_grand_livre()` et `lire_piece()` seulement : AUCUNE politique sur la

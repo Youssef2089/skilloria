@@ -279,6 +279,14 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > `expert_inscrit` et `organisation_preinscrite` réduites (la forme échouée n’existe plus). ORDRE : AVANT le
 > déploiement, le déploiement AUSSITÔT (entre les deux, toute inscription est refusée, IN007). Prérequis : le secret
 > `inscription_hmac_secret` au Vault. Tests : `inscription/porte.test.sql` et les quatre tests d’inscription réécrits.
+>
+> **`domaines_adresse_reglables` (28/09/2026) — les listes de domaines dans l’administration (§D.27, décision 6).**
+> `regler_domaine_adresse(pièce, acteur, écosystème, liste, domaine, actif, raison)` : AD002 ; issues `liste_inconnue`,
+> `domaine_invalide`, `dans_l_autre_liste`, `domaine_inconnu`, `inchange` (rien d’écrit) ; sinon la ligne de la liste
+> ET `reglage_modifie` (sujet la ligne, `liste`, `avant/apres.actif` — jamais le domaine). Deux branches, pas de SQL
+> dynamique. Liste blanche de `reglage_modifie` reprise EN ENTIER (116 clés). Route `GET/POST /api/admin/domaines-adresse`,
+> écran `/admin/domaines-adresse`. `blocked_email_domains` et `public_email_domains` deviennent des tables journalisées
+> (portes latérales : la requête de staging les couvre). ORDRE : AVANT le déploiement. Test : `grand_livre/domaines_adresse.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -3283,7 +3291,10 @@ nulle part (case vérifiée dans le navigateur seulement).
    déjà pris, invitation, acteur administrateur). La route l'appelle AVANT de créer ; le trigger la rejoue en garde
    finale. **Pourquoi la route doit demander avant** : GoTrue avale l'erreur du trigger (« Database error saving new
    user ») — une route qui créerait d'abord ne saurait pas quoi dire (§E.81). Après une création refusée, la route
-   repose la question : une course perdue se nomme alors. Les listes de domaines vivent en base.
+   repose la question : une course perdue se nomme alors. Les listes de domaines vivent en base, **réglables dans
+   l'administration** (`/admin/domaines-adresse`, `regler_domaine_adresse()` — la huitième famille de réglages,
+   AD002 en base, ajouter / retirer sans effacer / réactiver, `reglage_modifie` sur la ligne de la liste ; un domaine
+   n'est jamais à la fois bloqué et public). Aucune liste dans le code.
 
 **Les codes sont stables** (checklist 12) : `lib/inscription/refus.ts` (`CODES_REFUS`) est EXACTEMENT l'ensemble
 que la base peut rendre, et chaque code a son message `inscription_refus.*` dans les quatre langues. Les SQLSTATE

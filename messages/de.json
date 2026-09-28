@@ -2466,6 +2466,7 @@
       "section_validation": "Validierung",
       "nav_organisations": "Organisationen",
       "nav_experts": "Experten",
+      "nav_domaines_adresse": "E-Mail-Domains",
       "nav_experts_soon": "demnächst",
       "section_commerce": "Commerce",
       "nav_packages": "Pakete",
@@ -4891,5 +4892,42 @@
     "acteur_non_admin": "Nur ein aktiver Administrator kann einen Administrator anlegen.",
     "organisation_deja_inscrite": "Diese Organisation wurde soeben von jemand anderem registriert. Bitten Sie deren Administrator um eine Einladung.",
     "administrateur_non_promu": "Die Registrierung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es in einigen Minuten erneut; falls das Problem bleibt, kontaktieren Sie uns."
+  },
+  "admin_domaines_adresse": {
+    "title": "E-Mail-Domains",
+    "intro": "Zwei Listen, die die Registrierungsregel liest. Jede Aufnahme und jede Entfernung hinterlässt einen Eintrag im Hauptbuch.",
+    "bloques": {
+      "title": "Gesperrte Domains",
+      "help": "Eine Organisation kann sich nicht mit einer Adresse dieser Domains vorregistrieren (zum Beispiel Wegwerf-Postfächer).",
+      "empty": "Keine gesperrte Domain."
+    },
+    "publics": {
+      "title": "Öffentliche Domains",
+      "help": "Allgemeine Postfächer (gmail.com, outlook.com …): Die Registrierung wird akzeptiert, aber die Domain wird keiner Organisation vorbehalten — mehrere können sie teilen.",
+      "empty": "Keine öffentliche Domain."
+    },
+    "domain_label": "Domain",
+    "domain_placeholder": "beispiel.de",
+    "reason_label": "Grund",
+    "reason_placeholder": "Grund (optional)",
+    "add": "Hinzufügen",
+    "remove": "Entfernen",
+    "reactivate": "Reaktivieren",
+    "active": "Aktiv",
+    "inactive": "Entfernt",
+    "saving": "Wird gespeichert …",
+    "loading": "Wird geladen …",
+    "unavailable": "Die Listen konnten nicht gelesen werden. Es wird nichts angezeigt statt einer scheinbar leeren Liste.",
+    "retry": "Erneut versuchen",
+    "save_failed": "Speichern fehlgeschlagen. Bitte versuchen Sie es gleich erneut.",
+    "added": "{domain} wurde hinzugefügt.",
+    "removed": "{domain} wurde entfernt.",
+    "unchanged": "Nichts zu ändern: Das war bereits so.",
+    "refus": {
+      "liste_inconnue": "Unbekannte Liste. Laden Sie die Seite neu.",
+      "domaine_invalide": "Das ist kein Domainname. Geben Sie ihn ohne „@“ oder „http“ ein (zum Beispiel: beispiel.de).",
+      "dans_l_autre_liste": "Diese Domain ist in der anderen Liste aktiv. Entfernen Sie sie dort zuerst: Eine Domain kann nicht zugleich gesperrt und öffentlich sein.",
+      "domaine_inconnu": "Diese Domain steht nicht in der Liste. Laden Sie die Seite neu."
+    }
   }
 }
