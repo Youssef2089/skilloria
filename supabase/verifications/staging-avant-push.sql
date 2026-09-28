@@ -17,6 +17,11 @@
 --  cite aucune colonne ni aucune table que le reste du lot crée (elle les cherche
 --  dans le catalogue), sinon elle lèverait. Lignes mises à jour ce jour-là : ②, ⑦,
 --  ⑨ ; ajoutées : ㉑, ㉒, ㉓.
+--  PHASE B (28/09/2026) : les 17 migrations de la phase B (journal_compte_cree →
+--  journal_nettoyage) s'ajoutent au reste du push. Lignes ajoutées : ㉔ à ㉘ — ce que
+--  la phase B crée ne doit pas exister déjà, les noms d'index doivent être libres
+--  (§E.60 : `if not exists` sur un nom pris saute EN SILENCE), et les anciennes
+--  signatures que la phase B GARDE jusqu'au déploiement suivant sont bien là.
 --  Le secret du Vault est compté par son NOM ; sa valeur n'est pas lue.
 -- ─────────────────────────────────────────────────────────────────────────────
 
@@ -203,6 +208,48 @@ from (values
   -- ㉓ La fonction unique exiger_ecriture (EC001) est appliquée — les migrations suivantes l'appellent.
   (23, 'exiger_ecriture(bigint, text, bigint) présente (appliquée avec liste_blanche_par_action)', '1',
    (select count(*)::text from unnest(array['public.exiger_ecriture(bigint, text, bigint)']) s
+     where to_regprocedure(s) is not null)),
+
+  -- ㉔ PHASE B : la colonne `piece` des cinq sous-journaux n'existe pas déjà (posée à la main, elle aurait un
+  --    autre type ; la migration l'ajoute par `add column if not exists` et la SAUTERAIT).
+  (24, 'phase B : colonne piece absente des cinq sous-journaux', '0',
+   (select count(*)::text from information_schema.columns c
+     where c.table_schema = 'public' and c.column_name = 'piece'
+       and c.table_name in ('audit_logs', 'ai_spend_events', 'stripe_events', 'cron_run_log', 'notifications'))),
+
+  -- ㉕ PHASE B : les noms d'index que la phase B pose sont LIBRES (§E.60).
+  (25, 'phase B : noms d''index libres (*_piece_idx des cinq sous-journaux)', '0',
+   (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public'
+       and c.relname in ('audit_logs_piece_idx', 'ai_spend_events_piece_idx', 'stripe_events_piece_idx',
+                         'cron_run_log_piece_idx', 'notifications_piece_idx'))),
+
+  -- ㉖ PHASE B : ni la table de conservation, ni les fonctions nouvelles n'existent déjà.
+  (26, 'phase B : grand_livre_conservation absente', '0',
+   (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relname = 'grand_livre_conservation')),
+  (27, 'phase B : fonctions nouvelles absentes (12 signatures)', '0',
+   (select count(*)::text from unnest(array[
+      'public.taxonomie_inscription_refus(uuid, uuid, uuid)',
+      'public.promouvoir_administrateur(uuid, uuid, text, uuid, text, uuid, uuid)',
+      'public.ecarter_mission(uuid, uuid, text, uuid, text, uuid, uuid)',
+      'public.rouvrir_evenement_stripe(uuid, uuid, text, uuid, text, text, text, timestamptz)',
+      'public.admin_cron_run_now(uuid, uuid, text, uuid, text, text)',
+      'public.stripe_event_reclamer(text, text, jsonb, boolean, uuid)',
+      'public.lire_grand_livre(uuid, text[], text[], uuid, uuid, timestamptz, timestamptz, text[], text[], integer, timestamptz, bigint)',
+      'public.lire_piece(uuid, uuid)',
+      'public.regler_conservation_journal(uuid, uuid, text, integer)',
+      'public.nettoyage_journal_calcul()',
+      'public.annoncer_nettoyage_journal(uuid)',
+      'public.nettoyer_journal(uuid, uuid, bigint)']) s
+     where to_regprocedure(s) is not null)),
+
+  -- ㉘ PHASE B : les deux signatures que le code EN LIGNE appelle, et que la phase B GARDE jusqu'au déploiement
+  --    suivant (§E.72) — présentes avant le push, présentes après. Leur suppression est une migration à part.
+  (28, 'phase B : anciennes signatures gardées présentes (stripe_event_claim, admin_cron_run_now(text, uuid))', '2',
+   (select count(*)::text from unnest(array[
+      'public.stripe_event_claim(text, text, jsonb, boolean)',
+      'public.admin_cron_run_now(text, uuid)']) s
      where to_regprocedure(s) is not null))
 
 ) as v(ordre, verification, attendu, observe)
