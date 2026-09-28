@@ -3747,7 +3747,7 @@ Celui-ci l'était depuis le 26/09/2026, et le rapport de 2.3 le disait « gardé
 ---
 
 <a id="e76"></a>
-### E.76 — UN TEST QUI CHANGE D'IDENTITÉ DANS UNE FONCTION A TUÉ LE SERVEUR — et n'a laissé qu'un coupable anonyme.
+### E.76 — UN APPEL À UNE FONCTION REFUSÉE AU NAVIGATEUR TUAIT LE SERVEUR EN 17.6.1.104 (supautils) — et le test qui l'a trouvé n'a laissé qu'un coupable anonyme.
 
 **Le cas mesuré (28/09/2026, base locale).** `grand_livre/appelant.test.sql` faisait tout dans **une**
 fonction plpgsql (`pg_temp.essai()`) : `set local role service_role`, des `execute` de RPC SECURITY DEFINER,
@@ -3765,12 +3765,19 @@ corps `$…$` — exactement comme PostgREST (`set local role …` puis l'appel,
 l'ordre alphabétique des chemins étant celui qu'a suivi `test db`). La preuve du vrai appelant est **gardée**,
 réécrite dans cette forme ; elle n'est pas effacée.
 
-**CE QUI NE L'EST PAS — NON VÉRIFIÉ.** La cause racine. Deux lectures s'excluent, et le prochain passage les
-départage : si `vrai_appelant/appelant.test.sql` passe, le plantage tenait à la **forme** du test ; s'il plante,
-le journal nomme la RPC, et un appel PostgREST suffirait à tuer la base — **défaut critique du produit**.
-`supabase/verifications/repro-segfault-appelant.sql` (local seulement) isole la forme : six variantes, de la
-plus nue à celle de l'ancien test, une instruction étiquetée chacune. Ce paragraphe sera réécrit avec le
-coupable nommé ; jusque-là, **aucune hypothèse n'est écrite comme un fait**.
+**LA CAUSE RACINE — VÉRIFIÉE le 28/09/2026 (Youssef).** Un défaut **connu de supautils** dans l'image Postgres
+**17.6.1.104** : appeler une fonction dont `EXECUTE` est **retiré à `authenticated`** tue le processus serveur —
+reproduit avec une fonction d'une ligne. **Corrigé à partir de 17.6.1.121.** Ce n'était donc ni la forme du test ni
+une RPC du produit : c'était la plateforme. Mais c'était **bien un défaut critique en production** : toutes les RPC
+du produit retirent `EXECUTE` au navigateur, et sur 17.6.1.104 **un seul appel PostgREST** d'un utilisateur connecté
+— un bouton, un script — aurait redémarré la base pour tout le monde. Staging est passé en **17.6.1.166** ; la base
+locale suit la version liée (`supabase/.temp/postgres-version`) ; en 17.6.1.166, les 27 fichiers et 216 tests passent.
+**La parade n'est pas une consigne, c'est une vérification** : [`scripts/verifier-version-postgres.mjs`](../scripts/verifier-version-postgres.mjs)
+refuse une base liée sous 17.6.1.121 — première étape de la séquence de déploiement (CLAUDE.md §G.4 ter) et de la
+mise en production (docs/mise-en-production.md, étape 0 : la production naît sur une version corrigée).
+Ce qui reste vrai de la première lecture : un plantage dans une fonction qui enchaîne les appels ne désigne rien —
+la forme en instructions et le passage en dernier (garde J) restent. `supabase/verifications/repro-segfault-appelant.sql`
+reste en place comme reproduction locale ; sa forme C (l'appel refusé en `authenticated`) est celle qui plantait.
 
 ---
 

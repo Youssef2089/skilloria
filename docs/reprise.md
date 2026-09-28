@@ -45,6 +45,7 @@ passé à **17.6.1.166** ; cause racine du plantage de « vrai appelant » : sup
 | Point | État | Commit |
 |---|---|---|
 | 1, 2, 4 **16 migrations non appliquées** perdent leur sonde sur données réelles (200, 220, 230, 280, 290, 300, 320, 360, 370, 380, 390, 400, 410, 420, 430, 440) ; reste dans chacune : signatures par types, listes blanches, colonnes/index, refus du texte libre, et — sur identifiants INVENTÉS — compte/invitation/membre/fil inconnu (320, 360, 380, 390, 400, 410, 430, 440), fin future refusée (280), motif inconnu et échec sans cause (430) ; la reprise voulue du passif des annonces (230) reste. Les 29 lignes de fin renvoient à leur preuve (le test, ou le module TS pour les 9 actions écrites en TypeScript). `diag-grand-livre` : 36 preuves de CONTENU de sonde retirées, planchers re-mesurés (131 appels, 9 migrations). Test `invitations` : rôle dans la ligne d'invitation, échéance dans la ligne de renvoi. Les 21 appliquées (≤ journal_recherche_abandonnee) : **gelées, intactes** | fait, non exécuté | ce commit |
+| 6 §E.76 : cause racine **VÉRIFIÉE** (supautils, 17.6.1.104, corrigé ≥ 17.6.1.121 — un appel à une RPC refusée au navigateur tuait le serveur) ; `scripts/verifier-version-postgres.mjs` (lit `supabase/.temp/postgres-version`, refuse sous 17.6.1.121 ; ici : 17.6.1.166 ✅) ; séquence de déploiement : étape 0 (CLAUDE.md §G.4 ter, ci-dessous) ; `docs/mise-en-production.md` : étape 0, la production naît sur une version corrigée, et la liste à cocher | fait | ce commit |
 | 5 la règle : CLAUDE.md §G.4 ter, §E.77 ; `diag-postconditions-structure` (tables métier DÉRIVÉES — 23 référentiels, 48 métier —, héritage gelé par suffixe, 29 migrations soumises : aucune lecture métier, aucune écriture directe, chaque ligne de fin renvoie à un fichier qui existe ; 2 exceptions écrites, l'inscription qui relit le compte qu'elle fabrique) | fait | ce commit |
 | 3 (d'abord) aucune preuve ne disparaît : les gestes que seules les sondes prouvaient passent aux tests — `invitations` +4 (renvoi : statut non admis, une autre pièce écrit une seconde ligne ; acceptation : statut non admis, invitation échue) et 2 renforcées (échéance du renvoi relue, adresse comparée sans casse) ; `annonce_publiee` (l'organisation dans la ligne) ; `compte_suspendu` (de/vers de la réactivation) | fait, non exécuté | ce commit |
 
@@ -161,6 +162,7 @@ Décisions de Youssef sur l'audit : voir le prompt du GO (2.1 à 2.13) — rien 
 
 ### La séquence de déploiement (CLAUDE.md §G.4 ter) — ce que Youssef lance
 
+0. après `npx supabase link` : `node scripts/verifier-version-postgres.mjs` — au moins 17.6.1.121, sinon mettre staging à jour d'abord (§E.76)
 1. `npx supabase db reset --local`
 2. `npx supabase db lint -s public --level error` — sortie vide = aucune erreur (pas de `--fail-on`)
 3. `npx supabase test db --local`

@@ -19,10 +19,11 @@ Elle couvre **tout ce qui ne peut pas vivre dans le dépôt** : des secrets, des
 
 ## L'ordre des opérations
 
-Huit étapes. **L'ordre compte** : chacune suppose la précédente.
+Neuf étapes, de 0 à 8. **L'ordre compte** : chacune suppose la précédente.
 
 | | Étape | Où |
 |---|---|---|
+| 0 | Faire naître la base sur une version de Postgres corrigée | Supabase → Infrastructure |
 | 1 | Appliquer les mises à jour de base | Base de données |
 | 2 | Vérifier que le paramétrage est bien arrivé | Base de données |
 | 3 | Poser les deux secrets du coffre-fort | Supabase → Vault |
@@ -31,6 +32,22 @@ Huit étapes. **L'ordre compte** : chacune suppose la précédente.
 | 6 | Brancher les sous-domaines | Vercel |
 | 7 | Créer le premier administrateur | Votre machine (une fois) |
 | 8 | Vérifier que les tâches planifiées tournent | Supabase |
+
+---
+
+# ÉTAPE 0 — Faire naître la base sur une version de Postgres corrigée
+
+En **17.6.1.104**, un défaut de la plateforme (supautils) **tue le serveur** quand un utilisateur connecté appelle
+une fonction qui lui est refusée — et toutes nos fonctions sensibles le sont. Un seul appel suffirait à redémarrer
+la base pour tout le monde. C'est corrigé à partir de **17.6.1.121** (constaté sur staging le 28/09/2026, §E.76).
+
+1. Supabase → **Project Settings** → **Infrastructure** : notez la version de Postgres. Si elle est inférieure à
+   17.6.1.121, cliquez **Upgrade** avant toute autre étape.
+2. Sur votre machine, reliez le projet (`npx supabase link --project-ref <réf. de production>`), puis lancez
+   `node scripts/verifier-version-postgres.mjs`.
+
+**Comment savoir que c'est bon :** la commande affiche `✅ Postgres 17.6.1.x ≥ 17.6.1.121`. Si elle affiche `✘`,
+arrêtez-vous : mettez la base à jour, reliez à nouveau, relancez.
 
 ---
 
@@ -410,6 +427,7 @@ Ne touchez à rien chez Stripe. **Modifiez le prix dans /admin/packages**, c'est
 
 ## Récapitulatif — la liste à cocher
 
+- [ ] Postgres est en **17.6.1.121 ou plus** — `node scripts/verifier-version-postgres.mjs` affiche ✅
 - [ ] Les migrations sont passées, et la ligne `PARAMETRAGE —` affiche des nombres
 - [ ] `domains`, `branches`, `specialities`, `countries`, `verification_providers`, `translations` ne sont pas vides
 - [ ] Les deux secrets du coffre-fort existent, avec une longueur non nulle

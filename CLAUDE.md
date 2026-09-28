@@ -295,7 +295,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.73](docs/pieges.md#e73) | UNE FONCTION DE TRIGGER QUI CITE UNE COLONNE SUPPRIMÉE PASSE LE LINT ET LE CONTRÔLE STATIQUE : quatre semaines sans inscription d'expert. |
 | [E.74](docs/pieges.md#e74) | UNE SOUS-REQUÊTE LIT L'INSTANTANÉ DU DÉBUT DE SON INSTRUCTION — et une écriture qui ne touche rien passe pour un succès. |
 | [E.75](docs/pieges.md#e75) | UN BLOC SE JUGE SUR SON PROPRE TEXTE : un bloc imbriqué prête ses qualités à son parent — la garde du bloc annulé ne mordait pas. |
-| [E.76](docs/pieges.md#e76) | UN TEST QUI CHANGE D'IDENTITÉ DANS UNE FONCTION A TUÉ LE SERVEUR — et n'a laissé qu'un coupable anonyme. Cause racine NON VÉRIFIÉE. |
+| [E.76](docs/pieges.md#e76) | UN APPEL À UNE FONCTION REFUSÉE AU NAVIGATEUR TUAIT LE SERVEUR EN 17.6.1.104 (supautils, corrigé ≥ 17.6.1.121) — cause VÉRIFIÉE ; la base liée se vérifie avant tout déploiement. |
 | [E.77](docs/pieges.md#e77) | UNE SONDE SUR DONNÉE RÉELLE A ARRÊTÉ LE PUSH DE STAGING À MI-CHEMIN — et en production elle toucherait de vraies personnes. La structure dans la migration, le comportement par les tests. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
@@ -408,6 +408,9 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
   résout depuis le fichier de test.
 
 **LA SÉQUENCE DE DÉPLOIEMENT D'UN LOT DE MIGRATIONS — dans cet ordre, chaque étape verte avant la suivante :**
+0. Après `npx supabase link`, `node scripts/verifier-version-postgres.mjs` — la version lue dans
+   `supabase/.temp/postgres-version` vaut **au moins 17.6.1.121**, sinon on met staging à jour **d'abord** (§E.76 :
+   en 17.6.1.104, un appel à une RPC refusée au navigateur tue le serveur). La base locale suit cette version.
 1. `npx supabase db reset --local` — rejoue toutes les migrations sur la base jetable (§G.4 bis) ; une
    postcondition **PARTIELLE** n'est pas un échec, mais sa fonction n'a tourné que par l'étape 3.
 2. `npx supabase db lint -s public --level error` — **une sortie vide = aucune erreur** ; pas de
