@@ -3507,6 +3507,17 @@ trigger).
 
 **H.3 ter — LES ROUTES QUI CHANGENT UN ÉTAT SANS TRACE : MESURÉES LE 26/09/2026, ET SEPT GESTES N'ONT PAS D'ACTION.
 ARBITRAGE REQUIS — le lot s'est arrêté ici.**
+
+> **FERMÉ LE 28/09/2026 (phase B, étape 2).** Arbitré par Youssef, branché : les sept gestes ont leurs actions
+> (`expert_inscrit`, `organisation_preinscrite`, `administrateur_cree`, `annonce_creee` + `sous_traitance_creee`,
+> `mission_ecartee`, `evenement_stripe_rouvert`, `tache_lancee_a_la_main`), plus `compte_cree` écrite par
+> `handle_new_user` (décision A) ; les rattachements ont leurs actions (`taxonomie_modifiee`, `ecosysteme_cree`,
+> `ecosysteme_modifie`, `organisation_modifiee`, `identite_modifiee`, `cv_reinitialise` — pas `reglage_modifie`
+> ni `profil_modifie` comme proposé ci-dessous : la règle du nom) ; `DELETE /api/profile/cv` est supprimée
+> (décision B). **La mesure est devenue un contrôle** :
+> [`diag-routes-tracees`](../scripts/diag-routes-tracees.mjs) — rouge dès qu'une route écrit sans ligne hors des
+> SEPT exclusions nommées (chacune avec sa raison), ou qu'une exclusion est périmée. Le tableau ci-dessous est
+> l'état du 26/09/2026, gardé pour l'histoire.
 La liste des « dix routes sans trace » du mandat n'était écrite **nulle part** dans le dépôt. Elle est désormais
 **mesurée**, par un périmètre écrit avant le balayage :
 [scripts/mesure-routes-sans-trace.mjs](../scripts/mesure-routes-sans-trace.mjs) (lecture seule, rejouable). Sur
