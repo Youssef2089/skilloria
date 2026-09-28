@@ -3520,7 +3520,7 @@ ARBITRAGE REQUIS — le lot s'est arrêté ici.**
 > l'état du 26/09/2026, gardé pour l'histoire.
 La liste des « dix routes sans trace » du mandat n'était écrite **nulle part** dans le dépôt. Elle est désormais
 **mesurée**, par un périmètre écrit avant le balayage :
-[scripts/mesure-routes-sans-trace.mjs](../scripts/mesure-routes-sans-trace.mjs) (lecture seule, rejouable). Sur
+`scripts/mesure-routes-sans-trace.mjs` (lecture seule ; devenue [`diag-routes-tracees`](../scripts/diag-routes-tracees.mjs) le 28/09/2026). Sur
 **63** routes qui écrivent, **35** laissent une ligne, **28** n'en laissent aucune :
 
 | Groupe | Routes | Ce qu'il faudrait |
