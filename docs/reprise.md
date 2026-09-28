@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 12, en cours).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 12).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,9 +13,11 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — une seule migration en attente, `retrait_anciennes_signatures` (§E.72, étape 3) :
-coller d'abord la requête de staging (sa ligne ⓪ doit dire `journal_nettoyage`), puis la séquence de §G.4 ter.
-Après ce push, déclarer le nouvel état en ⓪ et vider les deux listes du `with` (`diag-requete-staging` le demande).
+**Au prochain push** — TROIS migrations en attente : `retrait_anciennes_signatures` (§E.72, étape 3), puis la porte
+d'inscription (`porte_inscription`, `domaines_adresse_reglables`, §D.27 — ARRÊT 12). **Prérequis : le secret
+`inscription_hmac_secret` au Vault de staging ET `INSCRIPTION_HMAC_SECRET` sur Vercel, à la même valeur.** Coller
+d'abord la requête de staging (⓪ `journal_nettoyage`, ⑬ le secret), puis la séquence de §G.4 ter. Après ce push,
+déclarer le nouvel état en ⓪ et vider les deux listes du `with` (`diag-requete-staging` le demande).
 
 **Restent à faire, par Youssef :**
 1. **L'essai d'inscription sur staging** — un expert freelance, un expert CDI, une organisation, une invitation
@@ -50,7 +52,7 @@ Après ce push, déclarer le nouvel état en ⓪ et vider les deux listes du `wi
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
-## ⛔ ARRÊT 12 — LA PORTE D'INSCRIPTION SE FERME EN BASE (en cours, 28/09/2026)
+## ⛔ ARRÊT 12 — LA PORTE D'INSCRIPTION EST FERMÉE EN BASE (28/09/2026)
 
 Décision de Youssef sur l'audit de l'ARRÊT 11 : **option (b)**, l'invité par une route serveur, l'organisation dans
 la transaction du compte. Tag local `sauvegarde-avant-porte` posé sur `7aeffa3` avant tout. Détail : §D.27
@@ -73,7 +75,38 @@ créer (§E.81) ; ⑤ entre `db push` et déploiement, **toute inscription est r
 | 6. Une règle, une définition | **fait** | `inscription_refus()` porte toutes les règles, la route la demande avant (codes stables, 37, messages en quatre langues) ; `numero_identification_refus()` en base, aussi pour la finalisation. Écosystème résolu depuis l'HÔTE. **Les listes de domaines réglables** : migration `domaines_adresse_reglables`, `regler_domaine_adresse()` (8ᵉ famille, AD002, retirer sans effacer), `/admin/domaines-adresse` (quatre langues, menu « Validation »), test `grand_livre/domaines_adresse.test.sql` (14). |
 | 7. Tests pgTAP | **fait** | `inscription/porte.test.sql` (43) ; `compte_cree`, `roles`, `grand_livre/inscriptions`, `administrateur_cree`, `ecritures_effectives` réécrits ; fabriques signées. |
 | 8. Le commentaire de la confirmation | **fait** | `generateLink` → `auth.signUp` sur un client anonyme serveur. |
-| Déploiement | à faire | Requête de staging préparée pour ce push (listes, secret ligne ⑬, pgcrypto) ; étapes de Youssef à l'arrêt. |
+| Déploiement | **préparé** | Requête de staging pour ce push unique : les listes = les TROIS migrations en attente (2 signatures retirées, 7 fonctions créées), ⑬ le secret au Vault par son nom, ⑦ pgcrypto, ⑧ les deux listes de domaines parmi les tables journalisées, ⑪ les colonnes de `handle_new_user` (27). |
+
+**Vu en chemin** : un commentaire écrit par `node -e "…"` a été mutilé par le shell (les backticks exécutés, §G.9) —
+vu en relisant le fichier, corrigé à l'outil d'édition avant le commit. La règle tient : un texte passe par un fichier.
+
+### Les étapes de Youssef — AVANT le push, le secret ; puis le push ; puis l'essai
+1. **Fabrique le secret** (une valeur pour staging ; la production aura la SIENNE) :
+   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` — copie la valeur affichée.
+2. **Le Vault de staging** : Supabase, projet staging → Project Settings → **Vault** → **New secret**. Name :
+   `inscription_hmac_secret` (exactement). Secret : la valeur. Vérifie dans l'éditeur SQL :
+   `select name, length(decrypted_secret) from vault.decrypted_secrets where name = 'inscription_hmac_secret';`
+   → une ligne, longueur 64. Ne colle jamais la valeur dans une requête.
+3. **Vercel** : Settings → Environment Variables → `INSCRIPTION_HMAC_SECRET` = **la même valeur**, sur
+   l'environnement qui sert staging. Sans elle, les formulaires répondent « inscription momentanément indisponible ».
+4. **Ton `.env.local`** : ajoute `INSCRIPTION_HMAC_SECRET=` la même valeur si tu lances le script du premier
+   administrateur ou la recette contre staging. Pour l'appli EN LOCAL, le Vault local doit avoir le sien
+   (`select vault.create_secret('<valeur>', 'inscription_hmac_secret');` dans la base locale). Les tests pgTAP, eux,
+   posent leur propre secret dans leur transaction : rien à faire.
+5. **La séquence de §G.4 ter** : la version de Postgres ; `db reset --local` ; `db lint` ; `test db --local` (les tests
+   d'inscription sont réécrits, `inscription/porte.test.sql` et `grand_livre/domaines_adresse.test.sql` sont neufs) ;
+   **la requête de staging** — ⓪ doit dire `journal_nettoyage`, ⑦ = 3 (pgcrypto), ⑬ = 1 (le secret), aucun ÉCART ;
+   `npm run build` ; `db push` (**trois** migrations : `retrait_anciennes_signatures`, `porte_inscription`,
+   `domaines_adresse_reglables`) ; **`git push` aussitôt** — entre les deux, toute inscription est refusée.
+6. **Juste après** : ⓪ passe à `domaines_adresse_reglables`, les deux listes du `with` se vident — à faire faire
+   par la session suivante (`diag-requete-staging` dit quand c'est juste).
+7. **L'essai sur staging** : un expert freelance, un CDI, une organisation (e-mail de confirmation), une invitation
+   (le compte est créé tout de suite, **sans e-mail** : l'invité se connecte directement), un administrateur par
+   « Créer un administrateur ». Dans `/admin/journal`, chaque inscription montre DEUX lignes sous une pièce.
+   Et `/admin/domaines-adresse` : ajoute un domaine bloqué, essaie une préinscription dessus, retire-le.
+8. **Les durées du journal**, quand tu voudras nettoyer (inchangé).
+9. **Une décision possible** : l'échéance de la preuve (5 min) est une constante nommée ; si tu veux qu'elle soit un
+   réglage, c'est un petit lot.
 
 ## ⛔ ARRÊT 11 — LE MÉNAGE DU DÉPLOIEMENT EST FAIT ; L'AUDIT DE LA PORTE D'INSCRIPTION EST RENDU (28/09/2026)
 
