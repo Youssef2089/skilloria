@@ -51,6 +51,8 @@ export const ACTIONS_JOURNAL = [
   'expert_inscrit', 'organisation_preinscrite',
   'compte_valide', 'compte_refuse', 'compte_suspendu', 'compte_reactive', 'session_revoquee',
   'suppression_programmee', 'suppression_annulee', 'email_change', 'mot_de_passe_change', 'telephone_verifie',
+  // prénom et nom, par le titulaire — lib/comptes/journal-compte.ts
+  'identite_modifiee',
   // organisation
   'membre_invite', 'invitation_renvoyee', 'invitation_acceptee', 'invitation_revoquee',
   'membre_retire', 'membre_parti', 'role_membre_change',
@@ -136,6 +138,7 @@ export const CLES_DETAIL = {
   email_change: ['etape'],
   mot_de_passe_change: [], // AUCUN détail : ni empreinte, ni longueur (elle réduit l'espace de recherche).
   telephone_verifie: ['methode'],
+  identite_modifiee: ['champs', 'champs[]'], // les NOMS des champs, jamais les valeurs
   membre_invite: ['role_in_org', 'domain_validation_passed', 'email_already_exists'],
   invitation_renvoyee: ['role_in_org', 'expires_at'],
   invitation_acceptee: ['organization_id', 'role_in_org', 'deja_membre', 'reintegre'],

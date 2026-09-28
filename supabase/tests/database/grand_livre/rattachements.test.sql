@@ -6,10 +6,11 @@
 --   ecosysteme_cree    : l'administrateur — l'écosystème et sa configuration
 --   ecosysteme_modifie : l'administrateur — les champs, l'activation, le visuel déposé et retiré
 --   organisation_modifiee : l'administrateur d'organisation — client, cabinet, ESN, et l'organisation personnelle d'un expert
+--   identite_modifiee  : toutes les populations — expert freelance, CDI, client, cabinet, administrateur
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(15);
+select plan(17);
 
 -- Une ligne telle que l'écrivain l'écrit : acteur l'administrateur (origine administrateur).
 create or replace function pg_temp.ecrire(p_piece uuid, p_code text, p_admin uuid, p_dom uuid, p_sujet_type text, p_sujet uuid, p_detail jsonb)
@@ -38,6 +39,9 @@ declare
   v_r     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
   v_o     uuid[];
   v_org   uuid[];
+  v_u     uuid[];
+  v_t     text[];
+  v_s     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
   v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
 begin
   -- ── taxonomie_modifiee : une branche, puis une spécialité, créées comme les routes les créent ──
@@ -144,6 +148,23 @@ begin
   return next throws_ok(format($q$select pg_temp.ecrire_org(%L, %L, 'client', %L, '{"operation":"modification","website":"https://exemple.invalid"}'::jsonb)$q$,
                                v_r[6], v_o[1], v_org[1]),
                         'GL004', null, 'organisation_modifiee : une valeur (le site) est refusée');
+
+  -- ── identite_modifiee : toutes les populations, les NOMS des champs ──
+  v_u := array[pg_temp.fab_compte('expert'), pg_temp.fab_compte('cdi'), pg_temp.fab_compte('entreprise'), pg_temp.fab_compte('cabinet'), v_admin];
+  v_t := array['expert_freelance', 'expert_cdi', 'client', 'cabinet', 'admin'];
+  for i in 1 .. 5 loop
+    update public.users set first_name = 'Sonde', last_name = 'Renommee' where id = v_u[i];
+    perform public.journaliser(v_s[i], 'identite_modifiee', 'reussi', case when i = 5 then 'administrateur' else 'utilisateur' end,
+                               v_u[i], v_t[i], v_dom, 'users', v_u[i], '{"champs":["first_name","last_name"]}'::jsonb,
+                               null::uuid, null::numeric, null::text);
+  end loop;
+  return next ok((select count(distinct g.acteur_type) from public.grand_livre g where g.piece = any (v_s[1:5])
+                    and g.type_action = 'identite_modifiee' and g.sujet_id = g.acteur_id) = 5,
+                 'identité modifiée : freelance, CDI, client, cabinet, administrateur — cinq lignes, sujet le compte lui-même');
+  return next throws_ok(format($q$select public.journaliser(%L, 'identite_modifiee', 'reussi', 'utilisateur', %L, 'client', %L, 'users', %L,
+                                 '{"champs":["first_name"],"first_name":"Sonde"}'::jsonb, null::uuid, null::numeric, null::text)$q$,
+                               v_s[6], v_u[3], v_dom, v_u[3]),
+                        'GL004', null, 'identite_modifiee : la VALEUR du prénom est refusée');
 end $$;
 
 select * from pg_temp.essai();

@@ -206,6 +206,9 @@ actions, clé étrangère du grand livre).
 > logo retiré (client, cabinet, ESN ; l'organisation personnelle d'un expert pour les champs, jamais de logo §D.8) ;
 > l'opération et les NOMS des champs ; AUCUN écosystème (une organisation en rejoint plusieurs). Écrivain :
 > `lib/organisations/journal-organisation.ts`. Test : `grand_livre/rattachements.test.sql`.
+> · `journal_identite_modifiee` (2.2) — `identite_modifiee` (compte) : prénom et nom par le titulaire ré-authentifié ;
+> les NOMS des champs, jamais les valeurs (une valeur survivrait à la purge). Écrivain : `lib/comptes/journal-compte.ts`.
+> Même test (les cinq populations).
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

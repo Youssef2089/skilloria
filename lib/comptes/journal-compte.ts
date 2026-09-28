@@ -107,3 +107,21 @@ export async function motDePasseChange(
     detail: {},
   })
 }
+
+/**
+ * L'IDENTITÉ MODIFIÉE — prénom et nom, par le titulaire (ré-authentifié). Les
+ * NOMS des champs, jamais les valeurs : un nom est la donnée personnelle par
+ * excellence, et une valeur écrite ici survivrait à la purge du compte.
+ */
+export async function identiteModifiee(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { userId: string; champs: Array<'first_name' | 'last_name'> },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'identite_modifiee',
+    statut: 'reussi',
+    sujet: { type: 'users', id: args.userId },
+    detail: { champs: args.champs },
+  })
+}

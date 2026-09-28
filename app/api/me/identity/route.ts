@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { identiteModifiee } from '@/lib/comptes/journal-compte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -36,6 +39,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Body
   try {
@@ -61,6 +66,15 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   if (updErr) {
     console.error('[me/identity] users update failed', updErr.message)
     return json({ error: 'Could not update identity', code: 'db_error' }, 500)
+  }
+
+  // Le grand livre (§D.26, phase B) : les NOMS des champs, jamais les valeurs.
+  try {
+    await identiteModifiee(auth.supabaseAdmin, journal, { userId: auth.user.id, champs: ['first_name', 'last_name'] })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[me/identity] grand livre en échec après écriture', { userId: auth.user.id, message: err.message })
+    return json({ error: 'Journal failed', code: 'journal_error' }, 500)
   }
 
   await logAudit({
