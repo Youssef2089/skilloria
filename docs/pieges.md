@@ -3721,7 +3721,7 @@ SQLSTATE **EC001**. Le lot est corrigé en place ; les huit fonctions appliquée
 Un zéro **légitime** (écriture conditionnelle dont le `WHERE` est la garde, lot, nettoyage) n'appelle pas la
 fonction : il rend son issue nommée, et `diag-ecritures-effectives` exige qu'il soit **au gel avec sa raison**
 (39 au 28/09/2026, chacune lue dans le code — deux raisons écrites de mémoire étaient fausses et ont été
-corrigées avant le commit). Le vrai appelant est éprouvé : `appelant.test.sql` joue les RPC en `service_role`
+corrigées avant le commit). Le vrai appelant est éprouvé : `vrai_appelant/appelant.test.sql` (réécrit le 28/09, §E.76) joue les RPC en `service_role`
 (elles écrivent et journalisent) et en `authenticated` (refus 42501, et l'écriture directe de la table ne touche rien).
 
 **Ce qui ne garde rien** : que le compte **attendu** soit le bon (le contrôle vérifie qu'on le demande) ; le SQL
@@ -3743,6 +3743,34 @@ conservées). Re-muté sur deux sondes : rouge, les deux fois. La garde n'a rien
 sondes étaient saines — mais **elle ne l'aurait pas vu**.
 **La leçon est celle de §E.33, une fois de plus** : un contrôle vert qu'on n'a pas muté est une affirmation.
 Celui-ci l'était depuis le 26/09/2026, et le rapport de 2.3 le disait « gardé ».
+
+---
+
+<a id="e76"></a>
+### E.76 — UN TEST QUI CHANGE D'IDENTITÉ DANS UNE FONCTION A TUÉ LE SERVEUR — et n'a laissé qu'un coupable anonyme.
+
+**Le cas mesuré (28/09/2026, base locale).** `grand_livre/appelant.test.sql` faisait tout dans **une**
+fonction plpgsql (`pg_temp.essai()`) : `set local role service_role`, des `execute` de RPC SECURITY DEFINER,
+`reset role`, puis `set local role authenticated` avec des blocs d'exception. Le serveur a été tué — signal 11 —
+et le journal n'a nommé que `select * from pg_temp.essai();`. La base est passée en récupération : **les 22
+fichiers suivants n'ont pas tourné.** Les mêmes RPC, appelées en `postgres` par les tests d'invitations et de
+membres, n'avaient rien fait planter.
+
+**CE QUI EST ÉTABLI** — et la parade ne dépend pas de la cause :
+① un plantage dans une fonction qui enchaîne plusieurs appels **ne désigne rien** ; ② un fichier qui peut
+tuer le serveur **passé au milieu** prive tous les suivants de leur verdict. D'où, gardé par
+`diag-tests-grand-livre` (J) : un changement de rôle est une **instruction de premier niveau**, jamais dans un
+corps `$…$` — exactement comme PostgREST (`set local role …` puis l'appel, dans la transaction de la requête) ;
+**un appel par instruction** ; et tout fichier qui change de rôle passe **en dernier** (`vrai_appelant/`,
+l'ordre alphabétique des chemins étant celui qu'a suivi `test db`). La preuve du vrai appelant est **gardée**,
+réécrite dans cette forme ; elle n'est pas effacée.
+
+**CE QUI NE L'EST PAS — NON VÉRIFIÉ.** La cause racine. Deux lectures s'excluent, et le prochain passage les
+départage : si `vrai_appelant/appelant.test.sql` passe, le plantage tenait à la **forme** du test ; s'il plante,
+le journal nomme la RPC, et un appel PostgREST suffirait à tuer la base — **défaut critique du produit**.
+`supabase/verifications/repro-segfault-appelant.sql` (local seulement) isole la forme : six variantes, de la
+plus nue à celle de l'ancien test, une instruction étiquetée chacune. Ce paragraphe sera réécrit avec le
+coupable nommé ; jusque-là, **aucune hypothèse n'est écrite comme un fait**.
 
 ---
 

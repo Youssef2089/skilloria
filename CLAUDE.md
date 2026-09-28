@@ -295,6 +295,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.73](docs/pieges.md#e73) | UNE FONCTION DE TRIGGER QUI CITE UNE COLONNE SUPPRIMÉE PASSE LE LINT ET LE CONTRÔLE STATIQUE : quatre semaines sans inscription d'expert. |
 | [E.74](docs/pieges.md#e74) | UNE SOUS-REQUÊTE LIT L'INSTANTANÉ DU DÉBUT DE SON INSTRUCTION — et une écriture qui ne touche rien passe pour un succès. |
 | [E.75](docs/pieges.md#e75) | UN BLOC SE JUGE SUR SON PROPRE TEXTE : un bloc imbriqué prête ses qualités à son parent — la garde du bloc annulé ne mordait pas. |
+| [E.76](docs/pieges.md#e76) | UN TEST QUI CHANGE D'IDENTITÉ DANS UNE FONCTION A TUÉ LE SERVEUR — et n'a laissé qu'un coupable anonyme. Cause racine NON VÉRIFIÉE. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -390,6 +391,9 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
 · **Une fonction, une signature** : `supabase/tests/database/une_signature.test.sql` lit `pg_proc` sur la
   base rejouée — aucune fonction `public` à deux signatures, sauf exception écrite **avec sa raison**
   (l'étape 1 de §E.72) ; une exception qui n'est plus une surcharge rougit.
+· **Le vrai appelant** (`vrai_appelant/`) : un changement de rôle est une **instruction**, jamais dans une
+  fonction (comme PostgREST), un appel par instruction, et ces fichiers passent **en dernier** — un plantage
+  n'y prive aucun autre fichier de son verdict (§E.76, garde J).
 · **`plpgsql_check` avec la table** : `supabase/tests/database/plpgsql_check.test.sql` vérifie chaque fonction de
   trigger avec sa relation — ce que `db lint` ne fait pas (§E.73).
 · **Mesuré le 28/09/2026** : `test db` descend dans les sous-dossiers, ignore `_fabriques.psql`, et `\ir`

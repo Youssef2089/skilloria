@@ -32,6 +32,25 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
+## ⛔ ARRÊT 4 — LOT C : LE PLANTAGE DU TEST « APPELANT » (28/09/2026). CAUSE NON TRANCHÉE.
+
+**Ce que Youssef a obtenu** : `db reset` vert (les deux migrations nouvelles « postcondition tenue », l'inscription
+d'un expert exécutée pour de vrai) ; `db lint` vide ; `test db` : 4 fichiers verts, puis
+`grand_livre/appelant.test.sql` → **signal 11**, « Failed process was running: select * from pg_temp.essai(); »,
+récupération de la base, **22 fichiers non exécutés**.
+
+| Point | Fait | Commit |
+|---|---|---|
+| C.1 le test réécrit : `vrai_appelant/appelant.test.sql` — même propriété (11 assertions), changements de rôle en **instructions** comme PostgREST, **un appel par instruction** (le journal nommera la RPC), passe **en dernier** ; garde J de `diag-tests-grand-livre` (aucun rôle changé dans un corps `$…$`, ces fichiers en dernier) ; `supabase/verifications/repro-segfault-appelant.sql` (local seulement) : six formes étiquetées, de la plus nue à celle de l'ancien test | fait, non exécuté | ce commit |
+| C.2 / C.3 la cause | **NON TRANCHÉE** — aucun moyen de l'établir sans exécuter. Le prochain passage la tranche (voir ci-dessous) ; §E.76 écrit ce qui est établi et marque la cause NON VÉRIFIÉE | — |
+| C.4 la requête de staging | inchangée | — |
+
+**Ce que le prochain passage tranchera.** ① Les 22 fichiers bloqués donnent enfin leur verdict (le fichier qui
+change de rôle passe après eux). ② Si `vrai_appelant/appelant.test.sql` passe : la forme de l'ancien test était en
+cause — la reproduction dira laquelle (A à E), et §E.76 sera réécrit avec le coupable. ③ S'il plante : le journal
+nomme l'appel, c'est un **défaut critique du produit** (un appel PostgREST tuerait la base) — on s'arrête, sans
+contournement.
+
 ## ⛔ ARRÊT 3 — LE LOT T EST FAIT (28/09/2026). LA PHASE B N'EST TOUJOURS PAS COMMENCÉE.
 
 **Validations à l'arrêt** : `tsc` 0 erreur (hors `.next/`) ; `next build` vert ; lint 65/25 (cliquet vert) ; parité

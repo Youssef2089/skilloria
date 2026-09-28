@@ -255,6 +255,36 @@ ok(sigDefauts.length === 0, 'F. le test « une fonction, une signature » compte
     fautes.length ? `${fautes.join(' · ')} — appelle d'abord (v := public.f(…)), relis ensuite` : undefined)
 }
 
+// ── J. CHANGER D'IDENTITÉ COMME PostgREST, ET PASSER EN DERNIER (lot C, 28/09/2026, §E.76) ──
+//  Le test du vrai appelant changeait de rôle DANS une fonction plpgsql (`set local role` +
+//  `execute` de RPC SECURITY DEFINER + blocs d'exception) : le serveur local a planté (signal 11), le
+//  journal n'a nommé que `select * from pg_temp.essai();`, et les 22 fichiers suivants n'ont pas tourné.
+//  La propriété : un changement de rôle est une INSTRUCTION de premier niveau, jamais dans un corps
+//  `$…$` ; et tout fichier qui change de rôle passe APRÈS tous les autres (ordre alphabétique des
+//  chemins, celui qu'a suivi `test db` le 28/09/2026).
+{
+  const roleRe = /\b(?:set\s+(?:local\s+)?role|reset\s+role)\b/gi
+  const rel = (p) => relative(RACINE_TESTS, p).split('\\').join('/')
+  const fichiersDeTest = tousLesTests.filter((p) => p.endsWith('.test.sql')).map(rel).sort()
+  const dansUnCorps = []
+  const changentDeRole = []
+  for (const p of tousLesTests.filter((q) => q.endsWith('.test.sql'))) {
+    const s = sansCommentaires(lire(p))
+    const total = (s.match(roleRe) ?? []).length
+    if (total === 0) continue
+    changentDeRole.push(rel(p))
+    const horsCorps = (s.replace(/\$([A-Za-z_]*)\$[\s\S]*?\$\1\$/g, "''").match(roleRe) ?? []).length
+    if (horsCorps !== total) dansUnCorps.push(`${rel(p)} (${total - horsCorps})`)
+  }
+  ok(dansUnCorps.length === 0, 'J. aucun changement de rôle dans un corps de fonction — une instruction de premier niveau, comme PostgREST',
+    dansUnCorps.length ? `${dansUnCorps.join(' · ')} — sortir le set/reset role au niveau des instructions (§E.76)` : undefined)
+  const premier = fichiersDeTest.findIndex((f) => changentDeRole.includes(f))
+  const apres = premier < 0 ? [] : fichiersDeTest.slice(premier).filter((f) => !changentDeRole.includes(f))
+  ok(changentDeRole.length > 0 && apres.length === 0,
+    `J. les ${changentDeRole.length} fichier(s) qui changent de rôle passent EN DERNIER — un plantage n'y prive aucun autre fichier de son verdict`,
+    changentDeRole.length === 0 ? 'aucun test ne joue le vrai appelant' : `passent après : ${apres.join(', ')}`)
+}
+
 // ── H. plpgsql_check sur chaque fonction de trigger AVEC SA TABLE (T.2, §E.73) ──
 //  `db lint` appelle plpgsql_check sans table : une fonction de trigger n'y est pas vérifiée.
 //  Le test existe, lit pg_trigger, passe la RELATION, rougit sur le niveau error.
