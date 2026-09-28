@@ -97,15 +97,16 @@ update public.grand_livre_actions
  where code = 'message_envoye';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67, §E.70) ───────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui envoyait un message dans une vraie conversation au nom d'un vrai compte est retirée
+-- (28/09/2026). Le geste — fil hors des statuts admis sans rien, message, date du fil et ligne ensemble,
+-- contenu ABSENT de la ligne — est prouvé par supabase/tests/database/grand_livre/message_envoye.test.sql.
+-- Le fil inconnu reste sondé ici, sur des identifiants INVENTÉS.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_conv   record;
-  v_auteur uuid;
-  v_piece  uuid := gen_random_uuid();
-  v_r      jsonb;
+  v_cles text[];
+  v_r    jsonb;
 begin
   if to_regprocedure('public.envoyer_message(uuid, uuid, text, uuid, text, uuid, text[], text)') is null then
     raise exception 'postcondition NON TENUE : envoyer_message manque ou a change de signature';
@@ -114,44 +115,18 @@ begin
   if v_cles is null or array_length(v_cles, 1) <> 2 or not (v_cles @> array['conversation_id', 'candidature_id']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de message_envoye est fausse [vu : %]', v_cles;
   end if;
-
-  select c.id, c.status into v_conv from public.conversations c limit 1;
-  select u.id into v_auteur from public.users u limit 1;
-  if v_conv.id is null or v_auteur is null then
-    raise notice 'postcondition : sonde envoyer_message SAUTEE — aucune conversation (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      -- UN STATUT NON ADMIS : rien d'écrit.
-      v_r := public.envoyer_message(gen_random_uuid(), null::uuid, 'utilisateur', v_auteur, 'client',
-                                    v_conv.id, array['sonde_statut_absent'], 'sonde-fermee');
-      if v_r ->> 'issue' is distinct from 'fermee'
-         or exists (select 1 from public.messages m where m.conversation_id = v_conv.id and m.content = 'sonde-fermee') then
-        raise exception 'postcondition NON TENUE : un fil hors des statuts admis a recu un message [%]', v_r;
-      end if;
-      -- L'ENVOI, sur le statut réel du fil : message, date du fil et ligne RELUS.
-      v_r := public.envoyer_message(v_piece, null::uuid, 'utilisateur', v_auteur, 'client',
-                                    v_conv.id, array[v_conv.status], 'sonde-message');
-      if v_r ->> 'issue' is distinct from 'envoye'
-         or not exists (select 1 from public.messages m where m.id = (v_r ->> 'id')::uuid and m.sender_id = v_auteur)
-         or not exists (select 1 from public.conversations c
-                         where c.id = v_conv.id and c.last_message_at = (v_r ->> 'created_at')::timestamptz) then
-        raise exception 'postcondition NON TENUE : le message ou la date du fil ne sont pas relus [%]', v_r;
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'message_envoye' and g.sujet_id = (v_r ->> 'id')::uuid
-                        and g.acteur_id = v_auteur and g.detail ->> 'conversation_id' = v_conv.id::text
-                        and g.detail::text not like '%sonde-message%') then
-        raise exception 'postcondition NON TENUE : la ligne message_envoye manque, ou porte le contenu';
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — le contenu et sa longueur sont REFUSÉS (la liste blanche tient).
+  begin
+    v_r := public.envoyer_message(gen_random_uuid(), null::uuid, 'utilisateur', gen_random_uuid(), 'client',
+                                  gen_random_uuid(), array['open'], 'sonde');
+    if v_r ->> 'issue' is distinct from 'introuvable' then
+      raise exception 'postcondition NON TENUE : un fil inconnu n est pas « introuvable » [%]', v_r;
+    end if;
+    raise exception 'SONDE_ANNULEE';
+  exception when others then
+    if sqlerrm <> 'SONDE_ANNULEE' then
+      raise;
+    end if;
+  end;
   begin
     perform public.journaliser(gen_random_uuid(), 'message_envoye', 'reussi', 'utilisateur',
                                gen_random_uuid(), 'client', null::uuid, 'messages', gen_random_uuid(),
@@ -161,10 +136,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : message_envoye — message, date du fil et ligne ensemble, statut rejoue sous verrou, contenu refuse';
-  else
-    raise notice 'postcondition tenue : message_envoye — message, date du fil et ligne ensemble, statut rejoue sous verrou, contenu refuse';
-  end if;
+  raise notice 'postcondition tenue : message_envoye — signature par types, liste blanche exacte, fil inconnu introuvable, contenu refuse ; le geste est prouve par tests/database/grand_livre/message_envoye.test.sql';
 end
 $post$;

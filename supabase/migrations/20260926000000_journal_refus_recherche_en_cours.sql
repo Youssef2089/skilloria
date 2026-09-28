@@ -85,6 +85,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : refus_recherche_en_cours — dans la liste fermee, famille refus, statut refuse impose, forme du module acceptee, reussi et cle hors liste refuses';
+  raise notice 'postcondition tenue : refus_recherche_en_cours — dans la liste fermee, famille refus, statut refuse impose, forme du module acceptee, reussi et cle hors liste refuses ; le refus est prouve par tests/database/grand_livre/refus_recherche_en_cours.test.sql';
 end
 $post$;

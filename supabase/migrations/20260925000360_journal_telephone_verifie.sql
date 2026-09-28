@@ -70,19 +70,16 @@ update public.grand_livre_actions
  where code = 'telephone_verifie';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui vérifiait le téléphone d'un vrai compte est retirée (28/09/2026). Le geste — drapeau et
+-- numéro sur le compte, ligne avec la méthode et SANS le numéro, compte inconnu false sans rien écrire —
+-- est prouvé par supabase/tests/database/grand_livre/telephone_verifie.test.sql. Le compte inconnu reste
+-- sondé ici : identifiants INVENTÉS, aucune ligne réelle touchée.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles  text[];
-  v_user  uuid;
-  v_piece uuid := gen_random_uuid();
-  v_ok    boolean;
-  v_ok2   boolean;
-  -- Un numéro qu'aucun compte réel ne peut porter : indicatif +999 NON attribué, tiré au
-  -- hasard. Un numéro fixe de recette pouvait déjà être VÉRIFIÉ sur un compte, et l'index
-  -- unique partiel aurait arrêté la migration (23505).
-  v_tel   text := '+999' || lpad((floor(random() * 1e10))::bigint::text, 10, '0');
+  v_cles text[];
+  v_ok   boolean;
 begin
   if to_regprocedure('public.verifier_telephone(uuid, uuid, text, uuid, text, uuid, text, text)') is null then
     raise exception 'postcondition NON TENUE : verifier_telephone manque ou a change de signature';
@@ -91,43 +88,18 @@ begin
   if v_cles is null or not (v_cles @> array['methode']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de telephone_verifie est incomplete [vu : %]', v_cles;
   end if;
-
-  -- SONDE — un compte réel : drapeau posé, ligne relue (avec la méthode, SANS
-  -- le numéro) ; un compte inconnu rend false SANS écrire.
-  select u.id into v_user from public.users u limit 1;
-  if v_user is null then
-    raise notice 'postcondition : sonde verifier_telephone SAUTEE — aucun compte (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      v_ok := public.verifier_telephone(v_piece, null::uuid, 'utilisateur', v_user, 'client',
-                                        v_user, v_tel, 'otp_sms');
-      if v_ok is distinct from true then
-        raise exception 'postcondition NON TENUE : la verification n a pas abouti';
-      end if;
-      if not exists (select 1 from public.users u where u.id = v_user and u.phone_verified) then
-        raise exception 'postcondition NON TENUE : le drapeau n est pas pose';
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'telephone_verifie' and g.statut = 'reussi'
-                        and g.sujet_type = 'users' and g.sujet_id = v_user
-                        and g.detail ->> 'methode' = 'otp_sms'
-                        and g.detail::text not like '%' || v_tel || '%') then
-        raise exception 'postcondition NON TENUE : la ligne manque, ne porte pas la methode, ou porte le NUMERO';
-      end if;
-      v_ok2 := public.verifier_telephone(gen_random_uuid(), null::uuid, 'utilisateur', v_user, 'client',
-                                         gen_random_uuid(), v_tel || '9', 'otp_sms');
-      if v_ok2 is distinct from false then
-        raise exception 'postcondition NON TENUE : un compte inconnu a ete verifie [%]', v_ok2;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — le NUMÉRO est REFUSÉ (la liste blanche tient).
+  begin
+    v_ok := public.verifier_telephone(gen_random_uuid(), null::uuid, 'utilisateur', gen_random_uuid(), 'client',
+                                      gen_random_uuid(), '+999' || lpad((floor(random() * 1e10))::bigint::text, 10, '0'), 'otp_sms');
+    if v_ok is distinct from false then
+      raise exception 'postcondition NON TENUE : un compte inconnu a ete verifie [%]', v_ok;
+    end if;
+    raise exception 'SONDE_ANNULEE';
+  exception when others then
+    if sqlerrm <> 'SONDE_ANNULEE' then
+      raise;
+    end if;
+  end;
   begin
     perform public.journaliser(gen_random_uuid(), 'telephone_verifie', 'reussi', 'utilisateur',
                                gen_random_uuid(), 'client', null::uuid, 'users', gen_random_uuid(),
@@ -137,10 +109,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : telephone_verifie — drapeau et ligne naissent ensemble, la ligne porte la methode sans le numero, un compte inconnu n ecrit rien';
-  else
-    raise notice 'postcondition tenue : telephone_verifie — drapeau et ligne naissent ensemble, la ligne porte la methode sans le numero, un compte inconnu n ecrit rien';
-  end if;
+  raise notice 'postcondition tenue : telephone_verifie — signature par types, liste blanche, compte inconnu false, numero refuse ; le geste est prouve par tests/database/grand_livre/telephone_verifie.test.sql';
 end
 $post$;

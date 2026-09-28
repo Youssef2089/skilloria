@@ -60,6 +60,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : email_change — liste blanche posee, l etape acceptee, l adresse refusee';
+  raise notice 'postcondition tenue : email_change — liste blanche posee, l etape acceptee, l adresse refusee ; le geste est ecrit par le TypeScript (lib/comptes/journal-compte.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

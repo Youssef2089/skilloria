@@ -63,6 +63,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : suppression_annulee — liste blanche posee, les deux cas acceptes, la liste des champs manquants refusee';
+  raise notice 'postcondition tenue : suppression_annulee — liste blanche posee, les deux cas acceptes, la liste des champs manquants refusee ; le geste est ecrit par le TypeScript (lib/comptes/journal-compte.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

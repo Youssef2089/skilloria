@@ -92,15 +92,14 @@ update public.grand_livre_actions
  where code = 'membre_invite';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui créait une invitation dans une vraie organisation au nom d'un vrai compte est retirée
+-- (28/09/2026). Le geste — invitation et ligne ensemble, l'adresse SUR l'invitation, ABSENTE de la ligne
+-- (jeton compris), le rôle dans la ligne — est prouvé par supabase/tests/database/grand_livre/invitations.test.sql.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_org    uuid;
-  v_acteur uuid;
-  v_piece  uuid := gen_random_uuid();
-  v_res    jsonb;
+  v_cles text[];
 begin
   if to_regprocedure('public.creer_invitation(uuid, uuid, text, uuid, text, uuid, jsonb)') is null then
     raise exception 'postcondition NON TENUE : creer_invitation manque ou a change de signature';
@@ -109,45 +108,6 @@ begin
   if v_cles is null or not (v_cles @> array['role_in_org', 'domain_validation_passed', 'email_already_exists']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de membre_invite est incomplete [vu : %]', v_cles;
   end if;
-
-  -- SONDE — une organisation réelle : invitation créée, ligne relue, et
-  -- l'ADRESSE vérifiée ABSENTE du journal alors qu'elle EST sur l'invitation.
-  select o.id into v_org from public.organizations o limit 1;
-  select u.id into v_acteur from public.users u limit 1;
-  if v_org is null or v_acteur is null then
-    raise notice 'postcondition : sonde creer_invitation SAUTEE — aucune organisation ou aucun compte (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      v_res := public.creer_invitation(
-        v_piece, null::uuid, 'utilisateur', v_acteur, 'client', null::uuid,
-        jsonb_build_object(
-          'organization_id', v_org, 'email', 'sonde@exemple.fr', 'token', 'sonde_hash',
-          'role_in_org', 'viewer', 'expires_at', now() + interval '7 days',
-          'status', 'pending', 'domain_validation_passed', false, 'email_already_exists', false));
-      if v_res is null or (v_res ->> 'id') is null then
-        raise exception 'postcondition NON TENUE : l invitation n a pas ete creee [%]', v_res;
-      end if;
-      if not exists (select 1 from public.organization_invitations i
-                      where i.id = (v_res ->> 'id')::uuid and i.email = 'sonde@exemple.fr') then
-        raise exception 'postcondition NON TENUE : l adresse n est pas sur la ligne d invitation — c est pourtant sa place';
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'membre_invite' and g.statut = 'reussi'
-                        and g.sujet_type = 'organization_invitations' and g.sujet_id = (v_res ->> 'id')::uuid
-                        and g.detail ->> 'role_in_org' = 'viewer'
-                        and g.detail::text not like '%sonde@exemple.fr%'
-                        and g.detail::text not like '%sonde_hash%') then
-        raise exception 'postcondition NON TENUE : la ligne manque, ou porte l ADRESSE ou le JETON';
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — l'adresse invitée est REFUSÉE (la liste blanche tient).
   begin
     perform public.journaliser(gen_random_uuid(), 'membre_invite', 'reussi', 'utilisateur',
                                gen_random_uuid(), 'client', null::uuid, 'organization_invitations', gen_random_uuid(),
@@ -157,10 +117,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : membre_invite — invitation et ligne naissent ensemble, l adresse est SUR l invitation et ABSENTE du journal';
-  else
-    raise notice 'postcondition tenue : membre_invite — invitation et ligne naissent ensemble, l adresse est SUR l invitation et ABSENTE du journal';
-  end if;
+  raise notice 'postcondition tenue : membre_invite — signature par types, liste blanche, adresse invitee refusee ; le geste est prouve par tests/database/grand_livre/invitations.test.sql';
 end
 $post$;

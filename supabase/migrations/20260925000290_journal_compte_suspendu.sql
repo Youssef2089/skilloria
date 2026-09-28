@@ -111,17 +111,15 @@ update public.grand_livre_actions
  where code = 'compte_reactive';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui suspendait un vrai compte avec un vrai administrateur est retirée (28/09/2026). Le geste —
+-- bascule et ligne ensemble avec le type de compte, rejeu null, réactivation par la même fonction (de/vers),
+-- self_forbidden sans rien écrire, et la course qui rend target_is_admin — est prouvé par
+-- supabase/tests/database/grand_livre/compte_suspendu.test.sql.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_user   record;
-  v_piece  uuid := gen_random_uuid();
-  v_acteur uuid;
-  v_res    jsonb;
-  v_res2   jsonb;
-  v_lignes integer;
+  v_cles text[];
 begin
   if to_regprocedure('public.changer_statut_compte(uuid, uuid, text, uuid, text, uuid, text[], text, boolean)') is null then
     raise exception 'postcondition NON TENUE : changer_statut_compte manque ou a change de signature';
@@ -131,67 +129,6 @@ begin
       raise exception 'postcondition NON TENUE : une liste blanche de bascule de compte est incomplete [vu : %]', v_cles;
     end if;
   end loop;
-
-  -- SONDE — un compte réel non suspendu : suspendu (ligne relue), rejoué (le
-  -- statut n'est plus admis : null, aucune seconde ligne), puis réactivé (la
-  -- SECONDE action, sous la même fonction). Sans compte : sautée, et dite.
-  -- JAMAIS un administrateur : l'occupant du siège plateforme est référencé par
-  -- une clé étrangère sur `users (id, admin_disponible)` — le suspendre la
-  -- violerait et arrêterait la migration ; et la cible ne doit pas être l'acteur.
-  select u.id, u.status into v_user
-    from public.users u
-   where u.status is distinct from 'suspended'
-     and u.user_type is distinct from 'admin'
-   limit 1;
-  select u.id into v_acteur from public.users u where u.user_type = 'admin' limit 1;
-  if v_user.id is null or v_acteur is null then
-    raise notice 'postcondition : sonde changer_statut_compte SAUTEE — aucun compte ou aucun administrateur (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      v_res := public.changer_statut_compte(v_piece, null::uuid, 'administrateur', v_acteur, 'admin',
-                                            v_user.id, array[v_user.status], 'suspended', true);
-      if v_res is null or v_res ->> 'vers' <> 'suspended' then
-        raise exception 'postcondition NON TENUE : la suspension n a pas abouti [%]', v_res;
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'compte_suspendu' and g.statut = 'reussi'
-                        and g.sujet_type = 'users' and g.sujet_id = v_user.id
-                        and g.detail ->> 'vers' = 'suspended' and g.detail ->> 'type_de_compte' is not null) then
-        raise exception 'postcondition NON TENUE : la ligne compte_suspendu manque ou ne porte pas son detail';
-      end if;
-      -- LE REJEU : le statut n'est plus admis, null, aucune seconde ligne.
-      v_res2 := public.changer_statut_compte(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
-                                             v_user.id, array[v_user.status], 'suspended', true);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'compte_suspendu' and g.sujet_id = v_user.id;
-      if v_res2 is not null or v_lignes <> 1 then
-        raise exception 'postcondition NON TENUE : le rejeu a bascule ou journalise une seconde fois [% / % ligne(s)]', v_res2, v_lignes;
-      end if;
-      -- LA SECONDE ACTION, par la MÊME fonction : réactivation.
-      v_res2 := public.changer_statut_compte(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
-                                             v_user.id, array['suspended'], 'active', false);
-      if v_res2 is null or not exists (select 1 from public.grand_livre g
-                                        where g.type_action = 'compte_reactive' and g.sujet_id = v_user.id
-                                          and g.detail ->> 'de' = 'suspended' and g.detail ->> 'vers' = 'active') then
-        raise exception 'postcondition NON TENUE : la reactivation n a pas ecrit sa ligne [%]', v_res2;
-      end if;
-      -- LA GARDE DE COMPTE, RELUE SOUS VERROU : l'acteur se vise lui-même → refus NOMMÉ, rien d'écrit.
-      select count(*) into v_lignes from public.grand_livre g where g.sujet_id = v_acteur;
-      v_res2 := public.changer_statut_compte(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
-                                             v_acteur, array['active'], 'suspended', true);
-      if v_res2 ->> 'refus' is distinct from 'self_forbidden'
-         or exists (select 1 from public.users u where u.id = v_acteur and u.status = 'suspended')
-         or (select count(*) from public.grand_livre g where g.sujet_id = v_acteur) <> v_lignes then
-        raise exception 'postcondition NON TENUE : un administrateur a pu se suspendre lui-meme, ou le refus n est pas nomme [%]', v_res2;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — une donnée personnelle de la cible est REFUSÉE (la liste blanche tient).
   begin
     perform public.journaliser(gen_random_uuid(), 'compte_suspendu', 'reussi', 'administrateur',
                                gen_random_uuid(), 'admin', null::uuid, 'users', gen_random_uuid(),
@@ -201,10 +138,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : compte_suspendu / compte_reactive — bascule et ligne naissent ensemble, le rejeu est null, la seconde action passe par la meme fonction, donnee personnelle refusee';
-  else
-    raise notice 'postcondition tenue : compte_suspendu / compte_reactive — bascule et ligne naissent ensemble, le rejeu est null, la seconde action passe par la meme fonction, donnee personnelle refusee';
-  end if;
+  raise notice 'postcondition tenue : compte_suspendu / compte_reactive — signature par types, deux listes blanches, donnee personnelle refusee ; le geste est prouve par tests/database/grand_livre/compte_suspendu.test.sql';
 end
 $post$;

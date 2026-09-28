@@ -54,6 +54,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : profil_modifie — liste blanche posee, noms acceptes, contenu refuse';
+  raise notice 'postcondition tenue : profil_modifie — liste blanche posee, noms acceptes, contenu refuse ; le geste est ecrit par le TypeScript (app/api/profile/route.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

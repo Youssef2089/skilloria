@@ -60,6 +60,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : cv_televerse — liste blanche posee, deux issues acceptees, empreinte refusee';
+  raise notice 'postcondition tenue : cv_televerse — liste blanche posee, deux issues acceptees, empreinte refusee ; le geste est ecrit par le TypeScript (lib/profil/journal-profil.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

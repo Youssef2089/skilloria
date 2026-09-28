@@ -374,6 +374,6 @@ begin
     raise exception 'postcondition NON TENUE : stripe_event_mark laisse passer un evenement inexistant';
   exception when sqlstate 'EC001' then null;
   end;
-  raise notice 'postcondition tenue : huit fonctions exigent leur compte de lignes, handle_email_confirmed n avale plus ses erreurs, cinq sondes levent EC001';
+  raise notice 'postcondition tenue : huit fonctions exigent leur compte de lignes, handle_email_confirmed n avale plus ses erreurs, cinq sondes levent EC001 ; les huit fonctions sont prouvees par tests/database/ecritures_effectives.test.sql';
 end
 $post$;

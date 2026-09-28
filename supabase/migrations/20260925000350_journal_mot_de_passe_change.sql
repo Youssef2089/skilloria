@@ -55,6 +55,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : mot_de_passe_change — liste blanche VIDE, le fait seul accepte, la longueur refusee';
+  raise notice 'postcondition tenue : mot_de_passe_change — liste blanche VIDE, le fait seul accepte, la longueur refusee ; le geste est ecrit par le TypeScript (lib/comptes/journal-compte.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

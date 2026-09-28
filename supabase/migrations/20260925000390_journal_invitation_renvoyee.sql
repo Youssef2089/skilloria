@@ -91,17 +91,16 @@ update public.grand_livre_actions
  where code = 'invitation_renvoyee';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui renvoyait une vraie invitation en attente est retirée (28/09/2026). Le geste — autre
+-- organisation et statut non admis refusés sans rien écrire, jeton et échéance posés, ligne avec
+-- l'échéance et SANS le jeton, GL005 sur la même pièce, une autre pièce écrit une seconde ligne — est
+-- prouvé par supabase/tests/database/grand_livre/invitations.test.sql (et vrai_appelant/appelant.test.sql).
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_inv    record;
-  v_acteur uuid;
-  v_piece  uuid := gen_random_uuid();
-  v_ech    timestamptz := timestamptz '2099-01-01 00:00:00+00';
-  v_ok     boolean;
-  v_lignes integer;
+  v_cles text[];
+  v_ok   boolean;
 begin
   if to_regprocedure('public.renvoyer_invitation(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text[], text, timestamp with time zone)') is null then
     raise exception 'postcondition NON TENUE : renvoyer_invitation manque ou a change de signature';
@@ -110,69 +109,18 @@ begin
   if v_cles is null or not (v_cles @> array['role_in_org', 'expires_at']::text[]) or array_length(v_cles, 1) <> 2 then
     raise exception 'postcondition NON TENUE : la liste blanche de invitation_renvoyee est fausse [vu : %]', v_cles;
   end if;
-
-  select i.id, i.organization_id, i.token into v_inv
-    from public.organization_invitations i
-   where i.status = 'pending'
-   limit 1;
-  select u.id into v_acteur from public.users u limit 1;
-  if v_inv.id is null or v_acteur is null then
-    raise notice 'postcondition : sonde renvoyer_invitation SAUTEE — aucune invitation en attente (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      -- UNE AUTRE ORGANISATION D'ABORD, sur l'invitation encore intacte (§E.37).
-      v_ok := public.renvoyer_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_acteur, 'client', null::uuid,
-                                         v_inv.id, gen_random_uuid(), array['pending'], 'sonde-autre', v_ech);
-      if v_ok is distinct from false
-         or exists (select 1 from public.organization_invitations i where i.id = v_inv.id and i.token = 'sonde-autre') then
-        raise exception 'postcondition NON TENUE : une invitation d une AUTRE organisation a recu un jeton';
-      end if;
-      -- UN STATUT NON ADMIS : false, rien d'ecrit — la transition est jugee sur les statuts RECUS.
-      v_ok := public.renvoyer_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_acteur, 'client', null::uuid,
-                                         v_inv.id, v_inv.organization_id, array['sonde_statut_absent'], 'sonde-statut', v_ech);
-      if v_ok is distinct from false
-         or exists (select 1 from public.organization_invitations i where i.id = v_inv.id and i.token = 'sonde-statut') then
-        raise exception 'postcondition NON TENUE : une invitation hors des statuts admis a ete renvoyee';
-      end if;
-      -- LE RENVOI : jeton et echeance ecrits, ligne relue — sans le jeton.
-      v_ok := public.renvoyer_invitation(v_piece, null::uuid, 'utilisateur', v_acteur, 'client', null::uuid,
-                                         v_inv.id, v_inv.organization_id, array['pending'], 'sonde-jeton', v_ech);
-      if v_ok is distinct from true
-         or not exists (select 1 from public.organization_invitations i
-                         where i.id = v_inv.id and i.token = 'sonde-jeton' and i.expires_at = v_ech) then
-        raise exception 'postcondition NON TENUE : le renvoi n a pas ecrit le jeton et l echeance';
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'invitation_renvoyee' and g.statut = 'reussi'
-                        and g.sujet_type = 'organization_invitations' and g.sujet_id = v_inv.id
-                        and (g.detail ->> 'expires_at')::timestamptz = v_ech
-                        and g.detail::text not like '%sonde-jeton%') then
-        raise exception 'postcondition NON TENUE : la ligne invitation_renvoyee manque, ou porte le jeton';
-      end if;
-      -- LA MEME PIECE : GL005, jamais une seconde ligne.
-      begin
-        perform public.renvoyer_invitation(v_piece, null::uuid, 'utilisateur', v_acteur, 'client', null::uuid,
-                                           v_inv.id, v_inv.organization_id, array['pending'], 'sonde-jeton-2', v_ech);
-        raise exception 'postcondition NON TENUE : le meme geste a ete journalise deux fois';
-      exception when sqlstate 'GL005' then
-        null;
-      end;
-      -- UNE AUTRE PIECE : un second renvoi, une seconde ligne — c'est un autre geste.
-      v_ok := public.renvoyer_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_acteur, 'client', null::uuid,
-                                         v_inv.id, v_inv.organization_id, array['pending'], 'sonde-jeton-3', v_ech);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'invitation_renvoyee' and g.sujet_id = v_inv.id;
-      if v_ok is distinct from true or v_lignes < 2 then
-        raise exception 'postcondition NON TENUE : un second renvoi n a pas ecrit sa ligne [% / % ligne(s)]', v_ok, v_lignes;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — le jeton est REFUSE (la liste blanche tient).
+  begin
+    v_ok := public.renvoyer_invitation(gen_random_uuid(), null::uuid, 'utilisateur', gen_random_uuid(), 'client', null::uuid,
+                                       gen_random_uuid(), gen_random_uuid(), array['pending'], 'sonde-jeton', now() + interval '7 days');
+    if v_ok is distinct from false then
+      raise exception 'postcondition NON TENUE : une invitation inconnue a ete renvoyee';
+    end if;
+    raise exception 'SONDE_ANNULEE';
+  exception when others then
+    if sqlerrm <> 'SONDE_ANNULEE' then
+      raise;
+    end if;
+  end;
   begin
     perform public.journaliser(gen_random_uuid(), 'invitation_renvoyee', 'reussi', 'utilisateur',
                                gen_random_uuid(), 'client', null::uuid, 'organization_invitations', gen_random_uuid(),
@@ -182,10 +130,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : invitation_renvoyee — jeton, echeance et ligne ensemble, autre organisation et statut non admis refuses, une ligne par piece, jeton refuse';
-  else
-    raise notice 'postcondition tenue : invitation_renvoyee — jeton, echeance et ligne ensemble, autre organisation et statut non admis refuses, une ligne par piece, jeton refuse';
-  end if;
+  raise notice 'postcondition tenue : invitation_renvoyee — signature par types (timestamp with time zone), liste blanche exacte, invitation inconnue false, jeton refuse ; le geste est prouve par tests/database/grand_livre/invitations.test.sql';
 end
 $post$;

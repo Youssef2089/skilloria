@@ -1158,10 +1158,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
   const iPostPb = PUBLIEE.indexOf('do $post$')
   const postPb = iPostPb < 0 ? '' : PUBLIEE.slice(iPostPb)
   ok(/to_regprocedure\('public\.publier_annonce\(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text\[\], text, numeric, text, jsonb\)'\) is null/.test(postPb), 'publiée : la signature est vérifiée par TYPES')
-  ok((postPb.match(/public\.publier_annonce\((v_piece|gen_random_uuid\(\)),/g) || []).length === 3 && /v_res2 is not null or v_lignes <> 1/.test(postPb) && /'pending_review', 4\.0[\s\S]{0,400}?v_lignes <> 1/.test(postPb),
-    'publiée : la RPC est EXÉCUTÉE trois fois — publiée, rejouée (null, une ligne), pending_review (verdict écrit, aucune ligne) — sonde annulée')
-  ok(/g\.detail ->> 'organization_id' = v_pub\.organization_id::text/.test(postPb) && /\(v_res ->> 'published_at'\) is null/.test(postPb) && /raise exception 'SONDE_ANNULEE'/.test(postPb),
-    'publiée : la ligne est RELUE (sujet, écosystème, organisation, published_at posé), puis annulée')
   {
     const MODIFIEE = stripSql(read(migration('journal_annonce_modifiee')))
     const P = MODIFIEE.slice(Math.max(0, MODIFIEE.indexOf('do $post$')))
@@ -1173,10 +1169,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const DEPUB = stripSql(read(migration('journal_annonce_depubliee')))
     const P = DEPUB.slice(Math.max(0, DEPUB.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.cloturer_annonce\(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text\[\]\)'\) is null/.test(P), 'dépubliée : la signature est vérifiée par TYPES')
-    ok((P.match(/public\.cloturer_annonce\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_ok2 is distinct from false or v_lignes <> 1/.test(P),
-      'dépubliée : la RPC est EXÉCUTÉE deux fois sur la même annonce — le rejeu rend false et n’écrit pas (sonde annulée)')
-    ok(/p\.status = 'archived'/.test(P) && /g\.detail ->> 'de' = 'published'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'dépubliée : la transition et la ligne sont RELUES, puis annulées')
   }
   {
     const EXPIREE = stripSql(read(migration('journal_annonce_expiree')))
@@ -1184,8 +1176,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/to_regprocedure\('public\.constater_annonces_expirees\(uuid, integer, integer\)'\) is null/.test(P), 'expirée : la signature est vérifiée par TYPES')
     ok(/information_schema\.columns[\s\S]{0,200}?column_name = 'expiration_constatee_at'/.test(P) && /relname = 'publications_expiration_a_constater_idx' and i\.indpred is not null/.test(P),
       'expirée : la colonne-marqueur et l’index PARTIEL de la file sont INTERROGÉS (pg_index, pas un IF NOT EXISTS — §E.60)')
-    ok(/public\.constater_annonces_expirees\(v_piece, v_vie, 1\)/.test(P) && /expiration_constatee_at is not null/.test(P) && /\(g\.detail ->> 'vie_annonce_jours'\)::integer = v_vie/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'expirée : un constat sur une annonce expirée réelle, marqueur et ligne RELUS (durée en vigueur), puis annulé — sautée et dite sur base vierge')
     ok(/cron\.schedule\(\s*'constats_trigger',/.test(EXPIREE) && /trigger_purge_cron\('constats_trigger', '\/api\/cron\/constats'\)/.test(EXPIREE) && /'constats_trigger',\s*'jobs\.constats\.label', 'jobs\.constats\.description',\s*'technical', true,/.test(EXPIREE) && /from cron\.job where jobname = 'constats_trigger'/.test(P) && /cron_job_catalog where job_name = 'constats_trigger'/.test(P),
       'expirée : la tâche est PLANIFIÉE (pg_cron → route), CATALOGUÉE (technique, verdict écrit par la tâche), et la postcondition le vérifie')
     const manquantes = []
@@ -1237,10 +1227,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
         'dévoilement fermé : aucun statut de candidature écrit en dur dans la fonction — une règle, une définition')
     }
     ok(/column_name = 'fermeture_constatee_at'/.test(P) && /relname = 'candidatures_fermeture_a_constater_idx' and i\.indpred is not null/.test(P), 'dévoilement fermé : la colonne-marqueur et l’index PARTIEL sont INTERROGÉS (§E.60)')
-    ok((P.match(/public\.constater_devoilement_ferme\((v_piece|gen_random_uuid\(\)), v_cand,/g) || []).length === 3
-      && /v_ok is distinct from 'passif'[\s\S]{0,300}?g\.type_action = 'devoilement_ferme' and g\.sujet_id = v_cand\)/.test(P)
-      && /v_ok2 is distinct from 'deja' or v_n <> 1/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'dévoilement fermé : le PASSIF marqué sans ligne, puis le constat relu, le rejeu « déjà » sans seconde ligne, puis annulé (sauté et dit sur base vierge)')
     ok(/create table if not exists public\.constats_mise_en_service/.test(FERME) && /insert into public\.constats_mise_en_service \(constat\) values \('devoilement_ferme'\)/.test(FERME)
       && /date de mise en service du constat manque/.test(P),
       'dévoilement fermé : la date de MISE EN SERVICE est posée par la migration (par environnement) et relue par la postcondition')
@@ -1258,12 +1244,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const SUSP = stripSql(read(migration('journal_compte_suspendu')))
     const P = SUSP.slice(Math.max(0, SUSP.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.changer_statut_compte\(uuid, uuid, text, uuid, text, uuid, text\[\], text, boolean\)'\) is null/.test(P), 'suspension : la signature est vérifiée par TYPES')
-    ok((P.match(/public\.changer_statut_compte\((v_piece|gen_random_uuid\(\)),/g) || []).length === 4 && /v_res2 is not null or v_lignes <> 1/.test(P)
-      && /v_acteur, array\['active'\], 'suspended', true\);\s*if v_res2 ->> 'refus' is distinct from 'self_forbidden'/.test(P),
-      'suspension : la RPC est EXÉCUTÉE quatre fois — suspendue, rejouée (null, une ligne), réactivée par la MÊME fonction, et l’acteur qui se vise lui-même reçoit le refus NOMMÉ sans rien écrire (sonde annulée)')
-    ok(/u\.user_type is distinct from 'admin'/.test(P), 'suspension : la sonde évite le siège plateforme (§E.71)')
-    ok(/g\.type_action = 'compte_reactive'[\s\S]{0,200}?g\.detail ->> 'de' = 'suspended' and g\.detail ->> 'vers' = 'active'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'suspension : les DEUX lignes (suspendue, réactivée) sont RELUES, puis annulées')
     ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'suspension : une adresse est REFUSÉE (sonde exécutée)')
   }
   {
@@ -1273,12 +1253,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
       && /to_regprocedure\('public\.statuer_sur_expert\(uuid, uuid, text, uuid, text, uuid, text, boolean, text\)'\) is null/.test(P)
       && /to_regprocedure\('public\.statuer_sur_organisation\(uuid, uuid, text, uuid, text, uuid, text, boolean, text\)'\) is null/.test(P),
       'arbitrage : les TROIS signatures sont vérifiées par TYPES')
-    ok((P.match(/public\.statuer_sur_expert\((v_piece|gen_random_uuid\(\)),/g) || []).length === 3 && /v_res2 is not null or v_lignes <> 1/.test(P),
-      'arbitrage : la RPC est EXÉCUTÉE trois fois — approuvé, rejoué (null, une ligne), refusé par le MÊME écrivain (sonde annulée)')
-    ok(/u\.is_verified\)? then\s*\n?[\s\S]{0,120}?raise exception 'postcondition NON TENUE : le profil ou le drapeau du compte n est pas relu'/.test(P) && /\(v_res ->> 'verified_at'\) is null/.test(P),
-      'arbitrage : le profil, le drapeau du compte et la DATE POSÉE par la base sont RELUS')
-    ok(/g\.type_action = 'compte_valide' and g\.sujet_type = 'organizations'[\s\S]{0,120}?g\.ecosysteme_id is null/.test(P),
-      'arbitrage : l’organisation écrit sa ligne SANS écosystème, et c’est relu')
     ok(/"review_reason":"texte libre"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'arbitrage : le motif en texte libre est REFUSÉ (sonde exécutée)')
   }
   {
@@ -1296,10 +1270,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/drop function if exists public\.programmer_suppression_compte\(uuid, timestamptz\);/.test(SUPP)
       && /to_regprocedure\('public\.programmer_suppression_compte\(uuid, timestamptz\)'\) is not null then\s*\n?\s*raise exception 'postcondition NON TENUE : l ancienne signature SANS journal est encore appelable'/.test(P),
       'suppression : l’ancienne signature SANS journal est SUPPRIMÉE, et la postcondition le vérifie')
-    ok((P.match(/public\.programmer_suppression_compte\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_res <> 'introuvable' or v_lignes <> 1/.test(P),
-      'suppression : la RPC est EXÉCUTÉE deux fois — programmée, puis sur un compte inconnu qui n’écrit RIEN (sonde annulée)')
-    ok(/u\.deletion_scheduled_at is not null/.test(P) && /\(g\.detail ->> 'grace_jours'\)::integer = 90/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'suppression : le jalon et la ligne sont RELUS, puis annulés')
     ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'suppression : une adresse est REFUSÉE (sonde exécutée)')
   }
   {
@@ -1327,19 +1297,12 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const TEL = stripSql(read(migration('journal_telephone_verifie')))
     const P = TEL.slice(Math.max(0, TEL.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.verifier_telephone\(uuid, uuid, text, uuid, text, uuid, text, text\)'\) is null/.test(P), 'téléphone : la signature est vérifiée par TYPES')
-    ok(/v_tel\s+text := '\+999' \|\|/.test(P) && /g\.detail::text not like '%' \|\| v_tel \|\| '%'/.test(P) &&/u\.phone_verified\)? then/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'téléphone : la ligne écrite est RELUE et l’absence du NUMÉRO y est vérifiée (pas seulement la présence de la méthode), puis annulée')
-    ok((P.match(/public\.verifier_telephone\((v_piece|gen_random_uuid\(\)),/g) || []).length === 2 && /v_ok2 is distinct from false/.test(P),
-      'téléphone : un compte inconnu rend false SANS écrire (sonde exécutée)')
     ok(/"phone":"\+33600000000"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'téléphone : le NUMÉRO est REFUSÉ par la liste blanche (sonde exécutée)')
   }
   {
     const INV = stripSql(read(migration('journal_membre_invite')))
     const P = INV.slice(Math.max(0, INV.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.creer_invitation\(uuid, uuid, text, uuid, text, uuid, jsonb\)'\) is null/.test(P), 'invitation : la signature est vérifiée par TYPES')
-    ok(/i\.email = 'sonde@exemple\.fr'[\s\S]{0,300}?raise exception 'postcondition NON TENUE : l adresse n est pas sur la ligne d invitation/.test(P)
-      && /g\.detail::text not like '%sonde@exemple\.fr%'\s*and g\.detail::text not like '%sonde_hash%'/.test(P),
-      'invitation : l’adresse est vérifiée PRÉSENTE sur l’invitation et ABSENTE du journal, jeton compris (les deux, pas l’une des deux — §E.8)')
     ok(/"invitee_email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P), 'invitation : l’adresse invitée est REFUSÉE (sonde exécutée)')
   }
   {
@@ -1347,13 +1310,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const P = REV.slice(Math.max(0, REV.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.revoquer_invitation\(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text\[\]\)'\) is null/.test(P),
       'révocation : la signature est vérifiée par TYPES')
-    ok((P.match(/public\.revoquer_invitation\((v_piece|gen_random_uuid\(\))/g) || []).length === 3
-      && /v_ok2 is distinct from false or v_lignes <> 1/.test(P)
-      && /v_inv\.id, gen_random_uuid\(\), array\['pending'\]\);[\s\S]{0,200}?une AUTRE organisation a ete revoquee/.test(P)
-      && P.indexOf('v_inv.id, gen_random_uuid(), array[') < P.indexOf('v_ok := public.revoquer_invitation(v_piece'),
-      'révocation : la RPC est EXÉCUTÉE trois fois — sous une AUTRE organisation d’ABORD (invitation encore en attente, §E.37), puis révoquée, puis rejouée (false, UNE ligne)')
-    ok(/i\.status = 'revoked'/.test(P) && /g\.detail ->> 'de' = 'pending'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'révocation : la transition et la ligne sont RELUES, puis annulées')
     ok(/\"invitee_email\":\"qui@exemple\.fr\"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P),
       'révocation : l’adresse invitée est REFUSÉE (sonde exécutée)')
   }
@@ -1362,15 +1318,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const P = REN.slice(Math.max(0, REN.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.renvoyer_invitation\(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text\[\], text, timestamp with time zone\)'\) is null/.test(P),
       'renvoi : la signature est vérifiée par TYPES, sous le nom que Postgres rend (timestamp with time zone)')
-    const iAutre = P.indexOf("v_inv.id, gen_random_uuid(), array['pending'], 'sonde-autre'")
-    const iStatut = P.indexOf("array['sonde_statut_absent']")
-    const iRenvoi = P.indexOf('public.renvoyer_invitation(v_piece,')
-    ok(iAutre >= 0 && iStatut > iAutre && iRenvoi > iStatut,
-      'renvoi : AUTRE organisation puis STATUT non admis sont sondés AVANT le renvoi réussi — sur l’invitation intacte (§E.37)')
-    ok(/i\.token = 'sonde-jeton' and i\.expires_at = v_ech/.test(P) && /g\.detail::text not like '%sonde-jeton%'/.test(P),
-      'renvoi : le jeton et l’échéance sont RELUS sur l’invitation, et le jeton est ABSENT de la ligne (les deux, §E.8)')
-    ok(/public\.renvoyer_invitation\(v_piece,[\s\S]{0,300}?'sonde-jeton-2'[\s\S]{0,200}?when sqlstate 'GL005'/.test(P) && /v_lignes < 2/.test(P),
-      'renvoi : la MÊME pièce lève GL005, une AUTRE pièce écrit une seconde ligne — une fois par geste, pas une fois par invitation')
     ok(/"token":"abc"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'renvoi : le jeton est REFUSÉ par la liste blanche (sonde exécutée), et tout est annulé')
   }
@@ -1379,18 +1326,8 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const P = ACC.slice(Math.max(0, ACC.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.accepter_invitation\(uuid, uuid, text, uuid, text, uuid, uuid, text\[\]\)'\) is null/.test(P),
       'acceptation : la signature est vérifiée par TYPES')
-    const iAdresse = P.indexOf("'email_mismatch'")
-    const iStatut = P.indexOf("array['sonde_statut_absent']")
-    const iEchue = P.indexOf("'expired'")
-    const iAccepte = P.indexOf('public.accepter_invitation(v_piece,')
-    ok(iAdresse >= 0 && iStatut > iAdresse && iEchue > iStatut && iAccepte > iEchue,
-      'acceptation : les TROIS refus (adresse, statut, échéance) sont sondés AVANT l’acceptation, sur l’invitation intacte (§E.37)')
-    ok(/un refus a ecrit quelque chose/.test(P) && /set email = upper\(v_user\.email\)/.test(P),
-      'acceptation : les refus n’écrivent RIEN (relu), et l’adresse se compare SANS casse (sondé en majuscules)')
-    ok(/m\.status = 'active'/.test(P) && /i\.status = 'accepted' and i\.accepted_at is not null/.test(P) && /g\.detail::text not ilike '%' \|\| v_user\.email \|\| '%'/.test(P),
-      'acceptation : appartenance, invitation soldée et ligne RELUES — et l’adresse ABSENTE de la ligne (§E.8)')
-    ok(/'not_pending' or v_lignes <> 1/.test(P) && /"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'acceptation : le rejeu n’écrit pas de seconde ligne, l’adresse est REFUSÉE par la liste blanche, tout est annulé')
+    ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P),
+      'acceptation : l’adresse est REFUSÉE par la liste blanche (sonde sur identifiants inventés)')
   }
   {
     const MEM = stripSql(read(migration('journal_membres')))
@@ -1403,29 +1340,13 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const apres = TOUTES_MIGRATIONS.filter((f) => f > migration('journal_membres').split('/').pop())
     ok(apres.every((f) => !/function public\.maj_membre_organisation\(\s*p_membre_id/.test(SQL_PAR_MIGRATION.get(f))),
       'membres : aucune migration postérieure ne recrée la signature sans journal')
-    const iRole = P.indexOf("v_p1, null::uuid, 'utilisateur', v_autre")
-    const iRetrait = P.indexOf("v_p2, null::uuid, 'utilisateur', v_autre")
-    const iDepart = P.indexOf("v_p3, null::uuid, 'utilisateur', v_user,")
-    ok(/'suspended', false\);[\s\S]{0,200}?when sqlstate '22023'/.test(P) && /v_r <> 'inchange' or exists/.test(P),
-      'membres : un changement sans action LÈVE avant d’écrire, un geste sans changement n’écrit rien (sondes exécutées)')
-    ok(iRole > 0 && iRetrait > iRole && iDepart > iRetrait
-      && /g\.type_action = 'role_membre_change'/.test(P) && /g\.type_action = 'membre_retire'/.test(P) && /g\.type_action = 'membre_parti' and g\.sujet_id = v_membre\s*and g\.acteur_id = v_user/.test(P),
-      'membres : les TROIS faces sont exécutées et RELUES — rôle et retrait par un AUTRE, départ par le membre LUI-MÊME')
-    ok(/v_r <> 'inchange' or v_n <> 1/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
-      'membres : le retrait rejoué rend « inchangé » sans seconde ligne (le verrou), et tout est annulé')
   }
   {
     const ST = stripSql(read(migration('journal_sous_traitance')))
     const P = ST.slice(Math.max(0, ST.indexOf('do $post$')))
-    const i1 = P.indexOf("update public.publications set type = 'sous_traitance'")
-    const i2 = P.indexOf('public.inserer_candidature_jugee(v_p2,')
-    const i3 = P.indexOf("update public.publications set type = 'mission'")
-    ok(i1 >= 0 && i2 > i1 && i3 > i2
-      && /g\.type_action = 'sous_traitance_publiee'[\s\S]{0,200}?g\.type_action = 'annonce_publiee'/.test(P)
-      && /g\.type_action = 'sous_traitance_candidature'[\s\S]{0,250}?g\.type_action = 'candidature_deposee'/.test(P)
-      && /v_p3 and g\.type_action = 'annonce_publiee'\)\s*or exists \(select 1 from public\.grand_livre g where g\.piece = v_p3 and g\.type_action = 'sous_traitance_publiee'\)/.test(P),
-      'sous-traitance : publiée et postulée, chacune sous SON nom et PAS sous l’autre ; une mission sous le sien (les deux sens, §E.8 — sonde exécutée)')
-    ok(/raise exception 'SONDE_ANNULEE'/.test(P), 'sous-traitance : la sonde s’annule')
+    ok(/to_regprocedure\('public\.inserer_candidature_jugee\(uuid, uuid, text, uuid, text, jsonb, text\)'\) is null/.test(P)
+      && /code = 'sous_traitance_publiee'/.test(P) && /code = 'sous_traitance_candidature'/.test(P),
+      'sous-traitance : les signatures et les deux listes blanches sont vérifiées — les gestes, par tests/database/grand_livre/sous_traitance.test.sql')
   }
   {
     const PU = stripSql(read(migration('journal_purges')))
@@ -1433,15 +1354,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     ok(/to_regprocedure\('public\.anonymiser_compte\(uuid, uuid, text, uuid, text, uuid, text, text, boolean, boolean, boolean, integer\)'\) is null/.test(P)
       && /to_regprocedure\('public\.constater_avertissement_inactivite\(uuid, uuid, text, uuid, text, uuid, timestamp with time zone, boolean, text, text\)'\) is null/.test(P),
       'purges : les deux signatures sont vérifiées par TYPES')
-    ok(/'autre', true, null, true, 0\);[\s\S]{0,200}?when sqlstate '22023'[\s\S]{0,200}?un motif refuse a pose le jalon/.test(P),
-      'purges : un motif inconnu LÈVE avant d’écrire, et le jalon est relu intact')
-    ok(/foreach v_motif in array array\['inactivite', 'demande', 'admin'\] loop/.test(P) && /g\.type_action = v_code/.test(P) && /where g\.piece = v_p;\s*if v_n <> 1/.test(P)
-      && /g\.detail::text not ilike '%' \|\| v_user\.email \|\| '%'/.test(P) && /un compte deja purge a ete repurge/.test(P),
-      'purges : les TROIS motifs écrivent chacun SON code, UNE ligne par pièce, sans l’adresse ; un compte déjà purgé ne produit rien')
-    ok(/u\.user_type is distinct from 'admin'/.test(P) && /'administrateur', v_admin, 'admin',/.test(P),
-      'purges : la sonde évite le siège plateforme, et la purge d’administrateur porte un acteur réel (§E.70)')
-    ok(/false, null, 'resend_refuse'\);[\s\S]*?statut = 'echoue'[\s\S]*?true, 'msg_sonde', null\);[\s\S]*?statut = 'reussi'/.test(P) && /un echec sans cause a ete accepte/.test(P),
-      'avertissement : les DEUX issues écrites et relues (échec sans marqueur, parti avec marqueur) ; un échec sans cause LÈVE')
     ok(/"email":"qui@exemple\.fr"[\s\S]{0,300}?when sqlstate 'GL004'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'purges : l’adresse est REFUSÉE par la liste blanche, tout est annulé')
   }
@@ -1450,9 +1362,6 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
     const P = ME.slice(Math.max(0, ME.indexOf('do $post$')))
     ok(/to_regprocedure\('public\.envoyer_message\(uuid, uuid, text, uuid, text, uuid, text\[\], text\)'\) is null/.test(P),
       'message : la signature est vérifiée par TYPES')
-    ok(P.indexOf("array['sonde_statut_absent']") >= 0 && P.indexOf("array['sonde_statut_absent']") < P.indexOf('public.envoyer_message(v_piece,')
-      && /c\.last_message_at = \(v_r ->> 'created_at'\)::timestamptz/.test(P) && /g\.detail::text not like '%sonde-message%'/.test(P),
-      'message : le fil fermé est sondé AVANT l’envoi ; message, date du fil et ligne RELUS, le contenu ABSENT de la ligne')
     ok(/"content_length":12[\s\S]{0,300}?when sqlstate 'GL004'/.test(P) && /raise exception 'SONDE_ANNULEE'/.test(P),
       'message : la longueur du contenu est REFUSÉE par la liste blanche, tout est annulé')
   }
@@ -1519,7 +1428,9 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
         if (!englobants.some(([x, y]) => annule(x, y)) && !attendu) hors.push(`${f} : ${a.quoi}`)
       }
     }
-    ok(total >= 161 && hors.length === 0,
+    // PLANCHER re-mesuré le 28/09/2026 (lot S) : 131 appels, après le retrait des sondes sur données réelles
+    // des 16 migrations non appliquées (161 le 26/09). Il ne protège que contre un balayage devenu aveugle.
+    ok(total >= 131 && hors.length === 0,
       `toute sonde qui écrit est dans un bloc ANNULÉ, ou attend une erreur nommée — rien n'en reste (${total} appel(s) balayé(s), gel : ${GEL_BLOC.size})`,
       hors.slice(0, 6).join('\n         ') || undefined)
     const defauts = [...GEL_BLOC.values()].filter((r) => r.startsWith('DÉFAUT NOMMÉ')).length
@@ -1551,7 +1462,10 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
       if (notices.some((m) => !m[1])) fautes.push(`${f} : une notice SAUTEE n'est pas suivie de v_sautee := true`)
       if (!/if v_sautee then\s*raise notice 'postcondition PARTIELLE[^']*'[^;]*;\s*else\s*raise notice 'postcondition tenue/.test(post)) fautes.push(`${f} : la ligne finale ne se dédouble pas`)
     }
-    ok(fautes.length === 0 && gardees >= 24,
+    // PLANCHER re-mesuré le 28/09/2026 (lot S) : 9 — les migrations DÉJÀ APPLIQUÉES qui sautent une sonde
+    // (gelées), plus l'inscription (référentiels). Aucune migration nouvelle n'a plus de raison d'en sauter
+    // une : elle ne sonde plus de donnée réelle (§E.77, diag-postconditions-structure).
+    ok(fautes.length === 0 && gardees >= 9,
       `une postcondition qui peut SAUTER une sonde le DIT dans sa ligne finale (${gardees} migration(s), gel : ${GEL_SAUTEE.size} appliquée(s))`,
       fautes.slice(0, 6).join('\n         ') || undefined)
     const gelFaux = [...GEL_SAUTEE.keys()].filter((f) => !TOUTES_MIGRATIONS.includes(f) || !/SAUTEE/.test(SQL_PAR_MIGRATION.get(f)))

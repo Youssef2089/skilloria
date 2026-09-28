@@ -59,6 +59,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : disponibilite_basculee — liste blanche posee, deux voies acceptees, date refusee';
+  raise notice 'postcondition tenue : disponibilite_basculee — liste blanche posee, deux voies acceptees, date refusee ; le geste est ecrit par le TypeScript (lib/profil/journal-profil.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

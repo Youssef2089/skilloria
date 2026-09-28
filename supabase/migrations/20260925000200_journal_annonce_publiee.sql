@@ -92,16 +92,15 @@ update public.grand_livre_actions
  where code = 'annonce_publiee';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- Aucune sonde ne lit ni n'écrit une ligne réelle : la sonde qui publiait un vrai brouillon a arrêté le
+-- push de staging le 28/09/2026 (un brouillon sans zone, 23514). Le geste — mise en ligne et ligne
+-- ensemble, autre organisation refusée, rejeu null, pending_review sans ligne, organisation dans la
+-- ligne — est prouvé par supabase/tests/database/grand_livre/annonce_publiee.test.sql.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_pub    record;
-  v_piece  uuid := gen_random_uuid();
-  v_res    jsonb;
-  v_res2   jsonb;
-  v_lignes integer;
+  v_cles text[];
 begin
   if to_regprocedure('public.publier_annonce(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text[], text, numeric, text, jsonb)') is null then
     raise exception 'postcondition NON TENUE : publier_annonce manque ou a change de signature';
@@ -110,59 +109,7 @@ begin
   if v_cles is null or not (v_cles @> array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de annonce_publiee est incomplete [vu : %]', v_cles;
   end if;
-  -- SONDE — un brouillon réel : publié, `published_at` posé par la base, ligne
-  -- relue ; rejoué (le statut n'est plus admis), null et aucune seconde ligne ;
-  -- puis, sur le même brouillon remis à zéro, un verdict `pending_review` :
-  -- verdict écrit, AUCUNE ligne. Sans brouillon : sautée, et dite.
-  select p.id, p.domain_id, p.organization_id into v_pub
-    from public.publications p
-   where p.status = 'draft' and p.organization_id is not null
-   limit 1;
-  if v_pub.id is null then
-    raise notice 'postcondition : sonde publier_annonce SAUTEE — aucun brouillon (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      v_res := public.publier_annonce(v_piece, null::uuid, 'systeme', null::uuid, null::text,
-                                      v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
-                                      'published', 8.5, 'ai_publication_quality', '{"score":8.5,"notes":"sonde","flags":[]}'::jsonb);
-      if v_res is null or v_res ->> 'status' <> 'published' or (v_res ->> 'published_at') is null then
-        raise exception 'postcondition NON TENUE : la mise en ligne n a pas abouti [%]', v_res;
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'annonce_publiee' and g.statut = 'reussi'
-                        and g.sujet_type = 'publications' and g.sujet_id = v_pub.id
-                        and g.ecosysteme_id = v_pub.domain_id
-                        and g.detail ->> 'organization_id' = v_pub.organization_id::text
-                        and (g.detail ->> 'verification_score')::numeric = 8.5
-                        and g.detail ->> 'published_at' is not null) then
-        raise exception 'postcondition NON TENUE : la ligne annonce_publiee manque ou ne porte pas son detail';
-      end if;
-      -- LE REJEU : le statut n'est plus admis, null, aucune seconde ligne.
-      v_res2 := public.publier_annonce(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
-                                       v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
-                                       'published', 8.5, 'ai_publication_quality', '{}'::jsonb);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'annonce_publiee' and g.sujet_id = v_pub.id;
-      if v_res2 is not null or v_lignes <> 1 then
-        raise exception 'postcondition NON TENUE : le rejeu a publie ou journalise une seconde fois [% / % ligne(s)]', v_res2, v_lignes;
-      end if;
-      -- LE VERDICT QUI NE PUBLIE PAS : verdict écrit, aucune ligne.
-      update public.publications set status = 'draft', published_at = null where id = v_pub.id;
-      v_res2 := public.publier_annonce(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
-                                       v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
-                                       'pending_review', 4.0, 'ai_publication_quality', '{}'::jsonb);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'annonce_publiee' and g.sujet_id = v_pub.id;
-      if v_res2 is null or v_res2 ->> 'status' <> 'pending_review' or v_lignes <> 1 then
-        raise exception 'postcondition NON TENUE : pending_review n a pas ecrit le verdict, ou a journalise une publication [% / % ligne(s)]', v_res2, v_lignes;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
+  -- Un texte libre est REFUSÉ (identifiants inventés : aucune ligne réelle touchée).
   begin
     perform public.journaliser(gen_random_uuid(), 'annonce_publiee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
@@ -172,10 +119,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : annonce_publiee — mise en ligne et ligne naissent ensemble, le rejeu est null, pending_review n ecrit pas de ligne, texte libre refuse';
-  else
-    raise notice 'postcondition tenue : annonce_publiee — mise en ligne et ligne naissent ensemble, le rejeu est null, pending_review n ecrit pas de ligne, texte libre refuse';
-  end if;
+  raise notice 'postcondition tenue : annonce_publiee — signature par types, liste blanche, texte libre refuse ; le geste est prouve par tests/database/grand_livre/annonce_publiee.test.sql';
 end
 $post$;

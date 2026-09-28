@@ -179,19 +179,15 @@ update public.grand_livre_actions
  where code = 'sous_traitance_candidature';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
---  Sur un brouillon réel, rendu tour à tour sous-traitance et mission dans la
---  sous-transaction annulée : chaque type écrit SON code, et pas l'autre.
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui retypait un vrai brouillon en sous-traitance, le publiait et y faisait postuler un vrai
+-- profil est retirée (28/09/2026) — la même forme que celle qui a arrêté le push de staging. Le geste —
+-- sous-traitance publiée et postulée chacune sous SON nom et pas sous l'autre, mission sous le sien — est
+-- prouvé par supabase/tests/database/grand_livre/sous_traitance.test.sql.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_pub    record;
-  v_prof   record;
-  v_p1     uuid := gen_random_uuid();
-  v_p2     uuid := gen_random_uuid();
-  v_p3     uuid := gen_random_uuid();
-  v_res    jsonb;
+  v_cles text[];
 begin
   if to_regprocedure('public.publier_annonce(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text[], text, numeric, text, jsonb)') is null
      or to_regprocedure('public.inserer_candidature_jugee(uuid, uuid, text, uuid, text, jsonb, text)') is null then
@@ -205,66 +201,6 @@ begin
   if v_cles is null or array_length(v_cles, 1) <> 6 or not (v_cles @> array['publication_id', 'origine_depot', 'tentative']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de sous_traitance_candidature est fausse [vu : %]', v_cles;
   end if;
-
-  select p.id, p.domain_id, p.organization_id into v_pub
-    from public.publications p
-   where p.status = 'draft' and p.organization_id is not null
-   limit 1;
-  select pr.id, pr.domain_id into v_prof
-    from public.profiles pr
-   where v_pub.id is not null
-     and not exists (select 1 from public.candidatures c where c.publication_id = v_pub.id and c.profile_id = pr.id)
-     and not exists (select 1 from public.candidature_depots d where d.publication_id = v_pub.id and d.profile_id = pr.id)
-   limit 1;
-  if v_pub.id is null or v_prof.id is null then
-    raise notice 'postcondition : sonde sous-traitance SAUTEE — aucun brouillon ou aucun profil libre (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      -- UNE SOUS-TRAITANCE PUBLIÉE : sous son nom.
-      update public.publications set type = 'sous_traitance' where id = v_pub.id;
-      v_res := public.publier_annonce(v_p1, null::uuid, 'systeme', null::uuid, null::text,
-                                      v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
-                                      'published', 8.0, 'sonde', '{}'::jsonb);
-      if v_res is null
-         or not exists (select 1 from public.grand_livre g where g.piece = v_p1 and g.type_action = 'sous_traitance_publiee'
-                         and g.sujet_id = v_pub.id and g.detail ->> 'type' = 'sous_traitance')
-         or exists (select 1 from public.grand_livre g where g.piece = v_p1 and g.type_action = 'annonce_publiee') then
-        raise exception 'postcondition NON TENUE : la sous-traitance publiee ne s ecrit pas sous son nom [%]', v_res;
-      end if;
-      -- UNE CANDIDATURE À CETTE SOUS-TRAITANCE : sous son nom.
-      v_res := public.inserer_candidature_jugee(v_p2, null::uuid, 'systeme', null::uuid, null::text,
-        jsonb_build_object('publication_id', v_pub.id, 'profile_id', v_prof.id, 'domain_id', v_prof.domain_id,
-                           'ai_match_score', 7, 'ai_assessment', jsonb_build_object('reason', 'sonde', 'pitch_org', 'sonde', 'model', 'sonde'),
-                           'ai_model', 'sonde', 'status', 'received', 'preview', '{}'::jsonb),
-        'sonde');
-      if v_res is null
-         or not exists (select 1 from public.grand_livre g where g.piece = v_p2 and g.type_action = 'sous_traitance_candidature'
-                         and g.sujet_id = (v_res ->> 'id')::uuid and g.detail ->> 'publication_id' = v_pub.id::text)
-         or exists (select 1 from public.grand_livre g where g.piece = v_p2 and g.type_action = 'candidature_deposee') then
-        raise exception 'postcondition NON TENUE : la candidature a une sous-traitance ne s ecrit pas sous son nom [%]', v_res;
-      end if;
-      -- UNE MISSION : le nom d'une annonce, pas celui d'une sous-traitance.
-      update public.publications set type = 'mission', status = 'draft', published_at = null where id = v_pub.id;
-      v_res := public.publier_annonce(v_p3, null::uuid, 'systeme', null::uuid, null::text,
-                                      v_pub.id, v_pub.domain_id, v_pub.organization_id, array['draft'],
-                                      'published', 8.0, 'sonde', '{}'::jsonb);
-      if v_res is null
-         or not exists (select 1 from public.grand_livre g where g.piece = v_p3 and g.type_action = 'annonce_publiee')
-         or exists (select 1 from public.grand_livre g where g.piece = v_p3 and g.type_action = 'sous_traitance_publiee') then
-        raise exception 'postcondition NON TENUE : une mission s ecrit sous le nom d une sous-traitance [%]', v_res;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : sous-traitance — publiee et postulee sous leur nom, une mission sous le sien';
-  else
-    raise notice 'postcondition tenue : sous-traitance — publiee et postulee sous leur nom, une mission sous le sien';
-  end if;
+  raise notice 'postcondition tenue : sous-traitance — deux signatures par types, deux listes blanches exactes ; les gestes sont prouves par tests/database/grand_livre/sous_traitance.test.sql';
 end
 $post$;

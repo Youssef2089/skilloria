@@ -55,6 +55,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : session_revoquee — liste blanche VIDE, le fait seul est accepte, un jeton est refuse';
+  raise notice 'postcondition tenue : session_revoquee — liste blanche VIDE, le fait seul est accepte, un jeton est refuse ; le geste est ecrit par le TypeScript (lib/comptes/journal-compte.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

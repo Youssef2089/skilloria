@@ -201,18 +201,15 @@ update public.grand_livre_actions
  where code = 'compte_refuse';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui arbitrait un vrai profil et une vraie organisation avec un vrai administrateur est retirée
+-- (28/09/2026). Le geste — approbation avec la date posée par la base, profil ET drapeau du compte, rejeu
+-- null, refus par le même écrivain, motif hors de la ligne, organisation sans écosystème, écrivain unique
+-- appelé en direct — est prouvé par supabase/tests/database/grand_livre/compte_valide.test.sql.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_prof   record;
-  v_org    uuid;
-  v_acteur uuid;
-  v_piece  uuid := gen_random_uuid();
-  v_res    jsonb;
-  v_res2   jsonb;
-  v_lignes integer;
+  v_cles text[];
 begin
   if to_regprocedure('public.journaliser_verification(uuid, uuid, text, uuid, text, uuid, text, uuid, boolean, jsonb)') is null
      or to_regprocedure('public.statuer_sur_expert(uuid, uuid, text, uuid, text, uuid, text, boolean, text)') is null
@@ -227,68 +224,6 @@ begin
   if v_cles is null or not (v_cles @> array['has_reason', 'de']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de compte_refuse est incomplete [vu : %]', v_cles;
   end if;
-
-  select u.id into v_acteur from public.users u where u.user_type = 'admin' limit 1;
-  select p.id, p.verification_status into v_prof from public.profiles p where p.verification_status is not null limit 1;
-  select o.id into v_org from public.organizations o where o.verification_status is not null limit 1;
-  if v_acteur is null or v_prof.id is null then
-    raise notice 'postcondition : sonde statuer_sur_expert SAUTEE — aucun profil arbitrable ou aucun administrateur (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      -- L'EXPERT : approuvé, ligne relue ; rejoué (le statut n'est plus admis),
-      -- null, aucune seconde ligne.
-      v_res := public.statuer_sur_expert(v_piece, null::uuid, 'administrateur', v_acteur, 'admin',
-                                         v_prof.id, v_prof.verification_status, true, null::text);
-      if v_res is null or (v_res ->> 'verified_at') is null then
-        raise exception 'postcondition NON TENUE : l arbitrage de l expert n a pas abouti, ou n a pas rendu la date posee [%]', v_res;
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'compte_valide' and g.statut = 'reussi'
-                        and g.sujet_type = 'profiles' and g.sujet_id = v_prof.id
-                        and (g.detail ->> 'has_reason')::boolean = false) then
-        raise exception 'postcondition NON TENUE : la ligne compte_valide manque ou ne porte pas son detail';
-      end if;
-      if not exists (select 1 from public.profiles p where p.id = v_prof.id and p.verification_status = 'approved')
-         or not exists (select 1 from public.users u
-                         join public.profiles p on p.user_id = u.id
-                        where p.id = v_prof.id and u.is_verified) then
-        raise exception 'postcondition NON TENUE : le profil ou le drapeau du compte n est pas relu';
-      end if;
-      v_res2 := public.statuer_sur_expert(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
-                                          v_prof.id, v_prof.verification_status, true, null::text);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'compte_valide' and g.sujet_id = v_prof.id;
-      if v_res2 is not null or v_lignes <> 1 then
-        raise exception 'postcondition NON TENUE : le rejeu a arbitre ou journalise une seconde fois [% / % ligne(s)]', v_res2, v_lignes;
-      end if;
-      -- LA SECONDE ACTION, par le MÊME écrivain : un refus, avec son motif.
-      v_res2 := public.statuer_sur_expert(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
-                                          v_prof.id, 'approved', false, 'sonde');
-      if v_res2 is null or not exists (select 1 from public.grand_livre g
-                                        where g.type_action = 'compte_refuse' and g.sujet_id = v_prof.id
-                                          and (g.detail ->> 'has_reason')::boolean = true
-                                          and g.detail ->> 'de' = 'approved') then
-        raise exception 'postcondition NON TENUE : le refus n a pas ecrit sa ligne [%]', v_res2;
-      end if;
-      -- L'ORGANISATION, s'il y en a une : même écrivain, autre sujet, sans écosystème.
-      if v_org is not null then
-        v_res2 := public.statuer_sur_organisation(gen_random_uuid(), null::uuid, 'administrateur', v_acteur, 'admin',
-                                                  v_org, (select o.verification_status from public.organizations o where o.id = v_org),
-                                                  true, null::text);
-        if v_res2 is null or not exists (select 1 from public.grand_livre g
-                                          where g.type_action = 'compte_valide' and g.sujet_type = 'organizations'
-                                            and g.sujet_id = v_org and g.ecosysteme_id is null) then
-          raise exception 'postcondition NON TENUE : l arbitrage d organisation n a pas ecrit sa ligne sans ecosysteme [%]', v_res2;
-        end if;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — le MOTIF en texte libre est REFUSÉ (la liste blanche tient).
   begin
     perform public.journaliser(gen_random_uuid(), 'compte_refuse', 'reussi', 'administrateur',
                                gen_random_uuid(), 'admin', null::uuid, 'profiles', gen_random_uuid(),
@@ -298,10 +233,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : compte_valide / compte_refuse — un ecrivain, deux objets, transition rejouee sous verrou, rejeu null, motif en texte libre refuse';
-  else
-    raise notice 'postcondition tenue : compte_valide / compte_refuse — un ecrivain, deux objets, transition rejouee sous verrou, rejeu null, motif en texte libre refuse';
-  end if;
+  raise notice 'postcondition tenue : compte_valide / compte_refuse — trois signatures par types, deux listes blanches, motif en texte libre refuse ; le geste est prouve par tests/database/grand_livre/compte_valide.test.sql';
 end
 $post$;

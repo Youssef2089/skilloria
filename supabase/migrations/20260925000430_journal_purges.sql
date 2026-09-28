@@ -191,21 +191,18 @@ update public.grand_livre_actions
  where code = 'inactivite_avertie';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67, §E.70) ───────────────────────────
---  Sur un compte réel non anonymisé, dans la sous-transaction annulée : les
---  trois motifs écrivent chacun SON code (le jalon remis à nul entre deux), un
---  compte déjà purgé ne produit rien, un motif inconnu lève avant d'écrire ;
---  l'avertissement écrit ses deux issues.
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui anonymisait un vrai compte sous chacun des trois motifs, puis avertissait un vrai compte,
+-- est retirée (28/09/2026) — en production, elle aurait touché le compte d'une vraie personne. Le geste —
+-- trois motifs, trois codes, UNE ligne chacun sans l'adresse, déjà purgé sans rien, acteur de la purge
+-- d'administrateur, avertissement aux deux issues — est prouvé par
+-- supabase/tests/database/grand_livre/purges.test.sql. Les deux REFUS restent sondés ici : ils lèvent
+-- AVANT toute lecture, sur des identifiants INVENTÉS.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_n      integer;
-  v_user   record;
-  v_admin  uuid;
-  v_p      uuid;
-  v_ok     boolean;
-  v_code   text;
-  v_motif  text;
+  v_n  integer;
+  v_ok boolean;
 begin
   if to_regprocedure('public.anonymiser_compte(uuid, uuid, text, uuid, text, uuid, text, text, boolean, boolean, boolean, integer)') is null
      or to_regprocedure('public.constater_avertissement_inactivite(uuid, uuid, text, uuid, text, uuid, timestamp with time zone, boolean, text, text)') is null then
@@ -217,92 +214,32 @@ begin
   if v_n <> 3 then
     raise exception 'postcondition NON TENUE : les listes blanches des trois purges sont fausses [% sur 3]', v_n;
   end if;
-
-  select u.id, u.email into v_user from public.users u
-   where u.anonymized_at is null and u.email is not null and u.user_type is distinct from 'admin' limit 1;
-  select u.id into v_admin from public.users u where u.user_type = 'admin' limit 1;
-  if v_user.id is null or v_admin is null then
-    raise notice 'postcondition : sondes des purges SAUTEES — aucun compte ou aucun administrateur (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      -- UN MOTIF INCONNU : refusé AVANT d'écrire.
-      begin
-        perform public.anonymiser_compte(gen_random_uuid(), null::uuid, 'tache_planifiee', null::uuid, null::text,
-                                         v_user.id, 'sonde@deleted.invalid', 'autre', true, null, true, 0);
-        raise exception 'postcondition NON TENUE : un motif inconnu a ete accepte';
-      exception when sqlstate '22023' then
-        null;
-      end;
-      if exists (select 1 from public.users u where u.id = v_user.id and u.anonymized_at is not null) then
-        raise exception 'postcondition NON TENUE : un motif refuse a pose le jalon';
-      end if;
-      -- LES TROIS MOTIFS, CHACUN SOUS SON NOM.
-      foreach v_motif in array array['inactivite', 'demande', 'admin'] loop
-        v_p := gen_random_uuid();
-        v_code := case v_motif when 'inactivite' then 'compte_purge_inactivite' when 'demande' then 'compte_purge_demande' else 'compte_purge_admin' end;
-        if v_motif = 'admin' then
-          v_ok := public.anonymiser_compte(v_p, null::uuid, 'administrateur', v_admin, 'admin',
-                                           v_user.id, 'sonde@deleted.invalid', v_motif, true, null, true, 2);
-        else
-          v_ok := public.anonymiser_compte(v_p, null::uuid, 'tache_planifiee', null::uuid, null::text,
-                                           v_user.id, 'sonde@deleted.invalid', v_motif, true, null, true, 2);
-        end if;
-        if v_ok is distinct from true
-           or not exists (select 1 from public.users u where u.id = v_user.id and u.anonymized_at is not null
-                            and u.email = 'sonde@deleted.invalid' and u.first_name is null and u.status = 'archived')
-           or not exists (select 1 from public.grand_livre g where g.piece = v_p and g.type_action = v_code
-                            and g.sujet_id = v_user.id and (g.detail ->> 'audit_lignes_nettoyees')::int = 2
-                            and g.detail::text not ilike '%' || v_user.email || '%') then
-          raise exception 'postcondition NON TENUE : la purge « % » n est pas relue sous % (jalon, anonymisation, ligne sans adresse)', v_motif, v_code;
-        end if;
-        select count(*) into v_n from public.grand_livre g where g.piece = v_p;
-        if v_n <> 1 then
-          raise exception 'postcondition NON TENUE : la purge « % » a ecrit % ligne(s), pas une', v_motif, v_n;
-        end if;
-        -- DÉJÀ PURGÉ : rien.
-        v_ok := public.anonymiser_compte(gen_random_uuid(), null::uuid, 'tache_planifiee', null::uuid, null::text,
-                                         v_user.id, 'sonde2@deleted.invalid', v_motif, true, null, true, 0);
-        if v_ok is distinct from false or exists (select 1 from public.users u where u.id = v_user.id and u.email = 'sonde2@deleted.invalid') then
-          raise exception 'postcondition NON TENUE : un compte deja purge a ete repurge';
-        end if;
-        update public.users set anonymized_at = null where id = v_user.id;
-      end loop;
-      -- L'AVERTISSEMENT : les deux issues.
-      update public.users set inactivity_warning_sent_at = null where id = v_user.id;
-      v_p := gen_random_uuid();
-      v_ok := public.constater_avertissement_inactivite(v_p, null::uuid, 'tache_planifiee', null::uuid, null::text,
-                                                        v_user.id, now() + interval '30 days', false, null, 'resend_refuse');
-      if v_ok is distinct from true
-         or exists (select 1 from public.users u where u.id = v_user.id and u.inactivity_warning_sent_at is not null)
-         or not exists (select 1 from public.grand_livre g where g.piece = v_p and g.type_action = 'inactivite_avertie'
-                          and g.statut = 'echoue' and g.detail ->> 'cause' = 'resend_refuse') then
-        raise exception 'postcondition NON TENUE : l avertissement en echec n est pas relu (ligne echouee, marqueur NON pose)';
-      end if;
-      v_p := gen_random_uuid();
-      v_ok := public.constater_avertissement_inactivite(v_p, null::uuid, 'tache_planifiee', null::uuid, null::text,
-                                                        v_user.id, now() + interval '30 days', true, 'msg_sonde', null);
-      if v_ok is distinct from true
-         or not exists (select 1 from public.users u where u.id = v_user.id and u.inactivity_warning_sent_at is not null)
-         or not exists (select 1 from public.grand_livre g where g.piece = v_p and g.type_action = 'inactivite_avertie'
-                          and g.statut = 'reussi' and g.detail ->> 'cause' is null) then
-        raise exception 'postcondition NON TENUE : l avertissement parti n est pas relu (marqueur ET ligne)';
-      end if;
-      begin
-        perform public.constater_avertissement_inactivite(gen_random_uuid(), null::uuid, 'tache_planifiee', null::uuid, null::text,
-                                                          v_user.id, now(), false, null, null);
-        raise exception 'postcondition NON TENUE : un echec sans cause a ete accepte';
-      exception when sqlstate '22023' then
-        null;
-      end;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — l'adresse est REFUSÉE dans une purge (la liste blanche tient).
+  begin
+    perform public.anonymiser_compte(gen_random_uuid(), null::uuid, 'tache_planifiee', null::uuid, null::text,
+                                     gen_random_uuid(), 'sonde@deleted.invalid', 'autre', true, null, true, 0);
+    raise exception 'postcondition NON TENUE : un motif inconnu a ete accepte';
+  exception when sqlstate '22023' then
+    null;
+  end;
+  begin
+    perform public.constater_avertissement_inactivite(gen_random_uuid(), null::uuid, 'tache_planifiee', null::uuid, null::text,
+                                                      gen_random_uuid(), now(), false, null, null);
+    raise exception 'postcondition NON TENUE : un echec sans cause a ete accepte';
+  exception when sqlstate '22023' then
+    null;
+  end;
+  begin
+    v_ok := public.anonymiser_compte(gen_random_uuid(), null::uuid, 'tache_planifiee', null::uuid, null::text,
+                                     gen_random_uuid(), 'sonde@deleted.invalid', 'inactivite', true, null, true, 0);
+    if v_ok is distinct from false then
+      raise exception 'postcondition NON TENUE : un compte inconnu a ete purge';
+    end if;
+    raise exception 'SONDE_ANNULEE';
+  exception when others then
+    if sqlerrm <> 'SONDE_ANNULEE' then
+      raise;
+    end if;
+  end;
   begin
     perform public.journaliser(gen_random_uuid(), 'compte_purge_demande', 'reussi', 'tache_planifiee',
                                null::uuid, null::text, null::uuid, 'users', gen_random_uuid(),
@@ -312,10 +249,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : trois purges sous trois noms par un ecrivain, jalon et ligne ensemble, deja purge sans rien ; avertissement aux deux issues';
-  else
-    raise notice 'postcondition tenue : trois purges sous trois noms par un ecrivain, jalon et ligne ensemble, deja purge sans rien ; avertissement aux deux issues';
-  end if;
+  raise notice 'postcondition tenue : purges — deux signatures par types, trois listes blanches, motif inconnu et echec sans cause refuses, compte inconnu sans rien, adresse refusee ; les gestes sont prouves par tests/database/grand_livre/purges.test.sql';
 end
 $post$;

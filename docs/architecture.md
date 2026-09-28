@@ -100,6 +100,13 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **Les postconditions du lot du grand livre ne touchent plus aucune donnée réelle (28/09/2026, lot S).** Le `db push`
+> de staging s'est arrêté sur `journal_annonce_publiee` : sa sonde publiait un VRAI brouillon, sans zone (23514). Les 21
+> migrations déjà appliquées (jusqu'à `journal_recherche_abandonnee`) sont **gelées** ; les 29 suivantes ont été
+> corrigées en place : 16 perdent leur sonde sur données réelles, gardent la structure (signatures, listes blanches,
+> colonnes, index, refus du texte libre, identifiants inventés) et nomment le test qui prouve le geste. Règle :
+> CLAUDE.md §G.4 ter ; piège : §E.77 ; gardé par [`diag-postconditions-structure`](../scripts/diag-postconditions-structure.mjs).
+
 > **`ecritures_effectives` (28/09/2026) — ET `exiger_ecriture()` : UNE ÉCRITURE SANS EFFET LÈVE EC001.** La fonction
 > unique vit dans `liste_blanche_par_action` (première migration du lot, non poussée) ; le lot l'appelle en place
 > (18 écritures : invitations, membres, statuts de compte, arbitrages, dévoilement, message, suppression programmée,

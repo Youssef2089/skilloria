@@ -35,8 +35,9 @@ begin
   return next ok(exists (select 1 from public.organization_invitations i where i.id = v_inv and i.email = v_email and i.status = 'pending'),
                  'membre_invite : l''invitation est écrite, l''adresse est SUR l''invitation');
   return next ok(pg_temp.lignes(v_p[1]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[1]
-                  and g.type_action = 'membre_invite' and g.detail::text not like '%' || v_email || '%' and g.detail::text not like '%hash_%'),
-                 'membre_invite : UNE ligne, sans l''adresse ni le jeton');
+                  and g.type_action = 'membre_invite' and g.detail ->> 'role_in_org' = 'viewer'
+                  and g.detail::text not like '%' || v_email || '%' and g.detail::text not like '%hash_%'),
+                 'membre_invite : UNE ligne, avec le rôle, sans l''adresse ni le jeton');
   -- ── invitation_renvoyee ──
   return next ok(not public.renvoyer_invitation(v_p[2], null, 'utilisateur', v_admin, 'client', v_dom, v_inv, gen_random_uuid(),
                                                 array['pending'], 'jeton_autre', now() + interval '7 days')
@@ -50,8 +51,9 @@ begin
                               and i.expires_at = now() + interval '8 days'),
                  'invitation_renvoyee : le jeton neuf ET l''échéance sont posés');
   return next ok(pg_temp.lignes(v_p[3]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[3]
-                  and g.type_action = 'invitation_renvoyee' and g.detail::text not like '%jeton_neuf%'),
-                 'invitation_renvoyee : UNE ligne, sans le jeton');
+                  and g.type_action = 'invitation_renvoyee' and (g.detail ->> 'expires_at')::timestamptz = now() + interval '8 days'
+                  and g.detail::text not like '%jeton_neuf%'),
+                 'invitation_renvoyee : UNE ligne, avec l''échéance, sans le jeton');
   return next throws_ok(format($q$select public.renvoyer_invitation(%L, null, 'utilisateur', %L, 'client', %L, %L, %L, array['pending'], 'jeton_bis', now() + interval '9 days')$q$,
                                v_p[3], v_admin, v_dom, v_inv, v_org),
                         'GL005', null, 'invitation_renvoyee : le MÊME geste ne s''écrit pas deux fois (GL005)');

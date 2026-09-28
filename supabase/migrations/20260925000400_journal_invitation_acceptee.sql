@@ -141,19 +141,18 @@ update public.grand_livre_actions
  where code = 'invitation_acceptee';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
---  La sonde FABRIQUE son cas dans la sous-transaction qu'elle annule : une
---  invitation en attente réelle reçoit l'adresse d'un compte vérifié qui n'est
---  membre de rien. Tout est défait par SONDE_ANNULEE.
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui modifiait une vraie invitation en attente et la faisait accepter par un vrai compte est
+-- retirée (28/09/2026). Le geste — adresse différente, statut non admis et invitation échue refusés sans
+-- ligne ni appartenance, adresse comparée sans casse, appartenance et invitation soldée ensemble, ligne
+-- sans l'adresse, rejeu refusé sans seconde ligne — est prouvé par
+-- supabase/tests/database/grand_livre/invitations.test.sql. L'invitation inconnue reste sondée ici, sur des
+-- identifiants INVENTÉS.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_inv    record;
-  v_user   record;
-  v_piece  uuid := gen_random_uuid();
-  v_r      jsonb;
-  v_lignes integer;
+  v_cles text[];
+  v_r    jsonb;
 begin
   if to_regprocedure('public.accepter_invitation(uuid, uuid, text, uuid, text, uuid, uuid, text[])') is null then
     raise exception 'postcondition NON TENUE : accepter_invitation manque ou a change de signature';
@@ -163,82 +162,18 @@ begin
      or not (v_cles @> array['organization_id', 'role_in_org', 'deja_membre', 'reintegre']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de invitation_acceptee est fausse [vu : %]', v_cles;
   end if;
-
-  select i.id, i.organization_id into v_inv
-    from public.organization_invitations i where i.status = 'pending' limit 1;
-  select u.id, u.email, u.user_type into v_user
-    from public.users u
-   where u.email_verified and u.email is not null
-     and not exists (select 1 from public.organization_members m where m.user_id = u.id)
-   limit 1;
-  if v_inv.id is null or v_user.id is null then
-    raise notice 'postcondition : sonde accepter_invitation SAUTEE — aucune invitation en attente ou aucun compte verifie sans organisation (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      update public.organization_invitations
-         set email = 'sonde-autre@exemple.invalid', expires_at = now() + interval '1 day'
-       where id = v_inv.id;
-      -- UNE AUTRE ADRESSE : refus, rien d'ecrit.
-      v_r := public.accepter_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_user.id, 'client', null::uuid,
-                                        v_inv.id, array['pending']);
-      if v_r ->> 'issue' is distinct from 'email_mismatch' then
-        raise exception 'postcondition NON TENUE : une adresse differente a ete acceptee [%]', v_r;
-      end if;
-      update public.organization_invitations set email = upper(v_user.email) where id = v_inv.id;
-      -- UN STATUT NON ADMIS : refus.
-      v_r := public.accepter_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_user.id, 'client', null::uuid,
-                                        v_inv.id, array['sonde_statut_absent']);
-      if v_r ->> 'issue' is distinct from 'not_pending' then
-        raise exception 'postcondition NON TENUE : une invitation hors des statuts admis a ete acceptee [%]', v_r;
-      end if;
-      -- UNE ECHEANCE PASSEE : refus.
-      update public.organization_invitations set expires_at = now() - interval '1 second' where id = v_inv.id;
-      v_r := public.accepter_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_user.id, 'client', null::uuid,
-                                        v_inv.id, array['pending']);
-      if v_r ->> 'issue' is distinct from 'expired' then
-        raise exception 'postcondition NON TENUE : une invitation echue a ete acceptee [%]', v_r;
-      end if;
-      if exists (select 1 from public.organization_members m where m.user_id = v_user.id)
-         or exists (select 1 from public.grand_livre g where g.type_action = 'invitation_acceptee' and g.sujet_id = v_inv.id) then
-        raise exception 'postcondition NON TENUE : un refus a ecrit quelque chose';
-      end if;
-      -- L'ACCEPTATION : l'adresse compare sans casse ; membre, invitation et ligne RELUS.
-      update public.organization_invitations set expires_at = now() + interval '1 day' where id = v_inv.id;
-      v_r := public.accepter_invitation(v_piece, null::uuid, 'utilisateur', v_user.id, 'client', null::uuid,
-                                        v_inv.id, array['pending']);
-      if v_r ->> 'issue' is distinct from 'acceptee' or (v_r ->> 'deja_membre')::boolean is distinct from false then
-        raise exception 'postcondition NON TENUE : l acceptation n a pas abouti [%]', v_r;
-      end if;
-      if not exists (select 1 from public.organization_members m
-                      where m.user_id = v_user.id and m.organization_id = v_inv.organization_id and m.status = 'active')
-         or not exists (select 1 from public.organization_invitations i
-                         where i.id = v_inv.id and i.status = 'accepted' and i.accepted_at is not null) then
-        raise exception 'postcondition NON TENUE : l appartenance ou l invitation soldee ne sont pas relues';
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'invitation_acceptee' and g.statut = 'reussi'
-                        and g.sujet_id = v_inv.id and g.acteur_id = v_user.id
-                        and g.detail ->> 'organization_id' = v_inv.organization_id::text
-                        and (g.detail ->> 'deja_membre')::boolean = false
-                        and g.detail::text not ilike '%' || v_user.email || '%') then
-        raise exception 'postcondition NON TENUE : la ligne invitation_acceptee manque, ou porte l adresse';
-      end if;
-      -- LE REJEU : l'invitation est soldee, rien de plus.
-      v_r := public.accepter_invitation(gen_random_uuid(), null::uuid, 'utilisateur', v_user.id, 'client', null::uuid,
-                                        v_inv.id, array['pending']);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'invitation_acceptee' and g.sujet_id = v_inv.id;
-      if v_r ->> 'issue' is distinct from 'not_pending' or v_lignes <> 1 then
-        raise exception 'postcondition NON TENUE : le rejeu a accepte ou journalise une seconde fois [% / % ligne(s)]', v_r, v_lignes;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — l'adresse est REFUSEE (la liste blanche tient).
+  begin
+    v_r := public.accepter_invitation(gen_random_uuid(), null::uuid, 'utilisateur', gen_random_uuid(), 'client', null::uuid,
+                                      gen_random_uuid(), array['pending']);
+    if v_r ->> 'issue' is distinct from 'introuvable' then
+      raise exception 'postcondition NON TENUE : une invitation inconnue n est pas « introuvable » [%]', v_r;
+    end if;
+    raise exception 'SONDE_ANNULEE';
+  exception when others then
+    if sqlerrm <> 'SONDE_ANNULEE' then
+      raise;
+    end if;
+  end;
   begin
     perform public.journaliser(gen_random_uuid(), 'invitation_acceptee', 'reussi', 'utilisateur',
                                gen_random_uuid(), 'client', null::uuid, 'organization_invitations', gen_random_uuid(),
@@ -248,10 +183,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : invitation_acceptee — appartenance, invitation soldee et ligne ensemble ; adresse, statut et echeance rejoues sous verrou ; rejeu sans seconde ligne ; adresse refusee';
-  else
-    raise notice 'postcondition tenue : invitation_acceptee — appartenance, invitation soldee et ligne ensemble ; adresse, statut et echeance rejoues sous verrou ; rejeu sans seconde ligne ; adresse refusee';
-  end if;
+  raise notice 'postcondition tenue : invitation_acceptee — signature par types, liste blanche exacte, invitation inconnue introuvable, adresse refusee ; le geste est prouve par tests/database/grand_livre/invitations.test.sql';
 end
 $post$;

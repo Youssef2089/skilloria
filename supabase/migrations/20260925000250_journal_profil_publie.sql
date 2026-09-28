@@ -59,6 +59,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : profil_publie — liste blanche posee, premiere publication et republication acceptees, champ du profil refuse';
+  raise notice 'postcondition tenue : profil_publie — liste blanche posee, premiere publication et republication acceptees, champ du profil refuse ; le geste est ecrit par le TypeScript (lib/profil/journal-profil.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

@@ -55,6 +55,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  raise notice 'postcondition tenue : annonce_modifiee — liste blanche posee, noms de champs acceptes, contenu refuse';
+  raise notice 'postcondition tenue : annonce_modifiee — liste blanche posee, noms de champs acceptes, contenu refuse ; le geste est ecrit par le TypeScript (app/api/publications/[id]/route.ts) sous journaliser(), sa forme tenue par scripts/diag-grand-livre.mjs';
 end
 $post$;

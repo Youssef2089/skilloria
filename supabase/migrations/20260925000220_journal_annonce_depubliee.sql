@@ -83,16 +83,14 @@ update public.grand_livre_actions
  where code = 'annonce_depubliee';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui clôturait une vraie annonce publiée est retirée (28/09/2026). Le geste — clôture et ligne
+-- ensemble, autre organisation refusée, rejeu false, de/vers dans la ligne — est prouvé par
+-- supabase/tests/database/grand_livre/annonce_depubliee.test.sql (et vrai_appelant/appelant.test.sql en service_role).
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles   text[];
-  v_pub    record;
-  v_piece  uuid := gen_random_uuid();
-  v_ok     boolean;
-  v_ok2    boolean;
-  v_lignes integer;
+  v_cles text[];
 begin
   if to_regprocedure('public.cloturer_annonce(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text[])') is null then
     raise exception 'postcondition NON TENUE : cloturer_annonce manque ou a change de signature';
@@ -101,47 +99,6 @@ begin
   if v_cles is null or not (v_cles @> array['de', 'vers', 'organization_id']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de annonce_depubliee est incomplete [vu : %]', v_cles;
   end if;
-  -- SONDE — une annonce publiée réelle : clôturée, ligne relue ; rejouée, false,
-  -- aucune seconde ligne. Sans annonce publiée : sautée, et dite.
-  select p.id, p.domain_id, p.organization_id into v_pub
-    from public.publications p
-   where p.status = 'published' and p.organization_id is not null
-   limit 1;
-  if v_pub.id is null then
-    raise notice 'postcondition : sonde cloturer_annonce SAUTEE — aucune annonce publiee (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      v_ok := public.cloturer_annonce(v_piece, null::uuid, 'systeme', null::uuid, null::text,
-                                      v_pub.id, v_pub.domain_id, v_pub.organization_id, array['published']);
-      if v_ok is distinct from true then
-        raise exception 'postcondition NON TENUE : la cloture n a pas abouti';
-      end if;
-      if not exists (select 1 from public.publications p where p.id = v_pub.id and p.status = 'archived') then
-        raise exception 'postcondition NON TENUE : la transition n est pas relue';
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'annonce_depubliee' and g.statut = 'reussi'
-                        and g.sujet_type = 'publications' and g.sujet_id = v_pub.id
-                        and g.ecosysteme_id = v_pub.domain_id
-                        and g.detail ->> 'de' = 'published' and g.detail ->> 'vers' = 'archived') then
-        raise exception 'postcondition NON TENUE : la ligne annonce_depubliee manque ou ne porte pas son detail';
-      end if;
-      -- LE REJEU : false, aucune seconde ligne.
-      v_ok2 := public.cloturer_annonce(gen_random_uuid(), null::uuid, 'systeme', null::uuid, null::text,
-                                       v_pub.id, v_pub.domain_id, v_pub.organization_id, array['published']);
-      select count(*) into v_lignes from public.grand_livre g where g.type_action = 'annonce_depubliee' and g.sujet_id = v_pub.id;
-      if v_ok2 is distinct from false or v_lignes <> 1 then
-        raise exception 'postcondition NON TENUE : le rejeu a cloture ou journalise une seconde fois [% / % ligne(s)]', v_ok2, v_lignes;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
     perform public.journaliser(gen_random_uuid(), 'annonce_depubliee', 'reussi', 'systeme',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
@@ -151,10 +108,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : annonce_depubliee — transition et ligne naissent ensemble, le rejeu est false, texte libre refuse';
-  else
-    raise notice 'postcondition tenue : annonce_depubliee — transition et ligne naissent ensemble, le rejeu est false, texte libre refuse';
-  end if;
+  raise notice 'postcondition tenue : annonce_depubliee — signature par types, liste blanche, texte libre refuse ; le geste est prouve par tests/database/grand_livre/annonce_depubliee.test.sql';
 end
 $post$;

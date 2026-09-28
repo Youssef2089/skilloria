@@ -207,22 +207,17 @@ update public.grand_livre_actions
  where code = 'membre_parti';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
---  La sonde FABRIQUE un membre `viewer` dans une organisation réelle (un compte
---  qui n'y est pas), le fait changer de rôle, retirer, réintégrer, partir — puis
---  annule tout.
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui changeait le rôle d'un vrai membre, le retirait puis le faisait partir, dans une vraie
+-- organisation, est retirée (28/09/2026). Le geste — changement sans action refusé avant d'écrire (22023),
+-- geste sans changement sans ligne, rôle / retrait / départ dérivés du geste avec UNE ligne chacun, retrait
+-- rejoué « inchangé » — est prouvé par supabase/tests/database/grand_livre/membres.test.sql (et
+-- vrai_appelant/appelant.test.sql en service_role). Le membre inconnu reste sondé ici, sur des identifiants INVENTÉS.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_org     uuid;
-  v_user    uuid;
-  v_autre   uuid;
-  v_membre  uuid;
-  v_p1      uuid := gen_random_uuid();
-  v_p2      uuid := gen_random_uuid();
-  v_p3      uuid := gen_random_uuid();
-  v_r       text;
-  v_n       integer;
+  v_n integer;
+  v_r text;
 begin
   if to_regprocedure('public.maj_membre_organisation(uuid, uuid, text, uuid, text, uuid, uuid, character varying, character varying, boolean)') is null then
     raise exception 'postcondition NON TENUE : maj_membre_organisation manque ou a change de signature';
@@ -236,79 +231,18 @@ begin
   if v_n <> 3 then
     raise exception 'postcondition NON TENUE : les listes blanches des trois actions de membre sont fausses [% sur 3]', v_n;
   end if;
-
-  select o.id into v_org from public.organizations o limit 1;
-  select u.id into v_user from public.users u
-   where v_org is not null
-     and not exists (select 1 from public.organization_members m where m.user_id = u.id and m.organization_id = v_org)
-   limit 1;
-  select u.id into v_autre from public.users u where u.id is distinct from v_user limit 1;
-  if v_org is null or v_user is null or v_autre is null then
-    raise notice 'postcondition : sonde maj_membre_organisation SAUTEE — aucune organisation ou pas deux comptes (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      insert into public.organization_members (organization_id, user_id, role_in_org, status)
-      values (v_org, v_user, 'viewer', 'active') returning id into v_membre;
-
-      -- UN CHANGEMENT SANS ACTION : refusé AVANT d'écrire.
-      begin
-        perform public.maj_membre_organisation(gen_random_uuid(), null::uuid, 'utilisateur', v_autre, 'client', null::uuid,
-                                               v_membre, null, 'suspended', false);
-        raise exception 'postcondition NON TENUE : un changement sans action au grand livre a ete ecrit';
-      exception when sqlstate '22023' then
-        null;
-      end;
-      -- INCHANGÉ : rien.
-      v_r := public.maj_membre_organisation(gen_random_uuid(), null::uuid, 'utilisateur', v_autre, 'client', null::uuid,
-                                            v_membre, 'viewer', null, false);
-      if v_r <> 'inchange' or exists (select 1 from public.grand_livre g where g.sujet_id = v_membre) then
-        raise exception 'postcondition NON TENUE : un geste sans changement a ecrit [%]', v_r;
-      end if;
-      -- LE RÔLE, par un autre.
-      v_r := public.maj_membre_organisation(v_p1, null::uuid, 'utilisateur', v_autre, 'client', null::uuid,
-                                            v_membre, 'editor', null, false);
-      if v_r <> 'ok' or not exists (select 1 from public.grand_livre g
-                                     where g.piece = v_p1 and g.type_action = 'role_membre_change' and g.sujet_id = v_membre
-                                       and g.detail ->> 'role_de' = 'viewer' and g.detail ->> 'role_vers' = 'editor'
-                                       and g.detail ->> 'membre_user_id' = v_user::text) then
-        raise exception 'postcondition NON TENUE : le changement de role n est pas relu [%]', v_r;
-      end if;
-      -- LE RETRAIT, par un autre.
-      v_r := public.maj_membre_organisation(v_p2, null::uuid, 'utilisateur', v_autre, 'client', null::uuid,
-                                            v_membre, null, 'removed', false);
-      if v_r <> 'ok' or not exists (select 1 from public.grand_livre g
-                                     where g.piece = v_p2 and g.type_action = 'membre_retire' and g.sujet_id = v_membre
-                                       and g.detail ->> 'statut_vers' = 'removed') then
-        raise exception 'postcondition NON TENUE : le retrait n est pas relu comme membre_retire [%]', v_r;
-      end if;
-      -- LE MÊME RETRAIT, REJOUÉ : inchangé, aucune seconde ligne.
-      v_r := public.maj_membre_organisation(gen_random_uuid(), null::uuid, 'utilisateur', v_autre, 'client', null::uuid,
-                                            v_membre, null, 'removed', false);
-      select count(*) into v_n from public.grand_livre g where g.type_action = 'membre_retire' and g.sujet_id = v_membre;
-      if v_r <> 'inchange' or v_n <> 1 then
-        raise exception 'postcondition NON TENUE : le retrait rejoue a ecrit [% / % ligne(s)]', v_r, v_n;
-      end if;
-      -- LE DÉPART : la ligne de l'ACTEUR lui-même.
-      update public.organization_members set status = 'active' where id = v_membre;
-      v_r := public.maj_membre_organisation(v_p3, null::uuid, 'utilisateur', v_user, 'client', null::uuid,
-                                            v_membre, null, 'removed', false);
-      if v_r <> 'ok' or not exists (select 1 from public.grand_livre g
-                                     where g.piece = v_p3 and g.type_action = 'membre_parti' and g.sujet_id = v_membre
-                                       and g.acteur_id = v_user) then
-        raise exception 'postcondition NON TENUE : le depart n est pas relu comme membre_parti [%]', v_r;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : maj_membre_organisation — trois actions derivees du geste, ancienne signature supprimee, refus sans ligne, retrait rejoue sans seconde ligne';
-  else
-    raise notice 'postcondition tenue : maj_membre_organisation — trois actions derivees du geste, ancienne signature supprimee, refus sans ligne, retrait rejoue sans seconde ligne';
-  end if;
+  begin
+    v_r := public.maj_membre_organisation(gen_random_uuid(), null::uuid, 'utilisateur', gen_random_uuid(), 'client', null::uuid,
+                                          gen_random_uuid(), 'editor', null, false);
+    if v_r is distinct from 'introuvable' then
+      raise exception 'postcondition NON TENUE : un membre inconnu n est pas « introuvable » [%]', v_r;
+    end if;
+    raise exception 'SONDE_ANNULEE';
+  exception when others then
+    if sqlerrm <> 'SONDE_ANNULEE' then
+      raise;
+    end if;
+  end;
+  raise notice 'postcondition tenue : maj_membre_organisation — nouvelle signature par types, ancienne absente, trois listes blanches, membre inconnu introuvable ; les trois gestes sont prouves par tests/database/grand_livre/membres.test.sql';
 end
 $post$;

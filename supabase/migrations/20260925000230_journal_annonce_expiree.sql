@@ -157,16 +157,15 @@ values
 on conflict (job_name) do nothing;
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui constatait une vraie annonce expirée est retirée (28/09/2026). La REPRISE voulue — le passif
+-- marqué sans ligne, bloc $passif$ plus haut — reste : c'est une migration de données décidée, pas une
+-- sonde. Le geste — marqueur et ligne ensemble, durée en vigueur dans la ligne, annonce active non
+-- constatée, second passage sans rien — est prouvé par supabase/tests/database/grand_livre/annonce_expiree.test.sql.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles  text[];
-  v_vie   integer;
-  v_pub   uuid;
-  v_piece uuid := gen_random_uuid();
-  v_n     integer;
-  v_n2    integer;
+  v_cles text[];
 begin
   if to_regprocedure('public.constater_annonces_expirees(uuid, integer, integer)') is null then
     raise exception 'postcondition NON TENUE : constater_annonces_expirees manque ou a change de signature';
@@ -189,63 +188,6 @@ begin
   if not exists (select 1 from cron.job where jobname = 'constats_trigger') then
     raise exception 'postcondition NON TENUE : constats_trigger non planifiee';
   end if;
-
-  -- SONDE — une annonce publiée réelle qui n'est plus active : constatée
-  -- (marqueur posé, ligne relue avec la durée en vigueur), puis un second
-  -- passage n'en constate aucune. Sans annonce expirée : sautée, et dite.
-  select d.vie_annonce_jours into v_vie from public.duree_reglages d where d.ligne_unique;
-  if v_vie is null then
-    raise notice 'postcondition : sonde constater_annonces_expirees SAUTEE — duree_reglages vide (base vierge)';
-    v_sautee := true;
-  else
-    select p.id into v_pub
-      from public.publications p
-     where p.expiration_constatee_at is null
-       and p.published_at is not null
-       and p.status = 'published'
-       and not public.annonce_active(p.status, p.expires_at, p.published_at, v_vie)
-     limit 1;
-    if v_pub is null then
-      raise notice 'postcondition : sonde constater_annonces_expirees SAUTEE — aucune annonce expiree a constater';
-      v_sautee := true;
-    else
-      begin
-        v_n := public.constater_annonces_expirees(v_piece, v_vie, 1);
-        if v_n <> 1 then
-          raise exception 'postcondition NON TENUE : un constat attendu, % constate(s)', v_n;
-        end if;
-        -- QUELLE annonce a été constatée : celle que la FONCTION a choisie (elle
-        -- trie par date de publication), lue sur la ligne de SA pièce — pas celle
-        -- que la sonde a trouvée. Avec deux annonces expirées en base, supposer
-        -- que c'est la même faisait échouer une migration juste.
-        select g.sujet_id into v_pub
-          from public.grand_livre g
-         where g.piece = v_piece and g.type_action = 'annonce_expiree' and g.statut = 'reussi'
-           and g.origine = 'tache_planifiee' and g.acteur_id is null
-           and g.sujet_type = 'publications'
-           and (g.detail ->> 'vie_annonce_jours')::integer = v_vie;
-        get diagnostics v_n2 = row_count;
-        if v_n2 <> 1 or v_pub is null then
-          raise exception 'postcondition NON TENUE : la ligne annonce_expiree manque ou ne porte pas son detail [% ligne(s)]', v_n2;
-        end if;
-        if not exists (select 1 from public.publications p
-                        where p.id = v_pub and p.expiration_constatee_at is not null
-                          and not public.annonce_active(p.status, p.expires_at, p.published_at, v_vie)) then
-          raise exception 'postcondition NON TENUE : le marqueur n est pas pose, ou l annonce constatee est active';
-        end if;
-        -- LE SECOND PASSAGE : l'annonce constatée a quitté la file.
-        if exists (select 1 from public.publications p where p.id = v_pub and p.expiration_constatee_at is null) then
-          raise exception 'postcondition NON TENUE : l annonce constatee est encore dans la file';
-        end if;
-        raise exception 'SONDE_ANNULEE';
-      exception when others then
-        if sqlerrm <> 'SONDE_ANNULEE' then
-          raise;
-        end if;
-      end;
-    end if;
-  end if;
-  -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
     perform public.journaliser(gen_random_uuid(), 'annonce_expiree', 'reussi', 'tache_planifiee',
                                null::uuid, null::text, null::uuid, 'publications', gen_random_uuid(),
@@ -255,10 +197,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : annonce_expiree — colonne, index, constat relu une fois, tache planifiee et cataloguee, texte libre refuse';
-  else
-    raise notice 'postcondition tenue : annonce_expiree — colonne, index, constat relu une fois, tache planifiee et cataloguee, texte libre refuse';
-  end if;
+  raise notice 'postcondition tenue : annonce_expiree — signature par types, colonne, index partiel, tache planifiee et cataloguee, liste blanche, texte libre refuse ; le geste est prouve par tests/database/grand_livre/annonce_expiree.test.sql';
 end
 $post$;

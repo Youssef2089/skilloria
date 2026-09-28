@@ -105,6 +105,6 @@ begin
   if not has_table_privilege('authenticated', 'public.profiles', 'SELECT') then
     raise exception 'postcondition NON TENUE : le retrait a emporte la lecture de profiles';
   end if;
-  raise notice 'postcondition tenue : treize portes laterales fermees, la RLS active sur les huit tables, la lecture inchangee, le navigateur n ecrit plus profiles';
+  raise notice 'postcondition tenue : treize portes laterales fermees, la RLS active sur les huit tables, la lecture inchangee, le navigateur n ecrit plus profiles ; prouve par tests/database/vrai_appelant/appelant.test.sql et scripts/diag-portes-laterales.mjs';
 end
 $post$;

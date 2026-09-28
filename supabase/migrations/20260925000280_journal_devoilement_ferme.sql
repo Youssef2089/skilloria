@@ -141,16 +141,15 @@ update public.grand_livre_actions
  where code = 'devoilement_ferme';
 
 
--- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
+-- ── POSTCONDITION — LA STRUCTURE ICI, LE COMPORTEMENT PAR LES TESTS (§E.77) ───────────
 do $post$
+-- LA STRUCTURE, ICI ; LE COMPORTEMENT, PAR LES TESTS (CLAUDE.md §G.4 ter, docs/pieges.md §E.77).
+-- La sonde qui constatait un vrai dévoilement est retirée (28/09/2026). Le geste — le passif marqué sans
+-- ligne, le constat relu une fois, « deja », « change », « introuvable », statut lu obligatoire — est
+-- prouvé par supabase/tests/database/grand_livre/devoilement_ferme.test.sql. La fin future refusée reste
+-- sondée ici : sur des identifiants INVENTÉS, elle ne touche rien.
 declare
-  v_sautee boolean := false;  -- une sonde sautée rend la ligne finale PARTIELLE (§E.67)
-  v_cles  text[];
-  v_cand  uuid;
-  v_piece uuid := gen_random_uuid();
-  v_ok    text;
-  v_ok2   text;
-  v_n     integer;
+  v_cles text[];
 begin
   if to_regprocedure('public.constater_devoilement_ferme(uuid, uuid, timestamptz, text)') is null
      or to_regprocedure('public.constater_devoilement_ferme(uuid, uuid, timestamptz)') is not null then
@@ -171,59 +170,12 @@ begin
   if v_cles is null or not (v_cles @> array['publication_id', 'profile_id', 'unlocked_at', 'fin_echange']::text[]) then
     raise exception 'postcondition NON TENUE : la liste blanche de devoilement_ferme est incomplete [vu : %]', v_cles;
   end if;
-
-  -- SONDE — une candidature dévoilée réelle, jamais constatée : constatée
-  -- (marqueur posé, ligne relue), rejouée (false, aucune seconde ligne) ; une
-  -- fin d'échange FUTURE est refusée. Sans candidature : sautée, et dite.
-  select c.id into v_cand
-    from public.candidatures c
-   where c.status = 'unlocked' and c.fermeture_constatee_at is null
-   limit 1;
-  if v_cand is null then
-    raise notice 'postcondition : sonde constater_devoilement_ferme SAUTEE — aucune candidature devoilee (base vierge)';
-    v_sautee := true;
-  else
-    begin
-      -- LE PASSIF D'ABORD : une fin ANTÉRIEURE à la mise en service → marqueur, AUCUNE ligne.
-      v_ok := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now() - interval '1 day', 'unlocked');
-      if v_ok is distinct from 'passif'
-         or not exists (select 1 from public.candidatures c where c.id = v_cand and c.fermeture_constatee_at is not null)
-         or exists (select 1 from public.grand_livre g where g.type_action = 'devoilement_ferme' and g.sujet_id = v_cand) then
-        raise exception 'postcondition NON TENUE : le passif n est pas marque sans ligne [%]', v_ok;
-      end if;
-      update public.candidatures set fermeture_constatee_at = null where id = v_cand;
-      -- LE CONSTAT : une fin à la mise en service ou après (ici, maintenant) → marqueur ET ligne.
-      v_ok := public.constater_devoilement_ferme(v_piece, v_cand, now(), 'unlocked');
-      if v_ok is distinct from 'constate' then
-        raise exception 'postcondition NON TENUE : le constat n a pas abouti [%]', v_ok;
-      end if;
-      if not exists (select 1 from public.grand_livre g
-                      where g.piece = v_piece and g.type_action = 'devoilement_ferme' and g.statut = 'reussi'
-                        and g.origine = 'tache_planifiee' and g.acteur_id is null
-                        and g.sujet_type = 'candidatures' and g.sujet_id = v_cand
-                        and g.detail ->> 'fin_echange' is not null and g.detail ->> 'publication_id' is not null) then
-        raise exception 'postcondition NON TENUE : la ligne devoilement_ferme manque ou ne porte pas son detail';
-      end if;
-      v_ok2 := public.constater_devoilement_ferme(gen_random_uuid(), v_cand, now(), 'unlocked');
-      select count(*) into v_n from public.grand_livre g where g.type_action = 'devoilement_ferme' and g.sujet_id = v_cand;
-      if v_ok2 is distinct from 'deja' or v_n <> 1 then
-        raise exception 'postcondition NON TENUE : le rejeu a constate ou journalise une seconde fois [% / % ligne(s)]', v_ok2, v_n;
-      end if;
-      raise exception 'SONDE_ANNULEE';
-    exception when others then
-      if sqlerrm <> 'SONDE_ANNULEE' then
-        raise;
-      end if;
-    end;
-  end if;
-  -- SONDE — une fin d'échange FUTURE est REFUSÉE : on ne constate pas ce qui n'est pas arrivé.
   begin
     perform public.constater_devoilement_ferme(gen_random_uuid(), gen_random_uuid(), now() + interval '1 day', 'unlocked');
     raise exception 'postcondition NON TENUE : une fin d echange future a ete acceptee';
   exception when sqlstate '22023' then
     null;
   end;
-  -- SONDE — un texte libre est REFUSÉ (la liste blanche tient).
   begin
     perform public.journaliser(gen_random_uuid(), 'devoilement_ferme', 'reussi', 'tache_planifiee',
                                null::uuid, null::text, null::uuid, 'candidatures', gen_random_uuid(),
@@ -233,10 +185,6 @@ begin
   exception when sqlstate 'GL004' then
     null;
   end;
-  if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : devoilement_ferme — colonne, index, constat relu une fois, fin future refusee, texte libre refuse';
-  else
-    raise notice 'postcondition tenue : devoilement_ferme — colonne, index, constat relu une fois, fin future refusee, texte libre refuse';
-  end if;
+  raise notice 'postcondition tenue : devoilement_ferme — signature par types (l ancienne absente), date de mise en service, colonne, index partiel, liste blanche, fin future refusee, texte libre refuse ; le geste est prouve par tests/database/grand_livre/devoilement_ferme.test.sql';
 end
 $post$;

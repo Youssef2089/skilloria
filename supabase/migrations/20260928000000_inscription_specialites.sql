@@ -239,9 +239,9 @@ begin
   end;
 
   if v_sautee then
-    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : handle_new_user ne cite plus speciality_id, un role inconnu leve IN001';
+    raise notice 'postcondition PARTIELLE — une sonde SAUTEE faute de donnees, la fonction du geste n a PAS tourne ici ; seul le reste est verifie : handle_new_user ne cite plus speciality_id, un role inconnu leve IN001 ; les cinq roles et les refus sont prouves par tests/database/inscription/roles.test.sql';
   else
-    raise notice 'postcondition tenue : une inscription d expert cree public.users et un profil portant speciality_ids ; un role inconnu leve IN001';
+    raise notice 'postcondition tenue : une inscription d expert cree public.users et un profil portant speciality_ids ; un role inconnu leve IN001 ; les cinq roles et les refus sont prouves par tests/database/inscription/roles.test.sql';
   end if;
 end
 $post$;
