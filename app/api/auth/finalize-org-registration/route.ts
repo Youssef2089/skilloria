@@ -6,7 +6,6 @@ import { runVerification } from '@/lib/verification'
 import {
   COLONNES_REGLE_NUMERO,
   normaliserNumeroIdentification,
-  numeroIdentificationAccepte,
   regleDepuisLignePays,
 } from '@/lib/pays/numero-identification'
 
@@ -268,7 +267,18 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   const regleNumero = regleDepuisLignePays(paysRow as unknown as Record<string, unknown>)
-  if (!numeroIdentificationAccepte(input.siren, regleNumero)) {
+  // LE VERDICT VIENT DE LA BASE (§D.27) : `numero_identification_refus()`, la règle que
+  // l'inscription applique aussi — une seule définition serveur. Le référentiel lu
+  // au-dessus ne sert plus qu'au NOM du registre, pour le message.
+  const { data: refusNumero, error: refusErr } = await auth.supabaseAdmin.rpc('numero_identification_refus', {
+    p_pays: paysOrg,
+    p_numero: input.siren,
+  })
+  if (refusErr) {
+    console.error('[finalize-org] regle du numero illisible', refusErr.message)
+    return json({ error: 'Query failed', code: 'db_error' }, 500)
+  }
+  if (refusNumero === 'invalid_siren') {
     return json(
       {
         error: 'Identification number does not match the country format',

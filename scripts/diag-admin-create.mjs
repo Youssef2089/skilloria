@@ -11,10 +11,10 @@
 //     `public.users` n'a AUCUNE ligne. Le compte passerait `requireAuth` puis
 //     échouerait partout : `requireAdmin` lit `users.user_type` et ne trouve
 //     rien. Compte fantôme, inconnectable, qui OCCUPE l'adresse e-mail.
-//     La vérification explicite du miroir + `atomicCleanup` est la SEULE chose
-//     qui transforme cet échec muet en échec propre. Elle ressemble à une
-//     redondance ; c'est le contrôle que quelqu'un retirera en croyant
-//     simplifier. D'où trois contrôles ici, pas un.
+//     FERMÉ le 28/09/2026 : le trigger LÈVE (IN001) ; et depuis §D.27 il promeut
+//     l'administrateur dans la MÊME transaction que le compte — un refus annule
+//     tout, `atomicCleanup` est retiré. La route relit encore le miroir (sa
+//     langue, et le constat plutôt que la supposition). Contrôles ci-dessous.
 //
 //   PIÈGE 2 — LE MOT DE PASSE QUI REMONTE. Le créateur ne doit JAMAIS connaître
 //     le secret d'un autre administrateur. Un `password` renvoyé, journalisé ou
@@ -80,52 +80,57 @@ const listScreen = stripComments(read('app/[locale]/admin/utilisateurs/page.tsx'
 const detailScreen = stripComments(read('app/[locale]/admin/utilisateurs/[id]/page.tsx'))
 
 // ═══ A. LE POINT MORT DU TRIGGER ═══════════════════════════════════════════
-section('A. Vérification du miroir — le contrôle à ne jamais retirer')
+section('A. Le miroir — et la promotion dans la transaction du compte (§D.27)')
 
 // LA DERNIÈRE DÉFINITION DU TRIGGER — dérivée des migrations, jamais lue dans un
 // fichier NOMMÉ (§E.34). Ce diag lisait la migration du 04/08/2026 par son nom :
 // le 28/09/2026 `inscription_specialites` a fermé le point mort (un rôle inconnu
 // LÈVE IN001), et ce contrôle serait resté vert en gardant un défaut disparu —
 // exactement ce que la phrase ci-dessous lui demandait de DIRE.
-const trigger = rejouerMigrations().fonctions.get('handle_new_user')?.corps ?? ''
-ok(trigger !== '', 'la dernière définition de handle_new_user est trouvée dans les migrations')
+const fonctions = rejouerMigrations().fonctions
+const trigger = fonctions.get('handle_new_user')?.corps ?? ''
+const regles = fonctions.get('inscription_refus')?.corps ?? ''
+ok(trigger !== '' && regles !== '', 'les dernières définitions de handle_new_user et d’inscription_refus sont trouvées')
+// Le rôle inconnu : la RÈGLE le nomme (invalid_role), le trigger LÈVE avec IN001.
 ok(
-  /if\s+v_user_type\s+is\s+null\s+then\s+raise\s+exception\b[^;]*;/i.test(trigger)
-    && /errcode\s*=\s*'IN001'/i.test(trigger)
-    && !/raise\s+warning/i.test(trigger),
+  /return 'invalid_role';/.test(regles)
+    && /when 'invalid_role'\s+then 'IN001'/.test(trigger)
+    && !/raise\s+warning/i.test(trigger) && !/return new;\s*end if;[\s\S]{0,40}v_user_type is null/i.test(trigger),
   'le trigger LÈVE sur un rôle inconnu (IN001) — plus de compte fantôme, plus de WARNING',
   'si ce n’est plus vrai, le compte fantôme de §E.23 est revenu : la vérification du miroir redevient la SEULE barrière',
 )
 ok(
   !/when\s+'admin'/i.test(trigger),
-  'le trigger ne sait toujours pas créer un admin (d’où le contournement par le rôle de pont)',
+  'le trigger ne crée pas d’administrateur par le rôle (d’où le rôle de pont et la promotion)',
 )
-// PIÈGE 1 — trois contrôles, parce qu'un seul se retire trop facilement.
-// Le SELECT du miroir, identifié par sa projection propre — et pas par un
-// `.from('users')` quelconque : l'UPDATE de bascule, juste en dessous, en porte
-// un aussi. Cherché trop large, ce contrôle ne mordait pas quand on retirait la
-// lecture (constaté au test de mutation), ce qui en faisait un contrôle décoratif.
+// LA PROMOTION EST DANS LA TRANSACTION DU COMPTE : le trigger appelle la fonction, et un refus annule
+// TOUT (AD001) — le client de pont n'existe jamais seul, il n'y a plus rien à nettoyer.
 ok(
-  /\.select\('id, locale'\)[\s\S]{0,120}?\.eq\('id', newUserId\)/.test(createRoute),
+  /v_voie = 'administrateur' then[\s\S]*?v_promotion := public\.promouvoir_administrateur\([\s\S]*?if v_promotion is distinct from 'reussi' then\s*raise exception [^;]*using errcode = 'AD001';/.test(trigger),
+  'le trigger promeut sur la voie administrateur, dans la MÊME transaction, et lève si la promotion échoue',
+  'sans ce raise, un client de pont resterait créé sans être promu — le compte fantôme sous une autre forme',
+)
+// La route RELIT encore le miroir : sa langue, et le constat — jamais la supposition.
+ok(
+  /\.select\('id, locale, user_type, domain_id'\)[\s\S]{0,120}?\.eq\('id', newUserId\)/.test(createRoute),
   'la route RELIT public.users après createUser',
-  'sans cette lecture, on répondrait 200 sur un compte fantôme inconnectable',
+  'sans cette lecture, on répondrait 200 sans savoir ce que la base a créé',
 )
 ok(
-  /if \(mirrorErr \|\| !mirror\)/.test(createRoute),
-  'l’absence de miroir est traitée comme un ÉCHEC, pas ignorée',
+  /if \(mirrorErr \|\| !mirror \|\| \(mirror as \{ user_type: string \}\)\.user_type !== 'admin'\)/.test(createRoute),
+  'un miroir absent OU non administrateur est un ÉCHEC, pas ignoré',
 )
 ok(
-  /atomicCleanup\(auth\.supabaseAdmin, \{ userId: newUserId \}\)/.test(createRoute),
-  'miroir absent → atomicCleanup (public.users puis auth.users)',
-  'auth.admin.deleteUser ne cascade PAS sur public.users — piège P3',
+  !/atomicCleanup|deleteUser\(/.test(createRoute),
+  'plus aucun nettoyage d’après-coup : la transaction est la seule garantie (atomicCleanup retiré)',
 )
 ok(
-  /mirror_missing/.test(createRoute),
-  'l’échec porte un code lisible (mirror_missing), pas un 500 muet',
+  /promote_failed/.test(createRoute),
+  'l’échec porte un code lisible (promote_failed), pas un 500 muet',
 )
 
-// ═══ B. LE CONTOURNEMENT ASSUMÉ, ET SA BASCULE COMPLÈTE ════════════════════
-section('B. Contournement du trigger et bascule')
+// ═══ B. LE RÔLE DE PONT, ET SA PROMOTION COMPLÈTE ═════════════════════════
+section('B. Rôle de pont et promotion')
 
 ok(
   /TRIGGER_BRIDGE_ROLE = 'entreprise'/.test(createRoute),
@@ -134,12 +139,11 @@ ok(
 ok(
   /role: TRIGGER_BRIDGE_ROLE/.test(createRoute) && !/role: 'admin'/.test(createRoute),
   'les métadonnées n’envoient JAMAIS role:"admin" au trigger',
-  'il tomberait dans la branche « rôle inconnu » et ne créerait aucun miroir',
+  'le rôle serait refusé (invalid_role, IN001)',
 )
-// LA BASCULE VIT EN BASE depuis la phase B (28/09/2026) : promouvoir_administrateur()
-// fait les trois écritures ET écrit administrateur_cree dans la même transaction. On la
-// lit dans sa DERNIÈRE définition (§E.34), et la route doit l'appeler avec le rôle Admin.
-const promotion = rejouerMigrations().fonctions.get('promouvoir_administrateur')?.corps ?? ''
+// LA BASCULE VIT EN BASE : promouvoir_administrateur() fait les trois écritures ET écrit
+// administrateur_cree. On la lit dans sa DERNIÈRE définition (§E.34).
+const promotion = fonctions.get('promouvoir_administrateur')?.corps ?? ''
 ok(promotion !== '', 'la dernière définition de promouvoir_administrateur est trouvée dans les migrations')
 for (const [needle, label] of [
   [/user_type\s*= 'admin'/, 'user_type = admin'],
@@ -149,9 +153,9 @@ for (const [needle, label] of [
   ok(needle.test(promotion), `bascule : ${label} (en base)`)
 }
 ok(
-  /\.rpc\('promouvoir_administrateur', \{\s*\.\.\.parametresJournal\(journal\),\s*p_user_id: newUserId,\s*p_role_id: roleRow\.id,/.test(createRoute)
-    && !/\.from\('users'\)\s*\.update\(/.test(createRoute),
-  'la route promeut par la fonction, avec la pièce du geste et le rôle Admin — plus aucune écriture directe',
+  !/promouvoir_administrateur/.test(createRoute) && !/\.from\('users'\)\s*\.update\(/.test(createRoute)
+    && /acteur_id: auth\.user\.id/.test(createRoute) && /voie: 'administrateur'/.test(createRoute),
+  'la route ne promeut plus elle-même : elle SIGNE la voie et l’acteur, le trigger promeut',
 )
 // PIÈGE 3 — le contrôle qui coûte cher s'il saute.
 ok(
@@ -165,12 +169,13 @@ ok(
   'la base refuse de promouvoir un compte qui n’a pas été créé pour l’administration (AD001) ou pour un acteur non administrateur (AD002)',
 )
 ok(
-  /ADMIN_ROLE_NAME = 'Admin'/.test(createRoute) && /admin_role_missing/.test(createRoute),
-  'rôle « Admin » absent → échec EXPLICITE, jamais de repli silencieux',
+  /return 'admin_role_missing';/.test(regles) && /return 'acteur_non_admin';/.test(regles)
+    && /refusInscription\(auth\.supabaseAdmin, email, meta\)/.test(createRoute),
+  'rôle « Admin » absent, acteur non administrateur → refus NOMMÉS par la base, lus par la route avant de créer',
 )
 ok(
-  /\.eq\('active', true\)/.test(createRoute),
-  'l’écosystème cible doit être ACTIF (le trigger l’exige et lèverait sinon)',
+  /where d\.slug = [^;]*and d\.active/.test(regles) && /return 'invalid_domain';/.test(regles),
+  'l’écosystème cible doit être ACTIF — la règle le vérifie (invalid_domain)',
 )
 
 // ═══ C. LE CRÉATEUR NE CONNAÎT JAMAIS LE SECRET ════════════════════════════

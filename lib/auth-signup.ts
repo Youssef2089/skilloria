@@ -9,11 +9,12 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
  *       n'envoient PAS l'email de confirmation (endpoints admin silencieux par
  *       design GoTrue). SEUL `auth.signUp` sur un client ANON serveur déclenche
  *       le SMTP. (bug 4a1d9ae)
- *  P3 — atomicCleanup : `auth.admin.deleteUser` ne CASCADE PAS sur public.users.
- *       Un signUp réussi puis un échec en aval laisse public.users (+ enfants)
- *       orphelins, ce qui BLOQUE les ré-inscriptions (users_email_key). Cleanup
- *       ordonné obligatoire, chaque delete dans son propre try/catch, jamais de
- *       re-throw. (bugs 71e7210 / e741bf0)
+ *  P3 — le NETTOYAGE d'après-coup (`atomicCleanup`) est RETIRÉ (§D.27) : le compte
+ *       et ce que sa voie crée (téléphone, CGU, organisation, appartenance,
+ *       promotion) naissent dans la transaction de `handle_new_user`, sur une
+ *       preuve signée par le serveur. Il n'y a plus d'« échec en aval » à défaire.
+ *       Le piège qu'il fermait reste vrai et se relit dans git (bugs 71e7210 /
+ *       e741bf0) : `auth.admin.deleteUser` ne cascade pas sur public.users.
  */
 
 /** Client ANON serveur — le SEUL qui déclenche l'email de confirmation (P1). */
@@ -72,56 +73,6 @@ export async function signUpWithConfirmation(args: {
   }
 
   return { ok: true, userId: data.user.id }
-}
-
-/**
- * Cleanup atomique après un signUp réussi mais un échec en aval (P3).
- *
- * Ordre STRICT : `extraDeletes` (parent-first, ex. organizations pour l'org)
- * PUIS public.users PUIS auth.users. Chaque suppression dans son propre
- * try/catch — un cleanup qui échoue ne doit pas empêcher les suivants. Ne lève
- * JAMAIS : l'appelant reste maître de la réponse d'erreur typée (un re-throw
- * ferait renvoyer à Next un 500 sans corps JSON).
- *
- * `extraDeletes` : suppressions métier ordonnées à jouer AVANT public.users
- * (register-org y passe la suppression de l'organization ; register-expert
- * n'en a aucune — le profil part en CASCADE avec public.users).
- */
-export async function atomicCleanup(
-  supabaseAdmin: SupabaseClient,
-  args: {
-    userId: string
-    extraDeletes?: Array<{ label: string; run: () => Promise<{ error: unknown } | void> }>
-  },
-): Promise<void> {
-  // 1. Suppressions métier parent-first (ex. organizations → CASCADE members/domains).
-  for (const step of args.extraDeletes ?? []) {
-    try {
-      const res = await step.run()
-      if (res && res.error) {
-        console.error(`[auth-signup:cleanup] ${step.label} failed`, res.error)
-      }
-    } catch (err) {
-      console.error(`[auth-signup:cleanup] ${step.label} threw`, err instanceof Error ? err.message : String(err))
-    }
-  }
-
-  // 2. public.users (créé par le trigger). CASCADE emporte organization_members,
-  //    session_logs, profiles… selon les FK ON DELETE CASCADE.
-  try {
-    const { error } = await supabaseAdmin.from('users').delete().eq('id', args.userId)
-    if (error) console.error('[auth-signup:cleanup] public.users failed', error.message)
-  } catch (err) {
-    console.error('[auth-signup:cleanup] public.users threw', err instanceof Error ? err.message : String(err))
-  }
-
-  // 3. auth.users (Supabase Auth). Ne cascade PAS sur public.* — d'où l'étape 2.
-  try {
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(args.userId)
-    if (error) console.error('[auth-signup:cleanup] auth.users failed', error.message)
-  } catch (err) {
-    console.error('[auth-signup:cleanup] auth.users threw', err instanceof Error ? err.message : String(err))
-  }
 }
 
 /** `true` si l'erreur Supabase/Postgres est une violation d'unicité (23505). */

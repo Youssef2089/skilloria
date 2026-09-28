@@ -45,9 +45,16 @@ with
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index.
-  -- Vide pour ce push : il ne crée rien.
+  -- Ce push : les six fonctions de la porte d'inscription (§D.27).
   prochain_push_cree(genre, nom) as (
-    select v.genre, v.nom from (values (null::text, null::text)) v(genre, nom) where false
+    select v.genre, v.nom from (values
+      ('fonction', 'preuve_inscription_canonique'),
+      ('fonction', 'preuve_inscription_signature'),
+      ('fonction', 'preuve_inscription_refus'),
+      ('fonction', 'numero_identification_normalise'),
+      ('fonction', 'numero_identification_refus'),
+      ('fonction', 'inscription_refus')
+    ) v(genre, nom)
   )
 
 select v.ordre,
@@ -105,8 +112,10 @@ from (values
   (6, 'invariant : Vault, secrets cron_secret et purge_cron_base_url présents (par leur nom)', '2',
    (select count(distinct s.name)::text from vault.secrets s where s.name in ('cron_secret', 'purge_cron_base_url'))),
 
-  (7, 'invariant : extensions pg_cron et pg_net installées', '2',
-   (select count(*)::text from pg_extension e where e.extname in ('pg_cron', 'pg_net'))),
+  -- ⑦ pgcrypto signe et vérifie la preuve d'inscription (§D.27). Supabase l'installe par défaut dans `extensions`
+  --    (NON VÉRIFIÉ sur staging — c'est ce que cette ligne dit) ; absente, la migration la crée : lire la ligne.
+  (7, 'invariant : extensions pg_cron, pg_net et pgcrypto installées', '3',
+   (select count(*)::text from pg_extension e where e.extname in ('pg_cron', 'pg_net', 'pgcrypto'))),
 
   -- ⑧ AUCUNE PORTE LATÉRALE (§D.26) : aucune politique ne laisse un client écrire une table dont l'écriture
   --    est une action du grand livre. La liste couvre chaque table que `diag-portes-laterales` DÉRIVE des
@@ -136,13 +145,14 @@ from (values
      where has_table_privilege(r.role, 'public.grand_livre', d.droit))),
 
   -- ⑪ §E.73 : une fonction de trigger qui cite une colonne absente tue TOUTE inscription, et ni le lint ni un
-  --    contrôle statique ne le voient. Chaque colonne que handle_new_user écrit existe (users 11 + profiles 12) ;
+  --    contrôle statique ne le voient. Chaque colonne que handle_new_user écrit existe (users 15 + profiles 12) ;
   --    la liste est tenue ÉGALE aux insertions de sa dernière définition par `diag-requete-staging`.
-  (11, 'invariant : colonnes écrites par handle_new_user présentes (users 11 + profiles 12)', '23',
+  (11, 'invariant : colonnes écrites par handle_new_user présentes (users 15 + profiles 12)', '27',
    (select count(*)::text from information_schema.columns c
      where c.table_schema = 'public'
        and ((c.table_name = 'users' and c.column_name in ('id', 'email', 'role_id', 'domain_id', 'user_type', 'status',
-                                                         'email_verified', 'is_verified', 'first_name', 'last_name', 'locale'))
+                                                         'email_verified', 'is_verified', 'first_name', 'last_name', 'locale',
+                                                         'phone', 'phone_verified', 'cgu_accepted_at', 'cgu_version'))
          or (c.table_name = 'profiles' and c.column_name in ('user_id', 'domain_id', 'expert_type', 'title', 'visible',
                                                             'profile_score', 'languages', 'skills', 'certifications',
                                                             'branch_id', 'speciality_ids', 'speciality_other'))))),
@@ -150,7 +160,13 @@ from (values
   -- ⑫ La colonne que l'ancien handle_new_user citait (§E.73) : supprimée le 01/09/2026, elle ne revient pas.
   (12, 'invariant : profiles.speciality_id absente', '0',
    (select count(*)::text from information_schema.columns c
-     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id'))
+     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id')),
+
+  -- ⑬ LA PORTE D'INSCRIPTION (§D.27) : `handle_new_user` vérifie chaque preuve avec ce secret. Absent, TOUTE
+  --    inscription est refusée (IN011). Il se pose AVANT le push, à la MÊME valeur que INSCRIPTION_HMAC_SECRET
+  --    sur Vercel (docs/reprise.md, les étapes de Youssef). Compté par son NOM ; sa valeur n'est pas lue.
+  (13, 'invariant : Vault, secret inscription_hmac_secret présent (par son nom)', '1',
+   (select count(*)::text from vault.secrets s where s.name = 'inscription_hmac_secret'))
 
 ) as v(ordre, verification, attendu, observe)
 order by v.ordre;

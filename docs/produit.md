@@ -635,7 +635,7 @@ deux produits.
 | `/inscription` · `/inscription/[role]` · `/inscription/confirmation` | Inscription expert (branche + spécialité **structurées**, CGU horodatées, OTP téléphone). |
 | `/inscription/organisation` (+ `/confirmation`) | Inscription organisation (SIREN/numéro, vérification à suivre). |
 | `/connexion` · `/mot-de-passe-oublie` · `/nouveau-mot-de-passe` · `/auth/callback` | Session. Au retour d'une confirmation d'adresse REFUSÉE, `/auth/callback` dit la cause lue dans le retour de Supabase — lien expiré ou déjà servi (se reconnecter), refus de notre côté (réessayer, contacter le support avec le code affiché), lien invalide — jamais la page brute de Supabase. |
-| `/invitation/[token]` | Acceptation d'une invitation à rejoindre une organisation. |
+| `/invitation/[token]` | Acceptation d'une invitation à rejoindre une organisation. Sans compte, l'invité le crée ICI, au serveur (`POST /api/invitations/inscription`) : l'adresse est celle de l'invitation, confirmée d'office, ses CGU enregistrées, et il est membre dès la création (§D.27) — puis il se connecte. |
 | `/reactivation` | Réactivation d'un compte pendant la grâce de 90 j. |
 | `/ecosysteme-indisponible` | **Un écran par motif de refus d'écosystème** — et non un « accès refusé » nu : un expert égaré lit *votre écosystème est celui-ci, voici l'adresse*. |
 | `/cgu` · `/mentions-legales` · `/politique-de-confidentialite` | Documents légaux, servis depuis `docs/legal/*.md`. |

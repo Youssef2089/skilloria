@@ -275,6 +275,7 @@ const TRACE_USERS = {
   // l'invite sur un sous-domaine d'atterrissage. Il ne restreint rien — une
   // fois entre, son organisation lui ouvre tous les ecosystemes actifs.
   'app/api/invitations/resolve/route.ts': 'choisit le sous-domaine d’atterrissage de l’invite',
+  'app/api/invitations/inscription/route.ts': 'l’écosysteme dont l’invite herite, signe dans sa preuve d’inscription (§D.27)',
 }
 const undeclared = traceUsers.filter((r) => !(r in TRACE_USERS))
 const gone = Object.keys(TRACE_USERS).filter((r) => !traceUsers.includes(r))

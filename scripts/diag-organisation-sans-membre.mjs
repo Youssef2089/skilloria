@@ -48,6 +48,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { rejouerMigrations } from './lib/schema-migrations.mjs'
 import { sqlCodeSeul } from './_sql-lecture.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -218,8 +219,17 @@ ok(
     : '',
 )
 
-// B2 — les deux chemins connus appellent bien la RPC.
-const CHEMINS = ['app/api/auth/register-org/route.ts', 'lib/collaboration/ensure-personal-org.ts']
+// B2 — les deux chemins connus passent bien par la RPC. La préinscription d'une organisation l'appelle
+//      DEPUIS handle_new_user (§D.27) : l'organisation naît dans la transaction de son compte — la route
+//      ne la crée plus, elle signe la preuve. L'organisation personnelle d'un expert l'appelle depuis lib/.
+{
+  const trigger = rejouerMigrations().fonctions.get('handle_new_user')?.corps ?? ''
+  ok(/v_org := public\.creer_organisation_avec_admin\(\s*new\.id,/.test(trigger),
+    'handle_new_user — la préinscription crée l’organisation par la RPC, dans la transaction du compte', '')
+  ok(!/creer_organisation_avec_admin|\.from\(\s*'organizations'\s*\)\s*\.insert\(/.test(sansCommentaires(read('app/api/auth/register-org/route.ts'))),
+    'app/api/auth/register-org/route.ts — ne crée plus l’organisation elle-même (le trigger la crée avec le compte)', '')
+}
+const CHEMINS = ['lib/collaboration/ensure-personal-org.ts']
 for (const f of CHEMINS) {
   const src = sansCommentaires(read(f))
   ok(/rpc\(\s*'creer_organisation_avec_admin'/.test(src), `${f} — passe par la RPC transactionnelle`, '')

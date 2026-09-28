@@ -120,6 +120,8 @@ import { createClient } from '@supabase/supabase-js'
 import { INVENTORY, ATTENDUS, POPULATIONS } from './inventaire-cloisonnement.mjs'
 import { exigerAutorisationEcriture } from './garde-ecriture.mjs'
 import { signPhoneOtpToken } from '../lib/phone-otp-token.ts'
+import { signerPreuveInscription } from '../lib/inscription/preuve.mjs'
+import { randomUUID } from 'node:crypto'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // 0. PRÉCONDITIONS — on ne tourne pas à moitié
@@ -247,22 +249,27 @@ const branche = taxo.json?.branches?.[0] ?? null
 const specialite = (taxo.json?.specialities ?? []).find((s) => s.branch_id === branche?.id) ?? taxo.json?.specialities?.[0] ?? null
 if (!branche) { console.error('\n✘ Aucune branche dans l’écosystème : la recette ne peut pas inscrire d’expert. Seed manquant.\n'); process.exit(2) }
 
-// ── L'administrateur : le contournement §E.23, assumé et documenté ──────────
-// Aucune route ne crée le premier administrateur : createUser avec le seul rôle
-// que le trigger sait traiter sans créer ni profil ni organisation, puis bascule.
+// ── L'administrateur : la voie du jour zéro, PROUVÉE (§D.27) ─────────────────
+// Aucune route ne crée le premier administrateur : createUser avec le rôle de pont
+// « entreprise » et une preuve signée sur la voie « administrateur », sans acteur —
+// le trigger crée le compte ET le promeut, dans la même transaction. Plus aucune
+// écriture directe dans `users` : la recette passe par le chemin du produit.
+// Le secret : INSCRIPTION_HMAC_SECRET, égal au secret `inscription_hmac_secret` du Vault.
 const POP = {}
 {
   const adresse = email('admin')
+  const meta = { role: 'entreprise', domain_slug: ECO, firstname: 'Recette', lastname: 'Admin',
+    voie: 'administrateur', piece: randomUUID(), acteur_id: '' }
   const { data, error } = await admin.auth.admin.createUser({
     email: adresse, password: MDP, email_confirm: true,
-    user_metadata: { role: 'entreprise', domain_slug: ECO, firstname: 'Recette', lastname: 'Admin' },
+    user_metadata: { ...meta, ...signerPreuveInscription(adresse, meta) },
   })
-  ok(!error && !!data?.user, 'admin : createUser (rôle-pont « entreprise », §E.23)', error?.message)
+  ok(!error && !!data?.user, 'admin : createUser (voie administrateur prouvée, §D.27)', error?.message)
   if (data?.user) {
     cree.auth.push(data.user.id)
-    const { data: miroir } = await admin.from('users').select('id').eq('id', data.user.id).maybeSingle()
-    ok(!!miroir, 'admin : le miroir public.users existe (sinon compte fantôme, §E.23)')
-    await admin.from('users').update({ user_type: 'admin', status: 'active', email_verified: true }).eq('id', data.user.id)
+    const { data: miroir } = await admin.from('users').select('id, user_type, status').eq('id', data.user.id).maybeSingle()
+    ok(miroir?.user_type === 'admin' && miroir?.status === 'active',
+      'admin : le trigger a créé ET promu le compte (admin actif), dans la même transaction')
     POP.admin = { nom: 'admin', email: adresse, eco: ECO }
   }
 }

@@ -20,12 +20,9 @@ begin
 
   -- ── handle_email_confirmed : le vrai chemin — un compte inscrit NON confirmé (la fabrique, elle, crée
   --    des comptes déjà confirmés), puis GoTrue pose email_confirmed_at ──
-  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-  select '00000000-0000-0000-0000-000000000000', v_nc, 'authenticated', 'authenticated',
-         'sonde+' || v_nc || '@exemple.invalid', '', null, '{}'::jsonb,
-         jsonb_build_object('role', 'entreprise', 'domain_slug', d.slug, 'firstname', 'Sonde', 'lastname', 'Essai'), now(), now()
-    from public.domains d where d.id = pg_temp.fab_domaine();
+  --    (une inscription d'organisation PROUVÉE, §D.27 — la fabrique signe, l'adresse reste non confirmée)
+  perform pg_temp.fab_auth(v_nc, pg_temp.fab_email(v_nc),
+            pg_temp.fab_signer(pg_temp.fab_email(v_nc), pg_temp.fab_meta('entreprise', v_nc)), false);
   return next ok(exists (select 1 from public.users u where u.id = v_nc and not u.email_verified and u.status = 'draft'),
                  'inscription non confirmée : miroir en brouillon, adresse non vérifiée');
   update auth.users set email_confirmed_at = now() where id = v_nc;

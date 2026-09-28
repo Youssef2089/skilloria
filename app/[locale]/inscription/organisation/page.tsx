@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
+import { estCodeRefus, INSCRIPTION_INDISPONIBLE } from '@/lib/inscription/refus'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -42,6 +43,7 @@ export default function InscriptionOrganisationPage() {
   const domain = useDomain()
   const locale = useLocale()
   const t = useTranslations('inscription_org')
+  const tRefus = useTranslations('inscription_refus')
 
   const [form, setForm] = useState<FormState>(initialForm)
   const [showPassword, setShowPassword] = useState(false)
@@ -186,7 +188,6 @@ export default function InscriptionOrganisationPage() {
           last_name: form.last_name.trim(),
           phone: form.phone,
           phone_otp_token: otpToken,
-          domain_slug: domain.subdomain,
           org_type: 'client',
           email_redirect_to: emailRedirectTo,
           // Acceptation des CGU — transmise pour preuve serveur (point C).
@@ -196,19 +197,11 @@ export default function InscriptionOrganisationPage() {
       const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string }
       if (!res.ok) {
         const c = json.code
-        if (c === 'email_domain_blocked') setSubmitError(t('errors.email_domain_blocked'))
-        else if (c === 'cgu_required') setSubmitError(t('errors.cgu_required'))
-        else if (c === 'email_domain_taken') setSubmitError(t('errors.email_domain_taken'))
-        else if (c === 'phone_otp_required') setSubmitError(t('errors.phone_not_verified'))
-        else if (c === 'invalid_email') setSubmitError(t('errors.invalid_email'))
-        else if (c === 'invalid_phone') setSubmitError(t('errors.invalid_phone'))
+        if (c === 'phone_otp_required') setSubmitError(t('errors.phone_not_verified'))
         else if (c === 'invalid_password') setSubmitError(t('errors.password_too_short'))
-        else if (c === 'ecosysteme_indisponible') setSubmitError(t('errors.ecosysteme_indisponible'))
-        else if (c === 'create_user_failed' && (json.error ?? '').toLowerCase().includes('already')) {
-          setSubmitError(t('errors.email_taken'))
-        } else {
-          setSubmitError(t('errors.generic'))
-        }
+        // LE REFUS VIENT DE LA BASE (§D.27), avec un code stable : une phrase par code, quatre langues.
+        else if (estCodeRefus(c) || c === INSCRIPTION_INDISPONIBLE) setSubmitError(tRefus(c))
+        else setSubmitError(t('errors.generic'))
         return
       }
       setRedirectAfterSuccess(true)

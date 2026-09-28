@@ -13,11 +13,13 @@
  *   vérification. C'est le même défaut que le pays figé à « FR », un champ plus
  *   loin — et que le badge « FR » du téléphone, un écran plus loin encore.
  *
- * ═══ UNE SEULE RÈGLE, DEUX BOUTS ══════════════════════════════════════════
- *   Ce module est la SOURCE UNIQUE. Le serveur refuse (c'est lui qui fait foi,
- *   checklist), le client prévient avant l'envoi avec la MÊME fonction. Deux
- *   copies divergeraient — le dépôt en porte déjà trois preuves, et la dernière
- *   a laissé un correctif vivant sur son jumeau pendant six mois.
+ * ═══ LE REFUS EST EN BASE ; CE MODULE NE FAIT QUE PRÉVENIR (§D.27) ═══════
+ *   Le serveur ne l'applique plus : la règle qui FAIT FOI est
+ *   `numero_identification_refus()` (migration porte_inscription), appelée par
+ *   l'inscription (`inscription_refus`) et par finalize-org-registration — une
+ *   seule définition serveur. Ce module reste pour l'ÉCRAN (OrgSetupModal), qui
+ *   prévient avant l'envoi ; s'il divergeait, la base refuserait quand même, et
+ *   l'écran afficherait son message (§E.15 : un composant ne garde rien).
  *
  * ═══ ON NE REFUSE JAMAIS SUR UNE RÈGLE QU'ON N'A PAS ══════════════════════
  *   Un pays sans règle connue (`longueurMin`/`longueurMax` à NULL) ACCEPTE ce

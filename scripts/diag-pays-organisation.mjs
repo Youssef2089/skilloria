@@ -32,6 +32,7 @@
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { rejouerMigrations } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 // Le dépôt sort les fichiers en CRLF : un retour chariot casse tout motif qui
@@ -205,18 +206,32 @@ ok('plus aucun `/^\\d{9}$/` dans le code (hors connecteur Sirene, nommé)',
   neufChiffres.length === 0,
   `${neufChiffres.join(', ')} — c'est le format FRANÇAIS ; il refuse un numéro britannique avant toute vérification`)
 
-ok('la règle de saisie a UNE seule implémentation',
-  existe('lib/pays/numero-identification.ts'),
-  'deux implémentations divergent, c\'est ce que le dépôt a déjà payé sur le téléphone')
-
+// LA RÈGLE QUI FAIT FOI EST EN BASE (§D.27, 28/09/2026) : `numero_identification_refus()`, appelée par
+// l'inscription (`inscription_refus`, la question que la route pose) et par la finalisation. Le module
+// TypeScript reste le MIROIR de l'écran (la modale prévient avant l'envoi) — plus aucune route ne l'applique.
+// ⚠️ L'ÉQUIVALENCE DES DEUX NE SE BALAIE PAS (§E.38) : mêmes bornes de longueur, même jeu de caractères,
+//    « pas de règle ⇒ on accepte (≤ 40) » — lue, pas prouvée. Si elles divergent, la base refuse quand même,
+//    et l'écran affiche son message : la divergence coûte un aller-retour, jamais un défaut de garde.
+const fonctionsSql = rejouerMigrations().fonctions
+const regleSql = fonctionsSql.get('numero_identification_refus')?.corps ?? ''
+ok('la règle SERVEUR a UNE définition, en base (numero_identification_refus)',
+  /registre_numero_longueur_min/.test(regleSql) && /registre_numero_alphanumerique/.test(regleSql)
+    && /length\(v_n\) <= 40/.test(regleSql),
+  'la règle qui fait foi doit lire le référentiel du pays, et ne jamais refuser sur une règle qu\'on n\'a pas')
+ok('l\'inscription passe par elle : la route pose la question à la base, qui l\'applique',
+  /public\.numero_identification_refus\(v_pays, v_numero\)/.test(fonctionsSql.get('inscription_refus')?.corps ?? '')
+    && existe(REGISTER) && /refusInscription\(supabaseAdmin, email, meta\)/.test(sansCommentaires(read(REGISTER))),
+  'un bout qui valide autrement rouvre la divergence')
+ok('la finalisation passe par elle',
+  existe(FINALIZE) && /\.rpc\('numero_identification_refus'/.test(sansCommentaires(read(FINALIZE))),
+  'un bout qui valide autrement rouvre la divergence')
+const routesTs = SOURCES.filter((f) => f.startsWith('app/api/') && /numeroIdentificationAccepte/.test(sansCommentaires(read(f))))
+ok('aucune route n\'applique plus le miroir TypeScript', routesTs.length === 0, routesTs.join(', '))
 const UNIQ = SOURCES.filter((f) => /export function numeroIdentificationAccepte/.test(read(f)))
-ok('et elle n\'est définie qu\'à UN endroit', UNIQ.length === 1, UNIQ.join(', '))
-
-for (const [libelle, f] of [['la route d\'inscription', REGISTER], ['la route de finalisation', FINALIZE], ['la modale de finalisation', MODALE]]) {
-  ok(`${libelle} passe par cette règle partagée`,
-    existe(f) && /numeroIdentificationAccepte/.test(sansCommentaires(read(f))),
-    'un bout qui valide autrement rouvre la divergence')
-}
+ok('le miroir de l\'écran n\'est défini qu\'à UN endroit', UNIQ.length === 1, UNIQ.join(', '))
+ok('la modale de finalisation prévient avec ce miroir',
+  existe(MODALE) && /numeroIdentificationAccepte/.test(sansCommentaires(read(MODALE))),
+  'un écran qui valide autrement annoncerait un format que la base refuse')
 
 ok('la saisie n\'est plus bornée à 9 caractères',
   existe(MODALE) && !/maxLength=\{9\}/.test(read(MODALE)),

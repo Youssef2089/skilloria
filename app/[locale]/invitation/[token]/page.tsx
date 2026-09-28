@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { estCodeRefus } from '@/lib/inscription/refus'
 
 /**
  * /invitation/[token] — page PUBLIQUE d'acceptation d'invitation (Lot B, B3).
@@ -17,10 +18,10 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
  *
  *  - CAS 1 (session active) : bouton « Accepter » → POST /api/me/invitations/
  *    accept { token } → dashboard.
- *  - CAS 2 (pas de session) : le token N'EST PAS propagé par email (A2). On
- *    amorce l'inscription avec l'email verrouillé + le rôle/domaine DÉRIVÉS de
- *    l'org (A1) ; après confirmation email, l'acceptation se fait par détection
- *    d'email vérifié (PendingInvitationGate), pas par ce token.
+ *  - CAS 2 (pas de compte) : POST /api/invitations/inscription { token, … } —
+ *    le SERVEUR crée le compte à l'adresse de l'invitation, confirmée d'office,
+ *    et la base accepte l'invitation dans la même transaction (§D.27). Rôle et
+ *    écosystème sont dérivés de l'organisation, au serveur.
  *  - Compte déjà existant (email_already_exists) mais non connecté → invite à se
  *    connecter (l'acceptation se fera à la 1re session, par détection d'email).
  */
@@ -48,12 +49,13 @@ type View =
   | { kind: 'invalid' }
   | { kind: 'ready'; data: Resolved; hasSession: boolean }
   | { kind: 'accepted' }
-  | { kind: 'signup_sent' }
+  | { kind: 'account_created' }
 
 export default function InvitationPage() {
   const params = useParams()
   const token = String(params.token ?? '')
   const t = useTranslations('invitation_public')
+  const tRefus = useTranslations('inscription_refus')
   const locale = useLocale()
   const domain = useDomain()
   const router = useRouter()
@@ -68,6 +70,8 @@ export default function InvitationPage() {
   const [lastName, setLastName] = useState('')
   const [password, setPassword] = useState('')
   const [cgu, setCgu] = useState(false)
+  // Le nom de l'organisation, gardé pour l'écran « compte créé » (la vue `ready` s'en va).
+  const [companyName, setCompanyName] = useState<string | null>(null)
 
   const roleLabel = (r: string) => t(`role_${r}` as 'role_admin')
 
@@ -80,6 +84,7 @@ export default function InvitationPage() {
       if (!res.ok) { setView({ kind: 'invalid' }); return }
       const data = (await res.json()) as { valid?: boolean } & Resolved
       if (!data?.valid) { setView({ kind: 'invalid' }); return }
+      setCompanyName(data.company_name)
       setView({ kind: 'ready', data, hasSession: !!sess.data.session?.user })
     } catch (e) {
       console.error('[invitation] resolve failed', e)
@@ -129,7 +134,12 @@ export default function InvitationPage() {
     }
   }
 
-  // ── Cas 2 : créer un compte (email verrouillé, rôle/domaine dérivés) ────────
+  // ── Cas 2 : créer un compte — AU SERVEUR (§D.27) ────────────────────────────
+  //  L'invité s'inscrivait ici, dans le navigateur, avec la clé publique : sa case
+  //  des CGU n'était vérifiée que par cet écran, et son consentement n'était écrit
+  //  nulle part. La route signe une preuve, crée le compte à l'adresse de
+  //  l'invitation (confirmée d'office : le lien reçu la prouve) et la base accepte
+  //  l'invitation dans la même transaction. Rôle et écosystème : dérivés au serveur.
   async function signup(e: React.FormEvent) {
     e.preventDefault()
     if (busy || view.kind !== 'ready') return
@@ -138,35 +148,39 @@ export default function InvitationPage() {
     setBusy(true)
     setErr('')
     try {
-      const { error } = await supabase.auth.signUp({
-        email: view.data.email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/${locale}/auth/callback`,
-          data: {
-            firstname: firstName.trim(),
-            lastname: lastName.trim(),
-            // A1 : rôle/domaine DÉRIVÉS de l'org, l'invité ne les choisit pas.
-            role: view.data.signup_role,
-            domain_slug: view.data.domain_slug ?? domain.subdomain,
-            // La pièce du geste et la voie DÉCLARÉE (décision A) : le trigger d'inscription
-            // écrit `compte_cree` sous cette pièce. Née ici, dans le navigateur — elle n'est
-            // qu'une déclaration, comme la voie ; l'acceptation écrira sa propre ligne.
-            piece: crypto.randomUUID(),
-            voie: 'invitation',
-          },
-        },
+      const res = await fetch('/api/invitations/inscription', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          firstname: firstName.trim(),
+          lastname: lastName.trim(),
+          password,
+          cgu_accepted: cgu,
+        }),
       })
-      if (error) {
-        // Jamais le message brut de GoTrue : il est en anglais, et un refus du
-        // trigger d'inscription (IN001…IN005) n'y arrive qu'en « Database error
-        // saving new user ». Deux issues que l'invité peut comprendre et agir.
-        const brut = (error.message ?? '').toLowerCase()
-        const dejaPris = brut.includes('already') || brut.includes('registered') || brut.includes('exists')
-        setErr(dejaPris ? t('err_signup_email_taken') : t('err_signup_failed'))
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { code?: string }
+        const code = body.code ?? ''
+        // Le refus vient de la BASE, avec son code : un message par code, quatre langues.
+        setErr(
+          code === 'invalid_password'
+            ? t('err_password_short')
+            : code === 'cgu_required'
+              ? t('err_cgu')
+              : code === 'email_taken'
+                ? t('err_signup_email_taken')
+                : code === 'invitation_lecture_indisponible'
+                  ? t('err_invitation_lecture_indisponible')
+                  : estCodeRefus(code)
+                    ? tRefus(code)
+                    : t('err_signup_failed'),
+        )
         return
       }
-      setView({ kind: 'signup_sent' })
+      setView({ kind: 'account_created' })
+    } catch {
+      setErr(t('err_signup_failed'))
     } finally {
       setBusy(false)
     }
@@ -198,10 +212,13 @@ export default function InvitationPage() {
           </>
         )}
 
-        {view.kind === 'signup_sent' && (
+        {view.kind === 'account_created' && (
           <>
-            <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 10px' }}>{t('signup_sent_title')}</h1>
-            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.55, margin: 0 }}>{t('signup_sent_body')}</p>
+            <h1 style={{ fontSize: 19, fontWeight: 800, color: 'var(--sk-text)', margin: '0 0 10px' }}>{t('account_created_title')}</h1>
+            <p style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.55, margin: '0 0 20px' }}>
+              {t('account_created_body', { company: companyName ?? '—' })}
+            </p>
+            <button type="button" onClick={() => router.push('/connexion')} style={primaryBtn(domain.primaryColor)}>{t('signin_cta')}</button>
           </>
         )}
 

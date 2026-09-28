@@ -13,7 +13,8 @@
 // from().insert|update|upsert|delete, storage upload|remove, auth.admin.*, ou .rpc() vers une fonction
 // SQL dont la DERNIÈRE définition insère, modifie ou supprime ; « trace » = le fichier appelle un
 // écrivain du grand livre, SQL (point fixe depuis journaliser) ou TypeScript (point fixe sur les
-// fonctions de lib/).
+// fonctions de lib/) — ou, pour une création de compte, la preuve signée que handle_new_user
+// journalise (compte_cree sous sa pièce, §D.27).
 //
 // CE QU'IL GARDE
 //   A. aucune route qui écrit n'est sans trace hors des EXCLUSIONS ;
@@ -104,8 +105,16 @@ for (const f of walk('app/api').filter((x) => x.endsWith('route.ts'))) {
   for (const m of s.matchAll(/\.rpc\('(\w+)'/g)) if (ecritSql(m[1])) ecr.push(`rpc:${m[1]}`)
   if (/\.storage\s*\.from\([^)]*\)\s*\.(upload|remove)\(/.test(s)) ecr.push('storage')
   if (/auth\.admin\.(updateUserById|createUser|deleteUser|inviteUserByEmail)\(/.test(s)) ecr.push('auth.admin')
+  // CRÉER UN COMPTE EST UNE ÉCRITURE — même par le client anonyme caché dans lib/auth-signup.ts (angle mort
+  // jusqu'au 28/09/2026 : les deux routes d'inscription publiques n'étaient pas comptées).
+  if (/\bsignUpWithConfirmation\(/.test(s)) ecr.push('auth.signUp')
   if (!ecr.length) continue
-  const trace = journalise(s, tracantes)
+  // LA TRACE D'UNE CRÉATION DE COMPTE PROUVÉE (§D.27) : la route signe la preuve et la passe dans les
+  // métadonnées ; handle_new_user écrit compte_cree (et la ligne sœur) sous la pièce signée, dans la
+  // transaction du compte. Une MENTION ne suffit pas : l'appel au signataire ET les champs signés transmis.
+  const traceParLeTrigger = ecrSql.has('handle_new_user')
+    && /\bsignerPreuveInscription\(/.test(s) && /\{ \.\.\.meta, \.\.\.signees \}/.test(s)
+  const trace = journalise(s, tracantes) || traceParLeTrigger
   const methodes = [...s.matchAll(/export async function (GET|POST|PATCH|PUT|DELETE)\(/g)].map((m) => m[1]).join(',')
   out.push({ f, route: f.replace('app/api/', '').replace('/route.ts', ''), methodes, ecr: [...new Set(ecr)], trace })
 }

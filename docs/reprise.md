@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 11).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 12, en cours).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -49,6 +49,31 @@ Après ce push, déclarer le nouvel état en ⓪ et vider les deux listes du `wi
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 12 — LA PORTE D'INSCRIPTION SE FERME EN BASE (en cours, 28/09/2026)
+
+Décision de Youssef sur l'audit de l'ARRÊT 11 : **option (b)**, l'invité par une route serveur, l'organisation dans
+la transaction du compte. Tag local `sauvegarde-avant-porte` posé sur `7aeffa3` avant tout. Détail : §D.27
+d'[architecture.md](architecture.md#d27), piège §E.81.
+
+**Contradictions signalées avant d'écrire, et tranchées ainsi (Youssef peut revenir sur chacune)** :
+① l'**échéance** de la preuve vit dans le signataire (5 min) — exception nommée à « aucune valeur dans le code »,
+comme le TTL OTP et §D.7 (§D.11 : un réglage technique ne s'affiche pas) ; ② le **mot de passe** reste une règle de
+route (GoTrue le hache, la base ne le voit pas) ; ③ un **administrateur créé par un autre** n'a pas de consentement
+aux CGU écrit (il n'a rien accepté) ; ④ GoTrue **avale l'erreur du trigger** : la route DEMANDE la règle avant de
+créer (§E.81) ; ⑤ entre `db push` et déploiement, **toute inscription est refusée** (minutes).
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. La preuve signée, vérifiée en base | **fait** | Migration `porte_inscription` : `preuve_inscription_canonique`, `_signature` (seul lecteur du secret, fermée à tous), `_refus` ; `handle_new_user` vérifie AVANT toute écriture — IN007 absente, IN008 altérée/autre adresse, IN009 expirée, IN011 secret absent. Signataire `lib/inscription/preuve.mjs`. Rotation par `inscription_hmac_secret_precedent` (§D.27). |
+| 2. Tous les appelants | **fait** | register-expert, register-org, invité (route neuve), create-admin, le script du premier administrateur — et la recette 3.3 (elle promouvait par une écriture directe). |
+| 3. L'invité au serveur | **fait** | `POST /api/invitations/inscription` : adresse de l'invitation, `email_confirm: true`, rôle et écosystème dérivés ; le trigger accepte l'invitation dans la transaction. La page n'appelle plus `auth.signUp` ; elle affiche « compte créé » et mène à la connexion. |
+| 4. L'organisation avec son compte | **fait** | Le trigger appelle `creer_organisation_avec_admin` ; l'administrateur est promu dans la transaction. `atomicCleanup` et `lib/comptes/journal-inscription.ts` retirés. |
+| 5. CGU et téléphone dans la transaction | **fait** | Expert, organisation, invité ; pas l'administrateur (③). |
+| 6. Une règle, une définition | **en partie** | `inscription_refus()` porte toutes les règles, la route la demande avant (codes stables, 37, messages en quatre langues) ; `numero_identification_refus()` en base, aussi pour la finalisation. Écosystème résolu depuis l'HÔTE. **Reste : l'écran d'administration des listes de domaines** (commit suivant). |
+| 7. Tests pgTAP | **fait** | `inscription/porte.test.sql` (43) ; `compte_cree`, `roles`, `grand_livre/inscriptions`, `administrateur_cree`, `ecritures_effectives` réécrits ; fabriques signées. |
+| 8. Le commentaire de la confirmation | **fait** | `generateLink` → `auth.signUp` sur un client anonyme serveur. |
+| Déploiement | à faire | Requête de staging préparée pour ce push (listes, secret ligne ⑬, pgcrypto) ; étapes de Youssef à l'arrêt. |
 
 ## ⛔ ARRÊT 11 — LE MÉNAGE DU DÉPLOIEMENT EST FAIT ; L'AUDIT DE LA PORTE D'INSCRIPTION EST RENDU (28/09/2026)
 

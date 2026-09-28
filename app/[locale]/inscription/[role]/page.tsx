@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
+import { estCodeRefus, INSCRIPTION_INDISPONIBLE } from '@/lib/inscription/refus'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
@@ -31,6 +32,7 @@ export default function InscriptionRolePage() {
   const domain = useDomain()
   const locale = useLocale()
   const t = useTranslations('signup_form')
+  const tRefus = useTranslations('inscription_refus')
   const role = params.role as string
 
   const isKnownRole = (r: string): r is RoleKey =>
@@ -218,7 +220,6 @@ export default function InscriptionRolePage() {
           speciality_id: specialityId === SPECIALITY_OTHER ? '' : specialityId,
           speciality_other: specialityId === SPECIALITY_OTHER ? specialityOther.trim() : '',
           role, // 'expert' | 'cdi'
-          domain_slug: domain.subdomain,
           phone,
           phone_otp_token: otpToken,
           email_redirect_to: emailRedirectTo,
@@ -231,19 +232,14 @@ export default function InscriptionRolePage() {
       const json = (await res.json().catch(() => ({}))) as { code?: string; error?: string }
       if (!res.ok) {
         const c = json.code
-        if (c === 'phone_already_used') setError(t('errors.phone_already_used'))
-        else if (c === 'cgu_required') setError(t('errors.cgu_required'))
-        else if (c === 'email_taken') setError(t('errors.email_taken'))
-        else if (c === 'phone_otp_required') {
+        if (c === 'phone_otp_required') {
           // Le jeton HMAC (TTL 15 min) a expiré pendant le remplissage :
           // on réinitialise la vérif et on invite l'utilisateur à recommencer.
           setOtpToken(null)
           setError(t('errors.otp_expired'))
-        } else if (c === 'invalid_phone') setError(t('errors.invalid_phone'))
-        else if (c === 'invalid_password') setError(t('errors.password_too_short'))
-        else if (c === 'branch_required') setError(t('errors.branch_required'))
-        else if (c === 'speciality_required') setError(t('errors.speciality_required'))
-        else if (c === 'invalid_branch' || c === 'invalid_speciality') setError(t('errors.taxonomy_invalid'))
+        } else if (c === 'invalid_password') setError(t('errors.password_too_short'))
+        // LE REFUS VIENT DE LA BASE (§D.27), avec un code stable : une phrase par code, quatre langues.
+        else if (estCodeRefus(c) || c === INSCRIPTION_INDISPONIBLE) setError(tRefus(c))
         else setError(t('errors.generic'))
         return
       }

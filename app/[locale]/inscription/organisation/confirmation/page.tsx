@@ -11,8 +11,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
  * Réplique du pattern Expert/CDI ([app/[locale]/inscription/confirmation/page.tsx]) :
  *   - Static, pas de query string, pas d'email affiché
  *   - Pas de bouton "Renvoyer l'email" (l'envoi est géré par Supabase Auth
- *     via SMTP projet, déclenché par generateLink({type:'signup'}) côté
- *     register-org)
+ *     via SMTP projet, déclenché par `auth.signUp` sur un client ANON serveur —
+ *     lib/auth-signup.ts, piège P1 : `generateLink` et `createUser` n'envoient RIEN)
  *   - i18n : namespace `signup_confirmation` partagé avec Expert/CDI
  */
 export default function InscriptionOrganisationConfirmationPage() {

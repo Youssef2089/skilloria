@@ -340,6 +340,8 @@ const GEL_NON_RESOLUES = {
     'LEGITIME (deux occurrences) — `cand = pickRel(conv.candidatures)` ; la lecture de `conv` sort en 500 sur erreur dans `loadConvAsParticipant`, puis `!loaded.ok` est rendu tel quel',
   'app/api/invitations/resolve/route.ts | !token':
     'LEGITIME — un parametre de requete vide : validation de FORMAT, aucune lecture',
+  'app/api/invitations/inscription/route.ts | !token':
+    'LEGITIME — un champ du corps vide : validation de FORMAT, aucune lecture (la jumelle de resolve, meme garde, meme 404 uniforme)',
   'app/api/me/invitations/accept/route.ts | block':
     "LEGITIME — `block === 'indisponible'` sort en 503 sur la ligne PRECEDENTE (§E.22 ⑥) ; ce qui reste est un motif metier",
   'app/api/me/missions/route.ts | !isApproved':

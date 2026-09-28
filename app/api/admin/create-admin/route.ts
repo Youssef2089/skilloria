@@ -5,11 +5,10 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { requireReauth } from '@/lib/reauth-token'
 import { logAudit } from '@/lib/audit'
 import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
-// Cleanup atomique : le MÊME que les deux routes d'inscription publiques.
-// `auth.admin.deleteUser` ne cascade pas sur public.users — cf. piège P3.
-import { atomicCleanup } from '@/lib/auth-signup'
-import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { sendAdminInvitation } from '@/lib/admin/admin-invitation'
+import { signerPreuveInscription } from '@/lib/inscription/preuve.mjs'
+import { refusInscription, nommerLeRefus, INSCRIPTION_INDISPONIBLE } from '@/lib/inscription/refus'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,61 +23,27 @@ export const dynamic = 'force-dynamic'
  * administrateur imposait de s'inscrire normalement puis de modifier
  * `user_type` À LA MAIN en base — ni tracé, ni reproductible. Cette route rend
  * l'opération traçable. Elle ne crée PAS le PREMIER administrateur (il faut
- * déjà en être un pour l'appeler) : ce bootstrap-là est un chantier distinct.
+ * déjà en être un pour l'appeler) : c'est `scripts/creer-premier-administrateur.mjs`.
  *
- * ╔══════════════════════════════════════════════════════════════════════════╗
- * ║ ⚠️  LE POINT MORT DU TRIGGER — NE RETIREZ PAS LA VÉRIFICATION DU MIROIR  ║
- * ╠══════════════════════════════════════════════════════════════════════════╣
- * ║ `handle_new_user` mappe le `role` des métadonnées vers `user_type`. Son  ║
- * ║ CASE ne connaît que expert / cdi / entreprise / cabinet. Pour TOUTE      ║
- * ║ autre valeur — 'admin' compris :                                        ║
- * ║                                                                          ║
- * ║     IF v_user_type IS NULL THEN                                          ║
- * ║       RAISE WARNING '[handle_new_user] role inconnu: %...';              ║
- * ║       RETURN NEW;   -- ← SUCCÈS SILENCIEUX, AUCUNE ligne public.users    ║
- * ║     END IF;                                                              ║
- * ║                                                                          ║
- * ║ Le compte `auth.users` est créé, la fonction rend la main SANS ERREUR,   ║
- * ║ et le miroir n'existe pas. Le compte passerait `requireAuth` (JWT        ║
- * ║ valide) puis échouerait partout ensuite — `requireAdmin` lit             ║
- * ║ `users.user_type` et ne trouverait rien. Un compte fantôme,              ║
- * ║ inconnectable, qui occupe l'adresse e-mail et bloque toute recréation.   ║
- * ║                                                                          ║
- * ║ La vérification explicite du miroir ci-dessous, suivie d'`atomicCleanup` ║
- * ║ s'il manque, est la SEULE chose qui transforme cet échec muet en échec   ║
- * ║ propre. Elle ressemble à une redondance. Elle n'en est pas.              ║
- * ╚══════════════════════════════════════════════════════════════════════════╝
+ * ═══ LE COMPTE NAÎT ADMINISTRATEUR, EN UNE TRANSACTION (§D.27) ═══════════════
+ *   La route signe une preuve (voie `administrateur`, l'acteur = l'administrateur
+ *   qui crée) ; `handle_new_user` la vérifie, crée le compte par le rôle de pont
+ *   `entreprise` (→ user_type 'client', sans profil ni organisation), puis appelle
+ *   `promouvoir_administrateur()` DANS LA MÊME TRANSACTION : user_type 'admin',
+ *   role_id Admin, status 'active' (l'anti-lock-out ne compte que les actifs),
+ *   `administrateur_cree` sous la pièce de `compte_cree`. La promotion refuse en
+ *   base un acteur qui n'est pas administrateur actif (AD002) ; un refus annule
+ *   TOUT — le client de pont n'existe jamais seul, et il n'y a plus rien à
+ *   nettoyer (l'ancien `atomicCleanup` est retiré).
  *
- * ═══ POURQUOI ON PASSE PAR 'entreprise' PUIS ON BASCULE ════════════════════
- *   CONTOURNEMENT ASSUMÉ DU TRIGGER. On crée le compte avec `role:'entreprise'`
- *   — que `handle_new_user` sait traiter (→ user_type 'client', et AUCUNE ligne
- *   `profiles`, réservée à expert/cdi) — puis on bascule immédiatement vers
- *   `user_type='admin'`.
+ *   Pas de consentement aux CGU écrit ici : un administrateur créé par un autre
+ *   n'a rien accepté, et on n'écrit pas un consentement qui n'a pas eu lieu.
  *
- *   L'alternative propre serait d'ajouter une branche `admin` au trigger. C'est
- *   une MIGRATION sur le déclencheur d'inscription, donc sur TOUS les parcours
- *   de création de compte. Décision produit : on ne la fait pas maintenant ; on
- *   la reconsidérera au chantier de mise en production, base vierge et risque
- *   nul. En attendant, le contournement vit ICI et nulle part ailleurs, sous
- *   cleanup atomique.
- *
- *   `users_user_type_check` admet DÉJÀ 'admin' (baseline) : la bascule ne viole
- *   aucune contrainte et n'a jamais eu besoin de migration.
- *
- * ═══ LES TROIS ÉCRITURES DE LA BASCULE — EN BASE, AVEC SA LIGNE ══════════════
- *   Faites par `promouvoir_administrateur()` (migration `journal_administrateur_cree`),
- *   qui écrit `administrateur_cree` dans la même transaction et REFUSE en base un
- *   compte qui n'a pas été créé pour l'administration (AD001) ou un acteur qui
- *   n'est pas administrateur (AD002). Le script du jour zéro appelle la même.
- *   - `user_type = 'admin'`   : le rôle réel.
- *   - `role_id = <Admin>`     : rôle COMMERCIAL, sans objet pour un
- *                               administrateur, mais une lecture en base doit
- *                               être sans ambiguïté (décision produit).
- *   - `status = 'active'`     : le trigger pose 'draft'. Ce n'est pas cosmétique :
- *                               `countOtherAvailablePlatformAdmins` ne compte
- *                               QUE les 'active'. Un administrateur resté en
- *                               'draft' ne compterait pas comme disponible, et
- *                               l'anti-lock-out plateforme le croirait absent.
+ * ═══ LE MIROIR SE LIT ENCORE — pour sa langue, et pour ne rien supposer ══════
+ *   Le trigger LÈVE désormais sur tout refus (plus de « retour silencieux sans
+ *   miroir », §E.23) : un compte créé a son miroir, promu. On relit quand même
+ *   `users` — la langue de l'e-mail d'invitation en vient, et un compte qui ne
+ *   serait pas administrateur se dit 500, jamais 200.
  *
  * ═══ `domain_id` : UN RATTACHEMENT, PAS UNE AUTORISATION ═══════════════════
  *   `users.domain_id` est NOT NULL, il faut donc une valeur. Elle est CHOISIE
@@ -109,10 +74,7 @@ const RATE_BUCKET = 'admin_create'
 const RATE_WINDOW_SECONDS = 3600
 const RATE_MAX = 5
 
-/** Rôle COMMERCIAL de l'administrateur (seed 20260709000001_commerce_seed.sql). */
-const ADMIN_ROLE_NAME = 'Admin'
-
-/** Rôle d'inscription accepté par le trigger — cf. § CONTOURNEMENT ASSUMÉ. */
+/** Rôle d'inscription de pont que le trigger promeut sur la voie `administrateur`. */
 const TRIGGER_BRIDGE_ROLE = 'entreprise'
 
 function asString(v: unknown): string | null {
@@ -135,8 +97,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
 
-  // La pièce du geste naît à son entrée (§D.26) : elle voyage dans les métadonnées de
-  // création jusqu'au trigger (`compte_cree`), puis jusqu'à la promotion.
+  // La pièce du geste naît à son entrée (§D.26) : signée dans la preuve, elle porte
+  // `compte_cree` et `administrateur_cree`, écrites par le trigger.
   const journal = contexteDepuisAuth(auth)
 
   // Limitation de débit — mécanisme EXISTANT, pas un second. Clé IP : c'est un
@@ -162,128 +124,69 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid JSON body', code: 'invalid_json' }, 400)
   }
 
-  const email = asString(body.email)?.toLowerCase() ?? null
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
-    return json({ error: 'Invalid email', code: 'invalid_email' }, 400)
-  }
-  const firstName = asString(body.first_name)
-  if (!firstName || firstName.length > 100) {
-    return json({ error: 'Invalid first name', code: 'invalid_first_name' }, 400)
-  }
-  const lastName = asString(body.last_name)
-  if (!lastName || lastName.length > 100) {
-    return json({ error: 'Invalid last name', code: 'invalid_last_name' }, 400)
-  }
-  // Défaut = écosystème du CRÉATEUR. Rattachement technique (cf. § domain_id).
+  const email = asString(body.email)?.toLowerCase() ?? ''
+  // Défaut = écosystème du CRÉATEUR. Rattachement technique (cf. § domain_id) ; la base
+  // vérifie qu'il est ACTIF (`invalid_domain`).
   const domainSlug = asString(body.domain_slug)?.toLowerCase() ?? auth.domain.slug
-  if (!/^[a-z0-9-]{1,50}$/.test(domainSlug)) {
-    return json({ error: 'Invalid ecosystem', code: 'invalid_domain_slug' }, 400)
+
+  const meta: Record<string, string> = {
+    firstname: asString(body.first_name) ?? '',
+    lastname: asString(body.last_name) ?? '',
+    role: TRIGGER_BRIDGE_ROLE,
+    domain_slug: domainSlug,
+    voie: 'administrateur',
+    piece: journal.piece,
+    // L'administrateur qui crée : la promotion vérifie EN BASE qu'il l'est (AD002).
+    acteur_id: auth.user.id,
   }
 
-  // ── L'écosystème doit être ACTIF : le trigger l'exige et lèverait sinon ───
-  const { data: domainRow, error: domainErr } = await auth.supabaseAdmin
-    .from('domains')
-    .select('id, slug')
-    .eq('slug', domainSlug)
-    .eq('active', true)
-    .maybeSingle()
-  if (domainErr) {
-    console.error('[admin:create-admin] domain lookup failed', domainErr.message)
-    return json({ error: 'Query failed', code: 'db_error' }, 500)
-  }
-  if (!domainRow) {
-    return json({ error: 'Unknown or inactive ecosystem', code: 'invalid_domain_slug' }, 400)
+  // ── La question à la base, AVANT de créer : formats, adresse prise, rôle Admin ─
+  const verdict = await refusInscription(auth.supabaseAdmin, email, meta)
+  if (!verdict.ok) {
+    return json({ error: 'Creation refused', code: verdict.code }, verdict.statut)
   }
 
-  // ── Rôle commercial « Admin » — échec EXPLICITE s'il manque ──────────────
-  // Même posture que le trigger avec le rôle « Gratuit » : on ne bricole pas un
-  // repli silencieux sur un rôle qui n'a pas le sens voulu.
-  const { data: roleRow, error: roleErr } = await auth.supabaseAdmin
-    .from('roles')
-    .select('id')
-    .eq('name', ADMIN_ROLE_NAME)
-    .eq('active', true)
-    .maybeSingle()
-  if (roleErr || !roleRow) {
-    console.error('[admin:create-admin] Admin role missing', roleErr?.message ?? 'no row')
-    return json({ error: 'Admin role missing', code: 'admin_role_missing' }, 500)
+  let signees: Record<string, string>
+  try {
+    signees = signerPreuveInscription(email, meta)
+  } catch (err) {
+    console.error('[admin:create-admin] preuve non signée', err instanceof Error ? err.message : String(err))
+    return json({ error: 'Server misconfigured', code: INSCRIPTION_INDISPONIBLE }, 503)
   }
 
-  // ── Pré-check unicité : refus PROPRE avant toute écriture ────────────────
-  const { data: existing } = await auth.supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle()
-  if (existing) {
-    return json({ error: 'Email already used', code: 'email_taken' }, 409)
-  }
-
-  // ── Création auth.users ──────────────────────────────────────────────────
-  // `email_confirm: true` : l'adresse est confirmée d'office (un administrateur
-  // en invite un autre, pas d'auto-inscription à vérifier). Le mot de passe est
-  // aléatoire, n'est ni renvoyé, ni journalisé, ni affiché — le seul accès passe
-  // par le lien envoyé à l'invité.
+  // `email_confirm: true` : l'adresse est confirmée d'office (un administrateur en
+  // invite un autre, pas d'auto-inscription à vérifier). Le mot de passe est aléatoire,
+  // n'est ni renvoyé, ni journalisé, ni affiché — le seul accès passe par le lien
+  // envoyé à l'invité.
   const { data: created, error: createErr } = await auth.supabaseAdmin.auth.admin.createUser({
     email,
     password: randomUUID() + randomUUID(),
     email_confirm: true,
-    user_metadata: {
-      // ⚠️ 'entreprise', pas 'admin' — cf. § CONTOURNEMENT ASSUMÉ DU TRIGGER.
-      role: TRIGGER_BRIDGE_ROLE,
-      domain_slug: domainRow.slug,
-      firstname: firstName,
-      lastname: lastName,
-      // La pièce du geste et la voie DÉCLARÉE (décision A) : le trigger écrit `compte_cree`
-      // sous cette pièce, la promotion (`administrateur_cree`) la reprend.
-      piece: journal.piece,
-      voie: 'administrateur',
-    },
+    user_metadata: { ...meta, ...signees },
   })
   if (createErr || !created?.user) {
     const msg = (createErr?.message ?? '').toLowerCase()
     if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
       return json({ error: 'Email already used', code: 'email_taken' }, 409)
     }
-    console.error('[admin:create-admin] createUser failed', createErr?.message)
-    return json({ error: 'Could not create user', code: 'create_user_failed' }, 500)
+    console.error('[admin:create-admin] createUser refusé', createErr?.message)
+    const nomme = await nommerLeRefus(auth.supabaseAdmin, email, meta)
+    return json({ error: 'Creation refused', code: nomme.code }, nomme.statut)
   }
   const newUserId = created.user.id
 
-  // ╔════════════════════════════════════════════════════════════════════════╗
-  // ║ VÉRIFICATION DU MIROIR — LE CONTRÔLE À NE JAMAIS RETIRER               ║
-  // ║ Voir l'encadré en tête de fichier. Un `role` que le trigger ne connaît ║
-  // ║ pas produit un RAISE WARNING + RETURN NEW : succès côté auth, AUCUNE   ║
-  // ║ ligne public.users, et AUCUNE erreur remontée. Sans cette lecture, on  ║
-  // ║ répondrait 200 sur un compte fantôme inconnectable.                   ║
-  // ╚════════════════════════════════════════════════════════════════════════╝
   const { data: mirror, error: mirrorErr } = await auth.supabaseAdmin
     .from('users')
-    .select('id, locale')
+    .select('id, locale, user_type, domain_id')
     .eq('id', newUserId)
     .maybeSingle()
-  if (mirrorErr || !mirror) {
-    console.error('[admin:create-admin] MIROIR ABSENT après createUser', {
+  if (mirrorErr || !mirror || (mirror as { user_type: string }).user_type !== 'admin') {
+    // Impossible par construction (même transaction) — donc dit, jamais supposé.
+    console.error('[admin:create-admin] compte créé mais non administrateur', {
       newUserId,
-      msg: mirrorErr?.message ?? 'no row',
+      msg: mirrorErr?.message ?? (mirror ? `user_type ${String((mirror as { user_type: string }).user_type)}` : 'no row'),
     })
-    await atomicCleanup(auth.supabaseAdmin, { userId: newUserId })
-    return json({ error: 'Account mirror missing', code: 'mirror_missing' }, 500)
-  }
-
-  // ── Bascule vers le rôle réel — et sa ligne, dans la même fonction ─────────
-  //    user_type 'admin', role_id Admin, status 'active' (cf. § LES TROIS ÉCRITURES :
-  //    un admin en 'draft' ne serait pas compté par l'anti-lock-out plateforme).
-  //    La ligne suit l'issue RÉELLE : 'echoue' est écrite par la fonction elle-même.
-  const { data: promotion, error: promoteErr } = await auth.supabaseAdmin.rpc('promouvoir_administrateur', {
-    ...parametresJournal(journal),
-    p_user_id: newUserId,
-    p_role_id: roleRow.id,
-  })
-  if (promoteErr || promotion !== 'reussi') {
-    console.error('[admin:create-admin] promotion failed', promoteErr?.message ?? `issue ${String(promotion)}`)
-    await atomicCleanup(auth.supabaseAdmin, { userId: newUserId })
-    return json({ error: 'Could not promote to admin', code: 'promote_failed' }, 500)
+    return json({ error: 'Account not promoted', code: 'promote_failed' }, 500)
   }
 
   // ── Invitation ───────────────────────────────────────────────────────────
@@ -297,7 +200,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const invitationSent = await sendAdminInvitation({
     email,
     origin,
-    domainSlug: domainRow.slug,
+    domainSlug,
     // Locale LUE en base (posée par le trigger), jamais codée en dur ici.
     locale: (mirror as { locale: string | null }).locale ?? 'fr',
   })
@@ -315,7 +218,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     // JAMAIS l'adresse complète : `entity_id` identifie déjà la cible, et
     // l'e-mail est une donnée personnelle qui n'a rien à faire au journal.
     detail: {
-      target_domain_id: domainRow.id,
+      target_domain_id: (mirror as { domain_id: string }).domain_id,
       target_user_type: 'admin',
       invitation_sent: invitationSent,
     },

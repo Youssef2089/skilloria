@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **157** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
+Sur les **158** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
@@ -3891,6 +3891,30 @@ périmée ; une de moins : non préparée), aucun invariant qui cite ce que le p
 `diag-portes-laterales` exige que la liste de la ligne des politiques couvre chaque table qu'il dérive. Éprouvés par
 mutation. **Ce qu'il ne voit pas** : l'état RÉEL de staging (c'est ⓪ qui le compare) ; les colonnes, politiques et
 contraintes créées par un push (seuls fonctions, tables et index sont suivis) ; une nouvelle signature d'un nom connu.
+
+---
+
+<a id="e81"></a>
+### E.81 — GoTrue AVALE L'ERREUR D'UN TRIGGER : « Database error saving new user ». Une règle posée dans le trigger ne se LIT pas par la route — il faut pouvoir la DEMANDER avant.
+
+**Le cas (28/09/2026, la porte d'inscription, §D.27).** Pour fermer la porte d'inscription, les règles d'inscription
+passent en base : `handle_new_user` refuse un compte dont le domaine d'adresse est bloqué, dont le SIREN est pris,
+dont la preuve est altérée… Mais quand le trigger lève, le service d'authentification (GoTrue) ne transmet ni le
+SQLSTATE ni le message : `auth.signUp` et `auth.admin.createUser` rendent **« Database error saving new user »**,
+toujours la même phrase. Une route qui crée le compte d'abord et lit l'erreur ensuite ne saurait dire ni
+« votre organisation est déjà inscrite » ni « ce numéro est déjà utilisé » — elle dirait « erreur », et
+l'utilisateur recommencerait à l'aveugle. C'était déjà le cas des refus IN001–IN006 dans la page d'invitation,
+qui l'écrivait dans son commentaire.
+
+**La parade.** La règle vit dans UNE fonction SQL qu'on peut INTERROGER (`inscription_refus(email, métadonnées)`,
+ouverte à la seule clé de service) : la route pose la question AVANT de créer et rend le code tel quel ; le trigger
+rejoue la MÊME fonction en garde finale. Après une création refusée, la route repose la question : une course
+perdue (le domaine pris entre-temps) se nomme alors ; sinon « indisponible », jamais un motif inventé (§E.22).
+
+**Le contrôle** : [`diag-porte-inscription`](../scripts/diag-porte-inscription.mjs), section D — chaque route de
+création de compte appelle `refusInscription()` et ne juge rien elle-même. **Ce qu'il ne voit pas** : une route
+neuve qui créerait un compte sans passer par ces quatre fichiers — la section B (tout créateur de compte signe la
+preuve) la ferait rougir, pas la section D.
 
 ---
 

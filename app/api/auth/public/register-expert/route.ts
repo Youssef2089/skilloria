@@ -4,11 +4,12 @@ import { logAudit } from '@/lib/audit'
 import { logSession } from '@/lib/session-log'
 import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
-import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
+import { signUpWithConfirmation } from '@/lib/auth-signup'
 import { CGU_VERSION } from '@/lib/legal'
 import { nouvellePiece } from '@/lib/journal/piece'
-import { ouvrirContexte } from '@/lib/journal/contexte'
-import { expertInscrit } from '@/lib/comptes/journal-inscription'
+import { signerPreuveInscription } from '@/lib/inscription/preuve.mjs'
+import { refusInscription, nommerLeRefus, INSCRIPTION_INDISPONIBLE } from '@/lib/inscription/refus'
+import { ecosystemeDeLaRequete } from '@/lib/inscription/ecosysteme'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -16,31 +17,28 @@ export const dynamic = 'force-dynamic'
 /**
  * POST /api/auth/public/register-expert
  *
- * Inscription EXPERT (freelance / cdi) avec OTP téléphone OBLIGATOIRE — remplace
- * le `supabase.auth.signUp` client historique (décision D3). Bâtie sur le
- * parcours org déjà en production, avec les mêmes pièges déjà évités :
+ * Inscription EXPERT (freelance / cdi) avec OTP téléphone OBLIGATOIRE.
+ *
+ * ═══ CE QUE CETTE ROUTE VÉRIFIE — ET CE QU'ELLE NE VÉRIFIE PLUS (§D.27) ═══════
+ *   Elle vérifie ce que SEULE elle peut vérifier : le jeton OTP (le téléphone a
+ *   reçu le code), la case des CGU, le mot de passe (GoTrue le hache : la base
+ *   ne le voit jamais). Puis elle SIGNE ce qu'elle atteste.
+ *   Toutes les AUTRES règles — formats, branche et spécialité obligatoires,
+ *   taxonomie de l'écosystème, unicité du téléphone — vivent en base, dans
+ *   `inscription_refus()` : la route lui pose la question avant de créer le
+ *   compte (GoTrue avale l'erreur du trigger, on ne saurait pas quoi dire après),
+ *   et `handle_new_user` la rejoue. Un appel direct au service
+ *   d'authentification, sans preuve, est refusé EN BASE (IN007).
+ *
+ * ═══ LE COMPTE NAÎT COMPLET, EN UNE TRANSACTION ═══════════════════════════════
+ *   Le trigger écrit le compte, le profil, le téléphone vérifié, le consentement
+ *   aux CGU (version, date), `compte_cree` et `expert_inscrit` sous la pièce de
+ *   ce geste. Plus rien à finaliser ici, donc plus rien à nettoyer.
  *
  *  P1 — signUp via client ANON serveur (seul chemin déclenchant le SMTP) →
- *       délégué à lib/auth-signup.signUpWithConfirmation.
- *  P3 — cleanup atomique (deleteUser ne cascade pas sur public.users) →
- *       lib/auth-signup.atomicCleanup, jamais de re-throw (Next renverrait un
- *       500 sans corps JSON). Classe d'erreur typée.
- *  P4 — AUCUN appel IA ici. La vérification d'expertise reste au PATCH
- *       visible=true (runExpertVerification), inchangée.
- *  P5 — l'écriture phone + phone_verified est BLOQUANTE : c'est la barrière
- *       anti-multicompte, un échec silencieux ruinerait le but.
- *  P7 — email_redirect_to strictement regexé (anti open-redirect), même règle
- *       que l'org.
- *  P8 — le trigger handle_new_user crée DÉJÀ public.profiles (visible=false)
- *       pour role in ('expert','cdi') : cette route N'INSÈRE PAS de profil, et
- *       le cleanup n'a que 2 étapes (public.users → auth.users).
- *
- * Unicité (D2) : pré-check `phone + phone_verified` AVANT signUp + interception
- * du 23505 (index unique partiel users_phone_verified_unique_idx) comme filet
- * de course → code 'phone_already_used'.
- *
- * Le téléphone est canonicalisé E.164 (D4) puis re-vérifié contre le jeton HMAC
- * (signé sur cette même forme par verify-phone-otp).
+ *       lib/auth-signup.signUpWithConfirmation.
+ *  P4 — AUCUN appel IA ici.
+ *  P7 — email_redirect_to strictement regexé (anti open-redirect).
  */
 
 function json(data: unknown, status = 200): Response {
@@ -63,152 +61,14 @@ type Body = {
   speciality_id?: unknown
   speciality_other?: unknown
   role?: unknown
-  domain_slug?: unknown
   phone?: unknown
   phone_otp_token?: unknown
   email_redirect_to?: unknown
   cgu_accepted?: unknown
 }
 
-type ValidatedInput = {
-  first_name: string
-  last_name: string
-  email: string
-  password: string
-  specialty: string | null
-  // D5/D6 : spécialité structurée + précision libre « Autre ».
-  branch_id: string | null
-  speciality_id: string | null
-  speciality_other: string | null
-  role: ExpertRole
-  domain_slug: string
-  phone: string
-  phone_otp_token: string
-  email_redirect_to: string | null
-}
-
-/** Erreur typée : porte le code + status pour une réponse JSON propre (jamais un re-throw). */
-class RegisterExpertError extends Error {
-  constructor(
-    public code: string,
-    public userMessage: string,
-    public statusCode: number,
-    public cause?: unknown,
-  ) {
-    super(userMessage)
-    this.name = 'RegisterExpertError'
-  }
-}
-
-function asString(v: unknown): string | null {
-  if (typeof v !== 'string') return null
-  const t = v.trim()
-  return t.length > 0 ? t : null
-}
-
-function asUuid(v: unknown): string | null {
-  const t = asString(v)
-  return t && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t) ? t : null
-}
-
-function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false; error: string } {
-  const email = asString(body.email)
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) {
-    return { ok: false, error: 'invalid_email' }
-  }
-  const password = asString(body.password)
-  if (!password || password.length < 8 || password.length > 200) {
-    return { ok: false, error: 'invalid_password' }
-  }
-  const first_name = asString(body.firstname)
-  if (!first_name || first_name.length > 100) {
-    return { ok: false, error: 'invalid_first_name' }
-  }
-  const last_name = asString(body.lastname)
-  if (!last_name || last_name.length > 100) {
-    return { ok: false, error: 'invalid_last_name' }
-  }
-  const roleRaw = asString(body.role)
-  if (!roleRaw || !(ROLES as readonly string[]).includes(roleRaw)) {
-    return { ok: false, error: 'invalid_role' }
-  }
-  const domain_slug = asString(body.domain_slug)
-  if (!domain_slug || !/^[a-z0-9-]{1,50}$/.test(domain_slug)) {
-    return { ok: false, error: 'invalid_domain_slug' }
-  }
-  const specialty = asString(body.specialty)
-  if (specialty && specialty.length > 200) {
-    return { ok: false, error: 'invalid_specialty' }
-  }
-  // D5/D6 : spécialité structurée (uuid) + précision « Autre ». Optionnelles au
-  // niveau format ; l'intégrité (appartenance au domaine) est revérifiée en base
-  // avant signUp. « Autre » = speciality_id vide + speciality_other renseigné.
-  const rawBranch = asString(body.branch_id)
-  const branch_id = rawBranch ? asUuid(rawBranch) : null
-  if (rawBranch && !branch_id) {
-    return { ok: false, error: 'invalid_branch' }
-  }
-  const rawSpeciality = asString(body.speciality_id)
-  const speciality_id = rawSpeciality ? asUuid(rawSpeciality) : null
-  if (rawSpeciality && !speciality_id) {
-    return { ok: false, error: 'invalid_speciality' }
-  }
-  const speciality_other = asString(body.speciality_other)
-  if (speciality_other && speciality_other.length > 100) {
-    return { ok: false, error: 'invalid_speciality' }
-  }
-  // Checklist #20 : la règle est SERVEUR, pas seulement client. Sans cela, un
-  // appel direct créerait un profil sans branche ni spécialité (le trou qu'on
-  // ferme). Branche obligatoire ; spécialité = soit une du référentiel, soit une
-  // précision libre « Autre ». Même règle pour expert ET cdi.
-  if (!branch_id) {
-    return { ok: false, error: 'branch_required' }
-  }
-  if (!speciality_id && !speciality_other) {
-    return { ok: false, error: 'speciality_required' }
-  }
-  // Téléphone : normalisation E.164 STRICTE (D4). La forme canonique est celle
-  // sur laquelle le jeton HMAC a été signé et celle indexée par l'unique.
-  const phone = normalizeE164(body.phone)
-  if (!phone) {
-    return { ok: false, error: 'invalid_phone' }
-  }
-  const phone_otp_token = asString(body.phone_otp_token)
-  if (!phone_otp_token) {
-    return { ok: false, error: 'phone_otp_required' }
-  }
-  // Acceptation des CGU — GARDE SERVEUR (preuve juridique, point C). La case
-  // client seule ne suffit pas : on exige un booléen strictement `true`. La
-  // valeur n'est qu'un feu vert — l'horodatage et la VERSION posés en base sont
-  // décidés côté serveur (CGU_VERSION), jamais fournis par le client.
-  if (body.cgu_accepted !== true) {
-    return { ok: false, error: 'cgu_required' }
-  }
-  // email_redirect_to : anti open-redirect, MÊME regex que register-org (P7).
-  const redirectRaw = asString(body.email_redirect_to)
-  const email_redirect_to =
-    redirectRaw && /^https?:\/\/[^\s/]{1,200}\/[a-z]{2}\/auth\/callback$/.test(redirectRaw)
-      ? redirectRaw
-      : null
-
-  return {
-    ok: true,
-    input: {
-      first_name,
-      last_name,
-      email: email.toLowerCase(),
-      password,
-      specialty,
-      branch_id,
-      speciality_id,
-      speciality_other,
-      role: roleRaw as ExpertRole,
-      domain_slug,
-      phone,
-      phone_otp_token,
-      email_redirect_to,
-    },
-  }
+function texte(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : ''
 }
 
 function getSupabaseAdmin(): SupabaseClient {
@@ -228,19 +88,34 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid JSON body', code: 'invalid_json' }, 400)
   }
 
-  const validation = validate(body)
-  if (!validation.ok) {
-    return json({ error: 'Invalid input', code: validation.error }, 400)
+  // ── Ce que la route seule vérifie ─────────────────────────────────────────
+  const role = texte(body.role)
+  if (!(ROLES as readonly string[]).includes(role)) {
+    return json({ error: 'Invalid input', code: 'invalid_role' }, 400)
   }
-  const input = validation.input
-  // La pièce du geste naît à son entrée (§D.26) : elle voyage dans les métadonnées
-  // d'inscription jusqu'au trigger, puis sur la ligne de cette route.
-  const piece = nouvellePiece()
-
-  // ── Vérif HMAC du jeton OTP (sur le téléphone CANONIQUE) ─────────────────
+  const email = texte(body.email).toLowerCase()
+  const password = typeof body.password === 'string' ? body.password : ''
+  // Le mot de passe : GoTrue le hache, la base ne le voit jamais — la règle reste ici.
+  if (password.length < 8 || password.length > 200) {
+    return json({ error: 'Invalid input', code: 'invalid_password' }, 400)
+  }
+  // Les CGU : un booléen strictement `true`. La version et la date sont posées par le
+  // serveur (CGU_VERSION, signée) et par la base (la date de la transaction).
+  if (body.cgu_accepted !== true) {
+    return json({ error: 'Invalid input', code: 'cgu_required' }, 400)
+  }
+  // Le téléphone : canonique E.164, puis confronté au jeton HMAC de verify-phone-otp.
+  const phone = normalizeE164(body.phone)
+  if (!phone) {
+    return json({ error: 'Invalid input', code: 'invalid_phone' }, 400)
+  }
+  const otpToken = texte(body.phone_otp_token)
+  if (!otpToken) {
+    return json({ error: 'Invalid input', code: 'phone_otp_required' }, 400)
+  }
   let otpVerify: ReturnType<typeof verifyPhoneOtpToken>
   try {
-    otpVerify = verifyPhoneOtpToken(input.phone_otp_token, input.phone)
+    otpVerify = verifyPhoneOtpToken(otpToken, phone)
   } catch (err) {
     console.error('[register-expert] verifyPhoneOtpToken threw', err)
     return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
@@ -249,6 +124,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Jeton expiré (TTL 15 min) pendant le remplissage → l'UI invite à re-vérifier.
     return json({ error: 'Phone OTP not verified', code: 'phone_otp_required' }, 400)
   }
+  const ecosysteme = ecosystemeDeLaRequete(request)
+  if (!ecosysteme.ok) {
+    return ecosysteme.raison === 'configuration'
+      ? json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
+      : json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
+  }
+  const domainSlug = ecosysteme.slug
+  const redirectRaw = texte(body.email_redirect_to)
+  const emailRedirectTo = /^https?:\/\/[^\s/]{1,200}\/[a-z]{2}\/auth\/callback$/.test(redirectRaw) ? redirectRaw : null
 
   let supabaseAdmin: SupabaseClient
   try {
@@ -257,190 +141,81 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
   }
 
-  // ── Pré-check UNICITÉ TÉLÉPHONE (D2) : refus propre AVANT toute écriture ──
-  const { data: phoneOwner } = await supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('phone', input.phone)
-    .eq('phone_verified', true)
-    .maybeSingle()
-  if (phoneOwner) {
-    return json({ error: 'Phone already used', code: 'phone_already_used' }, 409)
+  // La pièce du geste naît à son entrée (§D.26) : signée, elle porte `compte_cree` et
+  // `expert_inscrit`, écrites par le trigger dans la transaction du compte.
+  const piece = nouvellePiece()
+  const meta: Record<string, string> = {
+    firstname: texte(body.firstname),
+    lastname: texte(body.lastname),
+    specialty: texte(body.specialty),
+    branch_id: texte(body.branch_id),
+    speciality_id: texte(body.speciality_id),
+    speciality_other: texte(body.speciality_other),
+    role: role as ExpertRole,
+    domain_slug: domainSlug,
+    voie: 'inscription_expert',
+    piece,
+    cgu_version: CGU_VERSION,
+    telephone: phone,
   }
 
-  // ── Domaine cible + intégrité TAXONOMIE (D5/D6) AVANT signUp ──────────────
-  // Le trigger dérive le domaine du slug ; on le résout ici aussi pour vérifier
-  // que la branche/spécialité fournies appartiennent bien à ce domaine et sont
-  // actives — sinon le client (ou un appel forgé) pourrait injecter des ids
-  // d'un autre écosystème. On réutilise domainId pour l'audit plus bas.
-  const { data: domainRow, error: domainErr } = await supabaseAdmin
-    .from('domains')
-    .select('id')
-    .eq('slug', input.domain_slug)
-    .eq('active', true)
-    .maybeSingle()
-  // ⚠️ NE PAS SAVOIR NE VAUT JAMAIS LAISSER PASSER, ET C’EST UNE ROUTE
-  //    PUBLIQUE. Cette erreur n’était pas récupérée : `domainId` tombait à
-  //    `null`, et les deux gardes ci-dessous — qui vérifient que la branche
-  //    et la spécialité appartiennent bien à CET écosystème — étaient
-  //    SAUTÉES ENTIÈREMENT, parce qu’elles sont conditionnées à `domainId`.
-  //    Leur propre commentaire disait à quoi elles servent : « sinon le
-  //    client (ou un appel forgé) pourrait injecter des ids d’un autre
-  //    écosystème ». Une panne de lecture désactivait donc le cloisonnement
-  //    (§D.3) — l’ordre du test dans sa forme pure (§E.22 règle 2).
-  if (domainErr) {
-    console.error('[public/register-expert] écosystème illisible', domainErr.message)
-    return json({ error: 'Could not resolve ecosystem', code: 'ecosystem_unavailable' }, 503)
-  }
-  const domainId = (domainRow?.id as string | undefined) ?? null
-  // ⚠️ SANS ÉCOSYSTÈME ACTIF, PAS D'INSCRIPTION — pour TOUT expert, pas
-  //    seulement ceux qui donnent une branche. Un expert appartient à un
-  //    écosystème à vie (§D.3) ; en laisser entrer un sans écosystème, c'est
-  //    créer un compte que le cloisonnement ne sait pas ranger. Et la trace
-  //    d'audit de l'inscription porte ce domaine : nullable, elle était
-  //    REJETÉE en silence (§E.68).
-  if (!domainId) {
-    return json({ error: 'Unknown ecosystem', code: 'invalid_domain' }, 400)
+  // ── La question à la base, AVANT de créer : une règle, une définition ─────
+  const verdict = await refusInscription(supabaseAdmin, email, meta)
+  if (!verdict.ok) {
+    return json({ error: 'Registration refused', code: verdict.code }, verdict.statut)
   }
 
-  // ⚠️ ET LES DEUX GARDES NE DÉPENDENT PLUS DE `domainId` POUR S’EXÉCUTER.
-  //    Elles étaient justes — `if (!br) return 400` refuse bien — mais elles
-  //    n’étaient ATTEINTES que si l’écosystème était connu. Une garde
-  //    correcte derrière une garde qui s’ouvre ne garde rien.
-  //    L’écosystème inconnu est désormais refusé au-dessus ; si l’on arrive
-  //    ici sans lui, c’est que le slug ne désigne aucun écosystème ACTIF —
-  //    et cela se refuse aussi.
-  //
-  // ⚠️ LA RÈGLE S'ÉCRIT UNE FOIS, EN BASE (phase B, 28/09/2026) : la même
-  //    fonction que le trigger `handle_new_user` appelle. Elle était recopiée
-  //    ici ; deux copies divergent (§E.20). Ici, elle rend un refus NOMMÉ
-  //    avant la création du compte ; là-bas, elle arrête l'appel direct qui
-  //    ne passe pas par cette route. Une lecture en panne ne laisse pas passer.
-  const { data: refusTaxonomie, error: taxonomieErr } = await supabaseAdmin.rpc('taxonomie_inscription_refus', {
-    p_domain_id: domainId,
-    p_branch_id: input.branch_id,
-    p_speciality_id: input.speciality_id,
-  })
-  if (taxonomieErr) {
-    console.error('[public/register-expert] taxonomie illisible', taxonomieErr.message)
-    return json({ error: 'Could not check the taxonomy', code: 'ecosystem_unavailable' }, 503)
-  }
-  if (refusTaxonomie === 'invalid_branch') {
-    return json({ error: 'Invalid branch', code: 'invalid_branch' }, 400)
-  }
-  if (refusTaxonomie === 'invalid_speciality') {
-    return json({ error: 'Invalid speciality', code: 'invalid_speciality' }, 400)
+  let signees: Record<string, string>
+  try {
+    signees = signerPreuveInscription(email, meta)
+  } catch (err) {
+    console.error('[register-expert] preuve non signée', err instanceof Error ? err.message : String(err))
+    return json({ error: 'Server misconfigured', code: INSCRIPTION_INDISPONIBLE }, 503)
   }
 
-  // ── Création auth.users via helper partagé (P1) ──────────────────────────
-  // Le trigger handle_new_user crée public.users + public.profiles (visible=false)
-  // à partir de raw_user_meta_data.role ('expert'|'cdi') et alimente
-  // branch_id / speciality_id / speciality_other (D5/D6).
   const signup = await signUpWithConfirmation({
-    email: input.email,
-    password: input.password,
-    emailRedirectTo: input.email_redirect_to,
-    metadata: {
-      firstname: input.first_name,
-      lastname: input.last_name,
-      specialty: input.specialty ?? '',
-      branch_id: input.branch_id ?? '',
-      speciality_id: input.speciality_id ?? '',
-      speciality_other: input.speciality_other ?? '',
-      role: input.role, // 'expert' | 'cdi' — accepté tel quel par le trigger
-      domain_slug: input.domain_slug,
-      // La pièce du geste et la voie DÉCLARÉE : le trigger écrit `compte_cree` sous cette
-      // pièce, et la ligne de cette route (`expert_inscrit`) la reprend (décision A).
-      piece,
-      voie: 'inscription_expert',
-    },
+    email,
+    password,
+    emailRedirectTo,
+    metadata: { ...meta, ...signees },
   })
   if (!signup.ok) {
-    console.error('[register-expert] signUp failed', signup.message)
     if (signup.code === 'missing_env') {
       return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
     }
     if (signup.code === 'email_taken') {
       return json({ error: 'Email already used', code: 'email_taken' }, 409)
     }
-    return json({ error: signup.message, code: 'create_user_failed' }, 500)
+    // GoTrue ne dit pas pourquoi le trigger a refusé : on repose la question (une course
+    // perdue se nomme alors), sinon « indisponible » — jamais un motif inventé (§E.22).
+    console.error('[register-expert] signUp refusé', signup.message)
+    const nomme = await nommerLeRefus(supabaseAdmin, email, meta)
+    return json({ error: 'Registration refused', code: nomme.code }, nomme.statut)
   }
-  const user_id = signup.userId
-  // Le contexte du geste : l'acteur est le compte qui vient de naître, dans l'écosystème résolu.
-  const typeDeCompte = input.role === 'cdi' ? 'expert_cdi' : 'expert_freelance'
-  const journal = ouvrirContexte({
-    origine: 'utilisateur',
-    acteur: { id: user_id, type: typeDeCompte },
-    ecosystemeId: domainId,
+  const userId = signup.userId
+
+  // L'écosystème de la trace d'audit : celui que la base a écrit sur le compte.
+  const { data: compte, error: compteErr } = await supabaseAdmin
+    .from('users')
+    .select('domain_id')
+    .eq('id', userId)
+    .maybeSingle()
+  if (compteErr || !compte) {
+    // Le compte EXISTE (même transaction que sa ligne au grand livre) : on ne le dit pas raté.
+    console.error('[register-expert] compte créé, trace d’audit non écrite', compteErr?.message ?? 'miroir illisible')
+    return json({ user_id: userId }, 200)
+  }
+  await logAudit({
     piece,
+    supabaseAdmin,
+    user_id: userId,
+    domain_id: compte.domain_id,
+    action: 'expert_registered',
+    entity_type: 'user',
+    entity_id: userId,
+    detail: { role },
   })
+  await logSession({ supabaseAdmin, user_id: userId, request })
 
-  // ── À partir d'ici : tout échec déclenche un CLEANUP ATOMIQUE (P8 : 2 étapes,
-  //    profiles part en CASCADE avec public.users). ──────────────────────────
-  try {
-    // Flag phone_verified=true sur public.users — BLOQUANT (P5). Le trigger a
-    // créé la ligne sans téléphone ; on y pose le numéro canonique + le flag.
-    // On y pose AUSSI la preuve d'acceptation des CGU (point C) : horodatage
-    // serveur + version en vigueur (constante CGU_VERSION). Même UPDATE → la
-    // preuve est écrite atomiquement avec la finalisation de l'inscription.
-    const { error: phoneUpdErr } = await supabaseAdmin
-      .from('users')
-      .update({
-        phone: input.phone,
-        phone_verified: true,
-        cgu_accepted_at: new Date().toISOString(),
-        cgu_version: CGU_VERSION,
-      })
-      .eq('id', user_id)
-    if (phoneUpdErr) {
-      // 23505 sur l'index unique partiel = course perdue avec un autre inscrit.
-      if (isUniqueViolation(phoneUpdErr)) {
-        throw new RegisterExpertError('phone_already_used', 'Phone already used', 409, phoneUpdErr)
-      }
-      throw new RegisterExpertError('phone_update_failed', 'Could not set verified phone', 500, phoneUpdErr)
-    }
-
-    // Domaine déjà résolu plus haut (domainId) — réutilisé pour l'audit.
-    await logAudit({
-      piece: journal.piece,
-      supabaseAdmin,
-      user_id,
-      domain_id: domainId,
-      action: 'expert_registered',
-      entity_type: 'user',
-      entity_id: user_id,
-      detail: { role: input.role },
-    })
-    // La ligne de la ROUTE, sous la pièce de `compte_cree` (décision A). Dans le `try` :
-    // un journal qui refuse fait nettoyer le compte — pas de compte finalisé sans sa ligne.
-    await expertInscrit(supabaseAdmin, journal, { userId: user_id, typeDeCompte, issue: 'reussi', cguVersion: CGU_VERSION })
-    await logSession({ supabaseAdmin, user_id, request })
-
-    return json({ user_id }, 200)
-  } catch (err) {
-    const errMsg = err instanceof Error ? err.message : String(err)
-    console.error(`[register-expert] rollback déclenché: ${errMsg}`)
-
-    // Cleanup 2 étapes (P8) : public.users (CASCADE profiles) → auth.users.
-    await atomicCleanup(supabaseAdmin, { userId: user_id })
-
-    // La ligne suit l'issue RÉELLE : le compte a existé (`compte_cree`), il n'existe plus.
-    // Jamais de re-throw ici (P3) : une ligne qui ne s'écrit pas se dit en console.
-    try {
-      await expertInscrit(supabaseAdmin, journal, {
-        userId: user_id,
-        typeDeCompte,
-        issue: 'echoue',
-        cause: err instanceof RegisterExpertError ? err.code : 'internal_error',
-      })
-    } catch (jErr) {
-      console.error('[register-expert] ligne d’échec NON écrite', jErr instanceof Error ? jErr.message : String(jErr))
-    }
-
-    if (err instanceof RegisterExpertError) {
-      return json({ error: err.userMessage, code: err.code }, err.statusCode)
-    }
-    // Erreur inattendue : pas de re-throw (P3) — 500 générique avec corps JSON.
-    return json({ error: 'Internal error', code: 'internal_error' }, 500)
-  }
+  return json({ user_id: userId }, 200)
 }

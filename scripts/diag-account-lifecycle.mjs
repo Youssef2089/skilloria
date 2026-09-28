@@ -121,15 +121,17 @@ ok(/'target_is_admin'/.test(guard),
 ok(/'self_forbidden'/.test(guard),
   'chemin 4 : aucune action sur soi-même (interdit 1) ⇒ pas d’auto-suspension')
 
-// 5. Rollback d'inscription — hors risque, on le vérifie quand même.
+// 5. Rollback d'inscription — IL N'EXISTE PLUS (§D.27, 28/09/2026). Le compte et ce que sa voie
+//    crée naissent dans la transaction de handle_new_user, sur une preuve signée : un refus annule
+//    tout, il n'y a plus de compte à défaire après coup. On vérifie qu'aucune route de création ne
+//    SUPPRIME de compte, et que le nettoyage d'après-coup n'est revenu nulle part.
 {
-  const callers = ['app/api/auth/public/register-expert/route.ts', 'app/api/auth/register-org/route.ts']
-  const others = ['app/api/me/account/delete/route.ts', 'app/api/cron/purge-deletions/route.ts',
-    'app/api/cron/purge-inactive/route.ts', 'app/api/admin/user-status/route.ts']
-  ok(callers.every((f) => /atomicCleanup\(/.test(read(f))),
-    'chemin 5 — atomicCleanup : appelé par les deux routes d’inscription')
-  ok(others.every((f) => !/atomicCleanup\(/.test(read(f))),
-    'chemin 5 : jamais appelé ailleurs (il ne vise qu’un compte créé dans la même requête)')
+  const createurs = ['app/api/auth/public/register-expert/route.ts', 'app/api/auth/register-org/route.ts',
+    'app/api/invitations/inscription/route.ts', 'app/api/admin/create-admin/route.ts']
+  ok(createurs.every((f) => !/deleteUser\(|\.from\('users'\)\s*\.delete\(/.test(stripComments(read(f)))),
+    'chemin 5 — aucune route de création de compte ne supprime de compte (tout ou rien, en base)')
+  ok(!/export async function atomicCleanup/.test(read('lib/auth-signup.ts')),
+    'chemin 5 : le nettoyage d’après-coup (atomicCleanup) n’existe plus')
 }
 
 // ═══ B. LE COMPTEUR — « QUI PEUT ADMINISTRER DEMAIN MATIN ? » ══════════════

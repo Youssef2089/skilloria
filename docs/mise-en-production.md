@@ -26,7 +26,7 @@ Neuf étapes, de 0 à 8. **L'ordre compte** : chacune suppose la précédente.
 | 0 | Faire naître la base sur une version de Postgres corrigée | Supabase → Infrastructure |
 | 1 | Appliquer les mises à jour de base | Base de données |
 | 2 | Vérifier que le paramétrage est bien arrivé | Base de données |
-| 3 | Poser les deux secrets du coffre-fort | Supabase → Vault |
+| 3 | Poser les trois secrets du coffre-fort | Supabase → Vault |
 | 4 | Régler l'authentification | Supabase → Authentication |
 | 5 | Poser les variables d'environnement | Vercel |
 | 6 | Brancher les sous-domaines | Vercel |
@@ -84,7 +84,7 @@ C'est ce qui crée les tables, les fonctions, **et le paramétrage** : l'écosys
 
 ---
 
-# ÉTAPE 3 — Poser les deux secrets du coffre-fort
+# ÉTAPE 3 — Poser les trois secrets du coffre-fort
 
 **C'est l'étape la plus facile à oublier, et la plus coûteuse.**
 
@@ -94,6 +94,7 @@ La base déclenche elle-même cinq tâches en appelant l'application par Interne
 |---|---|
 | `cron_secret` | le **même** mot de passe que la variable `CRON_SECRET` de Vercel, au caractère près |
 | `purge_cron_base_url` | l'adresse de votre site, **sans barre oblique finale** — par exemple `https://microsoft.skilloria.io` |
+| `inscription_hmac_secret` | le **même** mot de passe que la variable `INSCRIPTION_HMAC_SECRET` de Vercel, au caractère près (32 caractères au moins). **Sans lui, aucune inscription n'aboutit** : la base refuse tout compte dont elle ne peut pas vérifier la preuve (§D.27) |
 
 ### Ce qui se passe si vous les oubliez
 
@@ -119,6 +120,8 @@ Les cinq autres tâches (`cron_run_reconcile`, `cron_run_log_purge`, `rate_limit
 3. Dans **Name**, tapez exactement `cron_secret`. Dans **Secret**, collez la valeur de `CRON_SECRET`.
 4. Enregistrez.
 5. Recommencez pour `purge_cron_base_url`, avec l'adresse de votre site.
+6. Recommencez pour `inscription_hmac_secret`, avec la valeur de `INSCRIPTION_HMAC_SECRET`. Pour en fabriquer une :
+   `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` — puis la même valeur sur Vercel (étape 5).
 
 > **Sans barre oblique à la fin.** `https://microsoft.skilloria.io` — pas `https://microsoft.skilloria.io/`.
 > Avec la barre, les adresses appelées contiendraient un double `//` et l'appel échouerait.
@@ -128,9 +131,9 @@ Les cinq autres tâches (`cron_run_reconcile`, `cron_run_log_purge`, `rate_limit
    ```sql
    select name, length(decrypted_secret) as longueur
      from vault.decrypted_secrets
-    where name in ('cron_secret', 'purge_cron_base_url');
+    where name in ('cron_secret', 'purge_cron_base_url', 'inscription_hmac_secret');
    ```
-2. Vous devez voir **deux lignes**, chacune avec une `longueur` supérieure à zéro.
+2. Vous devez voir **trois lignes**, chacune avec une `longueur` supérieure à zéro.
 
 Si une ligne manque ou si `longueur` vaut 0, le secret n'est pas posé — reprenez.
 
@@ -193,6 +196,7 @@ Vercel → votre projet → **Settings** → **Environment Variables**.
 | `SUPABASE_JWT_SECRET` | secret de signature des sessions |
 | `NEXT_PUBLIC_SITE_URL` | l'adresse de votre site, sans barre oblique finale |
 | `CRON_SECRET` | **la même valeur** que le secret `cron_secret` du coffre-fort (étape 3) |
+| `INSCRIPTION_HMAC_SECRET` | **la même valeur** que le secret `inscription_hmac_secret` du coffre-fort (étape 3) — sans elle, les formulaires d'inscription répondent « momentanément indisponible » |
 
 > **`NEXT_PUBLIC_SITE_URL` n'est pas optionnelle en production.**
 > C'est elle qui construit les liens de **tous** les e-mails : approbation d'un expert, refus d'une organisation, invitation à rejoindre une équipe, notifications, et l'avertissement d'inactivité à 23 mois.
@@ -290,7 +294,7 @@ Cette étape est donc la seule de ce document qui ne se fasse pas depuis une int
 ### Ce dont vous avez besoin
 
 - une copie du dépôt sur votre machine, et `node` installé ;
-- un fichier `.env.local` contenant `NEXT_PUBLIC_SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` **de la production** ;
+- un fichier `.env.local` contenant `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` et `INSCRIPTION_HMAC_SECRET` **de la production** (la dernière : la même valeur que le secret du coffre-fort — le script signe la création du compte, §D.27) ;
 - le **slug** de l'écosystème (celui que vous avez vérifié à l'étape 2), par exemple `microsoft` ;
 - l'adresse e-mail réelle du premier administrateur — c'est là qu'arrivera le lien.
 
@@ -430,7 +434,7 @@ Ne touchez à rien chez Stripe. **Modifiez le prix dans /admin/packages**, c'est
 - [ ] Postgres est en **17.6.1.121 ou plus** — `node scripts/verifier-version-postgres.mjs` affiche ✅
 - [ ] Les migrations sont passées, et la ligne `PARAMETRAGE —` affiche des nombres
 - [ ] `domains`, `branches`, `specialities`, `countries`, `verification_providers`, `translations` ne sont pas vides
-- [ ] Les deux secrets du coffre-fort existent, avec une longueur non nulle
+- [ ] Les trois secrets du coffre-fort existent, avec une longueur non nulle
 - [ ] Une tâche déclenchée à la main répond `200` dans son historique
 - [ ] **Site URL** et **Redirect URLs** sont renseignées, quatre langues par écosystème
 - [ ] Le SMTP est réglé, et un e-mail de test est bien reçu
@@ -438,6 +442,7 @@ Ne touchez à rien chez Stripe. **Modifiez le prix dans /admin/packages**, c'est
 - [ ] **Le catalogue est relié à Stripe dans le mode de cet environnement** — zéro offre « à relier » dans `/admin/facturation` → Écarts. **À refaire en `live`** : un prix créé en test n’existe pas en production
 - [ ] `NEXT_PUBLIC_SITE_URL` est posée — sinon aucun e-mail ne part
 - [ ] `CRON_SECRET` (Vercel) et `cron_secret` (coffre-fort) sont **identiques**
+- [ ] `INSCRIPTION_HMAC_SECRET` (Vercel) et `inscription_hmac_secret` (coffre-fort) sont **identiques**
 - [ ] Les interrupteurs voulus valent exactement `true`
 - [ ] **Aucune** clé Stripe sur Production tant que le lancement est gratuit
 - [ ] Un sous-domaine par écosystème actif, et le site s'affiche à ses couleurs

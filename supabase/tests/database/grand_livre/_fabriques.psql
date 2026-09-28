@@ -6,9 +6,10 @@
 --  Extension `.psql`, pas `.sql` : `supabase test db` ne la prend pas pour un test.
 --
 --  CHEMINS NORMAUX, AUCUN CONTOURNEMENT (point 2.1) :
---   · un compte naît par `auth.users` → `on_auth_user_created` → `handle_new_user`,
---     et la fabrique VÉRIFIE que `public.users` existe (le trigger avale certaines
---     erreurs : un rôle inconnu ne crée pas de miroir) ;
+--   · un compte naît par `auth.users` → `on_auth_user_created` → `handle_new_user`, AVEC une
+--     preuve signée (§D.27) — calculée par la fonction de la base, secret de test posé dans la
+--     transaction annulée ; la fabrique VÉRIFIE que `public.users` existe ;
+--   · un compte d'organisation naît AVEC son organisation (même transaction) ;
 --   · une organisation naît par `creer_organisation_avec_admin()`, avec son siège ;
 --   · une annonce publiée passe par `publier_annonce()` ; une candidature par
 --     `ouvrir_depot_candidature()` puis `inserer_candidature_jugee()` ;
@@ -27,51 +28,107 @@ begin
   return v;
 end $$;
 
--- Un compte, par le parcours d'inscription. p_role : 'expert' | 'cdi' | 'entreprise' | 'cabinet'.
+-- ── LA PORTE D'INSCRIPTION (§D.27) : un compte naît avec une PREUVE signée par le serveur ──
+-- Le secret de test : posé DANS la transaction (annulée) si la base n'en a pas. Rien ne survit.
+create or replace function pg_temp.fab_secret() returns void
+language plpgsql as $$
+begin
+  if not exists (select 1 from vault.secrets s where s.name = 'inscription_hmac_secret') then
+    perform vault.create_secret('secret-de-sonde-inscription-0123456789abcdef', 'inscription_hmac_secret');
+  end if;
+end $$;
+
+-- Signe des métadonnées pour une adresse, comme la route : l'échéance, puis la preuve — calculée par
+-- la fonction de la BASE (preuve_inscription_signature), la même que celle qui la vérifie.
+create or replace function pg_temp.fab_signer(p_email text, p_meta jsonb, p_expire_dans interval default interval '5 minutes')
+returns jsonb
+language plpgsql as $$
+declare v jsonb;
+begin
+  perform pg_temp.fab_secret();
+  v := p_meta || jsonb_build_object('preuve_expire_a', floor(extract(epoch from now() + p_expire_dans))::bigint::text);
+  return v || jsonb_build_object('preuve',
+    public.preuve_inscription_signature(public.preuve_inscription_canonique(p_email, v), false));
+end $$;
+
+-- L'adresse d'un compte fabriqué : son domaine lui est PROPRE (<id>.invalid) — une organisation
+-- réserve son domaine d'adresse, deux comptes de sonde ne doivent pas se le disputer.
+create or replace function pg_temp.fab_email(p_id uuid) returns text
+language sql as $$ select 'sonde+' || p_id || '@' || p_id || '.invalid' $$;
+
+-- Un numéro vérifié propre au compte (E.164, dérivé de son identifiant).
+create or replace function pg_temp.fab_telephone(p_id uuid) returns text
+language sql as $$
+  select '+336' || lpad(((('x' || lpad(substr(md5(p_id::text), 1, 8), 16, '0'))::bit(64)::bigint % 100000000))::text, 8, '0')
+$$;
+
+-- Les métadonnées VALIDES d'une inscription, telles qu'une route les envoie (sans la preuve).
+-- p_role : 'expert' | 'cdi' (voie inscription_expert) | 'entreprise' | 'cabinet' (voie preinscription_organisation).
+-- RIEN EN DUR : l'écosystème, la branche et le pays sont LUS en base.
+create or replace function pg_temp.fab_meta(p_role text, p_id uuid) returns jsonb
+language plpgsql as $$
+declare
+  v_slug    text;
+  v_branche uuid;
+  v_pays    text;
+  v_base    jsonb;
+begin
+  select d.slug into v_slug from public.domains d where d.id = pg_temp.fab_domaine();
+  v_base := jsonb_build_object('role', p_role, 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Essai',
+                               'piece', gen_random_uuid()::text, 'cgu_version', 'sonde', 'telephone', pg_temp.fab_telephone(p_id));
+  if p_role in ('expert', 'cdi') then
+    select b.id into v_branche from public.branches b
+     where b.domain_id = pg_temp.fab_domaine() and b.active order by b.slug limit 1;
+    if v_branche is null then raise exception 'fabrique : aucune branche active dans l ecosysteme'; end if;
+    return v_base || jsonb_build_object('voie', 'inscription_expert', 'branch_id', v_branche::text, 'speciality_other', 'Sonde');
+  end if;
+  select c.code into v_pays from public.countries c where c.active order by c.code limit 1;
+  if v_pays is null then raise exception 'fabrique : aucun pays actif au referentiel'; end if;
+  return v_base || jsonb_build_object('voie', 'preinscription_organisation',
+                                      'org_type', case when p_role = 'cabinet' then 'cabinet' else 'client' end,
+                                      'company_name', 'Sonde SAS', 'country_code', v_pays);
+end $$;
+
+-- L'insertion telle que GoTrue l'écrit (auth.users → on_auth_user_created → handle_new_user).
+create or replace function pg_temp.fab_auth(p_id uuid, p_email text, p_meta jsonb, p_confirme boolean default true)
+returns void
+language sql as $$
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
+  values ('00000000-0000-0000-0000-000000000000', p_id, 'authenticated', 'authenticated',
+          p_email, '', case when p_confirme then now() end, '{}'::jsonb, p_meta, now(), now())
+$$;
+
+-- Un compte, par le parcours d'inscription, AVEC sa preuve. p_role : 'expert' | 'cdi' | 'entreprise' | 'cabinet'.
+-- Un compte d'organisation naît AVEC son organisation (§D.27) : 'entreprise' → client, 'cabinet' → cabinet.
 create or replace function pg_temp.fab_compte(p_role text) returns uuid
 language plpgsql as $$
 declare
-  v_id   uuid := gen_random_uuid();
-  v_slug text;
+  v_id    uuid := gen_random_uuid();
+  v_email text := pg_temp.fab_email(v_id);
 begin
-  select d.slug into v_slug from public.domains d where d.id = pg_temp.fab_domaine();
-  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-  values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
-          'sonde+' || v_id || '@exemple.invalid', '', now(), '{}'::jsonb,
-          jsonb_build_object('role', p_role, 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Essai'),
-          now(), now());
+  perform pg_temp.fab_auth(v_id, v_email, pg_temp.fab_signer(v_email, pg_temp.fab_meta(p_role, v_id)));
   if not exists (select 1 from public.users u where u.id = v_id) then
     raise exception 'fabrique : handle_new_user n a PAS cree public.users pour % (role %)', v_id, p_role;
   end if;
   return v_id;
 end $$;
 
--- Un administrateur plateforme : le parcours de création d'administrateur — un compte créé POUR
--- l'administration (rôle de pont 'entreprise', voie déclarée 'administrateur'), puis la promotion
--- par promouvoir_administrateur(), comme create-admin et le script du jour zéro (sa propre pièce).
+-- Un administrateur plateforme : la voie « administrateur », prouvée, sans acteur (le jour zéro) —
+-- le trigger crée le compte par le rôle de pont 'entreprise' PUIS le promeut, même transaction.
 create or replace function pg_temp.fab_admin() returns uuid
 language plpgsql as $$
 declare
-  v_id   uuid := gen_random_uuid();
-  v_slug text;
-  v_role uuid;
+  v_id    uuid := gen_random_uuid();
+  v_email text := pg_temp.fab_email(v_id);
+  v_slug  text;
 begin
   select d.slug into v_slug from public.domains d where d.id = pg_temp.fab_domaine();
-  select r.id into v_role from public.roles r where r.name = 'Admin' and r.active;
-  if v_role is null then raise exception 'fabrique : role Admin actif introuvable'; end if;
-  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
-  values ('00000000-0000-0000-0000-000000000000', v_id, 'authenticated', 'authenticated',
-          'sonde+' || v_id || '@exemple.invalid', '', now(), '{}'::jsonb,
-          jsonb_build_object('role', 'entreprise', 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Admin',
-                             'voie', 'administrateur'),
-          now(), now());
-  if not exists (select 1 from public.users u where u.id = v_id) then
-    raise exception 'fabrique : handle_new_user n a PAS cree public.users pour l administrateur %', v_id;
-  end if;
-  if public.promouvoir_administrateur(gen_random_uuid(), null, 'systeme', null, null, v_id, v_role) is distinct from 'reussi' then
-    raise exception 'fabrique : la promotion de % a echoue', v_id;
+  perform pg_temp.fab_auth(v_id, v_email, pg_temp.fab_signer(v_email,
+    jsonb_build_object('role', 'entreprise', 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Admin',
+                       'voie', 'administrateur', 'piece', gen_random_uuid()::text, 'acteur_id', '')));
+  if not exists (select 1 from public.users u where u.id = v_id and u.user_type = 'admin' and u.status = 'active') then
+    raise exception 'fabrique : % n est pas ne administrateur actif', v_id;
   end if;
   return v_id;
 end $$;

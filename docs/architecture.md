@@ -267,6 +267,18 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > retire plus l'entrée que si ces types sont ceux de la DERNIÈRE définition — sans quoi supprimer l'ancienne
 > surcharge effaçait la nouvelle, et ses contrôles lisaient un corps vide (carte des 135 fonctions identique
 > avant/après la correction, mesuré).
+>
+> **`porte_inscription` (28/09/2026) — la porte d’inscription fermée en base (§D.27).** `pgcrypto` ; six fonctions :
+> `preuve_inscription_canonique` (la chaîne signée, contrat avec `lib/inscription/preuve.mjs`), `preuve_inscription_signature`
+> (le seul lecteur du secret, fermée même à la clé de service), `preuve_inscription_refus` (absente, invalide, expirée,
+> secret absent), `numero_identification_normalise` et `numero_identification_refus` (le format du numéro selon le pays,
+> une définition serveur), `inscription_refus` (TOUTES les règles d’inscription, ouverte à la clé de service : la route
+> la pose avant de créer). `handle_new_user` recréé : la preuve, puis les règles, puis le compte AVEC le téléphone vérifié
+> et les CGU, `compte_cree`, puis ce que la voie crée et sa ligne sœur sous la même pièce (`expert_inscrit`,
+> l’organisation et `organisation_preinscrite`, l’invitation acceptée, l’administrateur promu). Listes blanches de
+> `expert_inscrit` et `organisation_preinscrite` réduites (la forme échouée n’existe plus). ORDRE : AVANT le
+> déploiement, le déploiement AUSSITÔT (entre les deux, toute inscription est refusée, IN007). Prérequis : le secret
+> `inscription_hmac_secret` au Vault. Tests : `inscription/porte.test.sql` et les quatre tests d’inscription réécrits.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -2033,6 +2045,10 @@ passage obligé est l'insertion dans `auth.users`, donc ce trigger : c'est lui q
 ci-dessus — celui qui DÉDUIT une ligne d'une modification de table, loin du geste, sans pièce — mais la fonction
 MÉTIER de la création de compte, qui écrit sa ligne comme une RPC. La pièce vient des métadonnées quand l'appelant
 l'y met ; sinon elle naît dans la fonction, et l'origine le dit. Le raisonnement complet : §D.26.
+**Depuis §D.27 (28/09/2026)**, la voie et la pièce ne sont plus DÉCLARÉES mais SIGNÉES par le serveur : sans preuve,
+il n'y a plus de compte (IN007), donc plus de « pièce née dans la fonction » ; et les lignes sœurs
+(`expert_inscrit`, `organisation_preinscrite`, `invitation_acceptee`, `administrateur_cree`) s'écrivent DANS le
+trigger, par les RPC métier qu'il appelle — la transaction du compte porte le geste entier.
 
 **Le coût honnête, et comment il se paie.** Faire passer 178 sites par des RPC est un très gros lot.
 On ne le fait pas d'un coup : le contrôle se pose sur **la liste des actions journalisables**, pas sur
@@ -3115,6 +3131,11 @@ liste et un statut contraire à celui que le type impose (GL003), et passe le d�
 met à jour `duree_reglages` et journalise dans la même transaction — l'un sans l'autre est
 impossible. Détail de la chaîne et de ses raisons : **§C.20**.
 
+> **Mis à jour par §D.27 (28/09/2026)** : ce qui suit décrit la décision A, avant la preuve. Désormais la voie est
+> PROUVÉE (signée par le serveur), l'appel direct ne crée plus de compte, l'invité s'inscrit au serveur, et les
+> lignes sœurs s'écrivent dans la transaction du compte, sous la même pièce — la « preuve qu'une route est
+> passée » est devenue une preuve cryptographique.
+
 **L'exception nommée : `handle_new_user` écrit `compte_cree` (décision A de Youssef, 28/09/2026).** Un compte
 naît par cinq voies — l'inscription d'un expert, la préinscription d'une organisation, l'invitation d'un membre
 (`supabase.auth.signUp` **dans le navigateur**), la création d'un administrateur, et l'**appel direct** à l'API
@@ -3222,6 +3243,94 @@ sous-journal, FK intacte.
 > postcondition qui **tente** un UPDATE et un DELETE et exige qu'ils lèvent. Éprouvé par mutation le
 > 24/09/2026 : **18 mutations, 18 détections**.
 
+<a id="d27"></a>
+### D.27 — LA PORTE D'INSCRIPTION SE FERME EN BASE : une preuve signée par le serveur, une règle une fois (28/09/2026)
+
+**Le défaut (audit du 28/09/2026, reprise ARRÊT 11, ex-§H.4).** La clé PUBLIQUE de Supabase permet d'appeler le
+service d'authentification directement. Un compte créé ainsi passait `handle_new_user` (rôle, écosystème,
+taxonomie) mais échappait à tout ce que vérifiaient les routes : téléphone vérifié, CGU, formats, domaines
+d'adresse, unicité du domaine et du SIREN, organisation. Et le consentement aux CGU d'un invité n'était enregistré
+nulle part (case vérifiée dans le navigateur seulement).
+
+**La décision de Youssef (option b) — et ses six points.**
+1. **Une preuve signée par le serveur, vérifiée par `handle_new_user`.** La route, après ce qu'elle seule peut
+   vérifier (le jeton OTP, la case des CGU, le mot de passe), signe en HMAC-SHA256 une chaîne de douze lignes :
+   `v1`, l'adresse en minuscules, le rôle, l'écosystème, la voie, la pièce, l'échéance, la version des CGU, le
+   téléphone, l'invitation, ses statuts admis, l'acteur. `lib/inscription/preuve.mjs` la construit ;
+   `preuve_inscription_canonique()` la reconstruit en base, dans le MÊME ordre (`diag-porte-inscription` compare
+   les deux, et rejoue le vecteur du test pgTAP). Refus en base, AVANT toute écriture : sans preuve **IN007**,
+   altérée ou pour une autre adresse **IN008**, expirée **IN009**, secret absent **IN011**. Elle ne se forge pas
+   sans le secret ; elle ne vaut pas pour une autre boîte.
+2. **Tous les appelants la portent** : l'expert, l'organisation, l'invité (route serveur neuve), l'administrateur
+   (create-admin), le script du premier administrateur — et la recette 3.3. Plus aucun `auth.signUp` dans le
+   navigateur.
+3. **L'invité passe par une route serveur** (`POST /api/invitations/inscription`). Son adresse est celle de
+   l'invitation, comparée sans casse (`invitation_email_mismatch`), et confirmée d'office (`email_confirm: true`) :
+   le lien d'invitation prouve déjà la boîte. Le trigger accepte l'invitation (`accepter_invitation`) dans la
+   transaction du compte ; un invité non confirmé est refusé (`invitation_non_confirmee`), jamais par un
+   « email_mismatch » qui mentirait.
+4. **L'organisation naît dans la transaction du compte** (`creer_organisation_avec_admin` appelée par le trigger) :
+   jamais un compte d'organisation sans son organisation, ni l'inverse. Le nettoyage d'après-coup
+   (`atomicCleanup`) est **retiré** ; il n'avait plus rien à défaire. L'administrateur, de même, est promu dans la
+   transaction (`promouvoir_administrateur`, un refus annule tout).
+5. **Ce que la preuve atteste s'écrit dans la même transaction** : le téléphone vérifié (`phone`, `phone_verified`)
+   et le consentement aux CGU (`cgu_version`, `cgu_accepted_at` = l'instant de la transaction) — pour l'expert,
+   l'organisation, **l'invité**. **Pas pour un administrateur créé par un autre** : il n'a rien accepté, et on
+   n'écrit pas un consentement qui n'a pas eu lieu.
+6. **Une règle, une définition** : `inscription_refus(email, métadonnées)` porte toutes les règles d'inscription
+   (formats, branche et spécialité, taxonomie, téléphone et son unicité, pays au référentiel, numéro
+   d'identification selon le pays — `numero_identification_refus()` — et son unicité, domaines bloqués, publics,
+   déjà pris, invitation, acteur administrateur). La route l'appelle AVANT de créer ; le trigger la rejoue en garde
+   finale. **Pourquoi la route doit demander avant** : GoTrue avale l'erreur du trigger (« Database error saving new
+   user ») — une route qui créerait d'abord ne saurait pas quoi dire (§E.81). Après une création refusée, la route
+   repose la question : une course perdue se nomme alors. Les listes de domaines vivent en base.
+
+**Les codes sont stables** (checklist 12) : `lib/inscription/refus.ts` (`CODES_REFUS`) est EXACTEMENT l'ensemble
+que la base peut rendre, et chaque code a son message `inscription_refus.*` dans les quatre langues. Les SQLSTATE
+anciens sont gardés (IN001 rôle, IN003 écosystème, IN004 rôle Gratuit, IN005 taxonomie, IN006 voie ou pièce) ;
+IN002 disparaît (absent ou inconnu, c'est `invalid_domain`) ; toute autre règle lève **IN010**, message
+« inscription refusee : <code> ».
+
+**L'écosystème réellement résolu** (checklist 2) : pour l'expert et l'organisation, il vient de l'HÔTE de la requête
+(`lib/inscription/ecosysteme.ts`, le résolveur du proxy), jamais du corps ni de `x-subdomain` — la preuve porterait
+sinon l'écosystème que l'appelant a choisi. L'invité hérite de celui de son organisation.
+
+**EXCEPTION NOMMÉE à « aucune valeur dans le code » : l'échéance de la preuve, 5 minutes**, dans
+`lib/inscription/preuve.mjs`. La preuve est signée puis vérifiée dans la MÊME requête : l'échéance borne un rejeu,
+elle ne décide rien du produit — même rang que le TTL du jeton OTP et que le plafond de relance de §D.7, et §D.11
+dit qu'un réglage technique ne s'affiche pas. `diag-porte-inscription` la tient sous 15 minutes. Youssef peut en
+faire un réglage : c'est une décision, pas un oubli.
+
+**LE SECRET — deux copies, comme `cron_secret`** : `inscription_hmac_secret` dans le Vault de chaque base, et
+`INSCRIPTION_HMAC_SECRET` sur Vercel (et dans `.env.local` pour le script du premier administrateur), à la MÊME
+valeur, 32 caractères au moins. Seul le trigger le lit (`preuve_inscription_signature`, fermée même à la clé de
+service). La requête de staging le compte par son nom (ligne ⑬).
+
+**LA ROTATION, SANS COUPURE.** La base accepte aussi un second secret, `inscription_hmac_secret_precedent`, tant
+qu'il existe :
+1. dans le Vault, créer `inscription_hmac_secret_precedent` avec la valeur ACTUELLE ;
+2. dans le Vault, remplacer la valeur de `inscription_hmac_secret` par la NOUVELLE — la base accepte les deux ;
+3. sur Vercel, mettre la NOUVELLE valeur dans `INSCRIPTION_HMAC_SECRET`, et redéployer ;
+4. une fois le déploiement en ligne, supprimer `inscription_hmac_secret_precedent` du Vault.
+Entre 2 et 3, l'ancien code signe encore avec l'ancienne valeur : acceptée par le précédent. Oublier l'étape 4
+laisse l'ancien secret valable — c'est la seule façon de rater une rotation.
+
+**LA FENÊTRE DU DÉPLOIEMENT.** La migration `porte_inscription` passe AVANT le déploiement ; entre le `db push` et le
+déploiement, l'ancien code crée ses comptes sans preuve, et TOUTE inscription est refusée (IN007). Le déploiement
+suit aussitôt (§G.4 ter, étape 7) : la fenêtre se compte en minutes.
+
+**Ce que la porte ne ferme pas, et qui est dit.** L'appel direct reçoit encore une réponse (un refus) : des
+tentatives, jamais un compte. Un refus n'écrit rien au grand livre (rien n'a changé d'état). La règle du mot de
+passe reste à la route (la base ne le voit jamais). La modale de finalisation garde un miroir TypeScript du format
+du numéro, pour prévenir : la base refuse quand même (§E.15).
+
+**Les contrôles et les tests.** `diag-porte-inscription` (contrat, signataires, ordre dans le trigger, une règle une
+fois, codes, échéance) ; `diag-routes-tracees` compte désormais les créations de compte et reconnaît leur trace (la
+preuve signée, que le trigger journalise) ; `diag-grand-livre` (D ter) ; tests pgTAP
+`inscription/porte.test.sql` (le contrat, chaque défaut de preuve, chaque voie et sa ligne sœur, les CGU et le
+téléphone écrits, l'organisation avec son compte ou pas du tout, chaque règle), `compte_cree`, `roles`,
+`grand_livre/inscriptions`, `administrateur_cree`.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »
@@ -3310,7 +3419,8 @@ notée » et avait exactement le même trou. Le refermer demande un balayage pé
 place libre, donc une tâche planifiée — un lot à lui seul, et un arbitrage de coût. **Mesure requise
 avant** : combien d'annonces ont aujourd'hui une place incluse non attribuée.
 
-**H.4 — LA PORTE D'INSCRIPTION RESTE OUVERTE À UN APPEL DIRECT. AUDIT RENDU LE 28/09/2026, NON TRANCHÉ.**
+**H.4 — LA PORTE D'INSCRIPTION RESTAIT OUVERTE À UN APPEL DIRECT — FERMÉE LE 28/09/2026 PAR §D.27** (option b :
+une preuve signée par le serveur, vérifiée par `handle_new_user`). Le constat d'origine, gardé pour l'histoire :
 Un compte créé en appelant le service d'authentification avec la clé publique passe `handle_new_user` (rôle,
 écosystème, taxonomie) mais échappe à tout ce que vérifient les routes : téléphone, CGU, formats, domaines
 d'adresse, unicité du domaine et du SIREN, création de l'organisation. Il laisse sa ligne `compte_cree` ; il

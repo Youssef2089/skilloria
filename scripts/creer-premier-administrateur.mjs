@@ -12,12 +12,9 @@
 //      fabriquer un. Son propre en-tete le dit : « Elle ne cree PAS le PREMIER
 //      administrateur ; ce bootstrap-la est un chantier distinct. »
 //
-//   ② UNE INSCRIPTION ORDINAIRE NE PRODUIT PAS UN ADMINISTRATEUR, ET ECHOUE EN
-//      SILENCE. `handle_new_user` ne connait que expert / cdi / entreprise /
-//      cabinet. Pour tout autre role — 'admin' compris — il fait
-//      `RAISE WARNING` puis `RETURN NEW` : le compte `auth.users` est cree, la
-//      fonction rend la main SANS ERREUR, et `public.users` n'a AUCUNE ligne.
-//      Un compte fantome, inconnectable, qui OCCUPE l'adresse e-mail.
+//   ② UNE INSCRIPTION ORDINAIRE NE PRODUIT PAS UN ADMINISTRATEUR : `handle_new_user`
+//      ne promeut que sur la voie `administrateur`, PROUVEE par une signature du
+//      serveur (§D.27). Sans preuve, il refuse le compte en base (IN007).
 //
 //   Sans ce script, la seule issue est une suite de gestes a la main dans
 //   l'editeur SQL — c'est-a-dire exactement §E.10 : une valeur posee a la main
@@ -27,18 +24,14 @@
 //
 // CE QU'IL FAIT — LA MEME CHOSE QUE LA ROUTE, DANS LE MEME ORDRE
 //   1. resout l'ecosysteme par son slug (ACTIF uniquement) ;
-//   2. resout le role commercial « Admin » ;
-//   3. refuse si l'adresse est deja prise ;
-//   4. cree le compte `auth.users` avec le role de pont 'entreprise' — que le
-//      trigger SAIT traiter — et un mot de passe aleatoire qui n'est ni rendu,
-//      ni journalise, ni affiche ;
-//   5. VERIFIE QUE LE MIROIR EXISTE. C'est le controle a ne jamais retirer : le
-//      point mort du trigger ne remonte aucune erreur. Miroir absent ⇒ le
-//      compte auth est supprime, et le script echoue proprement ;
-//   6. bascule vers le role reel, par promouvoir_administrateur() (qui ecrit
-//      administrateur_cree dans la meme transaction) : user_type 'admin', role_id Admin,
-//      status 'active' (un administrateur en 'draft' ne serait pas compte comme
-//      disponible par l'anti-lock-out plateforme), email_verified ;
+//   2. pose la question a la base (`inscription_refus`) : adresse prise, role
+//      commercial « Admin » absent, noms — les regles ecrites UNE fois (§D.27) ;
+//   3. signe la preuve d'inscription (lib/inscription/preuve.mjs, le module des routes) ;
+//   4. cree le compte `auth.users` avec le role de pont 'entreprise' et un mot de passe
+//      aleatoire qui n'est ni rendu, ni journalise, ni affiche. Le TRIGGER, dans la meme
+//      transaction, cree le compte puis le promeut (`promouvoir_administrateur`, qui
+//      ecrit administrateur_cree) : user_type 'admin', role_id Admin, status 'active' ;
+//   5. CONSTATE que le compte est administrateur actif — on ne le suppose pas ;
 //   7. VERIFIE QUE LE SIEGE D'ADMINISTRATEUR PLATEFORME EST POURVU. Il l'est par
 //      un trigger (`users_pourvoir_siege_plateforme`), pas par ce script : on ne
 //      le pose pas, on constate qu'il a ete pris ;
@@ -67,6 +60,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { randomUUID } from 'node:crypto'
 import { exigerAutorisationEcriture } from './garde-ecriture.mjs'
+import { signerPreuveInscription } from '../lib/inscription/preuve.mjs'
 
 // ─── ARGUMENTS ───────────────────────────────────────────────────────────────
 
@@ -114,7 +108,7 @@ exigerAutorisationEcriture({
   script: 'creer-premier-administrateur.mjs',
   ecrit: [
     `auth.users      — creation du compte ${email}`,
-    'public.users    — miroir pose par le trigger, puis bascule en user_type=admin',
+    'public.users    — miroir pose ET promu par le trigger (user_type=admin), meme transaction',
     'public.plateforme — le siege d\'administrateur est pourvu PAR UN TRIGGER',
     'public.audit_logs — une trace admin_account_bootstrapped',
   ],
@@ -191,44 +185,62 @@ if (!domaine) {
   )
 }
 
-// ─── 2. LE ROLE COMMERCIAL « Admin » ─────────────────────────────────────────
-// Il n'accorde aucun droit : `requireAdmin` lit `users.user_type`. Il est pose
-// parce qu'une lecture en base ne doit pas trouver un administrateur sur l'offre
-// gratuite — ce serait lisible comme une anomalie de facturation.
-
-const { data: role, error: errRole } = await db
-  .from('roles')
-  .select('id')
-  .eq('name', 'Admin')
-  .maybeSingle()
-
-if (errRole) echouer(`lecture des roles impossible : ${errRole.message}`)
-if (!role) {
-  echouer(
-    "le role commercial « Admin » est absent.",
-    'Il est pose par la migration `commerce_seed`. Son absence signifie que ' +
-      "l'etape « Appliquer les mises a jour de base » de docs/mise-en-production.md n'a pas abouti.",
-  )
-}
-
-// ─── 3. L'ADRESSE EST-ELLE LIBRE ? ───────────────────────────────────────────
-
-{
-  const { data, error } = await db.from('users').select('id').eq('email', email).maybeSingle()
-  if (error) echouer(`verification de l'adresse impossible : ${error.message}`)
-  if (data) echouer(`l'adresse ${email} est deja utilisee par un compte.`)
-}
-
-// ─── 4. CREATION DU COMPTE auth.users ────────────────────────────────────────
-// ⚠️ LE ROLE DE PONT. On passe 'entreprise', PAS 'admin' : c'est le seul role
-//    que `handle_new_user` sait traiter et qui ne cree ni profil expert ni
-//    organisation. La bascule vers le role reel se fait juste apres, en base.
-//    Ecrire 'admin' ici produirait le compte fantome decrit en tete de fichier.
+// ─── 2. LA QUESTION A LA BASE — les regles d'inscription, ecrites UNE fois (§D.27) ─
+// Adresse prise, role commercial « Admin » absent, noms, ecosysteme : `inscription_refus()`
+// les juge, la meme fonction que les routes et que le trigger. Ce script ne les recopie pas.
 
 const TRIGGER_BRIDGE_ROLE = 'entreprise'
 
 // La piece du geste : le jour zero n'a pas d'acteur authentifiable, elle nait ici.
 const piece = randomUUID()
+const meta = {
+  role: TRIGGER_BRIDGE_ROLE,
+  domain_slug: domaine.slug,
+  firstname: prenom,
+  lastname: nom,
+  voie: 'administrateur',
+  piece,
+  // Pas d'acteur : le jour zero n'a personne. La promotion s'ecrit en origine « systeme ».
+  acteur_id: '',
+}
+
+{
+  const { data: refus, error } = await db.rpc('inscription_refus', { p_email: email, p_meta: meta })
+  if (error) echouer(`les regles d'inscription n'ont pas pu etre lues : ${error.message}`)
+  if (refus === 'admin_role_missing') {
+    echouer(
+      "le role commercial « Admin » est absent.",
+      'Il est pose par la migration `commerce_seed`. Son absence signifie que ' +
+        "l'etape « Appliquer les mises a jour de base » de docs/mise-en-production.md n'a pas abouti.",
+    )
+  }
+  if (refus === 'email_taken') echouer(`l'adresse ${email} est deja utilisee par un compte.`)
+  if (refus) echouer(`inscription refusee par la base : ${refus}`)
+}
+
+// ─── 3. LA PREUVE — signee avec le secret du serveur (§D.27) ─────────────────
+// Sans elle, `handle_new_user` refuse le compte EN BASE (IN007). Le meme module que les
+// routes : une seule definition de la chaine signee. Le secret vient de l'environnement
+// (INSCRIPTION_HMAC_SECRET, egal au secret `inscription_hmac_secret` du Vault).
+
+let signees
+try {
+  signees = signerPreuveInscription(email, meta)
+} catch (err) {
+  echouer(
+    `la preuve d'inscription n'a pas pu etre signee : ${err instanceof Error ? err.message : String(err)}`,
+    'Ajoutez INSCRIPTION_HMAC_SECRET a votre .env.local — la MEME valeur que le secret ' +
+      '`inscription_hmac_secret` du Vault de la base visee.',
+  )
+}
+
+// ─── 4. CREATION DU COMPTE — et de l'administrateur, dans la meme transaction ─
+// ⚠️ LE ROLE DE PONT. On passe 'entreprise', PAS 'admin' : le trigger cree un client
+//    (ni profil expert, ni organisation) puis, sur la voie `administrateur` prouvee,
+//    appelle `promouvoir_administrateur()` DANS LA MEME TRANSACTION — user_type
+//    'admin', role_id Admin, status 'active' (l'anti-lock-out ne compte que les
+//    actifs), `administrateur_cree` en origine « systeme ». Un refus annule TOUT :
+//    aucun compte fantome, rien a nettoyer.
 
 console.log(`  … creation du compte ${email} sur l'ecosysteme « ${domaine.slug} »`)
 
@@ -238,79 +250,33 @@ const { data: cree, error: errCreate } = await db.auth.admin.createUser({
   // seul acces passe par l'ecran « mot de passe oublie ».
   password: randomUUID() + randomUUID(),
   email_confirm: true,
-  user_metadata: {
-    role: TRIGGER_BRIDGE_ROLE,
-    domain_slug: domaine.slug,
-    firstname: prenom,
-    lastname: nom,
-    // La piece du geste et la voie DECLAREE (decision A, phase B) : le trigger ecrit
-    // `compte_cree` sous cette piece, la promotion (`administrateur_cree`) la reprend.
-    piece,
-    voie: 'administrateur',
-  },
+  user_metadata: { ...meta, ...signees },
 })
 
 if (errCreate || !cree?.user) {
-  echouer(`creation du compte impossible : ${errCreate?.message ?? 'aucun compte rendu'}`)
+  echouer(
+    `creation du compte refusee : ${errCreate?.message ?? 'aucun compte rendu'}`,
+    '« Database error saving new user » : la base a refuse (preuve, secret, regle). Verifiez que ' +
+      'INSCRIPTION_HMAC_SECRET est egal au secret `inscription_hmac_secret` du Vault.',
+  )
 }
 const idNouveau = cree.user.id
 
-/** Retire le compte auth quand la suite echoue — on ne laisse pas de fantome. */
-const nettoyer = async () => {
-  const { error } = await db.auth.admin.deleteUser(idNouveau)
-  if (error) {
-    console.error(`  ⚠ le compte auth ${idNouveau} n'a PAS pu etre retire : ${error.message}`)
-    console.error("    Il occupe l'adresse e-mail. Retirez-le depuis Supabase → Authentication.")
-  } else {
-    console.error('  … compte auth retire, aucune trace laissee.')
-  }
-}
-
-// ─── 5. LE MIROIR — LE CONTROLE A NE JAMAIS RETIRER ──────────────────────────
+// ─── 5. LE COMPTE EST-IL ADMINISTRATEUR ? — on le constate, on ne le suppose pas ─
 
 const { data: miroir, error: errMiroir } = await db
   .from('users')
-  .select('id, locale')
+  .select('id, user_type, status')
   .eq('id', idNouveau)
   .maybeSingle()
 
-if (errMiroir || !miroir) {
-  console.error('')
-  console.error('✖ MIROIR ABSENT : `public.users` n\'a aucune ligne pour ce compte.')
-  console.error(
-    `  → C'est le point mort du trigger. ${errMiroir ? `Lecture : ${errMiroir.message}. ` : ''}` +
-      'Le compte auth existe mais est inconnectable.',
+if (errMiroir || !miroir || miroir.user_type !== 'admin' || miroir.status !== 'active') {
+  echouer(
+    'le compte a ete cree, mais il ne se lit pas administrateur actif.',
+    errMiroir
+      ? `Lecture : ${errMiroir.message}.`
+      : `Lu : ${miroir ? `user_type ${miroir.user_type}, status ${miroir.status}` : 'aucune ligne'}. Relisez handle_new_user.`,
   )
-  await nettoyer()
-  process.exit(1)
-}
-
-// ─── 6. BASCULE VERS LE ROLE REEL ────────────────────────────────────────────
-
-// La bascule ET sa ligne `administrateur_cree`, dans une seule fonction (phase B) :
-// user_type 'admin', role_id Admin, status 'active', email verifie. Origine
-// `systeme`, sans acteur : le jour zero n'a personne pour creer le premier.
-// Un echec y est ECRIT (ligne echouee, cause) avant que ce script ne nettoie.
-const { data: issueBascule, error: errBascule0 } = await db.rpc('promouvoir_administrateur', {
-  p_piece: piece,
-  p_piece_origine: null,
-  p_origine: 'systeme',
-  p_acteur_id: null,
-  p_acteur_type: null,
-  p_user_id: idNouveau,
-  p_role_id: role.id,
-})
-const errBascule = errBascule0 ?? (issueBascule === 'reussi' ? null : { message: `promotion refusee (${issueBascule}) — la ligne administrateur_cree dit la cause` })
-
-// 'active' et pas 'draft' : `countOtherAvailablePlatformAdmins` ne compte QUE
-// les 'active'. Un administrateur reste en 'draft' existerait sans etre compte,
-// et l'anti-lock-out plateforme le croirait absent. La fonction le pose.
-
-if (errBascule) {
-  console.error('')
-  console.error(`✖ la bascule en administrateur a echoue : ${errBascule.message}`)
-  await nettoyer()
-  process.exit(1)
 }
 
 // ─── 7. LE SIEGE D'ADMINISTRATEUR PLATEFORME ─────────────────────────────────

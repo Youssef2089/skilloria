@@ -473,16 +473,6 @@ const JUGES = {
   //    contrôle ne pourra JAMAIS faire mieux : il cherche ce qu'on écrit pour
   //    réparer. Le verdict se rend en lisant l'APPELANT.
   // ══════════════════════════════════════════════════════════════════════════
-  'app/api/auth/register-org/route.ts': {
-    total: 3,
-    raison:
-      `Trois PRÉ-CHECKS d'unicité — téléphone, domaine e-mail, numéro d'identification. Ce sont des COURTOISIES : le vrai garde est l'index unique (§E.31), et le fichier le dit lui-même — « l'interception du 23505 plus bas reste le filet en cas de course ». Leur erreur avalée ne corrompt donc RIEN. Ce qu'elle coûtait — un 500 opaque au lieu du 409 nommé — est corrigé au lot 4.1c : le refus du schéma porte désormais son nom. Relu le 19/09/2026.`,
-  },
-  'app/api/auth/public/register-expert/route.ts': {
-    total: 3,
-    raison:
-      `Un pré-check d'unicité téléphone (même raison que register-org : l'index garde), et les DEUX gardes de taxonomie qui REFUSENT sur l'absence (\`if (!br) return 400\`). Ces deux-là étaient justes mais n'étaient ATTEINTES que si l'écosystème était connu — la garde qui les conditionnait s'ouvrait sur une panne, et elle est fermée au lot 4.1c. Relu le 19/09/2026.`,
-  },
   'app/api/auth/public/send-phone-otp/route.ts': {
     total: 1,
     raison:
@@ -497,11 +487,6 @@ const JUGES = {
     total: 1,
     raison:
       `Pré-check d'unicité du numéro d'identification, doublé par \`organizations_siren_unique_idx\`. Relu le 19/09/2026.`,
-  },
-  'app/api/admin/create-admin/route.ts': {
-    total: 1,
-    raison:
-      `Pré-check d'unicité e-mail : \`auth.users\` refuse le doublon, et la route lit ce refus (« already / registered / exists » → 409 \`email_taken\`). La garde est l'auth, pas la lecture. Relu le 19/09/2026.`,
   },
   'app/api/admin/approve-expert/route.ts': {
     total: 1,
