@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 8).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 9).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## Le mandat, en une phrase par étape
 
@@ -31,6 +31,40 @@
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 9 — PLANCHERS : TOUT EST PARAMÉTRABLE ; LES TROIS POINTS DE LA RELECTURE (28/09/2026)
+
+**La décision de Youssef** : « Tout est paramétrable. AUCUNE valeur dans le code ni dans une migration. » La
+conservation ET le plancher légal se **saisissent dans l'administration**, famille par famille ; ils **naissent vides** ;
+une valeur vide interdit le nettoyage de sa famille. Sous chaque famille, l'écran affiche **en aide** la référence
+légale de la proposition de l'ARRÊT 8 — du texte, rien de pré-rempli. Tout changement s'écrit (`reglage_modifie`).
+
+| Point | Ce qui est fait | Commit |
+|---|---|---|
+| Planchers saisis | `journal_nettoyage` corrigée EN PLACE (jamais appliquée) : `regler_conservation_journal(pièce, acteur, famille, conservation, plancher)` règle les deux en un geste ; refus `plancher_manquant` (une conservation sans plancher), `sous_le_plancher`, `journal_conserve`, `famille_inconnue` ; `reglage_modifie` porte `avant/apres.plancher_mois` (113 chemins) ; raisons de l'annonce `plancher_non_saisi`, `conservation_non_saisie`. Route `PATCH /api/admin/journal/conservation` { famille, conservation_mois, plancher_mois } ; écran : deux champs vides par famille, la référence en aide (FR/EN/ES/DE, 3927 clés). **Garde** : `diag-grand-livre` rougit si une migration pose une valeur (affectation non issue d'un paramètre, insertion, défaut) — éprouvée par deux mutations (UPDATE, INSERT). Test `nettoyage.test.sql` (19) : tout naît vide, les refus, le plancher seul, puis la conservation, chaque changement journalisé avec les deux valeurs | `f04edc9` |
+| Pièce complète | **Déjà fait en 2.6, montré ici** : `lire_piece()` (`supabase/migrations/20260928000170_journal_lecture.sql`) rend toutes les lignes de la pièce ET les lignes des cinq sous-journaux qui la portent ; l'écran `app/[locale]/admin/journal/[piece]/page.tsx` les affiche (section « Journaux détaillés »). Le test n'en éprouvait qu'un (l'audit) : **étendu aux cinq** (`lecture.test.sql`, 13) | `d9b0aa1` |
+| Rejeu d'un dépôt | **Le code existait, le test manquait.** `app/api/admin/depots-en-echec/route.ts` ligne 254 : `contexteDepuisAuth(auth, estPiece(ligne.piece) ? ligne.piece : null)` — pièce NEUVE, `piece_origine` vers la tentative rejouée, passée à `ouvrir_depot_candidature()` et `inserer_candidature_jugee()`. **Test nouveau** `grand_livre/rejeu_depot.test.sql` (6) : la ligne du rejeu porte la pièce neuve et `piece_origine`, la tentative d'origine garde sa ligne, `lire_piece` montre « reprise par » et la pièce d'origine | `d9b0aa1` |
+| architecture.md | **§C.20 remis au présent** : pourquoi pas de trigger d'écriture ET l'exception `handle_new_user` ; pourquoi pas de partitionnement maintenant (index date en tête, l'écran s'y appuie, le nettoyage livré) ; comment la pièce traverse pg_cron (`trigger_purge_cron`, corps HTTP, guichet, réglage de transaction du lancement manuel — c'était écrit au futur) et `after()` ; où et comment le rejeu est prouvé | `d9b0aa1` |
+
+**Validations** : `tsc` 0 ; `next build` **vert en entier** (le fichier généré périmé de l'ARRÊT 8 a disparu) ; lint
+65/25 ; parité 3927 clés ; cliquet des migrations vert ; série `diag` **110 verts / 0 rouge / 5 muets** (les mêmes).
+Aucun `git push`, aucune écriture en base. **Lu pour cet arrêt** : §C.20 d'architecture ; `depots-en-echec/route.ts` ;
+`ouvrir_depot_candidature` ; les tests `candidature_deposee`, `refus_depot_sans_jugement`, `lecture`, `nettoyage` ; les
+colonnes obligatoires des cinq sous-journaux (`supabase/.temp/schema.sql`).
+
+### Les étapes de Youssef
+1. **Rejouer en local** : `node scripts/verifier-version-postgres.mjs`, `npx supabase db reset --local`,
+   `npx supabase db lint -s public --level error`, `npx supabase test db --local`. Rien de ce lot n'a encore tourné
+   sur une base : les 17 migrations, les 12 fichiers de test nouveaux, les tests étendus.
+2. **Staging** : coller `supabase/verifications/staging-avant-push.sql` — aucune ligne ÉCART.
+3. `npm run build`, puis `npx supabase db push`, puis le déploiement **aussitôt**.
+4. **Dans l'administration, Grand livre, en bas** : saisir, famille par famille, le plancher légal et la
+   conservation. Tant que les deux ne sont pas saisis, la famille ne s'efface pas. La référence sous chaque famille
+   est une aide, pas une valeur — à faire relire par un juriste.
+5. **Avant toute démonstration** : l'essai d'inscription d'un expert sur staging, freelance et CDI, e-mail de
+   confirmation compris ; et un lien de confirmation expiré, pour voir le message.
+6. **Au déploiement suivant** : la migration qui supprime les deux anciennes signatures (`stripe_event_claim`,
+   `admin_cron_run_now(text, uuid)`).
 
 ## ⛔ ARRÊT 8 — PHASE B, ÉTAPE 2 FAITE (28/09/2026). ARRÊT AUX PLANCHERS LÉGAUX.
 
@@ -87,7 +121,7 @@ appelées par le code EN LIGNE — gardées, à supprimer par une migration du d
 ㉘ les attend présentes). **Limites dites** : `expert-relance` et `match-retry` gardent une pièce par élément ; un audit
 hors de tout contexte de journal reste sans pièce ; `diag-routes-tracees` juge le fichier, pas la méthode.
 
-### Les planchers légaux — PROPOSITION (à arbitrer par Youssef ; à faire relire par un juriste)
+### Les planchers légaux — PROPOSITION (⚠️ REMPLACÉ par l'ARRÊT 9 : rien ne s'écrit par migration, tout se saisit dans l'administration ; ces références sont devenues l'aide de l'écran)
 
 Un plancher porte sur l'**âge de la ligne** (date de l'écriture). Une obligation qui court « à compter de la fermeture
 du compte » ne se traduit donc pas exactement : le plancher proposé la couvre largement.
