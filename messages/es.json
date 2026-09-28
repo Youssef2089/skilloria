@@ -3657,6 +3657,8 @@
     "err_invitation_lecture_indisponible": "No hemos podido leer su invitación. No significa que no exista: la consulta ha fallado y no se ha modificado nada. Inténtelo de nuevo en unos instantes.",
     "err_email_mismatch": "Esta invitación no coincide con el correo de su cuenta.",
     "err_generic": "Se ha producido un error. Inténtelo de nuevo.",
+    "err_signup_email_taken": "Ya existe una cuenta con este correo. Inicie sesión para aceptar la invitación.",
+    "err_signup_failed": "No se pudo crear la cuenta. Vuelva a intentarlo en un momento; si el problema persiste, pida a la persona que le invitó que reenvíe la invitación.",
     "err_cgu": "Debe aceptar las condiciones de uso.",
     "err_password_short": "La contraseña debe tener al menos 8 caracteres.",
     "accept_cta": "Aceptar invitación",

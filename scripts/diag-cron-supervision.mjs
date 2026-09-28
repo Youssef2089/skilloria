@@ -684,7 +684,13 @@ for (const f of migFiles) {
   while ((m = FN_DEF_RE.exec(sql)) !== null) {
     const name = m[1].toLowerCase()
     const key = `${name}(${argTypesOf(m[2]).join(',')})`
-    const ret = m[3].replace(/--[^\n]*/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
+    // GUILLEMETS RETIRÉS : `returns "trigger"` (la baseline, et les migrations
+    // qui la recopient) et `returns trigger` sont le MÊME type pour Postgres.
+    // Comparés en texte brut, ils faisaient crier « retour différent » sur une
+    // redéfinition sans changement de type (constaté le 28/09/2026 sur
+    // `inscription_specialites`) — et un contrôle qui crie à tort est désactivé
+    // (§E.14). Le retour réellement changé, lui, reste différent après.
+    const ret = m[3].replace(/--[^\n]*/g, '').replace(/"/g, '').replace(/\s+/g, ' ').trim().toLowerCase()
     const prev = knownFns.get(key)
     if (prev && prev.ret !== ret) {
       redefinitions++

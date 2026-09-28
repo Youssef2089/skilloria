@@ -42,6 +42,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { rejouerMigrations } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -81,17 +82,23 @@ const detailScreen = stripComments(read('app/[locale]/admin/utilisateurs/[id]/pa
 // ═══ A. LE POINT MORT DU TRIGGER ═══════════════════════════════════════════
 section('A. Vérification du miroir — le contrôle à ne jamais retirer')
 
-// Le défaut est bien TOUJOURS là dans la migration : si un jour il disparaît,
-// ce diag doit le dire, pas continuer à garder un fantôme.
-const trigger = read('supabase/migrations/20260804000000_taxonomie_specialite_autre_et_inscription.sql')
+// LA DERNIÈRE DÉFINITION DU TRIGGER — dérivée des migrations, jamais lue dans un
+// fichier NOMMÉ (§E.34). Ce diag lisait la migration du 04/08/2026 par son nom :
+// le 28/09/2026 `inscription_specialites` a fermé le point mort (un rôle inconnu
+// LÈVE IN001), et ce contrôle serait resté vert en gardant un défaut disparu —
+// exactement ce que la phrase ci-dessous lui demandait de DIRE.
+const trigger = rejouerMigrations().fonctions.get('handle_new_user')?.corps ?? ''
+ok(trigger !== '', 'la dernière définition de handle_new_user est trouvée dans les migrations')
 ok(
-  /IF v_user_type IS NULL THEN[\s\S]{0,300}?RAISE WARNING[\s\S]{0,200}?RETURN NEW;/.test(trigger),
-  'le trigger renvoie toujours SANS ERREUR sur un rôle inconnu (le défaut existe)',
-  'si ce n’est plus vrai, relire ce diag AVANT de retirer la vérification du miroir',
+  /if\s+v_user_type\s+is\s+null\s+then\s+raise\s+exception\b[^;]*;/i.test(trigger)
+    && /errcode\s*=\s*'IN001'/i.test(trigger)
+    && !/raise\s+warning/i.test(trigger),
+  'le trigger LÈVE sur un rôle inconnu (IN001) — plus de compte fantôme, plus de WARNING',
+  'si ce n’est plus vrai, le compte fantôme de §E.23 est revenu : la vérification du miroir redevient la SEULE barrière',
 )
 ok(
-  !/WHEN 'admin'/.test(trigger),
-  'le trigger ne sait toujours pas créer un admin (d’où le contournement)',
+  !/when\s+'admin'/i.test(trigger),
+  'le trigger ne sait toujours pas créer un admin (d’où le contournement par le rôle de pont)',
 )
 // PIÈGE 1 — trois contrôles, parce qu'un seul se retire trop facilement.
 // Le SELECT du miroir, identifié par sa projection propre — et pas par un

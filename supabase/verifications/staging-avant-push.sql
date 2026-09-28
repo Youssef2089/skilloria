@@ -135,7 +135,28 @@ from (values
    (select count(*)::text from public.grand_livre)),
 
   (15, 'actions déjà dans la liste fermée (le push les porte à 56)', 'information : volume à noter',
-   (select count(*)::text from public.grand_livre_actions))
+   (select count(*)::text from public.grand_livre_actions)),
+
+  -- ⑯ T.1 : chaque colonne que la NOUVELLE définition de handle_new_user écrit existe (11 sur users,
+  --    12 sur profiles). Une seule absente et toute inscription échouerait encore.
+  (16, 'colonnes écrites par le nouveau handle_new_user présentes (users 11 + profiles 12)', '23',
+   (select count(*)::text from information_schema.columns c
+     where c.table_schema = 'public'
+       and ((c.table_name = 'users' and c.column_name in ('id', 'email', 'role_id', 'domain_id', 'user_type', 'status',
+                                                         'email_verified', 'is_verified', 'first_name', 'last_name', 'locale'))
+         or (c.table_name = 'profiles' and c.column_name in ('user_id', 'domain_id', 'expert_type', 'title', 'visible',
+                                                            'profile_score', 'languages', 'skills', 'certifications',
+                                                            'branch_id', 'speciality_ids', 'speciality_other'))))),
+
+  -- ⑰ Le bug que le push corrige, lu sur la définition EN LIGNE : elle cite la colonne supprimée.
+  (17, 'handle_new_user en ligne écrit profiles.speciality_id (le bug que T.1 corrige ; 0 après le push)', '1',
+   (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and p.proname = 'handle_new_user'
+       and p.prosrc ~* '\mspeciality_id\M\s*[,)]')),
+
+  (18, 'profiles.speciality_id absente (supprimée le 01/09/2026)', '0',
+   (select count(*)::text from information_schema.columns c
+     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id'))
 
 ) as v(ordre, verification, attendu, observe)
 order by v.ordre;

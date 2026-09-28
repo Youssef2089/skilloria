@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **137** migrations : **52 insertions vues, 40 analysées, 1968 valeurs confrontées** (mesuré le
-24/09/2026, à l'exécution — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
+Sur les **138** migrations : **57 insertions vues, 45 analysées, 2208 valeurs confrontées** (mesuré le
+28/09/2026 ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
+sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction
 de lecture ; `empreinte_des_notes` **vide** une table éphémère et lui ajoute une colonne ;
@@ -812,6 +813,14 @@ rôle que le trigger sait traiter et qui ne crée ni profil expert ni organisati
 `user_type` en base. Écrire `'admin'` produirait le fantôme. **L'alternative propre serait une
 branche `admin` dans le trigger** ; elle n'a pas été prise, et ce paragraphe existe pour que le
 contournement ne se lise pas comme une négligence.
+
+> **LE POINT MORT EST FERMÉ — 28/09/2026, migration `inscription_specialites`.** Un rôle inconnu ou
+> absent **lève** désormais `IN001` : l'insertion dans `auth.users` est annulée avec lui, plus aucun
+> compte fantôme ne naît du trigger. La relecture du miroir **reste** (elle couvre toute autre cause
+> d'absence) ; elle n'est plus la seule barrière. `diag-admin-create` lisait la migration du 04/08
+> **par son nom** et serait resté vert en gardant un défaut disparu (§E.34) : il lit désormais la
+> **dernière définition** dérivée des migrations, et constate le nouvel état. Test :
+> `supabase/tests/database/inscription/roles.test.sql` — rôle inconnu, `IN001`, rien n'en reste.
 
 <a id="e24"></a>
 ### E.24 — UN CHIFFRE JUSTE SOUS UNE ÉTIQUETTE FAUSSE. Distinct de §E.16, et plus retors.

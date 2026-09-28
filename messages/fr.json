@@ -3657,6 +3657,8 @@
     "err_invitation_lecture_indisponible": "Nous n’avons pas pu lire votre invitation. Ce n’est pas qu’elle n’existe pas : la lecture a échoué, rien n’a été modifié. Réessayez dans quelques instants.",
     "err_email_mismatch": "Cette invitation ne correspond pas à l’email de votre compte.",
     "err_generic": "Une erreur est survenue. Réessayez.",
+    "err_signup_email_taken": "Un compte existe déjà avec cette adresse. Connectez-vous pour accepter l’invitation.",
+    "err_signup_failed": "La création du compte a échoué. Réessayez dans un instant ; si le problème persiste, demandez à la personne qui vous a invité de renvoyer l’invitation.",
     "err_cgu": "Vous devez accepter les conditions d’utilisation.",
     "err_password_short": "Le mot de passe doit contenir au moins 8 caractères.",
     "accept_cta": "Accepter l’invitation",

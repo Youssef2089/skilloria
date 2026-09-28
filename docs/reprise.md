@@ -32,6 +32,20 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
+## ▶ LOT T — LES TESTS ONT TOURNÉ CHEZ YOUSSEF (28/09/2026), EN COURS
+
+**Ce qu'il a obtenu** : `db reset --local` vert (47 migrations du lot, « PARTIELLE » où une sonde saute) ;
+`db lint` vide ; `test db --local` **FAIL** — 23 fichiers, 59 tests ; 15 fichiers arrêtés avant leur premier test
+sur `column "speciality_id" of relation "profiles" does not exist` (`handle_new_user`) ; échecs partiels :
+`annonce_depubliee` (2), `invitations` (4, 13), `membres` (4, 5, 8). Requête de staging : 12 OK, 0 ÉCART, 3 À LIRE
+(6 annonces déjà expirées, 3 lignes au grand livre, 55 actions). Sous-dossiers parcourus, `_fabriques.psql` ignoré,
+`\ir` résout : les trois doutes sont levés.
+
+| Point | État | Commit |
+|---|---|---|
+| T.1 l'inscription : `handle_new_user` recréé (migration `20260928000000_inscription_specialites`) — `speciality_ids`, taxonomie vérifiée en base, rôle inconnu **lève** (IN001, plus de compte fantôme), codes IN001–IN005 ; test `inscription/roles.test.sql` (5 rôles + « Autre » + 7 refus, 21 assertions) ; requête de staging +3 lignes (16–18) ; `diag-admin-create` réancré sur la dernière définition (§E.34) ; `diag-cron-supervision` ne confond plus `"trigger"` et `trigger` ; page d'invitation : plus de message GoTrue brut (2 libellés × 4 langues) | fait, non exécuté | ce commit |
+| T.2 à T.6 | à faire | — |
+
 ## ⛔ ARRÊT 2 — L'ÉTAPE 2 EST FAITE (26/09/2026). LA PHASE B N'EST PAS COMMENCÉE.
 
 **Validations à l'arrêt** : `tsc` 0 erreur (hors `.next/`) ; `next build` vert ; lint 65/25 (cliquet vert) ;

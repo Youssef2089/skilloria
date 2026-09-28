@@ -152,7 +152,15 @@ export default function InvitationPage() {
           },
         },
       })
-      if (error) { setErr(error.message); return }
+      if (error) {
+        // Jamais le message brut de GoTrue : il est en anglais, et un refus du
+        // trigger d'inscription (IN001…IN005) n'y arrive qu'en « Database error
+        // saving new user ». Deux issues que l'invité peut comprendre et agir.
+        const brut = (error.message ?? '').toLowerCase()
+        const dejaPris = brut.includes('already') || brut.includes('registered') || brut.includes('exists')
+        setErr(dejaPris ? t('err_signup_email_taken') : t('err_signup_failed'))
+        return
+      }
       setView({ kind: 'signup_sent' })
     } finally {
       setBusy(false)

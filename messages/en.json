@@ -3657,6 +3657,8 @@
     "err_invitation_lecture_indisponible": "We could not read your invitation. This does not mean it does not exist: the lookup failed and nothing was changed. Please try again in a moment.",
     "err_email_mismatch": "This invitation does not match your account’s email.",
     "err_generic": "Something went wrong. Please try again.",
+    "err_signup_email_taken": "An account already exists with this email. Sign in to accept the invitation.",
+    "err_signup_failed": "Account creation failed. Try again in a moment; if the problem persists, ask the person who invited you to resend the invitation.",
     "err_cgu": "You must accept the terms of use.",
     "err_password_short": "Password must be at least 8 characters.",
     "accept_cta": "Accept invitation",

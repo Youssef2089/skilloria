@@ -60,6 +60,8 @@ const montrer = (l) => l.slice(0, 10).join(', ') + (l.length > 10 ? ` … (+${l.
 // Une fonction de déclencheur ne s'appelle pas : le test prouve qu'elle tourne en provoquant ce qu'elle lève.
 const DECLENCHEURS = {
   grand_livre_ajout_seul: "'GL001'",
+  // Le trigger d'inscription (on_auth_user_created) : il tourne quand un test insère dans auth.users.
+  handle_new_user: 'insert into auth.users',
 }
 
 // LE GEL — une raison par entrée (§G.8). Il ne fait que descendre.
@@ -107,7 +109,20 @@ try {
   process.exit(2)
 }
 const tests = fichiersTest.filter((f) => f.endsWith('.test.sql')).sort()
-const corpusTests = fichiersTest.map((f) => sansCommentaires(lire(join(TESTS, f)))).join('\n')
+// Le CORPUS est TOUT `supabase/tests/database/` (sous-dossiers compris, `test db` les parcourt — mesuré
+// par Youssef le 28/09/2026) : une fonction appelée par le test d'inscription ou le test global compte.
+// La FORME (C) ne vise que les tests du grand livre, qui partagent leurs fabriques.
+const RACINE_TESTS = join(ROOT, 'supabase', 'tests', 'database')
+const tousLesTests = []
+const descendre = (d) => {
+  for (const e of readdirSync(d)) {
+    const p = join(d, e)
+    if (statSync(p).isDirectory()) descendre(p)
+    else if (/\.(sql|psql)$/.test(e)) tousLesTests.push(p)
+  }
+}
+descendre(RACINE_TESTS)
+const corpusTests = tousLesTests.map((p) => sansCommentaires(lire(p))).join('\n')
 if (tests.length === 0) {
   console.error('✘ aucun fichier *.test.sql — le contrôle ne tourne pas')
   process.exit(2)

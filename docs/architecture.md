@@ -100,6 +100,24 @@ actions, clé étrangère du grand livre).
 
 ### B.2 Les déplacements structurants — ceux qui piègent
 
+> **`inscription_specialites` (28/09/2026) — TOUTE INSCRIPTION D'EXPERT ÉCHOUAIT DEPUIS LE 01/09/2026.**
+> `handle_new_user` insérait `profiles.speciality_id`, supprimée par `profil_annonce_multivalues` au profit de
+> `speciality_ids uuid[]` : « column "speciality_id" of relation "profiles" does not exist », sur staging comme en
+> local (mesuré par les tests pgTAP le 28/09/2026, confirmé sur staging par Youssef). Aucun contrôle ne l'a vu
+> (§E.73). La fonction est recréée : ① la spécialité s'écrit dans `speciality_ids` (un élément), là où le profil et
+> le moteur la lisent ; ② la taxonomie reçue est vérifiée **en base** avec la règle de `register-expert` — `signUp`
+> s'appelle avec la clé publique, la route n'est pas le seul chemin ; ③ **un rôle inconnu lève** (`IN001`) au lieu
+> de `RAISE WARNING` + `RETURN NEW` — le trigger fabriquait lui-même le compte fantôme de §E.23 ; ④ chaque refus a
+> son SQLSTATE : **IN001** rôle inconnu · **IN002** `domain_slug` absent · **IN003** écosystème actif introuvable ·
+> **IN004** rôle « Gratuit » absent · **IN005** branche/spécialité hors écosystème, inactive, ou hors de sa branche.
+> Tout refus annule l'insertion dans `auth.users` (même transaction) : **aucun compte à moitié créé**. GoTrue les
+> rend en « Database error saving new user », la route en `create_user_failed` ; le code se lit dans les journaux de
+> la base. Conséquence voulue : un compte créé au tableau de bord Supabase sans `role` est refusé. **Ordre :
+> indifférent, le plus tôt possible.** Postcondition exécutée : la définition en base ne cite plus la colonne ; une
+> inscription d'expert par `auth.users` crée miroir et profil (`speciality_ids`) dans un bloc annulé ; un rôle
+> inconnu lève IN001. Test : `supabase/tests/database/inscription/roles.test.sql` — les cinq rôles du code
+> (freelance, CDI, client, cabinet, ESN) et les refus, rien n'en reste.
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **douze fermées** (dont
