@@ -32,6 +32,90 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
+## ⛔ ARRÊT 7 — PHASE B, AUDIT RENDU (29/09/2026). DEUX DÉCISIONS AVANT LE CODE.
+
+**À FAIRE AVANT TOUTE DÉMONSTRATION (reporté par Youssef)** : l'essai d'inscription d'un expert **sur staging**
+(freelance et CDI), de bout en bout — e-mail de confirmation compris.
+
+**Étape 0.** `origin/feat/sprint-archi-orga` = HEAD = `15b50d5` (git fetch). `git status` : seul `supabase/snippets/`
+non suivi (fichiers de Youssef, non touchés). Tag local `sauvegarde-avant-phase-b`. Départ : série `diag` 109 verts /
+0 rouge / 5 muets (les mêmes) ; `tsc` 0 ; lint 65/25. Staging et local en Postgres 17.6.1.166 (lu).
+**Contradictions relevées** :
+① le prompt dit « l'inscription et la préinscription passent par `createUser` » — **le code passe par `auth.signUp`**
+sur un client anonyme (`signUpWithConfirmation`, `lib/auth-signup.ts`), et c'est voulu : `admin.createUser`
+n'envoie PAS l'e-mail de confirmation (piège P1 de ce fichier). Seul `create-admin` passe par `createUser` (adresse
+confirmée d'office). Le nettoyage (`atomicCleanup` : public.users puis auth) existe déjà. **Je garde `signUp`**.
+② « 55 + 7 » dans ce fichier, « 56 + 7 » dans le prompt : le prompt est juste (`refus_recherche_en_cours`, 56ᵉ).
+③ ce fichier exemptait le nettoyage de « un appelant exactement » ; le prompt l'inclut — il est construit ici.
+④ **UN FAIT QUI CONTREDIT LA LISTE DES SEPT** (décision A ci-dessous). ⑤ **Une route morte** (décision B).
+
+**Étape 1 — l'audit (lecture seule).**
+
+*2.1 — les sept gestes : qui écrit aujourd'hui, pour qui.*
+
+| Geste | Fichier · ce qui écrit | Populations |
+|---|---|---|
+| inscription d'un expert | `app/api/auth/public/register-expert/route.ts` : `signUpWithConfirmation` (auth.users → `handle_new_user` → users + profiles), puis `users.update` (téléphone, CGU), `logAudit('expert_registered')` ; échec → `atomicCleanup` | expert freelance (`expert`), expert CDI (`cdi`) |
+| préinscription d'une organisation | `app/api/auth/register-org/route.ts` : `signUpWithConfirmation`, `users.update`, RPC `creer_organisation_avec_admin`, `logAudit('org_pre_registered')` ; échec → `atomicCleanup` (organisation d'abord) | client (`entreprise`), cabinet, ESN (`cabinet` + `org_type = 'esn'`) |
+| création d'un administrateur | `app/api/admin/create-admin/route.ts` : `auth.admin.createUser` (rôle de pont `entreprise`), relecture du miroir, `users.update` (user_type admin), `logAudit` ; **et** `scripts/creer-premier-administrateur.mjs` (jour zéro, même geste) | admin |
+| annonce créée en brouillon | `app/api/publications/route.ts` POST : `publications.insert` (+ `ensurePersonalOrg` pour une sous-traitance : l'organisation personnelle naît à la volée), `logAudit` | client, cabinet, ESN (`mission`, `offre`) ; **collaboration entre experts** (`sous_traitance`, freelance ET CDI, organisation personnelle) |
+| mission écartée | `app/api/me/missions/[id]/dismiss/route.ts` : `matches.update({status:'dismissed'})` — **aucune trace, pas même d'audit** | expert freelance, expert CDI |
+| événement Stripe rouvert | `app/api/admin/facturation/route.ts` POST : `stripe_events.update({status:'failed'})`, `logAudit` | admin |
+| tâche lancée à la main | `app/api/admin/cron-jobs/[name]/run/route.ts` : RPC `admin_cron_run_now` (requalifie ou insère la ligne `cron_run_log`), `logAudit` | admin |
+
+*2.2 — les 14 rattachements, la règle appliquée (« filtrer sur l'action ne rend que ce que son nom annonce »).*
+
+| Route | Action | Pourquoi |
+|---|---|---|
+| `create/update/delete-branch`, `create/update/delete-speciality` (6) | **`taxonomie_modifiee`** (imposée) — gardées ensemble | chacune modifie LA taxonomie ; le détail dit l'objet (`branche`/`specialite`) et l'opération (`creee`/`modifiee`/`supprimee`) |
+| `admin/ecosystemes` POST | **`ecosysteme_cree` — SÉPARÉE** | une création filtrée sous « écosystème modifié » serait un chiffre juste sous une étiquette fausse (§E.24) |
+| `admin/ecosystemes/[id]` PATCH, `[id]/visuel` POST/DELETE (2) | **`ecosysteme_modifie`** (imposée) — gardées | le visuel est une propriété de l'écosystème ; le détail dit `champs` et l'opération |
+| `profile/cv/reset` | **`cv_reinitialise`** (imposée) | le détail dit `retire_de_la_vitrine` (vrai si le profil était visible) |
+| `profile/cv` DELETE | **décision B** | route MORTE (aucun appelant, lu) qui ne vide que le fichier |
+| `me/identity` | **`identite_modifiee`** (imposée) | prénom, nom |
+| `me/organisation` PATCH, `me/organisation/logo` POST/DELETE (2) | **`organisation_modifiee`** (imposée) — gardées | le logo est une propriété de l'organisation ; le détail dit `champs` |
+Gardées sous une action imposée : **8** ; séparée : **1** (`ecosysteme_cree`) ; en attente : **1** (décision B).
+
+*2.3 — les sept exclusions*, chacune ÉCRITE avec sa raison dans le contrôle : `auth/init-session` (session, pas un
+geste métier) ; `me/candidatures/[id]/view` (consultation) ; `me/missions/[id]` GET (marque de lecture) ;
+`me/notifications` et `me/notifications/[id]/read` (lecture des notifications) ; `me/locale` (préférence
+d'affichage) ; `cron/stripe-reconcile` (la vérification nocturne écrit son propre journal de tâche — sous-journal).
+
+*2.5 — les cinq sous-journaux, lus dans `supabase/.temp/schema.sql`.* Aucun trigger sur aucun. **audit_logs** :
+`id uuid`, `user_id` NOT NULL → users (RESTRICT), `domain_id` NOT NULL → domains, `action` varchar(50), `entity_type`,
+`entity_id` NOT NULL, `detail`, `ip_address`, `user_agent`, `created_at` ; RLS active, aucune politique.
+**ai_spend_events** : `provider` (CHECK rerank|claude), `domain_id`/`organization_id`/`profile_id` → SET NULL, `units`,
+`cost_usd` (≥ 0), `action` (CHECK 7 valeurs), `context`, CHECK `ai_spend_un_seul_acteur` ; RLS, aucune politique.
+**stripe_events** : `id text` PK, `type`, `payload` NOT NULL, `livemode`, `status` (CHECK 4), `attempts`, `error`,
+`organization_id` → SET NULL, `received_at`, `processed_at` ; RLS, aucune politique. **cron_run_log** : `id bigint`
+identité, `job_name`, `requested_at`, `request_id`, `http_status`, `timed_out`, `error_msg`, `response_body`,
+`reconciled_at`, `trigger_source` (CHECK schedule|manual), `triggered_by`, `summary`, `verdict_source` (CHECK),
+`attendu_de_la_tache` ; RLS, aucune politique. **notifications** : `user_id` → users (CASCADE), `domain_id` → domains,
+`type`, `channel` (CHECK), `status` (CHECK), `entity_id`, horodatages d'envoi ; RLS **avec** `notifications_self_read`
+et `notifications_self_update` (le navigateur marque ses notifications lues). → **`piece uuid` nullable** sur les
+cinq, sans reprise ; pour `cron_run_log`, la pièce naît dans `trigger_purge_cron` et voyage dans le corps HTTP.
+
+*Grand livre (lu).* Index date en tête : `(horodatage desc)`, `(horodatage desc, acteur_id)`, `(…, ecosysteme_id)`,
+`(…, type_action)`, `(piece)`, `(sujet_id, horodatage desc)` ; RLS active, **aucune politique**, `SELECT` au seul
+`service_role` → la lecture de l'écran passera par une fonction SECURITY DEFINER bornée à l'administrateur.
+
+*2.6 — primitives.* `components/ui/PageHeader`, `EmptyState`, `StatusPill`, `MasterDetail`, la coquille
+`components/shell/DashboardShell` (montée par le layout admin). Écrans admin voisins à imiter : `/admin/consommation`,
+`/admin/taches-planifiees`.
+
+*Au passage.* **Confirmation d'adresse en échec** : GoTrue renvoie sur `/auth/callback` sans session ; l'écran pose
+`hasError` et affiche son message traduit (jamais la page brute) — mais générique : à rendre actionnable selon le
+code reçu. **Branche/spécialité** : la règle vit dans `register-expert` ET `handle_new_user` → une seule définition,
+une fonction SQL appelée par les deux.
+
+**DÉCISIONS DEMANDÉES À YOUSSEF (le code ne commence qu'après)** :
+**A.** Le compte d'un **membre invité** naît **dans le navigateur** (`supabase.auth.signUp` sur la page
+`/invitation/[token]`) : aucun serveur, donc aucune ligne — seule l'acceptation, plus tard, s'écrit. C'est une
+huitième population de « compte créé » que la liste des sept ne nomme pas. Proposition : passer cette inscription
+par une route serveur (`signUpWithConfirmation`, nettoyage en cas d'échec) et une action **`membre_inscrit`**.
+**B.** `DELETE /api/profile/cv` n'a **aucun appelant** et ne vide que le fichier (le profil reste marqué analysé à
+moitié). Proposition : **la supprimer** plutôt que de la journaliser sous une action que rien n'emprunte.
+
 ## ⛔ ARRÊT 6 — LOT S FAIT (28/09/2026) : FINIR LE PUSH PROPREMENT.
 
 **Validations** : `tsc` 0 ; `next build` vert ; lint 65/25 ; parité 3 712 clés ; cliquet vert ; série `diag` **109 verts
