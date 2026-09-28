@@ -299,6 +299,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.77](docs/pieges.md#e77) | UNE SONDE SUR DONNÉE RÉELLE A ARRÊTÉ LE PUSH DE STAGING À MI-CHEMIN — et en production elle toucherait de vraies personnes. La structure dans la migration, le comportement par les tests. |
 | [E.78](docs/pieges.md#e78) | UN DÉCOUPAGE QUI RATE UNE FORME DE DÉCLARATION DONNE À SA VOISINE LE CORPS DES AUTRES — et une mention n'est pas un appel. Vu par mutation, dormant, rassurant. |
 | [E.79](docs/pieges.md#e79) | `cron.job` NE S'ÉCRIT PAS DIRECTEMENT, PAS MÊME PAR POSTGRES — les fonctions de pg_cron seulement ; un test qui écrit l'état à la main ne prouve pas le geste. |
+| [E.80](docs/pieges.md#e80) | UNE VÉRIFICATION ÉCRITE POUR UN ÉTAT DATÉ DEVIENT UNE FAUSSE ALERTE : la requête de staging sortait quinze ÉCART sur un état normal — état, prochain push, invariant. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -419,7 +420,11 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
    `--fail-on` (non vérifié sur la CLI 2.108.0) : c'est la sortie qu'on lit.
 3. `npx supabase test db --local` — les tests pgTAP, tous verts.
 4. **La requête de staging** [supabase/verifications/staging-avant-push.sql](supabase/verifications/staging-avant-push.sql),
-   collée dans l'éditeur SQL de staging (lecture seule) : **un seul `ÉCART` → on s'arrête**.
+   collée dans l'éditeur SQL de staging (lecture seule) : **un seul `ÉCART` → on s'arrête**. Trois sortes de lignes :
+   **état** (⓪, la dernière migration appliquée — sinon la requête est périmée), **prochain push** (deux listes :
+   ce que les migrations en attente retirent et créent) et **invariant**. Après un push, ⓪ sort en ÉCART tant qu'on n'a
+   pas déclaré le nouvel état ; [`diag-requete-staging`](scripts/diag-requete-staging.mjs) rougit tant que les deux listes ne
+   sont pas EXACTEMENT ce que font les migrations qui suivent cet état (une ligne périmée est une fausse alerte, §E.52).
 5. `npm run build` — `next build`, distinct de `tsc` (§E.2).
 6. `npx supabase db push` — sur le projet lié (staging).
 7. `git push` **aussitôt après** — le déploiement. Entre 6 et 7, le code en ligne appelle les

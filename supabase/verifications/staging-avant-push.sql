@@ -1,5 +1,5 @@
 -- ════════════════════════════════════════════════════════════════════════════
---  LA REQUÊTE DE STAGING, AVANT LE `db push` DU GRAND LIVRE (point 2.13).
+--  LA REQUÊTE DE STAGING, AVANT CHAQUE `db push` (étape 4 de §G.4 ter).
 -- ════════════════════════════════════════════════════════════════════════════
 --
 --  UNE requête, LECTURE SEULE : un SELECT, aucune écriture, aucun verrou pris
@@ -10,47 +10,90 @@
 --  LECTURE DU VERDICT
 --    OK      — l'observé est l'attendu.
 --    ÉCART   — on S'ARRÊTE avant le push, et on lit la ligne.
---    À LIRE  — un volume, sans bonne ou mauvaise valeur : on le note.
 --
---  Écrite pour l'état DU PUSH INTERROMPU (28/09/2026) : les migrations jusqu'à
---  journal_recherche_abandonnee sont appliquées, les 29 suivantes non. Elle ne
---  cite aucune colonne ni aucune table que le reste du lot crée (elle les cherche
---  dans le catalogue), sinon elle lèverait. Lignes mises à jour ce jour-là : ②, ⑦,
---  ⑨ ; ajoutées : ㉑, ㉒, ㉓.
---  PHASE B (28/09/2026) : les 17 migrations de la phase B (journal_compte_cree →
---  journal_nettoyage) s'ajoutent au reste du push. Lignes ajoutées : ㉔ à ㉘ — ce que
---  la phase B crée ne doit pas exister déjà, les noms d'index doivent être libres
---  (§E.60 : `if not exists` sur un nom pris saute EN SILENCE), et les anciennes
---  signatures que la phase B GARDE jusqu'au déploiement suivant sont bien là.
+--  TROIS SORTES DE LIGNES, ET LEUR ÉTIQUETTE LE DIT :
+--    état :          ⓪ — la requête est écrite pour UN état de staging : la dernière
+--                    migration appliquée. Si staging est ailleurs, la requête est
+--                    périmée : ÉCART, on la remet à jour AVANT de lire le reste.
+--    prochain push : ce que les migrations EN ATTENTE retirent ou créent. Tout ce qui
+--                    dépend du push vit dans les DEUX listes du `with` ci-dessous, et
+--                    nulle part ailleurs.
+--    invariant :     vrai avant et après chaque push, sans date.
+--
+--  POURQUOI (28/09/2026) : la version précédente décrivait l'état d'AVANT des
+--  pushs déjà faits ; une fois la phase B déployée, quinze de ses lignes sortaient
+--  en ÉCART alors que tout était normal. Une ligne périmée est une FAUSSE ALERTE —
+--  et on apprend à ignorer une alerte fausse. La garde est dans le dépôt :
+--  `node scripts/diag-requete-staging.mjs` rougit si les deux listes ne sont pas
+--  EXACTEMENT ce que font les migrations qui suivent l'état déclaré en ⓪, si une
+--  ligne n'est pas étiquetée, ou si la requête écrit.
+--
+--  ⚠️ NON VÉRIFIÉ : ⓪ lit la colonne `name` de `supabase_migrations.schema_migrations`
+--  (tenue par la CLI). Si ⓪ observe une chaîne vide, la colonne n'existe pas sur
+--  staging : lire `npx supabase migration list` à la place, et le dire.
 --  Le secret du Vault est compté par son NOM ; sa valeur n'est pas lue.
 -- ─────────────────────────────────────────────────────────────────────────────
+
+with
+  -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
+  -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
+  prochain_push_retire(signature) as (
+    select unnest(array[
+      'public.stripe_event_claim(text, text, jsonb, boolean)',
+      'public.admin_cron_run_now(text, uuid)'
+    ]::text[])
+  ),
+  -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
+  -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index.
+  -- Vide pour ce push : il ne crée rien.
+  prochain_push_cree(genre, nom) as (
+    select v.genre, v.nom from (values (null::text, null::text)) v(genre, nom) where false
+  )
 
 select v.ordre,
        v.verification,
        v.attendu,
        v.observe,
-       case when v.attendu like 'information%' then 'À LIRE'
-            when v.observe = v.attendu          then 'OK'
-            else 'ÉCART' end as verdict
+       case when v.observe = v.attendu then 'OK' else 'ÉCART' end as verdict
 from (values
 
-  -- ① L'index unique (pièce, action, sujet) se pose sur un grand livre DÉJÀ rempli par le socle :
-  --    un doublon ferait échouer la migration à mi-chemin.
-  (1, 'grand_livre : doublons (piece, type_action, sujet) — l''index unique du lot échouerait', '0',
-   (select count(*)::text from (
-      select 1 from public.grand_livre g
-       group by g.piece, g.type_action, coalesce(g.sujet_id, '00000000-0000-0000-0000-000000000000'::uuid)
-      having count(*) > 1) d)),
+  -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
+  (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
+   'journal_nettoyage',
+   (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
+      from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 
-  -- ② L'index d'unicité EXISTE : posé par liste_blanche_par_action, APPLIQUÉE le 28/09/2026. Unique, et sur
-  --    trois attributs — un nom pris par autre chose l'aurait fait sauter en silence (§E.60).
-  (2, 'grand_livre_une_fois_idx existe, UNIQUE (appliqué avec liste_blanche_par_action)', '1',
+  -- ① Chaque signature que le push supprime est là. Une absente : quelqu'un l'a retirée à la main
+  --    (`drop function if exists` resterait sans effet, mais l'état a divergé des migrations).
+  (1, 'prochain push : signatures qu''il supprime, présentes aujourd''hui',
+   (select count(*)::text from prochain_push_retire),
+   (select count(*)::text from prochain_push_retire r where to_regprocedure(r.signature) is not null)),
+
+  -- ② Rien de ce que le push crée n'existe déjà (§E.60).
+  (2, 'prochain push : fonctions, tables et index qu''il crée, absents aujourd''hui', '0',
+   (select count(*)::text from prochain_push_cree c
+     where (c.genre = 'fonction' and exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                                               where n.nspname = 'public' and p.proname = c.nom))
+        or (c.genre in ('table', 'index') and to_regclass('public.' || c.nom) is not null))),
+
+  -- ③ Une surcharge posée à la main échappe au balayage statique des migrations. Les signatures que
+  --    le push supprime sont retirées du compte : elles sont la seule surcharge ATTENDUE avant lui.
+  (3, 'invariant : fonctions public à deux signatures ou plus (hors extensions, hors ce que le push supprime)', '0',
+   (select count(*)::text from (
+      select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+       where n.nspname = 'public'
+         and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
+         and p.oid::regprocedure::text not in (select r.signature from prochain_push_retire r)
+       group by p.proname having count(*) > 1) d)),
+
+  -- ④ Une fois par geste (§D.26, GL005) : l'index unique (pièce, action, sujet) existe, UNIQUE.
+  (4, 'invariant : grand_livre_une_fois_idx existe, UNIQUE', '1',
    (select count(*)::text from pg_index i join pg_class c on c.oid = i.indexrelid join pg_namespace n on n.oid = c.relnamespace
      where n.nspname = 'public' and c.relname = 'grand_livre_une_fois_idx' and i.indisunique)),
 
-  -- ③ §E.69 : le paiement fait `on conflict (stripe_invoice_id) where stripe_invoice_id is not null` —
+  -- ⑤ §E.69 : le paiement fait `on conflict (stripe_invoice_id) where stripe_invoice_id is not null` —
   --    il exige un index unique PARTIEL, avec ce prédicat.
-  (3, 'transactions.stripe_invoice_id : index unique PARTIEL (where stripe_invoice_id is not null)', '1',
+  (5, 'invariant : transactions.stripe_invoice_id, index unique PARTIEL (where stripe_invoice_id is not null)', '1',
    (select count(*)::text from pg_index i
       join pg_class t on t.oid = i.indrelid join pg_namespace n on n.oid = t.relnamespace
      where n.nspname = 'public' and t.relname = 'transactions' and i.indisunique
@@ -58,97 +101,44 @@ from (values
        and pg_get_indexdef(i.indexrelid) ilike '%(stripe_invoice_id)%'
        and pg_get_expr(i.indpred, i.indrelid) ilike '%stripe_invoice_id is not null%')),
 
-  -- ④ La tâche constats_trigger appelle trigger_purge_cron(), qui lève sans ces deux secrets.
-  (4, 'Vault : secrets cron_secret et purge_cron_base_url présents (par leur nom)', '2',
+  -- ⑥ Les tâches planifiées appellent trigger_purge_cron(), qui lève sans ces deux secrets.
+  (6, 'invariant : Vault, secrets cron_secret et purge_cron_base_url présents (par leur nom)', '2',
    (select count(distinct s.name)::text from vault.secrets s where s.name in ('cron_secret', 'purge_cron_base_url'))),
 
-  (5, 'extensions pg_cron et pg_net installées', '2',
+  (7, 'invariant : extensions pg_cron et pg_net installées', '2',
    (select count(*)::text from pg_extension e where e.extname in ('pg_cron', 'pg_net'))),
 
-  -- ⑥ Créée par le push ; présente avant, elle aurait été posée à la main.
-  (6, 'tâche constats_trigger pas encore planifiée', '0',
-   (select count(*)::text from cron.job j where j.jobname = 'constats_trigger')),
-
-  -- ⑦ Ce que le RESTE du lot ajoute ne doit pas exister déjà (une colonne posée à la main aurait un autre type).
-  --    `cles_detail` et `candidature_depots.piece` sont appliquées : voir ㉑.
-  (7, 'colonnes du reste du lot absentes (expiration_constatee_at, fermeture_constatee_at)', '0',
-   (select count(*)::text from information_schema.columns c
-     where c.table_schema = 'public'
-       and (c.table_name, c.column_name) in (('publications', 'expiration_constatee_at'), ('candidatures', 'fermeture_constatee_at')))),
-
-  (8, 'table constats_mise_en_service absente', '0',
-   (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'public' and c.relname = 'constats_mise_en_service')),
-
-  -- ⑨ Les deux anciennes signatures que le RESTE du push supprime (§E.72) : présentes aujourd'hui, appelées
-  --    par le code en ligne jusqu'au déploiement. Les deux autres sont déjà parties : voir ㉒.
-  (9, 'anciennes signatures encore présentes (supprimées par le reste du push : programmer_suppression, maj_membre)', '2',
-   (select count(*)::text from unnest(array[
-      'public.programmer_suppression_compte(uuid, timestamptz)',
-      'public.maj_membre_organisation(uuid, character varying, character varying, boolean)']) s
-     where to_regprocedure(s) is not null)),
-
-  -- ⑩ Une surcharge posée à la main, hors migration, échappe au balayage statique (reprise §1.4).
-  (10, 'fonctions public à deux signatures ou plus (hors extensions)', '0',
-   (select count(*)::text from (
-      select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-       where n.nspname = 'public'
-         and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
-       group by p.proname having count(*) > 1) d)),
-
-  -- ⑪ Les portes latérales (2.8, T.4) : les TREIZE politiques que le push retire, dont
-  --    `profiles_self_update` (les bascules passent par le geste serveur). Une absente est sans
-  --    effet (`drop policy if exists`), mais alors l'écart se lit : quelqu'un l'a retirée à la main.
-  (11, 'politiques retirées par le push, présentes aujourd''hui', '13',
-   (select count(*)::text from pg_policies p
-     where p.schemaname = 'public'
-       and (p.tablename, p.policyname) in (
-         ('organization_invitations', 'organization_invitations_admin_all'), ('candidatures', 'candidatures_expert_insert'),
-         ('candidatures', 'candidatures_expert_update'), ('messages', 'messages_party_mark_read'),
-         ('messages', 'messages_sender_insert'), ('organization_members', 'organization_members_admin_insert'),
-         ('organization_members', 'organization_members_admin_update'), ('organization_members', 'organization_members_admin_delete'),
-         ('organizations', 'organizations_admin_update'), ('profiles', 'profiles_self_insert'),
-         ('publications', 'publications_member_write'), ('users', 'users_self_update'),
-         ('profiles', 'profiles_self_update')))),
-
-  -- ⑫ Une porte ouverte À LA MAIN : une politique d'écriture client sur une table journalisée qui
-  --    n'est dans AUCUNE migration. Les treize connues sont exclues ; le reste doit être vide.
-  (12, 'politiques d''écriture client hors migration sur une table journalisée', '0',
+  -- ⑧ AUCUNE PORTE LATÉRALE (§D.26) : aucune politique ne laisse un client écrire une table dont l'écriture
+  --    est une action du grand livre. La liste couvre chaque table que `diag-portes-laterales` DÉRIVE des
+  --    écrivains SQL (le contrôle rougit si une table dérivée y manque) ; une politique posée à la main,
+  --    hors migration, n'est vue qu'ici.
+  (8, 'invariant : politiques d''écriture client (anon, authenticated, public) sur une table journalisée', '0',
    (select count(*)::text from pg_policies p
      where p.schemaname = 'public'
        and p.cmd in ('ALL', 'INSERT', 'UPDATE', 'DELETE')
        and p.roles && array['anon', 'authenticated', 'public']::name[]
        and p.tablename in ('ai_model_tarifs', 'ai_quotas', 'ai_spend_caps', 'ai_spend_seuils_acteur', 'audit_logs',
                            'candidature_depots', 'candidatures', 'conversations', 'cron_run_log', 'duree_reglages',
-                           'grand_livre_actions', 'matching_settings', 'messages', 'organization_invitations',
-                           'organization_members', 'organizations', 'packages', 'profiles', 'publications',
-                           'session_logs', 'transactions', 'users', 'verification_providers', 'grand_livre')
-       and (p.tablename, p.policyname) not in (
-         ('organization_invitations', 'organization_invitations_admin_all'), ('candidatures', 'candidatures_expert_insert'),
-         ('candidatures', 'candidatures_expert_update'), ('messages', 'messages_party_mark_read'),
-         ('messages', 'messages_sender_insert'), ('organization_members', 'organization_members_admin_insert'),
-         ('organization_members', 'organization_members_admin_update'), ('organization_members', 'organization_members_admin_delete'),
-         ('organizations', 'organizations_admin_update'), ('profiles', 'profiles_self_insert'),
-         ('publications', 'publications_member_write'), ('users', 'users_self_update'),
-         ('profiles', 'profiles_self_update')))),
+                           'grand_livre', 'grand_livre_actions', 'grand_livre_conservation', 'matches',
+                           'matching_settings', 'messages', 'organization_invitations', 'organization_members',
+                           'organizations', 'packages', 'profiles', 'publications', 'session_logs', 'stripe_events',
+                           'transactions', 'users', 'verification_providers'))),
 
-  -- ⑬ Le passif des annonces : marqué par la migration, SANS ligne au grand livre (2.11).
-  (13, 'annonces publiées DÉJÀ expirées (passif marqué sans ligne)', 'information : volume à noter',
-   (select count(*)::text from public.publications p cross join public.duree_reglages d
-     where d.ligne_unique and p.status = 'published'
-       and not public.annonce_active(p.status, p.expires_at, p.published_at, d.vie_annonce_jours))),
+  -- ⑨ Le grand livre se lit par `lire_grand_livre()` et `lire_piece()` seulement : AUCUNE politique sur la
+  --    table, lecture comprise (une politique de lecture l'ouvrirait au navigateur).
+  (9, 'invariant : politiques sur grand_livre (toutes commandes)', '0',
+   (select count(*)::text from pg_policies p where p.schemaname = 'public' and p.tablename = 'grand_livre')),
 
-  -- ⑭ Les lignes que le socle a déjà écrites : elles ne passeront pas par la liste blanche (elle ne
-  --    vaut qu'à l'écriture) — leur nombre, pour mémoire.
-  (14, 'lignes déjà au grand livre (socle)', 'information : volume à noter',
-   (select count(*)::text from public.grand_livre)),
+  -- ⑩ Le verrou (§D.26) : le navigateur n'a aucun droit d'écriture sur le grand livre.
+  (10, 'invariant : droits d''écriture d''anon ou authenticated sur grand_livre', '0',
+   (select count(*)::text from unnest(array['anon', 'authenticated']) r(role)
+      cross join unnest(array['INSERT', 'UPDATE', 'DELETE', 'TRUNCATE']) d(droit)
+     where has_table_privilege(r.role, 'public.grand_livre', d.droit))),
 
-  (15, 'actions déjà dans la liste fermée (le push les porte à 56)', 'information : volume à noter',
-   (select count(*)::text from public.grand_livre_actions)),
-
-  -- ⑯ T.1 : chaque colonne que la NOUVELLE définition de handle_new_user écrit existe (11 sur users,
-  --    12 sur profiles). Une seule absente et toute inscription échouerait encore.
-  (16, 'colonnes écrites par le nouveau handle_new_user présentes (users 11 + profiles 12)', '23',
+  -- ⑪ §E.73 : une fonction de trigger qui cite une colonne absente tue TOUTE inscription, et ni le lint ni un
+  --    contrôle statique ne le voient. Chaque colonne que handle_new_user écrit existe (users 11 + profiles 12) ;
+  --    la liste est tenue ÉGALE aux insertions de sa dernière définition par `diag-requete-staging`.
+  (11, 'invariant : colonnes écrites par handle_new_user présentes (users 11 + profiles 12)', '23',
    (select count(*)::text from information_schema.columns c
      where c.table_schema = 'public'
        and ((c.table_name = 'users' and c.column_name in ('id', 'email', 'role_id', 'domain_id', 'user_type', 'status',
@@ -157,100 +147,10 @@ from (values
                                                             'profile_score', 'languages', 'skills', 'certifications',
                                                             'branch_id', 'speciality_ids', 'speciality_other'))))),
 
-  -- ⑰ Le bug que le push corrige, lu sur la définition EN LIGNE : elle cite la colonne supprimée.
-  (17, 'handle_new_user en ligne écrit profiles.speciality_id (le bug que T.1 corrige ; 0 après le push)', '1',
-   (select count(*)::text from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-     where n.nspname = 'public' and p.proname = 'handle_new_user'
-       and p.prosrc ~* '\mspeciality_id\M\s*[,)]')),
-
-  -- ⑲ T.6 : les lignes DÉJÀ au grand livre sont-elles de vrais gestes, ou des restes de sonde ?
-  --    Un vrai `ip_effacees` vient de la tâche ip_retention_purge (04:20 UTC) : origine tâche, sujet
-  --    dérivé de la tâche, et SA ligne de journal de tâche à la même minute. Un vrai `reglage_modifie`
-  --    a pour auteur un administrateur qui existe. Toute autre ligne serait un reste — attendu : aucune
-  --    (les sondes du socle sont annulées ou attendent une erreur nommée, lu dans la migration).
-  (19, 'lignes du grand livre qui ne sont NI un passage réel de ip_retention_purge NI un réglage d''un admin existant', '0',
-   (select count(*)::text from public.grand_livre g
-     where not (
-             g.type_action = 'ip_effacees' and g.origine = 'tache_planifiee'
-         and g.sujet_id = public.identifiant_derive('cron_job', 'ip_retention_purge')
-         and exists (select 1 from public.cron_run_log l
-                      where l.job_name = 'ip_retention_purge'
-                        and l.requested_at between g.horodatage - interval '5 minutes' and g.horodatage + interval '5 minutes'))
-       and not (
-             g.type_action = 'reglage_modifie'
-         and exists (select 1 from public.users u where u.id = g.acteur_id and u.user_type = 'admin')))),
-
-  (20, 'les lignes du grand livre, par action et statut (lecture)', 'information : volume à noter',
-   (select coalesce(string_agg(x.k || ' × ' || x.n, ' · ' order by x.k), 'aucune')
-      from (select g.type_action || '/' || g.statut || ' (' || to_char(min(g.horodatage), 'DD/MM HH24:MI') || '→'
-                   || to_char(max(g.horodatage), 'DD/MM HH24:MI') || ')' as k, count(*)::text as n
-              from public.grand_livre g group by g.type_action, g.statut) x)),
-
-  (18, 'profiles.speciality_id absente (supprimée le 01/09/2026)', '0',
+  -- ⑫ La colonne que l'ancien handle_new_user citait (§E.73) : supprimée le 01/09/2026, elle ne revient pas.
+  (12, 'invariant : profiles.speciality_id absente', '0',
    (select count(*)::text from information_schema.columns c
-     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id')),
-
-  -- ㉑ La moitié appliquée est bien là : les deux colonnes posées par les migrations appliquées.
-  (21, 'colonnes déjà appliquées présentes (grand_livre_actions.cles_detail, candidature_depots.piece)', '2',
-   (select count(*)::text from information_schema.columns c
-     where c.table_schema = 'public'
-       and (c.table_name, c.column_name) in (('grand_livre_actions', 'cles_detail'), ('candidature_depots', 'piece')))),
-
-  -- ㉒ Les deux anciennes signatures retirées par les migrations appliquées sont ABSENTES. Tant que le code
-  --    n'est pas déployé, les gestes qui les appelaient (offre par défaut, ouverture du dépôt) ÉCHOUENT sur
-  --    staging — c'est la fenêtre de §E.72, ouverte depuis l'arrêt du push.
-  (22, 'anciennes signatures déjà retirées (set_default_package(uuid), ouvrir_depot_candidature à 4 arguments) absentes', '0',
-   (select count(*)::text from unnest(array[
-      'public.set_default_package(uuid)',
-      'public.ouvrir_depot_candidature(uuid, uuid, uuid, text)']) s
-     where to_regprocedure(s) is not null)),
-
-  -- ㉓ La fonction unique exiger_ecriture (EC001) est appliquée — les migrations suivantes l'appellent.
-  (23, 'exiger_ecriture(bigint, text, bigint) présente (appliquée avec liste_blanche_par_action)', '1',
-   (select count(*)::text from unnest(array['public.exiger_ecriture(bigint, text, bigint)']) s
-     where to_regprocedure(s) is not null)),
-
-  -- ㉔ PHASE B : la colonne `piece` des cinq sous-journaux n'existe pas déjà (posée à la main, elle aurait un
-  --    autre type ; la migration l'ajoute par `add column if not exists` et la SAUTERAIT).
-  (24, 'phase B : colonne piece absente des cinq sous-journaux', '0',
-   (select count(*)::text from information_schema.columns c
-     where c.table_schema = 'public' and c.column_name = 'piece'
-       and c.table_name in ('audit_logs', 'ai_spend_events', 'stripe_events', 'cron_run_log', 'notifications'))),
-
-  -- ㉕ PHASE B : les noms d'index que la phase B pose sont LIBRES (§E.60).
-  (25, 'phase B : noms d''index libres (*_piece_idx des cinq sous-journaux)', '0',
-   (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'public'
-       and c.relname in ('audit_logs_piece_idx', 'ai_spend_events_piece_idx', 'stripe_events_piece_idx',
-                         'cron_run_log_piece_idx', 'notifications_piece_idx'))),
-
-  -- ㉖ PHASE B : ni la table de conservation, ni les fonctions nouvelles n'existent déjà.
-  (26, 'phase B : grand_livre_conservation absente', '0',
-   (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'public' and c.relname = 'grand_livre_conservation')),
-  (27, 'phase B : fonctions nouvelles absentes (12 signatures)', '0',
-   (select count(*)::text from unnest(array[
-      'public.taxonomie_inscription_refus(uuid, uuid, uuid)',
-      'public.promouvoir_administrateur(uuid, uuid, text, uuid, text, uuid, uuid)',
-      'public.ecarter_mission(uuid, uuid, text, uuid, text, uuid, uuid)',
-      'public.rouvrir_evenement_stripe(uuid, uuid, text, uuid, text, text, text, timestamptz)',
-      'public.admin_cron_run_now(uuid, uuid, text, uuid, text, text)',
-      'public.stripe_event_reclamer(text, text, jsonb, boolean, uuid)',
-      'public.lire_grand_livre(uuid, text[], text[], uuid, uuid, timestamptz, timestamptz, text[], text[], integer, timestamptz, bigint)',
-      'public.lire_piece(uuid, uuid)',
-      'public.regler_conservation_journal(uuid, uuid, text, integer, integer)',
-      'public.nettoyage_journal_calcul()',
-      'public.annoncer_nettoyage_journal(uuid)',
-      'public.nettoyer_journal(uuid, uuid, bigint)']) s
-     where to_regprocedure(s) is not null)),
-
-  -- ㉘ PHASE B : les deux signatures que le code EN LIGNE appelle, et que la phase B GARDE jusqu'au déploiement
-  --    suivant (§E.72) — présentes avant le push, présentes après. Leur suppression est une migration à part.
-  (28, 'phase B : anciennes signatures gardées présentes (stripe_event_claim, admin_cron_run_now(text, uuid))', '2',
-   (select count(*)::text from unnest(array[
-      'public.stripe_event_claim(text, text, jsonb, boolean)',
-      'public.admin_cron_run_now(text, uuid)']) s
-     where to_regprocedure(s) is not null))
+     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id'))
 
 ) as v(ordre, verification, attendu, observe)
 order by v.ordre;

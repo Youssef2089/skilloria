@@ -99,6 +99,20 @@ console.log(`\n═══ Les portes latérales du grand livre ═══\n`)
 ok(tables.size >= 10 && ['organization_invitations', 'publications', 'candidatures', 'messages', 'profiles', 'users'].every((t) => tables.has(t)),
   `${tables.size} tables dont l’écriture est une action, DÉRIVÉES de ${ecrivains.size} écrivains SQL (témoins présents)`)
 
+// ── L'ÉTAT RÉEL, que ce contrôle ne voit pas, se lit dans la requête de staging (ligne « politiques
+//    d'écriture client ») : sa liste de tables est tenue à la main, et elle avait PERDU trois tables
+//    dérivées (grand_livre_conservation, matches, stripe_events — mesuré le 28/09/2026, §E.61). Elle
+//    doit couvrir chaque table dérivée ; une table de plus n'y coûte rien.
+{
+  const req = read('supabase/verifications/staging-avant-push.sql').split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
+  const bloc = /'invariant : politiques d''écriture client[\s\S]*?tablename\s+in\s*\(([^)]*)\)/.exec(req)?.[1] ?? ''
+  const listees = new Set([...bloc.matchAll(/'(\w+)'/g)].map((m) => m[1]))
+  const manquantes = [...tables].filter((t) => !listees.has(t)).sort()
+  ok(bloc !== '' && manquantes.length === 0,
+    `la requête de staging couvre chaque table journalisée dérivée (${listees.size} listées, ${tables.size} dérivées)`,
+    manquantes.length ? `manquantes : ${manquantes.join(', ')}` : 'ligne « invariant : politiques d’écriture client » introuvable')
+}
+
 const CLIENTS = new Set(['anon', 'authenticated', 'public'])
 // Les portes OUVERTES UN JOUR : toute politique d'écriture cliente créée dans l'histoire des
 // migrations sur une table journalisée. Le contrôle dit combien sont fermées, pas seulement « zéro ».

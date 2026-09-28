@@ -3867,6 +3867,31 @@ inconnue, replanifier, horaire refusé sans effet, suggérer, lancer, historique
 est une autre table, que la purge vise légitimement : le motif ne la touche pas. Éprouvé par mutation (l'ancienne
 ligne du test remise : rouge). **Ce qu'il ne voit pas** : le SQL dynamique (`execute format(...)`).
 
+<a id="e80"></a>
+### E.80 — UNE VÉRIFICATION ÉCRITE POUR UN ÉTAT DATÉ DEVIENT UNE FAUSSE ALERTE LE JOUR OÙ L'ÉTAT CHANGE — et rien ne le dit.
+
+**Le cas mesuré (28/09/2026, la phase B déployée sur staging).** `supabase/verifications/staging-avant-push.sql`
+avait été écrite pour « le push interrompu », puis complétée pour la phase B : « la colonne `piece` est absente »,
+« la table `constats_mise_en_service` est absente », « les treize politiques sont présentes », « les anciennes
+signatures sont là »… Chaque ligne était juste LE JOUR où elle a été écrite. Le push fait, quinze d'entre elles
+sortaient en **ÉCART** sur un état parfaitement normal. Deux autres pièges s'y cachaient : la ligne « aucune
+surcharge » aurait rougi AVANT le push suivant (l'ancienne `admin_cron_run_now` y est attendue), et la liste des
+tables journalisées, tenue à la main, avait **perdu trois tables** dérivées depuis (§E.61).
+
+**Pourquoi c'est un piège.** Une requête qui crie sur un état normal apprend à la lire en diagonale (§E.52) — le
+jour où un vrai ÉCART sortira, il sera noyé. Et rien, dans le dépôt, ne savait qu'une ligne décrivait le passé.
+
+**La parade.** Trois sortes de lignes, et l'étiquette le dit : **état** (⓪ — la dernière migration appliquée, par
+son nom : si staging est ailleurs, la requête est périmée et on la met à jour AVANT de lire le reste), **prochain
+push** (tout ce qui dépend du push vit dans DEUX listes en tête : ce qu'il retire, ce qu'il crée) et **invariant**.
+
+**Le contrôle** : [`diag-requete-staging`](../scripts/diag-requete-staging.mjs) — lecture seule, étiquettes, l'état
+déclaré résolu par suffixe, les deux listes ÉGALES à ce que font les migrations qui suivent cet état (une de trop :
+périmée ; une de moins : non préparée), aucun invariant qui cite ce que le push touche. Et
+`diag-portes-laterales` exige que la liste de la ligne des politiques couvre chaque table qu'il dérive. Éprouvés par
+mutation. **Ce qu'il ne voit pas** : l'état RÉEL de staging (c'est ⓪ qui le compare) ; les colonnes, politiques et
+contraintes créées par un push (seuls fonctions, tables et index sont suivis) ; une nouvelle signature d'un nom connu.
+
 ---
 
 <a id="e9"></a>
