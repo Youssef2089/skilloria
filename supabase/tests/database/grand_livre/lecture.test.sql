@@ -6,7 +6,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(12);
+select plan(13);
 
 create or replace function pg_temp.ecrire(p_piece uuid, p_code text, p_acteur uuid, p_type text, p_dom uuid, p_sujet uuid, p_detail jsonb)
 returns void language plpgsql as $$
@@ -36,6 +36,14 @@ begin
                              null::text, null::uuid, '{}'::jsonb, null::uuid, null::numeric, null::text);
   insert into public.audit_logs (user_id, domain_id, action, entity_type, entity_id, piece)
   values (v_client, v_dom, 'sonde', 'publication', v_client, v_p[1]);
+  -- La MÊME pièce dans les quatre autres sous-journaux : c'est la raison d'être de la colonne (2.5).
+  insert into public.ai_spend_events (provider, domain_id, units, cost_usd, action, piece)
+  values ('claude', v_dom, 12, 0.0042, 'publication_quality', v_p[1]);
+  insert into public.stripe_events (id, type, payload, livemode, status, piece)
+  values ('evt_sonde_' || gen_random_uuid(), 'invoice.paid', '{}'::jsonb, false, 'processed', v_p[1]);
+  insert into public.cron_run_log (job_name, piece) values ('sonde_lecture', v_p[1]);
+  insert into public.notifications (user_id, domain_id, type, channel, status, piece)
+  values (v_client, v_dom, 'sonde', 'inapp', 'pending', v_p[1]);
 
   -- ── AD002 : un non-administrateur ne lit pas ──
   return next throws_ok(format('select public.lire_grand_livre(%L)', v_client), 'AD002', null,
@@ -90,6 +98,12 @@ begin
                  and v_r -> 'sous_journaux' -> 'audit_logs' -> 0 ->> 'action' = 'sonde'
                  and not (v_r -> 'sous_journaux' -> 'audit_logs' -> 0 ? 'detail'),
                  'lire_piece : la ligne d''audit sous la même pièce — sans son détail');
+  return next ok(jsonb_array_length(v_r -> 'sous_journaux' -> 'ai_spend_events') = 1
+                 and jsonb_array_length(v_r -> 'sous_journaux' -> 'stripe_events') = 1
+                 and jsonb_array_length(v_r -> 'sous_journaux' -> 'cron_run_log') = 1
+                 and jsonb_array_length(v_r -> 'sous_journaux' -> 'notifications') = 1
+                 and (v_r -> 'sous_journaux' -> 'ai_spend_events' -> 0 ->> 'cost_usd')::numeric = 0.0042,
+                 'lire_piece : la PIÈCE COMPLÈTE — la ligne du grand livre ET ce que les cinq sous-journaux portent sous elle');
 end $$;
 
 select * from pg_temp.essai();

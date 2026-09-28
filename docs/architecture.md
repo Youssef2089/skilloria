@@ -2009,6 +2009,14 @@ la pièce vivent très bien **à l'intérieur d'une RPC** : c'est ce que le proj
 livre généralise ce choix : **une RPC SECURITY DEFINER écrit la ligne métier ET la ligne de journal en
 un appel**, et le trigger ne sert qu'au **verrou**. Deux mécanismes d'écriture auraient divergé (§E.20).
 
+**L'exception nommée : `handle_new_user` (décision A de la phase B, 28/09/2026).** Un compte naît par cinq voies,
+dont l'appel DIRECT à l'API d'authentification avec la clé publique, qui ne passe par aucune de nos routes. Le seul
+passage obligé est l'insertion dans `auth.users`, donc ce trigger : c'est lui qui écrit `compte_cree`, par
+`journaliser()`, dans la même transaction que le miroir et le profil. Ce n'est pas le trigger d'écriture refusé
+ci-dessus — celui qui DÉDUIT une ligne d'une modification de table, loin du geste, sans pièce — mais la fonction
+MÉTIER de la création de compte, qui écrit sa ligne comme une RPC. La pièce vient des métadonnées quand l'appelant
+l'y met ; sinon elle naît dans la fonction, et l'origine le dit. Le raisonnement complet : §D.26.
+
 **Le coût honnête, et comment il se paie.** Faire passer 178 sites par des RPC est un très gros lot.
 On ne le fait pas d'un coup : le contrôle se pose sur **la liste des actions journalisables**, pas sur
 « toute route qui écrit ». Les actions de la liste passent par la fonction, une par une (étape 2) ;
@@ -2020,16 +2028,29 @@ achèterait quatre contraintes Supabase (index locaux, RLS et revoke à reposer 
 batch qui détache une partition) contre rien. Ce qui est fait **dès aujourd'hui** est ce qui rend le
 partitionnement indolore plus tard : la **date en tête** de chaque index de filtre, vérifiée dans
 `pg_index` par la postcondition ; et deux exceptions nommées (pièce, sujet) parce qu'elles se
-cherchent sans période. Le batch manuel, la rétention réglable, le plancher légal, l'annonce avant, la
-confirmation et l'écriture de l'exécution sont conservés tels quels pour l'étape 4 (§E.46).
+cherchent sans période. **L'écran s'y appuie** (phase B 2.6) : `lire_grand_livre()` pagine par curseur
+(horodatage, id) décroissant, servi par `(horodatage desc)` et ses variantes filtrées. Le batch manuel, la
+rétention et le plancher légal **saisis dans l'administration, famille par famille**, l'annonce avant, la
+confirmation et l'écriture de l'exécution sont **livrés** (phase B 2.7, `nettoyer_journal()`, seul chemin de
+suppression) : quand un volume le justifiera, détacher une partition ancienne remplacera un DELETE par
+famille, sans toucher à l'écran ni aux index.
 
-**Comment la pièce traverse pg_cron.** Une tâche SQL pure génère la sienne : `effacer_adresses_ip()`
-pose `v_piece := gen_random_uuid()` en tête et journalise **succès** (dans le bloc) et **échec** (dans
-le gestionnaire, après l'annulation du sous-bloc), même pièce. Une tâche qui appelle une route
-(`trigger_purge_cron`) la générera de la même façon et la **transmettra dans le corps HTTP** à côté de
-`log_id` — la route la lit avec `estPiece()` et la passe à tout ce qui en découle (étape 3). Le moteur
-n'a **aucun identifiant de run** à promouvoir en pièce (mesuré : zéro occurrence) : le grand livre ne
-relie pas son histoire, il la **crée** — une ligne par étape de run, jamais par lot ni par profil.
+**Comment la pièce traverse pg_cron — construit (phase B 2.5, migration `piece_sous_journaux`).** Une tâche SQL
+pure génère la sienne : `effacer_adresses_ip()` pose `v_piece := gen_random_uuid()` en tête et journalise
+**succès** (dans le bloc) et **échec** (dans le gestionnaire, après l'annulation du sous-bloc), même pièce. Une
+tâche qui appelle une route passe par `trigger_purge_cron` : la pièce y **naît** (`gen_random_uuid()`), se pose sur
+la ligne `cron_run_log` du passage et part **dans le corps HTTP** à côté de `log_id`. Côté route, le guichet
+`sousVerdictDeRun` (`lib/cron/verdict-de-run.ts`) la lit (`estPiece()`) et la **passe au travail**, qui ouvre
+`contexteDeTache(JOB, piece)` : `constats`, `purge-deletions` et `purge-inactive` écrivent sous la pièce de leur
+ligne `cron_run_log`. **Lancée à la main**, la tâche prend la pièce du GESTE de l'administrateur :
+`admin_cron_run_now()` la pose en réglage de TRANSACTION (`set_config('skilloria.piece_geste', …, true)`, qui
+meurt avec elle — la même transaction où la commande de la tâche s'exécute), et `trigger_purge_cron` la reprend au
+lieu d'en créer une : `tache_lancee_a_la_main`, la ligne du passage et les lignes de la tâche partagent une pièce.
+**Limite dite** : `expert-relance` et `match-retry` ouvrent une pièce PAR élément (chaque recherche est un geste) ;
+la pièce du passage ne relie pas leurs lignes. Le moteur n'a **aucun identifiant de run** à promouvoir en pièce
+(mesuré : zéro occurrence) : le grand livre ne relie pas son histoire, il la **crée** — une ligne par étape de run,
+jamais par lot ni par profil. Test : `grand_livre/piece_sous_journaux.test.sql` (le corps HTTP en file `pg_net`,
+jamais envoyé).
 
 **Comment la pièce traverse `after()`.** Elle voyage en **paramètre** — `nouvellePiece()` à l'entrée
 de la route, avant toute écriture, puis passée à chaque appel. Un `after()` capture la pièce dans sa
@@ -2042,7 +2063,12 @@ l'oublie.
 **Un rejeu est un nouveau geste.** Il porte une **nouvelle** pièce qui référence l'originale
 (`piece_origine`), à la date du rejeu, par l'administrateur qui l'a décidé — jamais la pièce du dépôt
 d'origine, ce qui ferait une histoire où un expert a postulé deux fois. Et il vit dans le grand livre,
-pas dans `candidature_depots`, qui écrase au rejeu.
+pas dans `candidature_depots`, qui écrase au rejeu. **Où** : `app/api/admin/depots-en-echec/route.ts`, POST —
+`contexteDepuisAuth(auth, estPiece(ligne.piece) ? ligne.piece : null)` ouvre la pièce neuve avec, pour origine,
+celle de la tentative rejouée ; `deposerCandidature` la passe à `ouvrir_depot_candidature()` et à
+`inserer_candidature_jugee(p_piece, p_piece_origine, …)`. **Prouvé** par `grand_livre/rejeu_depot.test.sql` : la
+ligne du rejeu porte la pièce neuve et `piece_origine` vers l'originale, la tentative d'origine garde sa ligne, et
+l'écran de la pièce (`lire_piece`) montre « reprise par » d'un côté, la pièce d'origine de l'autre.
 
 ### C.21 — LES ACTIONS BRANCHÉES SUR LE GRAND LIVRE, une par une (étape 2)
 
