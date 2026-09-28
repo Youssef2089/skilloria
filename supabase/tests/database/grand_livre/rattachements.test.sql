@@ -4,10 +4,11 @@
 -- normaux, pour chaque population concernée, et prouve que la base refuse ce qui n'a rien à y faire.
 --   taxonomie_modifiee : l'administrateur — branche et spécialité, créée / modifiée / supprimée
 --   ecosysteme_cree    : l'administrateur — l'écosystème et sa configuration
+--   ecosysteme_modifie : l'administrateur — les champs, l'activation, le visuel déposé et retiré
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(9);
+select plan(12);
 
 -- Une ligne telle que l'écrivain l'écrit : acteur l'administrateur (origine administrateur).
 create or replace function pg_temp.ecrire(p_piece uuid, p_code text, p_admin uuid, p_dom uuid, p_sujet_type text, p_sujet uuid, p_detail jsonb)
@@ -24,6 +25,7 @@ declare
   v_br    uuid;
   v_sp    uuid;
   v_eco   uuid;
+  v_q     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
   v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
 begin
   -- ── taxonomie_modifiee : une branche, puis une spécialité, créées comme les routes les créent ──
@@ -86,6 +88,28 @@ begin
   return next throws_ok(format($q$select pg_temp.ecrire(%L, 'ecosysteme_cree', %L, %L, 'domains', %L, '{"slug":"x","name":"Sonde"}'::jsonb)$q$,
                                gen_random_uuid(), v_admin, v_eco, v_eco),
                         'GL004', null, 'ecosysteme_cree : le nom (texte libre) est refusé');
+
+  -- ── ecosysteme_modifie : les champs, l'activation, le visuel déposé puis retiré ──
+  update public.domains set tagline = 'Sonde' where id = v_eco;
+  perform pg_temp.ecrire(v_q[1], 'ecosysteme_modifie', v_admin, v_eco, 'domains', v_eco,
+    jsonb_build_object('operation', 'modification', 'champs', jsonb_build_array('tagline'),
+                       'traductions', jsonb_build_array('domains.name.en'), 'visuel', null));
+  update public.domains set active = true where id = v_eco;
+  perform pg_temp.ecrire(v_q[2], 'ecosysteme_modifie', v_admin, v_eco, 'domains', v_eco,
+    jsonb_build_object('operation', 'activation', 'champs', jsonb_build_array('active'), 'traductions', jsonb_build_array(), 'visuel', null));
+  perform pg_temp.ecrire(v_q[3], 'ecosysteme_modifie', v_admin, v_eco, 'domains', v_eco,
+    jsonb_build_object('operation', 'visuel_depose', 'champs', jsonb_build_array(), 'traductions', jsonb_build_array(), 'visuel', 'logo'));
+  perform pg_temp.ecrire(v_q[4], 'ecosysteme_modifie', v_admin, v_eco, 'domains', v_eco,
+    jsonb_build_object('operation', 'visuel_retire', 'champs', jsonb_build_array(), 'traductions', jsonb_build_array(), 'visuel', 'logo'));
+  return next ok(pg_temp.lignes(v_q[1]) = 1 and pg_temp.lignes(v_q[2]) = 1 and pg_temp.lignes(v_q[3]) = 1 and pg_temp.lignes(v_q[4]) = 1
+                 and (select count(*) from public.grand_livre g where g.sujet_id = v_eco and g.type_action = 'ecosysteme_modifie') = 4,
+                 'écosystème modifié : quatre gestes (champs, activation, visuel déposé, retiré), quatre lignes');
+  return next ok(exists (select 1 from public.grand_livre g where g.piece = v_q[2] and g.detail ->> 'operation' = 'activation')
+                 and exists (select 1 from public.grand_livre g where g.piece = v_q[3] and g.detail ->> 'visuel' = 'logo'),
+                 'l''activation se lit comme telle ; le visuel dit son TYPE');
+  return next throws_ok(format($q$select pg_temp.ecrire(%L, 'ecosysteme_modifie', %L, %L, 'domains', %L, '{"operation":"modification","tagline":"Sonde"}'::jsonb)$q$,
+                               gen_random_uuid(), v_admin, v_eco, v_eco),
+                        'GL004', null, 'ecosysteme_modifie : une valeur (l''accroche) est refusée');
 end $$;
 
 select * from pg_temp.essai();

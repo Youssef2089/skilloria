@@ -50,3 +50,36 @@ export async function ecosystemeCree(
     }),
   )
 }
+
+/**
+ * L'ÉCOSYSTÈME MODIFIÉ — les champs (l'activation et la désactivation sont des
+ * OPÉRATIONS à part, elles ouvrent ou ferment l'écosystème), ou le visuel déposé,
+ * ou le visuel retiré. Les NOMS des champs, les CLÉS des traductions touchées
+ * (`table.champ.langue`), le TYPE de visuel — jamais une valeur.
+ */
+export async function ecosystemeModifie(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: {
+    id: string
+    operation: 'modification' | 'activation' | 'desactivation' | 'visuel_depose' | 'visuel_retire'
+    champs?: string[]
+    traductions?: string[]
+    visuel?: string | null
+  },
+): Promise<ResultatJournal> {
+  return ecrire(() =>
+    journaliserDans(admin, journal, {
+      type: 'ecosysteme_modifie',
+      statut: 'reussi',
+      ecosystemeId: args.id,
+      sujet: { type: 'domains', id: args.id },
+      detail: {
+        operation: args.operation,
+        champs: args.champs ?? [],
+        traductions: args.traductions ?? [],
+        visuel: args.visuel ?? null,
+      },
+    }),
+  )
+}

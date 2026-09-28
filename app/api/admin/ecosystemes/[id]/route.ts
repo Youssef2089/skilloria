@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { ecosystemeModifie } from '@/lib/ecosystemes/journal-ecosysteme'
 import {
   COLONNE_PAR_ROLE,
   ROLES_PALETTE,
@@ -179,6 +181,8 @@ export async function PATCH(
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
   const { id } = await ctx.params
   if (!UUID_RE.test(id)) return json({ error: 'Invalid id', code: 'invalid_id' }, 400)
 
@@ -385,6 +389,20 @@ export async function PATCH(
       .eq('field', d.field)
       .eq('locale', d.locale)
     if (error) console.error('[admin:ecosysteme] translation delete failed', error.message)
+  }
+
+  // Le grand livre (§D.26, phase B) : l'activation est une OPÉRATION à part, comme dans l'audit.
+  const ligne = await ecosystemeModifie(auth.supabaseAdmin, journal, {
+    id,
+    operation: has('active') && typeof body.active === 'boolean'
+      ? (body.active ? 'activation' : 'desactivation')
+      : 'modification',
+    champs: [...Object.keys(domainUpdates), ...Object.keys(configUpdates)],
+    traductions: [...toUpsert, ...toDelete].map((t) => `${t.table_name}.${t.field}.${t.locale}`),
+  })
+  if (!ligne.ok) {
+    console.error('[admin:ecosysteme] grand livre en échec après écriture', { id: id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', id: id }, 500)
   }
 
   await logAudit({

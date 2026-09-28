@@ -198,6 +198,10 @@ actions, clé étrangère du grand livre).
 > · `journal_ecosysteme_cree` (2.2) — `ecosysteme_cree` (administration), SÉPARÉE de la modification par la règle du
 > nom : sujet l'écosystème, la ligne lui appartient ; `slug`, `configuration_creee` (écrite sur les deux issues de la
 > configuration 1-1). Écrivain : `lib/ecosystemes/journal-ecosysteme.ts`. Même test.
+> · `journal_ecosysteme_modifie` (2.2) — `ecosysteme_modifie` (administration) : PATCH des champs, visuel déposé,
+> visuel retiré ; l'OPÉRATION du détail distingue `activation`/`desactivation` (elles ouvrent ou ferment
+> l'écosystème) de `modification` et des deux gestes de visuel. Noms de champs, clés de traductions, type de visuel —
+> jamais une valeur. Même écrivain, même test.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

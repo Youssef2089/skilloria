@@ -64,6 +64,8 @@ export const ACTIONS_JOURNAL = [
   'taxonomie_modifiee',
   // un écosystème créé — lib/ecosystemes/journal-ecosysteme.ts
   'ecosysteme_cree',
+  // un écosystème modifié (champs, activation, visuel) — lib/ecosystemes/journal-ecosysteme.ts
+  'ecosysteme_modifie',
   // la promotion d'un compte créé pour l'administration — écrite par promouvoir_administrateur()
   'administrateur_cree',
   // une tâche planifiée rejouée hors de son horaire — écrite par admin_cron_run_now()
@@ -192,6 +194,7 @@ export const CLES_DETAIL = {
   // Les NOMS des champs et les LANGUES des traductions, jamais un libellé (texte libre).
   taxonomie_modifiee: ['objet', 'operation', 'branch_id', 'champs', 'champs[]', 'traductions', 'traductions[]'],
   ecosysteme_cree: ['slug', 'configuration_creee'],
+  ecosysteme_modifie: ['operation', 'champs', 'champs[]', 'traductions', 'traductions[]', 'visuel'],
   tache_lancee_a_la_main: ['tache', 'etait_active', 'cause'],
   inactivite_avertie: ['echeance_purge', 'demande_email_id', 'cause'],
   // Les trois purges : UN écrivain (`anonymiser_compte()`), le code dérivé du motif, la même forme.

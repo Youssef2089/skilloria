@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { ecosystemeModifie } from '@/lib/ecosystemes/journal-ecosysteme'
 import {
   BUCKET_ECOSYSTEME,
   LOGO_TAILLE_MAX_OCTETS,
@@ -74,6 +76,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { id } = await ctx.params
   if (!id || !UUID_REGEX.test(id)) {
@@ -143,6 +147,13 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
+  // Le grand livre (§D.26, phase B) : le visuel est une propriété de l'écosystème.
+  const ligne = await ecosystemeModifie(auth.supabaseAdmin, journal, { id, operation: 'visuel_depose', visuel: kind })
+  if (!ligne.ok) {
+    console.error('[admin:ecosysteme] grand livre en échec après écriture', { id: id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', id: id }, 500)
+  }
+
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,
@@ -167,6 +178,8 @@ export async function DELETE(request: NextRequest, ctx: RouteContext): Promise<R
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { id } = await ctx.params
   if (!id || !UUID_REGEX.test(id)) {
@@ -207,6 +220,13 @@ export async function DELETE(request: NextRequest, ctx: RouteContext): Promise<R
   if (dbErr) {
     console.error('[admin:ecosysteme/visuel] drapeau non retiré', { domainId: id, msg: dbErr.message })
     return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+
+  // Le grand livre (§D.26, phase B) : le visuel retiré.
+  const ligne = await ecosystemeModifie(auth.supabaseAdmin, journal, { id, operation: 'visuel_retire', visuel: kind })
+  if (!ligne.ok) {
+    console.error('[admin:ecosysteme] grand livre en échec après écriture', { id: id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', id: id }, 500)
   }
 
   await logAudit({
