@@ -59,7 +59,8 @@ select is(
          order by 1),
   array[]::text[],
   'toute fonction qui journalise est SECURITY DEFINER avec un search_path fixe');
-select is(:'accepte', 'acceptee', 'témoin : le membre est entré par une invitation acceptée');
+-- Typés : `is()` est polymorphe (anyelement, anyelement) ; deux littéraux non typés ne résolvent rien (28/09/2026).
+select is(:'accepte'::text, 'acceptee'::text, 'témoin : le membre est entré par une invitation acceptée');
 
 -- ── EN service_role : ce que font les routes. Une instruction par appel. ──
 set local role service_role;

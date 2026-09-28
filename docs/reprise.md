@@ -32,6 +32,19 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
+## ⛔ ARRÊT 5 — 26 FICHIERS SUR 27 VERTS, 206 TESTS, AUCUN PLANTAGE (28/09/2026). LA CAUSE DU PLANTAGE RESTE À TRANCHER.
+
+**Ce que Youssef a obtenu** : 26 fichiers verts. `vrai_appelant/appelant.test.sql` s'est arrêté ligne 62, après
+une assertion : `could not determine polymorphic type because input has type unknown` — `is(:'accepte',
+'acceptee', …)`, deux littéraux non typés passés à une fonction polymorphe. Les 10 autres assertions n'ont pas
+tourné : **la question du plantage n'est pas tranchée**.
+**Corrigé** : les deux arguments typés `::text`. Le fichier entier relu pour la même forme : c'était la **seule**
+occurrence — le premier `is()` compare deux `text[]` typés, le dernier deux `bigint`, `coalesce(p.proconfig, '{}')`
+prend son type de la colonne (et son assertion est passée), `format()` prend `variadic "any"`, qui n'est pas une
+résolution polymorphe. Rien d'autre touché ; la propriété prouvée est la même.
+**Prochaine action (Youssef)** : `db reset --local`, puis `test db --local` — ce passage tranche le plantage
+(voir ARRÊT 4, ②/③).
+
 ## ⛔ ARRÊT 4 — LOT C : LE PLANTAGE DU TEST « APPELANT » (28/09/2026). CAUSE NON TRANCHÉE.
 
 **Ce que Youssef a obtenu** : `db reset` vert (les deux migrations nouvelles « postcondition tenue », l'inscription
