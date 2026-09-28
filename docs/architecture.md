@@ -156,6 +156,10 @@ actions, clé étrangère du grand livre).
 > · `journal_expert_inscrit` — `expert_inscrit` (compte) : la ligne de `register-expert`, sous la pièce de
 > `compte_cree` ; réussie (`type_de_compte`, `cgu_version`) ou échouée APRÈS nettoyage du compte (`cause`,
 > `compte_nettoye`). Écrivain : `lib/comptes/journal-inscription.ts`. Test : `grand_livre/inscriptions.test.sql`.
+> · `journal_organisation_preinscrite` — `organisation_preinscrite` (organisation) : la ligne de `register-org`
+> (client, cabinet, ESN) sous la pièce de `compte_cree` ; réussie, sujet l'organisation (`org_type`,
+> `domaine_public`) ; échouée, sujet le compte (`cause`, `compte_nettoye`, `organisation_nettoyee`). Même écrivain,
+> même test.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

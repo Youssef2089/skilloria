@@ -57,3 +57,34 @@ export async function expertInscrit(
     detail: { type_de_compte: args.typeDeCompte, cause: args.cause, compte_nettoye: true },
   })
 }
+
+/**
+ * L'ORGANISATION PRÉINSCRITE — client, cabinet ou ESN, par `register-org` : le
+ * compte créé par le trigger est finalisé (téléphone, CGU) ET son organisation
+ * naît avec son administrateur (`creer_organisation_avec_admin`). Réussie : le
+ * sujet est l'organisation. Échouée : le sujet est le compte — l'organisation,
+ * si elle était née, a été retirée avec lui.
+ */
+export async function organisationPreinscrite(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args:
+    | { issue: 'reussi'; organizationId: string; orgType: 'client' | 'cabinet' | 'esn'; domainePublic: boolean }
+    | { issue: 'echoue'; userId: string; orgType: 'client' | 'cabinet' | 'esn'; cause: string; organisationNettoyee: boolean },
+): Promise<void> {
+  if (args.issue === 'reussi') {
+    await journaliserDans(admin, journal, {
+      type: 'organisation_preinscrite',
+      statut: 'reussi',
+      sujet: { type: 'organizations', id: args.organizationId },
+      detail: { org_type: args.orgType, domaine_public: args.domainePublic },
+    })
+    return
+  }
+  await journaliserDans(admin, journal, {
+    type: 'organisation_preinscrite',
+    statut: 'echoue',
+    sujet: { type: 'users', id: args.userId },
+    detail: { org_type: args.orgType, cause: args.cause, compte_nettoye: true, organisation_nettoyee: args.organisationNettoyee },
+  })
+}

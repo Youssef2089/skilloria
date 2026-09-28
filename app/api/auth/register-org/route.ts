@@ -6,6 +6,8 @@ import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
 import { nouvellePiece } from '@/lib/journal/piece'
+import { ouvrirContexte } from '@/lib/journal/contexte'
+import { organisationPreinscrite } from '@/lib/comptes/journal-inscription'
 import { CGU_VERSION } from '@/lib/legal'
 import {
   COLONNES_REGLE_NUMERO,
@@ -436,6 +438,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: signup.message, code: 'create_user_failed' }, 500)
   }
   const user_id = signup.userId
+  // Le contexte du geste : l'acteur est le compte qui vient de naître, dans l'écosystème résolu.
+  const journal = ouvrirContexte({
+    origine: 'utilisateur',
+    acteur: { id: user_id, type: metadataRoleFromOrgType(input.org_type) === 'cabinet' ? 'cabinet' : 'client' },
+    ecosystemeId: domainRow.id,
+    piece,
+  })
 
   // ── À partir d'ici, tout fail doit déclencher un CLEANUP ATOMIQUE ───────
   // 1. Le trigger `handle_new_user` a déjà créé `public.users` (et le cas
@@ -557,6 +566,14 @@ export async function POST(request: NextRequest): Promise<Response> {
         is_public_domain: isPublicDomain,
       },
     })
+    // La ligne de la ROUTE, sous la pièce de `compte_cree` (décision A). Dans le `try` :
+    // un journal qui refuse fait nettoyer le compte et l'organisation.
+    await organisationPreinscrite(supabaseAdmin, journal, {
+      issue: 'reussi',
+      organizationId: organization_id,
+      orgType: input.org_type,
+      domainePublic: isPublicDomain,
+    })
     await logSession({ supabaseAdmin, user_id, request })
 
     return json(
@@ -585,6 +602,20 @@ export async function POST(request: NextRequest): Promise<Response> {
           ]
         : [],
     })
+
+    // La ligne suit l'issue RÉELLE : le compte a existé (`compte_cree`), il n'existe plus.
+    // Jamais de re-throw ici (P3) : une ligne qui ne s'écrit pas se dit en console.
+    try {
+      await organisationPreinscrite(supabaseAdmin, journal, {
+        issue: 'echoue',
+        userId: user_id,
+        orgType: input.org_type,
+        cause: err instanceof RegisterOrgError ? err.code : 'internal_error',
+        organisationNettoyee: organization_id !== null,
+      })
+    } catch (jErr) {
+      console.error('[register-org] ligne d’échec NON écrite', jErr instanceof Error ? jErr.message : String(jErr))
+    }
 
     // Retourner l'erreur originale au client
     if (err instanceof RegisterOrgError) {
