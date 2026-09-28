@@ -319,6 +319,26 @@ section('B. La table en ajout seul : colonnes, privilèges, trigger, index date 
     'et le TRUNCATE lève aussi — un trigger de ligne ne le verrait pas')
   const fnVerrou = corpsSql(SQL, 'public.grand_livre_ajout_seul()')
   ok(/using errcode = 'GL001'/.test(fnVerrou), 'le verrou lève avec un SQLSTATE dédié (GL001) — la postcondition l’attend par code, pas par texte')
+  // TOUT EST PARAMÉTRABLE (décision de Youssef, 28/09/2026) : la conservation et le plancher légal se SAISISSENT
+  // dans l'administration — aucune migration n'en pose la valeur. Seule regler_conservation_journal() les écrit.
+  {
+    const posees = []
+    for (const [f, src] of SQL_PAR_MIGRATION) {
+      const sql = src.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
+      // L'instruction UPDATE seule (jusqu'au « ; »), chaque affectation jugée : une valeur venue d'un
+      // paramètre (p_…) est une SAISIE relayée ; toute autre est une valeur posée par la migration.
+      for (const m of sql.matchAll(/update\s+public\.grand_livre_conservation\b[^;]*?\bset\b([^;]*)/gi)) {
+        for (const a of m[1].matchAll(/\b(conservation_mois|plancher_mois)\s*=\s*([^,\s]+)/gi)) {
+          if (!/^p_/i.test(a[2])) posees.push(f)
+        }
+      }
+      if (/insert\s+into\s+public\.grand_livre_conservation\s*\([^)]*\b(conservation_mois|plancher_mois)\b/i.test(sql)) posees.push(f)
+      if (/\b(conservation_mois|plancher_mois)\s+integer\s+default\b/i.test(sql)) posees.push(f)
+    }
+    ok(posees.length === 0,
+      'aucune migration ne pose une valeur de conservation ou de plancher (elles se saisissent dans l’administration)',
+      posees.join(', ') || undefined)
+  }
   // LE SEUL CHEMIN, POSÉ PAR UNE SEULE FONCTION (phase B 2.7) : parmi les DERNIÈRES définitions, une seule pose
   // le réglage de nettoyage — nettoyer_journal() — et le RETIRE après ses suppressions.
   {

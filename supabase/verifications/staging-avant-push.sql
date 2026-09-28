@@ -238,7 +238,7 @@ from (values
       'public.stripe_event_reclamer(text, text, jsonb, boolean, uuid)',
       'public.lire_grand_livre(uuid, text[], text[], uuid, uuid, timestamptz, timestamptz, text[], text[], integer, timestamptz, bigint)',
       'public.lire_piece(uuid, uuid)',
-      'public.regler_conservation_journal(uuid, uuid, text, integer)',
+      'public.regler_conservation_journal(uuid, uuid, text, integer, integer)',
       'public.nettoyage_journal_calcul()',
       'public.annoncer_nettoyage_journal(uuid)',
       'public.nettoyer_journal(uuid, uuid, bigint)']) s

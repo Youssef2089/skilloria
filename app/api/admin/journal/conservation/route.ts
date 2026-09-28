@@ -14,12 +14,14 @@ export const dynamic = 'force-dynamic'
  *   GET   → l'ANNONCE : pour chaque famille, sa conservation, son plancher légal,
  *           la date limite et le nombre de lignes qu'un nettoyage effacerait —
  *           ou la RAISON pour laquelle elle ne se nettoie pas. `annoncer_nettoyage_journal`.
- *   PATCH → régler la conservation d'UNE famille ({ famille, mois | null }).
- *           `regler_conservation_journal` : le réglage ET sa ligne `reglage_modifie`.
+ *   PATCH → régler UNE famille : { famille, conservation_mois, plancher_mois }, chacune
+ *           un nombre de mois ou `null` (vide). `regler_conservation_journal` : le
+ *           réglage ET sa ligne `reglage_modifie` (avant, après, les deux valeurs).
  *
- * ⚠️ LE PLANCHER LÉGAL NE SE RÈGLE PAS ICI. C'est une obligation, décidée par
- *    Youssef et posée par migration ; tant qu'il est « à arbitrer », la
- *    conservation de la famille ne se règle pas (409 `plancher_a_arbitrer`).
+ * ⚠️ TOUT EST PARAMÉTRABLE (décision de Youssef, 28/09/2026) : la conservation ET le
+ *    plancher légal se saisissent ici, famille par famille ; ils naissent VIDES, et
+ *    une valeur vide interdit le nettoyage de sa famille. Aucune valeur n'est posée
+ *    par le code ni par une migration.
  * ⚠️ Chaque refus a son code, stable ; aucun n'est tu.
  */
 
@@ -50,7 +52,14 @@ const REFUS: Record<string, number> = {
   famille_inconnue: 400,
   journal_conserve: 400,
   sous_le_plancher: 400,
-  plancher_a_arbitrer: 409,
+  plancher_manquant: 400,
+}
+
+/** Un nombre de mois (plancher : 0 admis, « aucun plancher ») ou `null` ; autre chose : invalide. */
+function mois(v: unknown, minimum: number): number | null | 'invalide' {
+  if (v === null || v === undefined || v === '') return null
+  const n = Number(v)
+  return Number.isInteger(n) && n >= minimum && n <= 1200 ? n : 'invalide'
 }
 
 export async function PATCH(request: NextRequest): Promise<Response> {
@@ -64,7 +73,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
   const journal = contexteDepuisAuth(auth)
 
-  let corps: { famille?: unknown; mois?: unknown }
+  let corps: { famille?: unknown; conservation_mois?: unknown; plancher_mois?: unknown }
   try {
     corps = (await request.json()) as typeof corps
   } catch {
@@ -74,8 +83,9 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   if (!(FAMILLES_JOURNAL as readonly string[]).includes(famille)) {
     return json({ error: 'Unknown family', code: 'famille_inconnue' }, 400)
   }
-  const mois = corps.mois === null ? null : Number(corps.mois)
-  if (mois !== null && (!Number.isInteger(mois) || mois < 1 || mois > 1200)) {
+  const conservation = mois(corps.conservation_mois, 1)
+  const plancher = mois(corps.plancher_mois, 0)
+  if (conservation === 'invalide' || plancher === 'invalide') {
     return json({ error: 'Invalid duration', code: 'duree_invalide' }, 400)
   }
 
@@ -83,7 +93,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     p_piece: journal.piece,
     p_acteur_id: auth.user.id,
     p_famille: famille,
-    p_mois: mois,
+    p_conservation_mois: conservation,
+    p_plancher_mois: plancher,
   })
   if (error) {
     console.error('[admin:journal/conservation] réglage en échec', error.message)

@@ -199,7 +199,7 @@ export const CLES_DETAIL = {
     // catalogue Stripe
     'mode', 'synchronisees', 'synchronisees[]', 'refusees', 'refusees[]', 'en_echec', 'en_echec[]', 'cause',
     // conservation du grand livre (phase B 2.7)
-    'famille', 'avant.conservation_mois', 'apres.conservation_mois',
+    'famille', 'avant.conservation_mois', 'apres.conservation_mois', 'avant.plancher_mois', 'apres.plancher_mois',
   ],
   administrateur_cree: ['jour_zero', 'cause'],
   // Les NOMS des champs et les LANGUES des traductions, jamais un libellé (texte libre).

@@ -11,14 +11,17 @@ import ReauthModal from '@/components/settings/ReauthModal'
  *
  * ⚠️ L'ANNONCE AVANT L'ACTE. Ce que le nettoyage effacerait — combien, jusqu'à
  *    quelle date, famille par famille — est affiché AVANT tout bouton ; une famille
- *    qui ne se nettoie pas dit POURQUOI (plancher légal à arbitrer, conservation
- *    sans limite, journal toujours conservé).
+ *    qui ne se nettoie pas dit POURQUOI (plancher légal non saisi, conservation
+ *    non saisie, journal toujours conservé).
  * ⚠️ LA CONFIRMATION EST UNE COMPARAISON. Le total affiché part avec la demande ;
  *    la base recalcule et refuse s'il a changé — l'écran réaffiche l'annonce.
  * ⚠️ IRRÉVERSIBLE : ré-authentification (le mécanisme existant, ReauthModal).
- * ⚠️ LE PLANCHER LÉGAL NE SE RÈGLE PAS ICI : il se lit. C'est une obligation,
- *    décidée et posée par écrit ; tant qu'il est à arbitrer, la famille ne se
- *    règle pas — et l'écran ne montre pas de champ qui ne réglerait rien (§D.11).
+ * ⚠️ TOUT EST PARAMÉTRABLE (décision de Youssef, 28/09/2026) : la conservation ET
+ *    le plancher légal se SAISISSENT ici, famille par famille. Ils naissent VIDES,
+ *    rien n'est pré-rempli ; une valeur vide interdit le nettoyage de sa famille.
+ *    Sous chaque famille, en AIDE, la référence légale proposée — du texte, jamais
+ *    une valeur posée dans un champ. La famille `journal` ne se règle pas : elle
+ *    n'offre aucun champ (§D.11).
  */
 
 type Famille = {
@@ -27,7 +30,7 @@ type Famille = {
   plancher_mois: number | null
   jusqu_au: string | null
   lignes: number
-  raison: 'plancher_a_arbitrer' | 'conservation_illimitee' | 'journal_conserve' | null
+  raison: 'plancher_non_saisi' | 'conservation_non_saisie' | 'journal_conserve' | null
 }
 type Annonce = { familles: Famille[]; total: number; calcule_le: string }
 
@@ -51,7 +54,7 @@ export default function NettoyageJournal() {
 
   const [annonce, setAnnonce] = useState<Annonce | null>(null)
   const [etat, setEtat] = useState<'chargement' | 'pret' | 'erreur'>('chargement')
-  const [saisies, setSaisies] = useState<Record<string, string>>({})
+  const [saisies, setSaisies] = useState<Record<string, { plancher: string; conservation: string }>>({})
   const [messages, setMessages] = useState<Record<string, { ok: boolean; texte: string }>>({})
   const [confirmation, setConfirmation] = useState(false)
   const [reauth, setReauth] = useState(false)
@@ -67,7 +70,10 @@ export default function NettoyageJournal() {
       if (!res.ok) { setEtat('erreur'); return }
       const a = (await res.json()) as Annonce
       setAnnonce(a)
-      setSaisies(Object.fromEntries(a.familles.map((f) => [f.famille, f.conservation_mois == null ? '' : String(f.conservation_mois)])))
+      setSaisies(Object.fromEntries(a.familles.map((f) => [f.famille, {
+        plancher: f.plancher_mois == null ? '' : String(f.plancher_mois),
+        conservation: f.conservation_mois == null ? '' : String(f.conservation_mois),
+      }])))
       setEtat('pret')
     } catch {
       setEtat('erreur')
@@ -77,9 +83,16 @@ export default function NettoyageJournal() {
   useEffect(() => { void charger() }, [charger])
 
   const regler = async (famille: string) => {
-    const brut = (saisies[famille] ?? '').trim()
-    const mois = brut === '' ? null : Number(brut)
-    if (mois !== null && (!Number.isInteger(mois) || mois < 1 || mois > 1200)) {
+    const lire = (brut: string, minimum: number): number | null | 'invalide' => {
+      const v = brut.trim()
+      if (v === '') return null
+      const n = Number(v)
+      return Number.isInteger(n) && n >= minimum && n <= 1200 ? n : 'invalide'
+    }
+    const s = saisies[famille] ?? { plancher: '', conservation: '' }
+    const plancher = lire(s.plancher, 0)
+    const conservation = lire(s.conservation, 1)
+    if (plancher === 'invalide' || conservation === 'invalide') {
       setMessages((m) => ({ ...m, [famille]: { ok: false, texte: t('err_duree_invalide') } }))
       return
     }
@@ -87,13 +100,13 @@ export default function NettoyageJournal() {
       const res = await secureFetch('/api/admin/journal/conservation', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ famille, mois }),
+        body: JSON.stringify({ famille, conservation_mois: conservation, plancher_mois: plancher }),
       })
       const corps = (await res.json().catch(() => ({}))) as { code?: string; plancher_mois?: number | null; inchange?: boolean }
       if (!res.ok) {
         const texte = corps.code === 'sous_le_plancher'
           ? t('err_sous_le_plancher', { plancher: corps.plancher_mois ?? 0 })
-          : corps.code === 'plancher_a_arbitrer' ? t('err_plancher_a_arbitrer')
+          : corps.code === 'plancher_manquant' ? t('err_plancher_manquant')
           : corps.code === 'duree_invalide' ? t('err_duree_invalide')
           : t('err_generique')
         setMessages((m) => ({ ...m, [famille]: { ok: false, texte } }))
@@ -156,23 +169,24 @@ export default function NettoyageJournal() {
               <thead>
                 <tr>
                   <th style={enTete}>{t('col_famille')}</th>
-                  <th style={enTete}>{t('col_plancher')}</th>
-                  <th style={enTete}>{t('col_conservation')}</th>
+                  <th style={enTete}>{t('col_reglage')}</th>
                   <th style={enTete}>{t('col_efface')}</th>
                 </tr>
               </thead>
               <tbody>
                 {annonce.familles.map((f) => {
-                  const reglable = f.famille !== 'journal' && f.plancher_mois !== null
+                  const reglable = f.famille !== 'journal'
                   const msg = messages[f.famille]
+                  const s = saisies[f.famille] ?? { plancher: '', conservation: '' }
+                  const champ = { width: 80, font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--sk-border)', background: 'var(--sk-surface)', color: 'var(--sk-text)' }
                   return (
                     <tr key={f.famille}>
-                      <td style={cellule}>{tF(f.famille as 'journal')}</td>
-                      <td style={{ ...cellule, color: f.plancher_mois === null ? 'var(--sk-amber)' : 'var(--sk-text)' }}>
-                        {f.famille === 'journal' ? t('plancher_sans_objet')
-                          : f.plancher_mois === null ? t('plancher_a_arbitrer')
-                          : f.plancher_mois === 0 ? t('plancher_aucun')
-                          : t('mois', { count: f.plancher_mois })}
+                      <td style={{ ...cellule, maxWidth: 320 }}>
+                        <span style={{ fontWeight: 600 }}>{tF(f.famille as 'journal')}</span>
+                        {/* L'AIDE : la référence légale proposée — du texte, rien de pré-rempli. */}
+                        <span style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
+                          {t(`reference.${f.famille}` as 'reference.journal')}
+                        </span>
                       </td>
                       <td style={cellule}>
                         {reglable ? (
@@ -180,31 +194,38 @@ export default function NettoyageJournal() {
                             onSubmit={(e) => { e.preventDefault(); void regler(f.famille) }}
                             style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}
                           >
-                            <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: 12, color: 'var(--sk-muted)' }}>
+                            <label style={{ display: 'grid', gap: 2, fontSize: 12, color: 'var(--sk-muted)' }}>
+                              {t('col_plancher')}
                               <input
-                                type="number"
-                                min={Math.max(1, f.plancher_mois ?? 1)}
-                                max={1200}
-                                inputMode="numeric"
-                                value={saisies[f.famille] ?? ''}
-                                placeholder={t('illimitee')}
-                                onChange={(e) => setSaisies((s) => ({ ...s, [f.famille]: e.target.value }))}
-                                aria-label={t('mois_label', { famille: tF(f.famille as 'journal') })}
-                                style={{ width: 90, font: 'inherit', fontSize: 13, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--sk-border)', background: 'var(--sk-surface)', color: 'var(--sk-text)' }}
+                                type="number" min={0} max={1200} inputMode="numeric"
+                                value={s.plancher}
+                                placeholder={t('vide')}
+                                onChange={(e) => setSaisies((x) => ({ ...x, [f.famille]: { ...s, plancher: e.target.value } }))}
+                                aria-label={t('plancher_label', { famille: tF(f.famille as 'journal') })}
+                                style={champ}
                               />
-                              {t('unite_mois')}
                             </label>
-                            <button type="submit" style={bouton}>{t('enregistrer')}</button>
+                            <label style={{ display: 'grid', gap: 2, fontSize: 12, color: 'var(--sk-muted)' }}>
+                              {t('col_conservation')}
+                              <input
+                                type="number" min={1} max={1200} inputMode="numeric"
+                                value={s.conservation}
+                                placeholder={t('vide')}
+                                onChange={(e) => setSaisies((x) => ({ ...x, [f.famille]: { ...s, conservation: e.target.value } }))}
+                                aria-label={t('mois_label', { famille: tF(f.famille as 'journal') })}
+                                style={champ}
+                              />
+                            </label>
+                            <span style={{ fontSize: 12, color: 'var(--sk-muted)', alignSelf: 'end', paddingBottom: 8 }}>{t('unite_mois')}</span>
+                            <button type="submit" style={{ ...bouton, alignSelf: 'end' }}>{t('enregistrer')}</button>
                             {msg && (
-                              <span role={msg.ok ? 'status' : 'alert'} style={{ fontSize: 12, color: msg.ok ? 'var(--sk-muted)' : 'var(--sk-red)' }}>
+                              <span role={msg.ok ? 'status' : 'alert'} style={{ flexBasis: '100%', fontSize: 12, color: msg.ok ? 'var(--sk-muted)' : 'var(--sk-red)' }}>
                                 {msg.texte}
                               </span>
                             )}
                           </form>
                         ) : (
-                          <span style={{ color: 'var(--sk-muted)' }}>
-                            {f.conservation_mois == null ? t('illimitee') : t('mois', { count: f.conservation_mois })}
-                          </span>
+                          <span style={{ color: 'var(--sk-muted)' }}>{t('journal_non_reglable')}</span>
                         )}
                       </td>
                       <td style={cellule}>

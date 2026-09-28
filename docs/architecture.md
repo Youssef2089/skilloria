@@ -84,8 +84,8 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 
 **Journal des transactions (§D.26)** — `grand_livre` (le grand livre, en **ajout seul** : aucun rôle
 applicatif n'y écrit, seule `journaliser()` insère), `grand_livre_actions` (la **liste fermée** des
-actions, clé étrangère du grand livre), `grand_livre_conservation` (par famille : la conservation réglée par
-l'administrateur et le PLANCHER légal posé par migration — le nettoyage, phase B 2.7).
+actions, clé étrangère du grand livre), `grand_livre_conservation` (par famille : la conservation et le PLANCHER légal,
+les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.7).
 
 **Marketing / contenu — CRÉÉES PAR LA BASELINE, ET JAMAIS TOUCHÉES PAR LE CODE.**
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
@@ -238,17 +238,22 @@ l'administrateur et le PLANCHER légal posé par migration — le nettoyage, pha
 > `/admin/journal/[piece]` (détail) ; `PageHeader` reçoit `flush` (le `<main>` admin a déjà sa marge). Test :
 > `grand_livre/lecture.test.sql`.
 > · `journal_nettoyage` (2.7) — **le seul chemin de suppression.** `grand_livre_conservation` (une ligne par famille :
-> la conservation réglée par l'administrateur, le PLANCHER légal posé par migration — NULL « à arbitrer » bloque le
-> réglage et le nettoyage, 0 « aucun plancher », la famille `journal` jamais nettoyée, par contrainte).
-> `regler_conservation_journal()` (AD002 ; refus nommés `plancher_a_arbitrer`, `sous_le_plancher`,
-> `journal_conserve`, `famille_inconnue` ; la 7ᵉ famille de réglages : `reglage_modifie` porte `famille`,
-> `avant/apres.conservation_mois`). `annoncer_nettoyage_journal()` : par famille la date limite et le nombre de lignes,
+> la conservation ET le PLANCHER légal, **tous deux SAISIS dans l'administration, nés VIDES** — décision de Youssef,
+> 28/09/2026 : « tout est paramétrable, aucune valeur dans le code ni dans une migration » ; une valeur vide interdit
+> le nettoyage de sa famille ; 0 = « aucun plancher » ; la famille `journal` jamais nettoyée, par contrainte).
+> `regler_conservation_journal(pièce, acteur, famille, conservation, plancher)` règle les deux en un geste (AD002 ;
+> refus nommés `plancher_manquant`, `sous_le_plancher`, `journal_conserve`, `famille_inconnue` ; la 7ᵉ famille de
+> réglages : `reglage_modifie` porte `famille`, `avant/apres.conservation_mois` et `avant/apres.plancher_mois`).
+> L'écran affiche en AIDE, sous chaque famille, la référence légale proposée — du texte, rien de pré-rempli.
+> `diag-grand-livre` : **aucune migration ne pose une valeur** de conservation ou de plancher (affectation non issue
+> d'un paramètre, insertion ou défaut). `annoncer_nettoyage_journal()` : par famille la date limite et le nombre de lignes,
 > ou la raison — le même calcul interne que l'acte (`nettoyage_journal_calcul()`). `nettoyer_journal(pièce, acteur,
 > total annoncé)` : recalcule, refuse `annonce_perimee` si le total a changé, pose `grand_livre.nettoyage`, supprime
 > par famille, RETIRE le réglage, exige le compte égal à l'annonce (EC001), écrit `journal_nettoye` (total, par
 > famille la date et le compte). Routes `GET/PATCH /api/admin/journal/conservation`, `POST /api/admin/journal/nettoyage`
 > (ré-authentification). Section « Conservation et nettoyage » de `/admin/journal` : l'annonce AVANT tout bouton,
-> confirmation puis ré-authentification. **Tant que Youssef n'a pas arbitré les planchers, rien ne s'efface.** Test :
+> confirmation puis ré-authentification. **Tant que Youssef n'a pas saisi les deux valeurs d'une famille, rien ne s'y
+> efface.** Test :
 > `grand_livre/nettoyage.test.sql`. `diag-grand-livre` : « ni zéro » écrivain (strict, 71/71) et un seul poseur
 > du réglage de nettoyage.
 

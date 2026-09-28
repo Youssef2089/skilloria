@@ -14,13 +14,13 @@
 --  propre ligne (`journal_nettoye`) ; le SEUL chemin de suppression reconnu, de
 --  l'intérieur de sa fonction.
 --
---  ┌─ LES PLANCHERS LÉGAUX SONT LA DÉCISION DE YOUSSEF ─────────────────────┐
---  │ Ils naissent NULS : « à arbitrer ». Une famille sans plancher arbitré  │
---  │ ne se RÈGLE pas (la conservation exige un plancher, contrainte) et ne  │
---  │ se NETTOIE donc pas. Tant que la décision n'est pas écrite, le         │
---  │ nettoyage n'efface RIEN — l'annonce le dit, famille par famille. Les   │
---  │ planchers ne sont PAS un réglage d'écran : ce sont des obligations,    │
---  │ posées par migration (0 = aucun plancher légal, décidé).               │
+--  ┌─ TOUT EST PARAMÉTRABLE — DÉCISION DE YOUSSEF (28/09/2026) ──────────────┐
+--  │ AUCUNE valeur dans le code ni dans une migration. La conservation ET   │
+--  │ le plancher légal se SAISISSENT dans l'administration, famille par     │
+--  │ famille, et ils naissent VIDES. Une valeur vide interdit le nettoyage  │
+--  │ de sa famille : rien ne s'efface tant que Youssef ne les a pas saisis. │
+--  │ L'écran affiche, en AIDE, la référence légale proposée (texte seul,    │
+--  │ rien de pré-rempli). Tout changement s'écrit (`reglage_modifie`).     │
 --  └──────────────────────────────────────────────────────────────────────────┘
 --
 --  LA FAMILLE `journal` N'EST JAMAIS NETTOYÉE : ses lignes sont les traces des
@@ -43,9 +43,9 @@
 create table if not exists public.grand_livre_conservation (
   famille           text primary key
                       check (famille in ('annonce', 'profil', 'recherche', 'candidature', 'devoilement', 'messagerie', 'compte', 'organisation', 'commerce', 'administration', 'rgpd', 'journal', 'refus')),
-  -- La durée de conservation choisie par l'administrateur, en mois. NULL = on conserve tout.
+  -- La durée de conservation, en mois, SAISIE dans l'administration. NULL = non saisie : rien ne s'efface.
   conservation_mois integer check (conservation_mois is null or conservation_mois between 1 and 1200),
-  -- Le plancher LÉGAL, en mois : NULL = à arbitrer (bloque), 0 = aucun plancher légal (décidé).
+  -- Le plancher LÉGAL, en mois, SAISI dans l'administration : NULL = non saisi (bloque), 0 = aucun plancher (décidé).
   plancher_mois     integer check (plancher_mois is null or plancher_mois between 0 and 1200),
   updated_at        timestamptz not null default now(),
   constraint grand_livre_conservation_au_dessus_du_plancher
@@ -58,7 +58,7 @@ alter table public.grand_livre_conservation enable row level security;
 revoke all on table public.grand_livre_conservation from public, anon, authenticated;
 grant select on table public.grand_livre_conservation to service_role;
 
--- Une ligne par famille, planchers à arbitrer — jamais écrasée (§D.7 : on ne ré-impose pas un réglage).
+-- Une ligne par famille, TOUT VIDE — aucune valeur posée ici ; jamais écrasée (§D.7 : on ne ré-impose pas un réglage).
 insert into public.grand_livre_conservation (famille)
 select f from unnest(array['annonce', 'profil', 'recherche', 'candidature', 'devoilement', 'messagerie', 'compte', 'organisation', 'commerce', 'administration', 'rgpd', 'journal', 'refus']) f
 on conflict (famille) do nothing;
@@ -184,20 +184,26 @@ update public.grand_livre_actions
     'cause',
     'famille',
     'avant.conservation_mois',
-    'apres.conservation_mois'
+    'apres.conservation_mois',
+    'avant.plancher_mois',
+    'apres.plancher_mois'
   ]::text[]
  where code = 'reglage_modifie';
 
 
--- ── RÉGLER LA CONSERVATION D'UNE FAMILLE ─────────────────────────────────────
---  Issues : 'regle' (et la ligne reglage_modifie), 'inchange', 'famille_inconnue',
---  'journal_conserve', 'plancher_a_arbitrer', 'sous_le_plancher'. Seule 'regle'
---  écrit ; les refus sont rendus à l'écran avec leur code, jamais tus.
+-- ── RÉGLER LA CONSERVATION ET LE PLANCHER D'UNE FAMILLE ──────────────────────
+--  Les DEUX valeurs saisies à l'écran, en un geste (NULL = vide). Issues : 'regle'
+--  (et la ligne reglage_modifie, avant et après, les deux valeurs), 'inchange',
+--  'famille_inconnue', 'journal_conserve' (la famille journal ne se règle pas),
+--  'plancher_manquant' (une conservation sans plancher saisi), 'sous_le_plancher'
+--  (une conservation plus courte que le plancher). Seule 'regle' écrit ; les refus
+--  sont rendus à l'écran avec leur code, jamais tus.
 create or replace function public.regler_conservation_journal(
-  p_piece     uuid,
-  p_acteur_id uuid,
-  p_famille   text,
-  p_mois      integer
+  p_piece             uuid,
+  p_acteur_id         uuid,
+  p_famille           text,
+  p_conservation_mois integer,
+  p_plancher_mois     integer
 ) returns jsonb
   language plpgsql
   security definer
@@ -217,32 +223,33 @@ begin
   if p_famille = 'journal' then
     return jsonb_build_object('issue', 'journal_conserve');
   end if;
-  if p_mois is not null and v_c.plancher_mois is null then
-    return jsonb_build_object('issue', 'plancher_a_arbitrer');
+  if p_conservation_mois is not null and p_plancher_mois is null then
+    return jsonb_build_object('issue', 'plancher_manquant');
   end if;
-  if p_mois is not null and p_mois < v_c.plancher_mois then
-    return jsonb_build_object('issue', 'sous_le_plancher', 'plancher_mois', v_c.plancher_mois);
+  if p_conservation_mois is not null and p_conservation_mois < p_plancher_mois then
+    return jsonb_build_object('issue', 'sous_le_plancher', 'plancher_mois', p_plancher_mois);
   end if;
-  if v_c.conservation_mois is not distinct from p_mois then
+  if v_c.conservation_mois is not distinct from p_conservation_mois
+     and v_c.plancher_mois is not distinct from p_plancher_mois then
     return jsonb_build_object('issue', 'inchange');
   end if;
   update public.grand_livre_conservation c
-     set conservation_mois = p_mois, updated_at = now()
+     set conservation_mois = p_conservation_mois, plancher_mois = p_plancher_mois, updated_at = now()
    where c.famille = p_famille;
   get diagnostics v_n = row_count;
   perform public.exiger_ecriture(v_n, 'regler_conservation_journal : grand_livre_conservation');
   perform public.journaliser_reglage(
     p_piece, p_acteur_id, null::uuid,
     'grand_livre_conservation', public.identifiant_derive('reglage', 'grand_livre_conservation:' || p_famille),
-    jsonb_build_object('conservation_mois', v_c.conservation_mois),
-    jsonb_build_object('conservation_mois', p_mois),
+    jsonb_build_object('conservation_mois', v_c.conservation_mois, 'plancher_mois', v_c.plancher_mois),
+    jsonb_build_object('conservation_mois', p_conservation_mois, 'plancher_mois', p_plancher_mois),
     jsonb_build_object('famille', p_famille));
   return jsonb_build_object('issue', 'regle');
 end;
 $fn$;
 
-revoke all on function public.regler_conservation_journal(uuid, uuid, text, integer) from public, anon, authenticated;
-grant execute on function public.regler_conservation_journal(uuid, uuid, text, integer) to service_role;
+revoke all on function public.regler_conservation_journal(uuid, uuid, text, integer, integer) from public, anon, authenticated;
+grant execute on function public.regler_conservation_journal(uuid, uuid, text, integer, integer) to service_role;
 
 
 -- ── L'ANNONCE : CE QUE LE NETTOYAGE EFFACERAIT, FAMILLE PAR FAMILLE ──────────
@@ -268,8 +275,8 @@ as $fn$
                        and g.horodatage < date_trunc('day', now()) - make_interval(months => c.conservation_mois))
               else 0 end as lignes,
          case when c.famille = 'journal' then 'journal_conserve'
-              when c.plancher_mois is null then 'plancher_a_arbitrer'
-              when c.conservation_mois is null then 'conservation_illimitee' end as raison
+              when c.plancher_mois is null then 'plancher_non_saisi'
+              when c.conservation_mois is null then 'conservation_non_saisie' end as raison
     from public.grand_livre_conservation c
    order by c.famille
 $fn$;
@@ -373,7 +380,7 @@ begin
     raise exception 'postcondition NON TENUE : grand_livre_conservation ne porte pas une ligne par famille';
   end if;
   foreach v_f in array array[
-    'public.regler_conservation_journal(uuid, uuid, text, integer)',
+    'public.regler_conservation_journal(uuid, uuid, text, integer, integer)',
     'public.annoncer_nettoyage_journal(uuid)',
     'public.nettoyer_journal(uuid, uuid, bigint)'] loop
     if to_regprocedure(v_f) is null then
@@ -395,6 +402,6 @@ begin
             from public.grand_livre_actions a where a.code = 'reglage_modifie') then
     raise exception 'postcondition NON TENUE : reglage_modifie ne porte pas la conservation du journal';
   end if;
-  raise notice 'postcondition tenue : grand_livre_conservation (une ligne par famille, planchers a arbitrer), trois fonctions fermees au navigateur, un seul poseur du reglage de nettoyage, listes blanches ; le reglage, l annonce, la confirmation perimee et le nettoyage sont prouves par tests/database/grand_livre/nettoyage.test.sql';
+  raise notice 'postcondition tenue : grand_livre_conservation (une ligne par famille, semee SANS valeur : conservation et plancher se saisissent dans l administration), trois fonctions fermees au navigateur, un seul poseur du reglage de nettoyage, listes blanches ; le reglage, l annonce, la confirmation perimee et le nettoyage sont prouves par tests/database/grand_livre/nettoyage.test.sql';
 end
 $post$;
