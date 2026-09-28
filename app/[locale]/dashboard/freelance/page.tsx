@@ -29,6 +29,8 @@ import CrossOpenToggle from '@/components/dashboard/CrossOpenToggle'
 import EtatDeRecherche from '@/components/dashboard/EtatDeRecherche'
 import { useRechercheDeMissions } from '@/hooks/useRechercheDeMissions'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
+import { useSecureFetch } from '@/lib/secure-fetch'
+import { basculerDisponibilite } from '@/lib/profil/bascule-disponibilite'
 
 type ProfileData = {
   tjm_min: number | null
@@ -90,6 +92,7 @@ export default function DashboardFreelance() {
   const tc = useTranslations('missions.casting')
   const locale = useLocale()
   const router = useRouter()
+  const secureFetch = useSecureFetch()
   const domain = useDomain()
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<ProfileData | null>(null)
@@ -101,9 +104,10 @@ export default function DashboardFreelance() {
   const [avatarModalOpen, setAvatarModalOpen] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
   // Lot disponibilité : mirror local de profiles.availability_status pour
-  // l'update optimiste depuis AvailabilityToggle. Réécrit serveur via
-  // supabase.from('profiles').update() (RLS — l'expert n'écrit que son
-  // propre profil). La barrière matching/feed est appliquée côté serveur
+  // l'update optimiste depuis AvailabilityToggle. Écrit par le GESTE SERVEUR
+  // POST /api/profile/disponibilite (lot T.4) — plus jamais depuis le navigateur :
+  // la bascule a sa pièce et sa ligne au grand livre (disponibilite_basculee).
+  // La barrière matching/feed est appliquée côté serveur
   // (lib/matching/index.ts + /api/me/missions).
   const [availability, setAvailability] = useState<AvailabilityStatus | null>(null)
   const [availabilityUpdating, setAvailabilityUpdating] = useState(false)
@@ -295,13 +299,12 @@ export default function DashboardFreelance() {
     setAvailability(next) // optimistic
     setAvailabilityUpdating(true)
     try {
-      const { error: upErr } = await supabase
-        .from('profiles')
-        .update({ availability_status: next })
-        .eq('user_id', user.id)
-      if (upErr) {
+      const r = await basculerDisponibilite(secureFetch, 'availability_status', next)
+      if (!r.ok) {
         setAvailability(previous) // rollback
         setToast(t('availability_card.toast_error'))
+        // Une bascule concurrente : l'écran relit l'état vrai plutôt que de garder le sien.
+        if (r.code === 'conflit') emitAvailabilityChanged()
       } else {
         setToast(t('availability_card.toast_updated'))
         // Lot A : notifie la pill topbar ET les useLiveResource (mutate
@@ -325,21 +328,19 @@ export default function DashboardFreelance() {
     }
   }
 
-  // Ouverture croisée : même pattern que la dispo (write client-direct RLS +
-  // relance matching, cooldown M2 hérité). Déclenché à CHAQUE bascule (on/off).
+  // Ouverture croisée : même pattern que la dispo (geste serveur + relance
+  // matching, cooldown M2 hérité). Déclenché à CHAQUE bascule (on/off).
   const handleCrossOpenChange = async (next: boolean) => {
     if (!user || crossOpenUpdating || next === openToCdi) return
     const previous = openToCdi
     setOpenToCdi(next) // optimistic
     setCrossOpenUpdating(true)
     try {
-      const { error: upErr } = await supabase
-        .from('profiles')
-        .update({ open_to_cdi: next })
-        .eq('user_id', user.id)
-      if (upErr) {
+      const r = await basculerDisponibilite(secureFetch, 'open_to_cdi', next)
+      if (!r.ok) {
         setOpenToCdi(previous) // rollback
         setToast(t('availability_card.toast_error'))
+        if (r.code === 'conflit') emitAvailabilityChanged()
       } else {
         setToast(t('availability_card.toast_updated'))
         // Le périmètre change → on cherche. Si l'ouverture croisée se FERME,

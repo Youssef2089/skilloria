@@ -89,9 +89,10 @@ from (values
          and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
        group by p.proname having count(*) > 1) d)),
 
-  -- ⑪ Les portes latérales (2.8) : les douze politiques que le push retire, et `profiles_self_update`
-  --    qui reste (DÉFAUT NOMMÉ). Une absente est sans effet (`drop policy if exists`).
-  (11, 'politiques retirées par le push, présentes aujourd''hui', '12',
+  -- ⑪ Les portes latérales (2.8, T.4) : les TREIZE politiques que le push retire, dont
+  --    `profiles_self_update` (les bascules passent par le geste serveur). Une absente est sans
+  --    effet (`drop policy if exists`), mais alors l'écart se lit : quelqu'un l'a retirée à la main.
+  (11, 'politiques retirées par le push, présentes aujourd''hui', '13',
    (select count(*)::text from pg_policies p
      where p.schemaname = 'public'
        and (p.tablename, p.policyname) in (
@@ -100,7 +101,8 @@ from (values
          ('messages', 'messages_sender_insert'), ('organization_members', 'organization_members_admin_insert'),
          ('organization_members', 'organization_members_admin_update'), ('organization_members', 'organization_members_admin_delete'),
          ('organizations', 'organizations_admin_update'), ('profiles', 'profiles_self_insert'),
-         ('publications', 'publications_member_write'), ('users', 'users_self_update')))),
+         ('publications', 'publications_member_write'), ('users', 'users_self_update'),
+         ('profiles', 'profiles_self_update')))),
 
   -- ⑫ Une porte ouverte À LA MAIN : une politique d'écriture client sur une table journalisée qui
   --    n'est dans AUCUNE migration. Les treize connues sont exclues ; le reste doit être vide.

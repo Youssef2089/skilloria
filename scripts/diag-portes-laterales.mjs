@@ -49,8 +49,10 @@ const ok = (cond, label, hint) => {
  * LES EXCEPTIONS — une gelée par entrée, chacune avec sa raison (§G.8). La liste ne
  * peut que se vider : une exception qui ne correspond plus à une porte ROUGIT.
  */
+//  (vide depuis le 28/09/2026 : `profiles_self_update`, dernier DÉFAUT NOMMÉ, est fermée — les
+//  bascules passent par POST /api/profile/disponibilite, T.4. La machinerie reste : une porte
+//  rouverte un jour s'y écrira avec sa raison, ou rougira.)
 const EXCEPTIONS = new Map([
-  ['profiles::profiles_self_update', 'DÉFAUT NOMMÉ — les bascules de disponibilité des tableaux de bord freelance et CDI (availability_status, cdi_status, open_to_*) écrivent profiles depuis le navigateur : la fermer casserait ces écrans, et ces bascules n’écrivent PAS disponibilite_basculee. Arbitrage de Youssef (arrêt de l’étape 2).'],
 ])
 
 const MIG = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
@@ -98,11 +100,25 @@ ok(tables.size >= 10 && ['organization_invitations', 'publications', 'candidatur
   `${tables.size} tables dont l’écriture est une action, DÉRIVÉES de ${ecrivains.size} écrivains SQL (témoins présents)`)
 
 const CLIENTS = new Set(['anon', 'authenticated', 'public'])
+// Les portes OUVERTES UN JOUR : toute politique d'écriture cliente créée dans l'histoire des
+// migrations sur une table journalisée. Le contrôle dit combien sont fermées, pas seulement « zéro ».
+const ouvertesUnJour = new Set()
+for (const [, s] of SQLS) {
+  for (const m of s.matchAll(/create policy\s+("[^"]+"|\S+)\s+on\s+([\w."]+)([\s\S]*?);/gi)) {
+    const cmd = (/\bfor\s+(all|select|insert|update|delete)\b/i.exec(m[3])?.[1] ?? 'all').toLowerCase()
+    const roles = (/\bto\s+([\w",\s]+?)(?:\s+using\b|\s+with\b|$)/i.exec(m[3])?.[1] ?? 'public').split(',').map((r) => r.replace(/"/g, '').trim().toLowerCase())
+    if (tables.has(norm(m[2])) && cmd !== 'select' && roles.some((r) => CLIENTS.has(r))) ouvertesUnJour.add(`${norm(m[2])}::${norm(m[1])}`)
+  }
+}
 const portes = [...politiques.entries()].filter(([, p]) => tables.has(p.table) && ['all', 'insert', 'update', 'delete'].includes(p.cmd) && p.roles.some((r) => CLIENTS.has(r)))
 const ouvertes = portes.filter(([k]) => !EXCEPTIONS.has(k))
 ok(ouvertes.length === 0,
   `aucune politique ne laisse un client ÉCRIRE une table journalisée (${portes.length} porte(s), ${EXCEPTIONS.size} exception(s) écrite(s))`,
   ouvertes.map(([k, p]) => `${k} (${p.cmd} → ${p.roles.join(',')}) ← ${p.f}`).join('\n         ') || undefined)
+const fermees = [...ouvertesUnJour].filter((k) => !politiques.has(k))
+ok(ouvertesUnJour.size >= 13 && fermees.length === ouvertesUnJour.size,
+  `${fermees.length} sur ${ouvertesUnJour.size} portes ouvertes un jour sont fermées en état final`,
+  [...ouvertesUnJour].filter((k) => politiques.has(k)).join(', ') || undefined)
 const perimees = [...EXCEPTIONS.keys()].filter((k) => !portes.some(([kk]) => kk === k))
 ok(perimees.length === 0, 'chaque exception correspond encore à une porte réelle — la liste ne peut que se vider', perimees.join(', ') || undefined)
 ok([...EXCEPTIONS.values()].every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ) — /.test(r)),

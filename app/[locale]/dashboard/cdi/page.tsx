@@ -24,6 +24,8 @@ import ExpertOnboardingGuide from '@/components/dashboard/ExpertOnboardingGuide'
 import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDashboardBlock'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
+import { useSecureFetch } from '@/lib/secure-fetch'
+import { basculerDisponibilite } from '@/lib/profil/bascule-disponibilite'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
 import CastingRow from '@/components/dashboard/CastingRow'
@@ -98,6 +100,7 @@ export default function DashboardCDI() {
   const tc = useTranslations('missions.casting')
   const tProfile = useTranslations('cdi_profile_view')
   const router = useRouter()
+  const secureFetch = useSecureFetch()
   const domain = useDomain()
   const locale = useLocale()
   const state = useCdiProfile()
@@ -261,13 +264,13 @@ export default function DashboardCDI() {
     setStatus(next) // optimistic
     setStatusUpdating(true)
     try {
-      const { error: upErr } = await supabase
-        .from('profiles')
-        .update({ cdi_status: next })
-        .eq('user_id', user.id)
-      if (upErr) {
+      // Le GESTE SERVEUR (lot T.4) : la bascule a sa pièce et sa ligne au grand livre.
+      const r = await basculerDisponibilite(secureFetch, 'cdi_status', next)
+      if (!r.ok) {
         setStatus(previous) // rollback
         setToast({ type: 'error', text: t('toast.status_error') })
+        // Une bascule concurrente : l'écran relit l'état vrai plutôt que de garder le sien.
+        if (r.code === 'conflit') emitAvailabilityChanged()
       } else {
         setToast({ type: 'success', text: t('toast.status_updated') })
         // Lot A : notifie la pill topbar ET les useLiveResource (mutate
@@ -291,7 +294,7 @@ export default function DashboardCDI() {
     }
   }
 
-  // Ouverture croisée : même pattern que le statut (write client-direct RLS +
+  // Ouverture croisée : même pattern que le statut (geste serveur +
   // relance matching, cooldown M2 hérité). Déclenché à CHAQUE bascule (on/off).
   const handleCrossOpenChange = async (next: boolean) => {
     if (!user || !profile || crossOpenUpdating || next === openToFreelance) return
@@ -299,13 +302,11 @@ export default function DashboardCDI() {
     setOpenToFreelance(next) // optimistic
     setCrossOpenUpdating(true)
     try {
-      const { error: upErr } = await supabase
-        .from('profiles')
-        .update({ open_to_freelance: next })
-        .eq('user_id', user.id)
-      if (upErr) {
+      const r = await basculerDisponibilite(secureFetch, 'open_to_freelance', next)
+      if (!r.ok) {
         setOpenToFreelance(previous) // rollback
         setToast({ type: 'error', text: t('toast.status_error') })
+        if (r.code === 'conflit') emitAvailabilityChanged()
       } else {
         setToast({ type: 'success', text: t('toast.status_updated') })
         // Le périmètre change → on cherche. Si l'ouverture croisée se FERME,

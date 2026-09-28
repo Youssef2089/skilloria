@@ -3,17 +3,20 @@
 --  DIRECTEMENT DANS UNE TABLE DONT L'ÉCRITURE EST UNE ACTION DU JOURNAL.
 -- ════════════════════════════════════════════════════════════════════════════
 --
---  ORDRE DE PASSAGE : indifférent. Ne retire que des politiques d'ÉCRITURE qu'aucun
---  écran n'emprunte (mesuré : le seul client navigateur, lib/supabase.ts, n'écrit
---  dans aucune de ces tables) ; les routes et les RPC écrivent en `service_role`,
---  que la RLS ne concerne pas. Rejouable.
+--  ORDRE DE PASSAGE : AVANT le déploiement, le code DANS LA FOULÉE (§G.4). Douze des
+--  treize politiques n'étaient empruntées par aucun écran ; la treizième,
+--  `profiles_self_update`, l'était par les bascules de disponibilité des tableaux de
+--  bord — que le même lot fait passer par POST /api/profile/disponibilite (T.4,
+--  28/09/2026). Un onglet resté sur l'ANCIEN code après le push reçoit une ERREUR
+--  (42501, voir le retrait de droit plus bas) : l'écran revient en arrière et affiche
+--  son toast d'échec ; recharger suffit. Rejouable.
 --
 --  LE DÉFAUT (audit du 26/09/2026, point 2.8). Une action du grand livre s'écrit
 --  par une route ou une RPC qui journalise. Mais une politique RLS qui laisse un
 --  rôle client (`authenticated`, `anon`, `public`) écrire la même table est une
 --  SECONDE porte : le geste a lieu, sans pièce ni ligne. Treize, en état final :
 --  `organization_invitations_admin_all` (FOR ALL, nommée par Youssef) et douze
---  autres. Douze se ferment ici. La treizième ne se ferme pas — voir plus bas.
+--  autres. Les TREIZE se ferment ici.
 --
 --  LA LECTURE NE CHANGE PAS. Les deux politiques FOR ALL portaient aussi la
 --  lecture ; elle reste servie, à l'identique, par les politiques de lecture qui
@@ -21,17 +24,24 @@
 --  — tout membre actif, administrateurs compris). Aucune politique nouvelle, donc
 --  aucun risque de récursion 42P17.
 --
---  POURQUOI UN RETRAIT DE POLITIQUE TIENT, ALORS QU'UN RETRAIT DE DROITS NE TIENT
---  PAS (`ensure_rls` redonne les droits à chaque DDL) : la RLS reste ACTIVE sur ces
---  tables ; sans politique d'écriture, un rôle client n'écrit rien, quels que soient
---  ses droits de table. La garde est l'ABSENCE de politique, que la postcondition
---  relit dans `pg_policies`.
+--  LA GARDE EST L'ABSENCE DE POLITIQUE : la RLS reste ACTIVE sur ces tables ; sans
+--  politique d'écriture, un rôle client n'écrit rien, quels que soient ses droits de
+--  table. La postcondition la relit dans `pg_policies`. (Corrigé le 28/09/2026 : cet
+--  en-tête disait qu'`ensure_rls` « redonne les droits à chaque DDL ». Lu dans le
+--  code, `rls_auto_enable()` ne fait qu'ACTIVER la RLS sur une table CRÉÉE ; il
+--  n'accorde rien.)
 --
---  CE QUI RESTE OUVERT, ÉCRIT : `profiles_self_update`. Les bascules de
---  disponibilité des tableaux de bord freelance et CDI (`availability_status`,
---  `cdi_status`, `open_to_*`) écrivent `profiles` DIRECTEMENT depuis le navigateur ;
---  fermer la politique casserait ces écrans. Décision réservée à Youssef (arrêt de
---  l'étape 2). DÉFAUT NOMMÉ : ces bascules n'écrivent pas `disponibilite_basculee`.
+--  `profiles_self_update` — LA TREIZIÈME (arbitrage de Youssef, 28/09/2026). Les
+--  quatre bascules des tableaux de bord (`availability_status`, `cdi_status`,
+--  `open_to_cdi`, `open_to_freelance`) passent par le geste serveur qui écrit
+--  `disponibilite_basculee`. Plus aucun écran n'écrit `profiles` depuis le navigateur
+--  (mesuré par diag-portes-laterales). La politique se ferme ENTIÈRE : aucune colonne
+--  n'y reste, parce qu'aucune n'a de raison d'être écrite hors d'un geste serveur.
+--  ET LE DROIT D'ÉCRIRE `profiles` EST RETIRÉ au navigateur — non comme protection
+--  (c'est l'absence de politique qui protège), mais pour qu'un client périmé ÉCHOUE
+--  BRUYAMMENT : sans politique mais avec le droit, son UPDATE toucherait zéro ligne
+--  SANS ERREUR, et l'écran afficherait « enregistré » (§E.74). Aucune migration ne
+--  redonne ce droit après la baseline (vérifié : seuls les GRANT de la baseline).
 -- ─────────────────────────────────────────────────────────────────────────────
 
 drop policy if exists organization_invitations_admin_all on public.organization_invitations;
@@ -46,6 +56,9 @@ drop policy if exists organizations_admin_update        on public.organizations;
 drop policy if exists profiles_self_insert              on public.profiles;
 drop policy if exists publications_member_write         on public.publications;
 drop policy if exists users_self_update                 on public.users;
+drop policy if exists profiles_self_update              on public.profiles;
+
+revoke insert, update, delete on table public.profiles from anon, authenticated;
 
 
 -- ── POSTCONDITION — ELLE S'EXÉCUTE (§E.67) ──────────────────────────────────
@@ -54,7 +67,7 @@ declare
   v_portes text;
   v_n      integer;
 begin
-  -- Plus AUCUNE politique d'écriture cliente sur ces tables — sauf l'exception écrite.
+  -- Plus AUCUNE politique d'écriture cliente sur ces tables — sans exception.
   select string_agg(format('%s.%s (%s → %s)', p.tablename, p.policyname, p.cmd, array_to_string(p.roles, ',')), ' | '
                     order by p.tablename, p.policyname)
     into v_portes
@@ -63,8 +76,7 @@ begin
      and p.tablename in ('organization_invitations', 'candidatures', 'messages', 'organization_members',
                          'organizations', 'profiles', 'publications', 'users')
      and p.cmd in ('ALL', 'INSERT', 'UPDATE', 'DELETE')
-     and p.roles && array['authenticated', 'anon', 'public']::name[]
-     and not (p.tablename = 'profiles' and p.policyname = 'profiles_self_update');
+     and p.roles && array['authenticated', 'anon', 'public']::name[];
   if v_portes is not null then
     raise exception 'postcondition NON TENUE : une porte laterale reste ouverte : %', v_portes;
   end if;
@@ -84,6 +96,15 @@ begin
                      and policyname = 'publications_member_read' and cmd = 'SELECT') then
     raise exception 'postcondition NON TENUE : une lecture qui portait les membres a disparu';
   end if;
-  raise notice 'postcondition tenue : douze portes laterales fermees, la RLS active sur les huit tables, la lecture inchangee ; profiles_self_update reste ouverte (DEFAUT NOMME, arbitrage)';
+  -- Le navigateur ne peut plus ÉCRIRE profiles : un client périmé échoue bruyamment.
+  if has_table_privilege('authenticated', 'public.profiles', 'UPDATE')
+     or has_table_privilege('anon', 'public.profiles', 'UPDATE') then
+    raise exception 'postcondition NON TENUE : le navigateur garde le droit d ecrire profiles';
+  end if;
+  -- Et il la LIT toujours : le retrait ne touche que l'écriture.
+  if not has_table_privilege('authenticated', 'public.profiles', 'SELECT') then
+    raise exception 'postcondition NON TENUE : le retrait a emporte la lecture de profiles';
+  end if;
+  raise notice 'postcondition tenue : treize portes laterales fermees, la RLS active sur les huit tables, la lecture inchangee, le navigateur n ecrit plus profiles';
 end
 $post$;

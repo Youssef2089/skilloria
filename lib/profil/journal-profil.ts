@@ -100,7 +100,14 @@ export async function profilModifie(
 export async function disponibiliteBasculee(
   admin: SupabaseClient,
   journal: ContexteJournal,
-  args: { profileId: string; champ: 'availability_status' | 'cdi_status'; de: string | null; vers: string | null },
+  // Les deux ouvertures croisées (`open_to_cdi`, `open_to_freelance`) sont des bascules de
+  // disponibilité : elles passent par le même geste (POST /api/profile/disponibilite), la même action.
+  args: {
+    profileId: string
+    champ: 'availability_status' | 'cdi_status' | 'open_to_cdi' | 'open_to_freelance'
+    de: string | boolean | null
+    vers: string | boolean | null
+  },
 ): Promise<void> {
   await journaliserDans(admin, journal, {
     type: 'disponibilite_basculee',
