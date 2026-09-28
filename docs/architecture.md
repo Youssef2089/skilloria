@@ -195,6 +195,9 @@ actions, clé étrangère du grand livre).
 > et les LANGUES des traductions, jamais un libellé. Écrivain : `lib/taxonomie/journal-taxonomie.ts` (rend `{ ok }`, la
 > route répond `journal_error`). Les suppressions et la mise à jour d'une spécialité relisent `domain_id` : la ligne
 > porte l'écosystème de l'objet. Test : `grand_livre/rattachements.test.sql`.
+> · `journal_ecosysteme_cree` (2.2) — `ecosysteme_cree` (administration), SÉPARÉE de la modification par la règle du
+> nom : sujet l'écosystème, la ligne lui appartient ; `slug`, `configuration_creee` (écrite sur les deux issues de la
+> configuration 1-1). Écrivain : `lib/ecosystemes/journal-ecosysteme.ts`. Même test.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { ecosystemeCree } from '@/lib/ecosystemes/journal-ecosysteme'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
 import { ecosystemeLogoStoragePath, urlPubliqueEcosysteme } from '@/lib/org-logo'
 import { PALETTE_REFERENCE } from '@/lib/palette'
@@ -164,6 +166,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const body = (await request.json().catch(() => null)) as {
     name?: unknown
@@ -240,6 +244,18 @@ export async function POST(request: NextRequest): Promise<Response> {
     primary_color: primary,
     secondary_color: secondary,
   })
+
+  // Le grand livre (§D.26, phase B) : l'écosystème EXISTE, sa configuration ou pas —
+  // la ligne le dit, sur les deux issues, avant de répondre.
+  const ligne = await ecosystemeCree(auth.supabaseAdmin, journal, {
+    id: created.id,
+    slug: created.slug,
+    configurationCreee: !cfgErr,
+  })
+  if (!ligne.ok) {
+    console.error('[admin:ecosystemes] grand livre en échec après écriture', { id: created.id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', id: created.id }, 500)
+  }
   if (cfgErr) {
     console.error('[admin:ecosystemes] config insert failed', cfgErr.message)
     // On NE supprime PAS l'écosystème : la ligne de config est réparable depuis

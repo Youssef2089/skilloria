@@ -3,10 +3,11 @@
 -- §C.21) : ce test rejoue EXACTEMENT les formes des écrivains, sur des objets FABRIQUÉS par les chemins
 -- normaux, pour chaque population concernée, et prouve que la base refuse ce qui n'a rien à y faire.
 --   taxonomie_modifiee : l'administrateur — branche et spécialité, créée / modifiée / supprimée
+--   ecosysteme_cree    : l'administrateur — l'écosystème et sa configuration
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(6);
+select plan(9);
 
 -- Une ligne telle que l'écrivain l'écrit : acteur l'administrateur (origine administrateur).
 create or replace function pg_temp.ecrire(p_piece uuid, p_code text, p_admin uuid, p_dom uuid, p_sujet_type text, p_sujet uuid, p_detail jsonb)
@@ -22,6 +23,7 @@ declare
   v_dom   uuid := pg_temp.fab_domaine();
   v_br    uuid;
   v_sp    uuid;
+  v_eco   uuid;
   v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
 begin
   -- ── taxonomie_modifiee : une branche, puis une spécialité, créées comme les routes les créent ──
@@ -68,6 +70,22 @@ begin
   return next throws_ok(format($q$select pg_temp.ecrire(%L, 'taxonomie_modifiee', %L, %L, 'branches', %L, '{"objet":"branche","operation":"creee"}'::jsonb)$q$,
                                v_p[1], v_admin, v_dom, v_br),
                         'GL005', null, 'taxonomie_modifiee : une fois par geste');
+
+  -- ── ecosysteme_cree : l'écosystème naît désactivé, avec sa configuration ──
+  insert into public.domains (name, slug, active) values ('Sonde', 'sonde-' || left(md5(random()::text), 8), false)
+  returning id into v_eco;
+  insert into public.domain_configs (domain_id, primary_color, secondary_color) values (v_eco, '#123456', '#123456');
+  perform pg_temp.ecrire(v_p[8], 'ecosysteme_cree', v_admin, v_eco, 'domains', v_eco,
+    jsonb_build_object('slug', (select d.slug from public.domains d where d.id = v_eco), 'configuration_creee', true));
+  return next ok(pg_temp.lignes(v_p[8]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[8]
+                   and g.type_action = 'ecosysteme_cree' and g.sujet_id = v_eco and g.ecosysteme_id = v_eco
+                   and (g.detail ->> 'configuration_creee')::boolean),
+                 'écosystème créé : UNE ligne, qui appartient à l''écosystème qu''elle crée');
+  return next ok(not exists (select 1 from public.grand_livre g where g.piece = v_p[8] and g.type_action = 'ecosysteme_modifie'),
+                 'une création ne s''écrit pas sous le nom d''une modification');
+  return next throws_ok(format($q$select pg_temp.ecrire(%L, 'ecosysteme_cree', %L, %L, 'domains', %L, '{"slug":"x","name":"Sonde"}'::jsonb)$q$,
+                               gen_random_uuid(), v_admin, v_eco, v_eco),
+                        'GL004', null, 'ecosysteme_cree : le nom (texte libre) est refusé');
 end $$;
 
 select * from pg_temp.essai();
