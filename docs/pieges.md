@@ -3657,6 +3657,41 @@ elle-même n'est gardée par rien : c'est l'ordre du déploiement (CLAUDE.md, §
 
 ---
 
+<a id="e73"></a>
+### E.73 — UNE FONCTION DE TRIGGER QUI CITE UNE COLONNE SUPPRIMÉE PASSE LE LINT ET LE CONTRÔLE STATIQUE : quatre semaines sans inscription d'expert.
+
+**Le cas mesuré.** Le 01/09/2026, `profil_annonce_multivalues` supprime `profiles.speciality_id` au profit de
+`speciality_ids uuid[]`. `handle_new_user`, défini le 04/08, continue d'insérer `speciality_id`. Postgres
+**n'empêche pas** ce `drop column` : un corps plpgsql n'est pas une dépendance (une vue, un index, une politique,
+une contrainte l'auraient bloqué). Toute inscription d'expert échoue depuis, sur staging comme en local —
+« column "speciality_id" of relation "profiles" does not exist ». Trouvé le 28/09/2026 par les tests pgTAP
+(15 fichiers sur 23 arrêtés avant leur premier test), pas par un contrôle. Corrigé par `inscription_specialites`.
+
+**Deux filets l'ont laissé passer, pour deux raisons différentes.**
+① **`db lint`** appelle `plpgsql_check_function(p.oid, format:='json')` **sans table**. Une fonction de trigger ne
+se vérifie qu'avec la relation qui la déclenche : elle n'est donc pas vérifiée (vu dans la CLI 2.108.0 ; le filtre
+exact n'a pas pu être lu, **NON VÉRIFIÉ**, mais le trou est mesuré : le lint était vide).
+② **`diag-colonnes-supprimees`** balayait bien les corps de fonction, mais attribuait **par fonction** : une
+référence non qualifiée n'était retenue que si la fonction ne lisait qu'**une** table. `handle_new_user` en lit
+quatre, et la liste de colonnes d'un `INSERT INTO t (…)` n'était de toute façon attribuée à rien. Au passage, un
+second défaut : l'alias optionnel de `into v_x` **avalait** le `from` suivant, et la table qui le suit n'était
+jamais vue.
+
+**La parade, deux mécanismes.**
+· `supabase/tests/database/plpgsql_check.test.sql` passe **chaque couple (fonction de trigger, table)** de
+  `pg_trigger` à `plpgsql_check_function_tb`, rouge sur le niveau `error` — puis toutes les autres fonctions
+  plpgsql de `public`, pour ne pas dépendre du lint seul. Présence et forme gardées (`diag-tests-grand-livre`, H).
+· `diag-colonnes-supprimees` attribue **par instruction** : listes de colonnes d'`INSERT` et d'`ON CONFLICT`,
+  `SET` d'`UPDATE` et de `DO UPDATE`, alias liés dans l'instruction, chaînes vidées d'abord, et les **tables
+  supprimées** citées. Éprouvé sur cinq témoins, dont l'`INSERT` exact de `handle_new_user`.
+**Balayage fait le 28/09/2026** : 130 fonctions et vues (dernière définition, triggers compris) — **aucune autre**
+ne cite une colonne ni une table supprimée.
+
+**Ce qui ne garde toujours rien.** Le SQL **dynamique** (`execute format(…)`) : une chaîne, que ni le contrôle ni
+plpgsql_check ne lisent. Seule l'exécution le dit — d'où les tests.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

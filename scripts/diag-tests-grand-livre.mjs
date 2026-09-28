@@ -218,6 +218,24 @@ else {
 ok(sigDefauts.length === 0, 'F. le test « une fonction, une signature » compte les surcharges du schéma public, exceptions à raison',
   sigDefauts.length ? `${relative(ROOT, CHEMIN_SIGNATURE)} : ${sigDefauts.join(', ')}` : undefined)
 
+// ── H. plpgsql_check sur chaque fonction de trigger AVEC SA TABLE (T.2, §E.73) ──
+//  `db lint` appelle plpgsql_check sans table : une fonction de trigger n'y est pas vérifiée.
+//  Le test existe, lit pg_trigger, passe la RELATION, rougit sur le niveau error.
+const CHEMIN_CHECK = join(ROOT, 'supabase', 'tests', 'database', 'plpgsql_check.test.sql')
+let chk = ''
+try { chk = sansCommentaires(lire(CHEMIN_CHECK)) } catch { /* absent : rouge */ }
+const chkDefauts = []
+if (!chk) chkDefauts.push('absent')
+else {
+  if (!/from\s+pg_trigger\b/i.test(chk)) chkDefauts.push('ne lit pas pg_trigger')
+  if (!/plpgsql_check_function_tb\(\s*\w+\.fonction\s*,\s*\w+\.relation\s*\)/i.test(chk)) chkDefauts.push('ne passe pas la table du trigger')
+  if (!/level\s*=\s*'error'/i.test(chk)) chkDefauts.push('ne rougit pas sur le niveau error')
+  if (!/not\s+t\.tgisinternal/i.test(chk)) chkDefauts.push('ne filtre pas les triggers internes')
+  if (!/^\s*begin;/i.test(chk) || !/rollback;\s*$/i.test(chk)) chkDefauts.push('pas dans begin/rollback')
+}
+ok(chkDefauts.length === 0, 'H. plpgsql_check passe chaque fonction de trigger AVEC sa table, rouge sur toute erreur',
+  chkDefauts.length ? `${relative(ROOT, CHEMIN_CHECK)} : ${chkDefauts.join(', ')}` : undefined)
+
 // ── G. La requête de staging (point 2.13) : UNE instruction, un SELECT, rien qui écrive ──
 //  Elle se colle sur staging : une écriture glissée là s'exécuterait sur une base réelle (§G.6).
 const CHEMIN_REQUETE = join(ROOT, 'supabase', 'verifications', 'staging-avant-push.sql')

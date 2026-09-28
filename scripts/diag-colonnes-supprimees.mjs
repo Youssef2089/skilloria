@@ -147,6 +147,18 @@ for (const m of mortes.values()) {
 }
 const estMorte = (table, colonne) => mortesParTable.get(table)?.get(colonne) ?? null
 
+/**
+ * LES TABLES, CONNUES ET MORTES — dérivées du même rejeu.
+ * Connue : vivante au schéma final, ou ayant existé (ses colonnes sont au registre
+ * des mortes). Morte : ayant existé, absente du schéma final (`drop table`).
+ * Les tables héritées `_backup_*` restent connues : les citer est aussi une faute.
+ */
+const TABLES_CONNUES = new Set([...schema.keys(), ...mortesParTable.keys()])
+const TABLES_MORTES = new Map()
+for (const m of mortes.values()) {
+  if (!schema.has(m.table) && !TABLES_MORTES.has(m.table)) TABLES_MORTES.set(m.table, { ...m, colonne: null, cause: 'drop table' })
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    2. LIRE DU TYPESCRIPT SANS SE FAIRE PIEGER PAR SES COMMENTAIRES
    ═══════════════════════════════════════════════════════════════════════════ */
@@ -653,56 +665,153 @@ function citationsDe(src, constantesGlobales = GLOBALES, fichier = null) {
 
 /**
  * Rend `[{ table, colonne, forme }]` pour un corps de fonction ou de vue.
+ * `colonne === null` : la TABLE elle-même n'existe plus (forme 'table supprimée').
  *
- * L'attribution se fait par les alias de `from` / `join` / `update` / `insert`.
- * Une reference NON qualifiee n'est retenue que s'il n'y a QU'UNE table en
- * portee — sinon on ne sait pas de qui elle parle, et deviner serait pire que
- * se taire (§E.38).
+ * ⚠️ L'ATTRIBUTION SE FAIT PAR INSTRUCTION, PLUS PAR FONCTION — ET C'EST CE QUI
+ *    A LAISSÉ PASSER `handle_new_user` (28/09/2026, §E.73).
+ *    L'ancienne version liait les alias de TOUT le corps, et ne retenait une
+ *    référence non qualifiée que s'il n'y avait qu'UNE table dans la fonction.
+ *    `handle_new_user` en lit quatre (domains, roles, users, profiles) : toute
+ *    référence non qualifiée y était donc tue — dont la liste de colonnes de
+ *    `INSERT INTO public.profiles (…, speciality_id, …)`, qui n'était de toute
+ *    façon attribuée à AUCUNE table. La colonne était morte depuis le
+ *    01/09/2026 ; toute inscription d'expert échouait ; le contrôle était vert.
+ *
+ * CE QUI EST ATTRIBUÉ, DU PLUS SÛR AU MOINS SÛR — une instruction à la fois
+ * (découpe au `;` de niveau zéro, chaînes littérales vidées d'abord : une clé
+ * jsonb `'speciality_id'` n'est pas une colonne) :
+ *   · la liste de colonnes d'un `INSERT INTO t (…)`, et son `ON CONFLICT (…)`
+ *     — attribuée à `t`, sans deviner ;
+ *   · le `SET` d'un `UPDATE t` (et d'un `ON CONFLICT … DO UPDATE SET`) ;
+ *   · une référence qualifiée `alias.colonne`, l'alias lié DANS l'instruction ;
+ *   · une référence non qualifiée, seulement si l'instruction n'a qu'UNE table
+ *     — sinon on ne sait pas de qui elle parle, et deviner serait pire que se
+ *     taire (§E.38) ;
+ *   · une table citée (`from`, `join`, `update`, `into`) qui n'existe plus.
+ * Une table se reconnaît avec OU sans `public.` (le `search_path` des fonctions
+ * est `public`), mais seulement si le rejeu la connaît : `into v_x` (plpgsql)
+ * n'est pas une table.
  */
+const MOTS_APRES_TABLE = new Set([
+  'on', 'where', 'set', 'using', 'group', 'order', 'limit', 'having', 'left', 'right', 'inner',
+  'outer', 'join', 'cross', 'values', 'select', 'returning', 'and', 'or', 'default', 'for', 'natural',
+  'full', 'union', 'except', 'intersect', 'window', 'offset', 'fetch', 'lateral', 'tablesample',
+])
+
+/** Découpe au séparateur `sep` de niveau zéro de parenthèses. */
+function decouper(texte, sep) {
+  const parts = []
+  let prof = 0
+  let cur = ''
+  for (const ch of texte) {
+    if (ch === '(') prof++
+    if (ch === ')') prof--
+    if (ch === sep && prof === 0) { parts.push(cur); cur = ''; continue }
+    cur += ch
+  }
+  parts.push(cur)
+  return parts
+}
+
+/** La partie gauche d'une affectation `SET a = …` / `SET x.a = …`, ou null. */
+const gaucheDe = (affectation) => affectation.match(/^\s*(?:[a-z_][a-z0-9_]*\.)?([a-z_][a-z0-9_]*)\s*=/i)?.[1]?.toLowerCase() ?? null
+
+/** Le texte d'un SET jusqu'au mot qui le clôt, au niveau zéro. */
+function listeSet(suite) {
+  let prof = 0
+  for (let k = 0; k < suite.length; k++) {
+    const ch = suite[k]
+    if (ch === '(') prof++
+    else if (ch === ')') { if (prof === 0) return suite.slice(0, k); prof-- }
+    else if (prof === 0 && /^\b(?:where|from|returning)\b/i.test(suite.slice(k)) && /\W/.test(suite[k - 1] ?? ' ')) {
+      return suite.slice(0, k)
+    }
+  }
+  return suite
+}
+
 function citationsSql(corps) {
-  const alias = new Map()
-  const tables = new Set()
-  const lier = (table, a) => {
-    tables.add(table)
-    if (a) alias.set(a.toLowerCase(), table)
-    alias.set(table, table)
-  }
-  for (const m of corps.matchAll(
-    /\b(?:from|join|update|into)\s+(?:only\s+)?public\.([a-z_0-9]+)(?:\s+(?:as\s+)?([a-z][a-z0-9_]*))?/gi,
-  )) {
-    const suivant = (m[2] ?? '').toLowerCase()
-    const MOTS = new Set([
-      'on', 'where', 'set', 'using', 'group', 'order', 'limit', 'having', 'left',
-      'right', 'inner', 'outer', 'join', 'cross', 'values', 'select', 'returning', 'and', 'or',
-    ])
-    lier(m[1].toLowerCase(), MOTS.has(suivant) ? null : suivant)
-  }
+  const sansChaines = corps.replace(/'(?:[^']|'')*'/g, "''")
 
   // Les noms que plpgsql declare : parametres et variables locales. Les
   // retenir comme colonnes serait un faux positif, et un controle qui crie a
   // tort est desactive le jour meme (§E.14).
   const declares = new Set()
-  for (const m of corps.matchAll(/\b(p_[a-z0-9_]+|v_[a-z0-9_]+)\b/gi)) declares.add(m[1].toLowerCase())
-  const zoneDeclare = corps.match(/\bdeclare\b([\s\S]*?)\bbegin\b/i)
+  for (const m of sansChaines.matchAll(/\b(p_[a-z0-9_]+|v_[a-z0-9_]+)\b/gi)) declares.add(m[1].toLowerCase())
+  const zoneDeclare = sansChaines.match(/\bdeclare\b([\s\S]*?)\bbegin\b/i)
   if (zoneDeclare) {
     for (const m of zoneDeclare[1].matchAll(/^\s*([a-z_][a-z0-9_]*)\s+/gim)) declares.add(m[1].toLowerCase())
   }
 
   const out = []
-  // ── Références QUALIFIÉES : `m.score`, `publications.matching_stats` ──────
-  for (const m of corps.matchAll(/\b([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\b/gi)) {
-    const t = alias.get(m[1].toLowerCase())
-    if (!t) continue
-    out.push({ table: t, colonne: m[2].toLowerCase(), forme: 'sql qualifiée' })
-  }
-  // ── Références NON qualifiées, et seulement si UNE table en portée ───────
-  if (tables.size === 1) {
-    const [t] = tables
-    for (const m of corps.matchAll(/\b([a-z_][a-z0-9_]*)\b/gi)) {
-      const nom = m[1].toLowerCase()
-      if (declares.has(nom)) continue
-      if (corps[m.index - 1] === '.') continue
-      out.push({ table: t, colonne: nom, forme: 'sql non qualifiée' })
+  for (const instr of decouper(sansChaines, ';')) {
+    const alias = new Map()
+    const tables = new Set()
+    // L'alias se LIT après la table, il ne se CONSOMME pas : consommé, il avalait
+    // le mot suivant — `select … into v_n from public.t` perdait `from`, et la
+    // table qui le suit n'était jamais vue (trouvé par le témoin de table
+    // supprimée, 28/09/2026 ; la version précédente avait le même défaut).
+    for (const m of instr.matchAll(/\b(?:from|join|update|into)\s+(?:only\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+      const t = m[1].toLowerCase()
+      if (!TABLES_CONNUES.has(t)) continue
+      if (TABLES_MORTES.has(t)) out.push({ table: t, colonne: null, forme: 'table supprimée' })
+      tables.add(t)
+      alias.set(t, t)
+      const a = (instr.slice(m.index + m[0].length).match(/^\s+(?:as\s+)?([a-z][a-z0-9_]*)/i)?.[1] ?? '').toLowerCase()
+      if (a && !MOTS_APRES_TABLE.has(a)) alias.set(a, t)
+    }
+
+    // ── La liste de colonnes d'un INSERT, et son ON CONFLICT ─────────────────
+    let tableInsert = null
+    for (const m of instr.matchAll(/\binsert\s+into\s+(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?(?:\s+as\s+[a-z_][a-z0-9_]*)?\s*\(([^)]*)\)/gi)) {
+      const t = m[1].toLowerCase()
+      if (!TABLES_CONNUES.has(t)) continue
+      tableInsert = t
+      for (const c of m[2].split(',')) {
+        const col = c.trim().replace(/"/g, '').toLowerCase()
+        if (/^[a-z_][a-z0-9_]*$/.test(col)) out.push({ table: t, colonne: col, forme: 'sql insert (liste de colonnes)' })
+      }
+    }
+    if (tableInsert) {
+      for (const m of instr.matchAll(/\bon\s+conflict\s*\(([^)]*)\)/gi)) {
+        for (const c of m[1].split(',')) {
+          const col = c.trim().replace(/"/g, '').toLowerCase()
+          if (/^[a-z_][a-z0-9_]*$/.test(col)) out.push({ table: tableInsert, colonne: col, forme: 'sql on conflict' })
+        }
+      }
+      for (const m of instr.matchAll(/\bdo\s+update\s+set\s+/gi)) {
+        for (const a of decouper(listeSet(instr.slice(m.index + m[0].length)), ',')) {
+          const col = gaucheDe(a)
+          if (col) out.push({ table: tableInsert, colonne: col, forme: 'sql do update set' })
+        }
+      }
+    }
+
+    // ── Le SET d'un UPDATE ────────────────────────────────────────────────────
+    for (const m of instr.matchAll(/\bupdate\s+(?:only\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?(?:\s+(?:as\s+)?([a-z][a-z0-9_]*))?\s+set\s+/gi)) {
+      const t = m[1].toLowerCase()
+      if (!TABLES_CONNUES.has(t)) continue
+      for (const a of decouper(listeSet(instr.slice(m.index + m[0].length)), ',')) {
+        const col = gaucheDe(a)
+        if (col) out.push({ table: t, colonne: col, forme: 'sql update set' })
+      }
+    }
+
+    // ── Références QUALIFIÉES : `m.score`, `publications.matching_stats` ──────
+    for (const m of instr.matchAll(/\b([a-z_][a-z0-9_]*)\.([a-z_][a-z0-9_]*)\b/gi)) {
+      const t = alias.get(m[1].toLowerCase())
+      if (!t) continue
+      out.push({ table: t, colonne: m[2].toLowerCase(), forme: 'sql qualifiée' })
+    }
+    // ── Références NON qualifiées, et seulement si UNE table dans l'instruction ─
+    if (tables.size === 1) {
+      const [t] = tables
+      for (const m of instr.matchAll(/\b([a-z_][a-z0-9_]*)\b/gi)) {
+        const nom = m[1].toLowerCase()
+        if (declares.has(nom)) continue
+        if (instr[m.index - 1] === '.') continue
+        out.push({ table: t, colonne: nom, forme: 'sql non qualifiée' })
+      }
     }
   }
   return out
@@ -772,6 +881,48 @@ const mortesDe = (src) =>
     renommees.length === 1 && renommees[0].table === 'publications',
     'il distingue `publications.location` (RENOMMÉE) de `profiles.location` (vivante)',
     `vu : ${renommees.map((v) => v.table + '.' + v.colonne).join(', ') || 'rien'}`,
+  )
+}
+
+/**
+ * LE TÉMOIN SQL EST LE DÉFAUT DU 28/09/2026 (§E.73) : l'INSERT de `handle_new_user`
+ * tel qu'il était, dans un corps qui lit QUATRE tables — c'est la multiplicité qui
+ * l'avait rendu invisible. Puis le correctif, puis une table supprimée, puis une
+ * clé jsonb qui porte le nom mort (une chaîne n'est pas une colonne).
+ */
+const TEMOIN_SQL_DEFAUT = `
+  select id into v_domain_id from public.domains where slug = v_domain_slug and active = true limit 1;
+  select id into v_role_id from public.roles where name = 'Gratuit' and active = true limit 1;
+  insert into public.users (id, email, role_id, domain_id) values (new.id, new.email, v_role_id, v_domain_id);
+  insert into public.profiles (
+    user_id, domain_id, expert_type, title, visible,
+    branch_id, speciality_id, speciality_other
+  ) values (new.id, v_domain_id, v_expert_type, v_specialty, false, v_branch_id, v_speciality_id, v_speciality_other)
+  on conflict (user_id) do nothing;
+`
+const TEMOIN_SQL_CORRIGE = TEMOIN_SQL_DEFAUT.replace('branch_id, speciality_id, speciality_other', 'branch_id, speciality_ids, speciality_other')
+const TEMOIN_SQL_CHAINE = `v_speciality_id := nullif(trim(v_meta ->> 'speciality_id'), '')::uuid; update public.profiles set title = 'speciality_id' where user_id = new.id;`
+const [TABLE_MORTE_TEMOIN] = [...TABLES_MORTES.keys()].filter((t) => !t.startsWith('_backup_'))
+const TEMOIN_SQL_TABLE = `select count(*) into v_n from public.${TABLE_MORTE_TEMOIN} t where t.id = p_id;`
+const TEMOIN_SQL_UPDATE = `update public.matches m set score = 3, status = 'x' where m.id = p_id;`
+
+{
+  const mortesSql = (src) => citationsSql(src).filter((c) => (c.colonne === null ? TABLES_MORTES.has(c.table) : estMorte(c.table, c.colonne)))
+  const vues = mortesSql(TEMOIN_SQL_DEFAUT)
+  ok(
+    vues.some((v) => v.table === 'profiles' && v.colonne === 'speciality_id'),
+    'SQL : il VOIT `profiles.speciality_id` dans la liste de l’INSERT de handle_new_user — quatre tables en portée',
+    `vu : ${vues.map((v) => v.table + '.' + v.colonne).join(', ') || 'rien'}`,
+  )
+  ok(mortesSql(TEMOIN_SQL_CORRIGE).length === 0, 'SQL : … et se TAIT sur le correctif (`speciality_ids`)')
+  ok(mortesSql(TEMOIN_SQL_CHAINE).length === 0, 'SQL : … et sur une CHAÎNE qui porte le nom mort (clé jsonb, valeur)')
+  ok(
+    TABLE_MORTE_TEMOIN !== undefined && mortesSql(TEMOIN_SQL_TABLE).some((v) => v.colonne === null && v.table === TABLE_MORTE_TEMOIN),
+    `SQL : il VOIT une table supprimée citée (${TABLE_MORTE_TEMOIN ?? 'aucune table supprimée au rejeu'})`,
+  )
+  ok(
+    mortesSql(TEMOIN_SQL_UPDATE).some((v) => v.table === 'matches' && v.colonne === 'score' && v.forme === 'sql update set'),
+    'SQL : il VOIT une colonne morte dans le SET d’un UPDATE (`matches.score`)',
   )
 }
 
@@ -951,9 +1102,14 @@ for (const f of fichiers) {
 // ── Les corps SQL qui survivent ────────────────────────────────────────────
 const trouvaillesSql = []
 for (const [nom, def] of fonctions) {
+  const vus = new Set()
   for (const c of citationsSql(def.corps)) {
-    const m = estMorte(c.table, c.colonne)
-    if (m) {
+    const m = c.colonne === null ? TABLES_MORTES.get(c.table) ?? null : estMorte(c.table, c.colonne)
+    // Une même citation vue par deux filets (la liste d'un INSERT ET la référence
+    // non qualifiée) ne compte qu'une fois.
+    const cle = `${c.table}.${c.colonne}`
+    if (m && !vus.has(cle)) {
+      vus.add(cle)
       trouvaillesSql.push({
         fichier: `supabase/migrations/${def.migration}`,
         fonction: nom,
@@ -1039,7 +1195,7 @@ ok(
   `aucune fonction ni vue SQL ne lit une colonne morte (${trouvaillesSql.length})`,
   trouvaillesSql
     .slice(0, 12)
-    .map((t) => `${t.fonction}() lit ${t.table}.${t.colonne}`)
+    .map((t) => (t.colonne === null ? `${t.fonction}() cite la table supprimée ${t.table}` : `${t.fonction}() lit ${t.table}.${t.colonne}`))
     .join(' · '),
 )
 
@@ -1096,6 +1252,10 @@ note("select('*') suivi d une lecture de propriete, lui, EST couvert depuis le")
 note('22/09/2026 — la table y est connue (troisieme filet).')
 note('les RPC : une fonction appelee par `.rpc(…)` recoit des PARAMETRES, pas des')
 note('colonnes. Son corps, lui, est balaye — c est la section SQL.')
+note('le SQL DYNAMIQUE d un corps de fonction (`execute format(...)`) : c est une chaine, et les')
+note('chaines sont videes avant l attribution. Le test pgTAP plpgsql_check ne le voit pas non plus —')
+note('seule l execution le dit. Politiques RLS, contraintes et index : Postgres refuse deja de')
+note('supprimer une colonne qu ils citent sans CASCADE, ils ne peuvent donc pas la citer morte.')
 
 console.log('')
 if (echecs > 0) {

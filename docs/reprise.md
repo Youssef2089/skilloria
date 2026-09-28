@@ -44,7 +44,8 @@ sur `column "speciality_id" of relation "profiles" does not exist` (`handle_new_
 | Point | État | Commit |
 |---|---|---|
 | T.1 l'inscription : `handle_new_user` recréé (migration `20260928000000_inscription_specialites`) — `speciality_ids`, taxonomie vérifiée en base, rôle inconnu **lève** (IN001, plus de compte fantôme), codes IN001–IN005 ; test `inscription/roles.test.sql` (5 rôles + « Autre » + 7 refus, 21 assertions) ; requête de staging +3 lignes (16–18) ; `diag-admin-create` réancré sur la dernière définition (§E.34) ; `diag-cron-supervision` ne confond plus `"trigger"` et `trigger` ; page d'invitation : plus de message GoTrue brut (2 libellés × 4 langues) | fait, non exécuté | ce commit |
-| T.2 à T.6 | à faire | — |
+| T.2 la classe : `db lint` appelle plpgsql_check **sans table** (vu dans la CLI ; filtre exact NON VÉRIFIÉ) → test `plpgsql_check.test.sql` (4 assertions : chaque couple fonction de trigger / table, puis les autres fonctions plpgsql) + garde H ; `diag-colonnes-supprimees` attribue **par instruction** (INSERT, ON CONFLICT, SET, tables supprimées, chaînes vidées ; défaut `into v_x` qui avalait `from` corrigé) — 5 témoins ; balayage : **130 fonctions et vues, 0 autre citation morte** ; §E.73 | fait | ce commit |
+| T.3 à T.6 | à faire | — |
 
 ## ⛔ ARRÊT 2 — L'ÉTAPE 2 EST FAITE (26/09/2026). LA PHASE B N'EST PAS COMMENCÉE.
 

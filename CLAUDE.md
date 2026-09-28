@@ -292,6 +292,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.70](docs/pieges.md#e70) | UNE SONDE QUI VIOLE UNE CONTRAINTE DE LA TABLE QU'ELLE SONDE N'ÉPROUVE RIEN : elle arrête la migration — 16 migrations l'ont fait sans avoir jamais tourné. |
 | [E.71](docs/pieges.md#e71) | UNE SONDE QUI SUPPOSE LA RÉPONSE D'UNE FONCTION JAMAIS EXÉCUTÉE TESTE SON AUTEUR — les chemins en double, et quatre sondes qui supposaient la ligne traitée ou l'absence d'une contrainte. |
 | [E.72](docs/pieges.md#e72) | UNE SIGNATURE APPELÉE PAR LE CODE EN LIGNE NE SE SUPPRIME QU'AU DÉPLOIEMENT SUIVANT : ajout, déploiement, puis suppression — jamais les trois ensemble en production. |
+| [E.73](docs/pieges.md#e73) | UNE FONCTION DE TRIGGER QUI CITE UNE COLONNE SUPPRIMÉE PASSE LE LINT ET LE CONTRÔLE STATIQUE : quatre semaines sans inscription d'expert. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -387,8 +388,10 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
 · **Une fonction, une signature** : `supabase/tests/database/une_signature.test.sql` lit `pg_proc` sur la
   base rejouée — aucune fonction `public` à deux signatures, sauf exception écrite **avec sa raison**
   (l'étape 1 de §E.72) ; une exception qui n'est plus une surcharge rougit.
-· **NON VÉRIFIÉ avant le premier lancement** : que `test db` descend dans les sous-dossiers et ignore
-  `_fabriques.psql`, et que `\ir` résout depuis le fichier de test. Repli : passer le dossier en argument.
+· **`plpgsql_check` avec la table** : `supabase/tests/database/plpgsql_check.test.sql` vérifie chaque fonction de
+  trigger avec sa relation — ce que `db lint` ne fait pas (§E.73).
+· **Mesuré le 28/09/2026** : `test db` descend dans les sous-dossiers, ignore `_fabriques.psql`, et `\ir`
+  résout depuis le fichier de test.
 
 **LA SÉQUENCE DE DÉPLOIEMENT D'UN LOT DE MIGRATIONS — dans cet ordre, chaque étape verte avant la suivante :**
 1. `npx supabase db reset --local` — rejoue toutes les migrations sur la base jetable (§G.4 bis) ; une
