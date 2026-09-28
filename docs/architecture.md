@@ -190,6 +190,11 @@ actions, clé étrangère du grand livre).
 > tâche, `etait_active`). **L'ancienne signature `admin_cron_run_now(text, uuid)` reste jusqu'au déploiement
 > suivant** (§E.72) — dette nommée, sa suppression est une migration à part. `diag-cron-supervision` lit la fonction
 > dans sa DERNIÈRE définition. Test : `grand_livre/tache_lancee_a_la_main.test.sql`.
+> · `journal_taxonomie_modifiee` (2.2) — `taxonomie_modifiee` (administration) : les SIX routes de la taxonomie
+> (branches, spécialités : créée, modifiée, supprimée), une action, l'objet et l'opération en détail, les NOMS des champs
+> et les LANGUES des traductions, jamais un libellé. Écrivain : `lib/taxonomie/journal-taxonomie.ts` (rend `{ ok }`, la
+> route répond `journal_error`). Les suppressions et la mise à jour d'une spécialité relisent `domain_id` : la ligne
+> porte l'écosystème de l'objet. Test : `grand_livre/rattachements.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

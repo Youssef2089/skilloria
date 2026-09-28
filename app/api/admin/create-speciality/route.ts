@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -61,6 +63,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Record<string, unknown>
   try {
@@ -140,6 +144,21 @@ export async function POST(request: NextRequest): Promise<Response> {
       .from('translations')
       .upsert(trRows, { onConflict: 'table_name,row_id,field,locale' })
     if (trErr) console.error('[admin:create-speciality] translations upsert failed', trErr.message)
+  }
+
+  // Le grand livre (§D.26, phase B) : la taxonomie de l'écosystème a changé.
+  const ligne = await taxonomieModifiee(auth.supabaseAdmin, journal, {
+    objet: 'specialite',
+    operation: 'creee',
+    id: specId,
+    ecosystemeId: domainId,
+    branchId,
+    champs: ['name', 'slug', 'active', 'sort_order'],
+    traductions: Object.keys(translations),
+  })
+  if (!ligne.ok) {
+    console.error('[admin:taxonomie] grand livre en échec après écriture', { id: specId, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', speciality_id: specId }, 500)
   }
 
   await logAudit({

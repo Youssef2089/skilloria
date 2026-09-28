@@ -2,6 +2,8 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -51,6 +53,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let body: Record<string, unknown>
   try {
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const { data: spec, error: spErr } = await auth.supabaseAdmin
     .from('specialities')
-    .select('id, branch_id, name, slug')
+    .select('id, branch_id, domain_id, name, slug')
     .eq('id', id)
     .maybeSingle()
   if (spErr) {
@@ -74,7 +78,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   if (!spec) return json({ error: 'Not found', code: 'not_found' }, 404)
-  const sp = spec as { id: string; branch_id: string; name: string; slug: string }
+  const sp = spec as { id: string; branch_id: string; domain_id: string; name: string; slug: string }
 
   const has = (k: string) => Object.prototype.hasOwnProperty.call(body, k)
   const updates: Record<string, unknown> = {}
@@ -170,6 +174,21 @@ export async function POST(request: NextRequest): Promise<Response> {
       .eq('field', 'name')
       .in('locale', trToDelete)
     if (delErr) console.error('[admin:update-speciality] translations delete failed', delErr.message)
+  }
+
+  // Le grand livre (§D.26, phase B) : la taxonomie de l'écosystème a changé.
+  const ligne = await taxonomieModifiee(auth.supabaseAdmin, journal, {
+    objet: 'specialite',
+    operation: 'modifiee',
+    id,
+    ecosystemeId: sp.domain_id,
+    branchId: sp.branch_id,
+    champs: Object.keys(updates).filter((k) => k !== 'updated_at'),
+    traductions: [...trToUpsert.map((t) => t.locale), ...trToDelete],
+  })
+  if (!ligne.ok) {
+    console.error('[admin:taxonomie] grand livre en échec après écriture', { id: id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', speciality_id: id }, 500)
   }
 
   await logAudit({
