@@ -74,7 +74,9 @@ for (const [f, s] of libs) {
 }
 const journalise = (corps, conn) => /\bjournaliserDans\(|\bjournaliser\(|\bjournaliserReglage\(/.test(corps)
   || [...corps.matchAll(/\.rpc\('(\w+)'/g)].some((m) => ecrSql.has(m[1]))
-  || [...conn].some((n) => new RegExp('\\b' + n + '\\b').test(corps))
+  // Un APPEL, pas une mention : un \`import { identiteModifiee }\` resté seul après la perte de l'appel
+  // rendait la route « tracée » (vu par mutation le 28/09/2026, §G.5).
+  || [...conn].some((n) => new RegExp('\\b' + n + '\\s*\\(').test(corps))
 const tracantes = new Set()
 for (let b = true; b;) { b = false; for (const fn of fonctions) if (!tracantes.has(fn.nom) && journalise(fn.corps, tracantes)) { tracantes.add(fn.nom); b = true } }
 
