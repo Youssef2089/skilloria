@@ -8,13 +8,20 @@ export default function PageHeader({
   title,
   subtitle,
   actions,
+  flush = false,
 }: {
   title: string
   subtitle?: string | React.ReactNode
   actions?: React.ReactNode
+  /**
+   * Sans marge propre : pour un conteneur qui a DÉJÀ la sienne (le `<main>` du
+   * back-office). Sans cette option, la marge se doublerait et le titre ne
+   * s'alignerait plus sur le contenu.
+   */
+  flush?: boolean
 }) {
   return (
-    <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '24px 26px 4px' }}>
+    <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: flush ? '0 0 4px' : '24px 26px 4px' }}>
       <div style={{ minWidth: 0, flex: 1 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.4px', color: 'var(--sk-text)', lineHeight: 1.25 }}>
           {title}

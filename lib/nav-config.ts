@@ -334,6 +334,16 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         iconKey: 'chart',
       },
       {
+        // LE GRAND LIVRE (§D.26), rangé dans « Exploitation » : on n'y règle rien
+        // (sauf sa conservation, qui s'y lit au même endroit que ce qu'elle
+        // efface) ; on y REMONTE ce qui s'est passé, pièce par pièce. La pièce
+        // (/admin/journal/[piece]) est une page de détail : elle a son Retour.
+        key: 'journal',
+        href: '/admin/journal',
+        labelKey: 'nav_journal',
+        iconKey: 'ledger',
+      },
+      {
         // LE RACCORDEMENT STRIPE, rangé dans « Exploitation » et non dans
         // « Commerce » : on n'y vend rien et on n'y règle rien. On y CONSTATE
         // que ce qui a été encaissé correspond à ce qui a été ouvert — et

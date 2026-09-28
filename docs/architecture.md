@@ -225,6 +225,17 @@ actions, clé étrangère du grand livre).
 > (préférences, locale, planification des tâches…) reste sans pièce. **DETTES NOMMÉES (§E.72)** : `stripe_event_claim`
 > et l'ancienne `admin_cron_run_now(text, uuid)` sont appelées par le code EN LIGNE — leur suppression est une
 > migration du déploiement SUIVANT. Test : `grand_livre/piece_sous_journaux.test.sql`.
+> · `journal_lecture` (2.6) — **`lire_grand_livre()`** et **`lire_piece()`** : SECURITY DEFINER, fermées au navigateur,
+> AD002 pour tout autre qu'un administrateur ACTIF (la sécurité est en base) ; AUCUNE politique RLS sur `grand_livre`
+> (la postcondition le vérifie). Liste bornée à 200 lignes (défaut 50), curseur (horodatage, id) décroissant — servi
+> par l'index date en tête — et la suite annoncée ; l'identifiant ne sert qu'au curseur, jamais affiché (trous
+> normaux). Les lignes de la famille `journal` (le nettoyage) échappent à tous les filtres sauf la période. Le nom
+> de l'acteur et de l'écosystème sont rejoints À LA LECTURE (compte disparu ou anonymisé : `acteur_supprime`). La
+> pièce : 500 lignes au plus (`tronquee`), les pièces qui la reprennent, 50 lignes par sous-journal, jamais le détail
+> d'audit. Routes `GET /api/admin/journal` (filtres en vocabulaires FERMÉS, 400 nommé sinon ; 503
+> `journal_illisible` sur panne) et `GET /api/admin/journal/piece/[piece]`. Écrans `/admin/journal` (menu) et
+> `/admin/journal/[piece]` (détail) ; `PageHeader` reçoit `flush` (le `<main>` admin a déjà sa marge). Test :
+> `grand_livre/lecture.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

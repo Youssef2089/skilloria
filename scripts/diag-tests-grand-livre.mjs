@@ -74,7 +74,6 @@ const GEL = {
   cv_televerse: `${TS} — lib/profil/journal-profil.ts`,
   disponibilite_basculee: `${TS} — lib/profil/journal-profil.ts`,
   email_change: `${TS} — lib/comptes/journal-compte.ts`,
-  journal_nettoye: 'LÉGITIME : l\'écrivain est la RPC de nettoyage de l\'étape 4, pas encore écrite — son test arrive avec elle',
   mot_de_passe_change: `${TS} — lib/comptes/journal-compte.ts`,
   plafond_atteint: `${TS} — lib/ai-budget.ts`,
   profil_modifie: `${TS} — app/api/profile/route.ts`,

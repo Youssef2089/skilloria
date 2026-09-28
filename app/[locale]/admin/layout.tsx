@@ -130,6 +130,17 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
     </svg>
   ),
+  // Le grand livre — un REGISTRE : un livre relié, des lignes. Distinct de
+  // `chart` (comparer), `clock` (planifier), `link` (raccorder) : on y lit
+  // des écritures, dans l'ordre où elles ont eu lieu. `currentColor`, comme
+  // toutes (§E.54).
+  ledger: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z" />
+      <path d="M5 17a3 3 0 0 1 3-3h11" />
+      <path d="M9 8h6M9 11h4" />
+    </svg>
+  ),
 }
 
 /**
