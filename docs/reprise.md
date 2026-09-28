@@ -32,7 +32,14 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
-## ▶ LOT S — LE PUSH S'EST ARRÊTÉ À MI-CHEMIN SUR STAGING (28/09/2026), EN COURS
+## ⛔ ARRÊT 6 — LOT S FAIT (28/09/2026) : FINIR LE PUSH PROPREMENT.
+
+**Validations** : `tsc` 0 ; `next build` vert ; lint 65/25 ; parité 3 712 clés ; cliquet vert ; série `diag` **109 verts
+/ 0 rouge / 5 muets** (les mêmes). Rien n'a tourné sur une base. **Staging reste à moitié migré, ancien code en ligne** :
+jusqu'au déploiement, l'offre par défaut et l'ouverture du dépôt de candidature y échouent (ligne ㉒).
+**Prochaine action (Youssef)** : la séquence ci-dessous, de l'étape 0 — le `db push` reprend à `journal_annonce_publiee`.
+
+## ▶ LOT S — LE PUSH S'EST ARRÊTÉ À MI-CHEMIN SUR STAGING (28/09/2026)
 
 **L'état, lu dans `migration list` (Youssef)** : appliquées sur staging jusqu'à `20260925000190`
 (journal_recherche_abandonnee) — **GELÉES**. Arrêt sur `20260925000200_journal_annonce_publiee` : sa sonde a pris un
