@@ -322,7 +322,7 @@ export async function GET(request: NextRequest): Promise<Response> {
  * │ Il repasse UNE ligne de `'received'` à `'failed'`. Rien d'autre : il    │
  * │ ne rejoue pas l’événement, il ne touche à aucun droit, il n’écrit ni    │
  * │ abonnement ni transaction. Il REND la ligne réclamable par             │
- * │ `stripe_event_claim`, dont le `where se.status = 'failed'` est la       │
+ * │ `stripe_event_reclamer`, dont le `where se.status = 'failed'` est la    │
  * │ garde d’idempotence — elle reste intacte.                               │
  * └────────────────────────────────────────────────────────────────────────┘
  *

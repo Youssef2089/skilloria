@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 10).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026 (ARRÊT 11, en cours).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## Le mandat, en une phrase par étape
 
@@ -31,6 +31,18 @@
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 11 — LE MÉNAGE DU DÉPLOIEMENT, PUIS L'AUDIT DE LA PORTE D'INSCRIPTION (en cours, 28/09/2026)
+
+**Le grand livre est en ligne sur staging** : les 17 migrations de la phase B appliquées, le code déployé (Youssef).
+Tag local `sauvegarde-avant-menage` posé sur `90366d3` avant tout.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1.1 Retrait des anciennes signatures | **fait** | Migration `retrait_anciennes_signatures` : `stripe_event_claim(text, text, jsonb, boolean)` et `admin_cron_run_now(text, uuid)` supprimées (APRÈS le déploiement — il est fait). L'exception de `une_signature.test.sql` retirée. `ecritures_effectives.test.sql` appelait encore `stripe_event_claim` → `stripe_event_reclamer` (il aurait cassé). **Défaut trouvé dans l'outil** : le rejeu des migrations tient les fonctions par nom, et un `drop` de l'ancienne surcharge y effaçait la NOUVELLE `admin_cron_run_now` — corrigé (le `drop` ne retire que la signature de la dernière définition ; carte identique avant/après sur les 156 migrations). `diag-billing-fondations` : l'ancienne est retirée et personne ne l'appelle, la remplaçante est révoquée au navigateur. |
+| 1.2 La requête de staging | à faire | |
+| 1.3 Ce fichier | à faire | |
+| Étape 2 — l'audit de la porte d'inscription | à faire | lecture seule, puis arrêt |
 
 ## ⛔ ARRÊT 10 — LE REJEU LOCAL : 39 FICHIERS, 352 TESTS, 3 ÉCHECS — CORRIGÉS (28/09/2026)
 

@@ -339,11 +339,80 @@ export function rejouerMigrations() {
         `create\\s+(?:or\\s+replace\\s+)?(?:materialized\\s+)?(?:function|view)\\s+(?:"?public"?\\s*\\.\\s*)?"?${nom}"?`,
         'i',
       ).test(apres)
-      if (!recree) fonctions.delete(nom)
+      // ⚠️ LA CARTE EST TENUE PAR NOM, UNE SUPPRESSION VISE UNE SIGNATURE (28/09/2026).
+      //    §E.72 : la nouvelle signature naît dans une migration, l'ancienne part dans
+      //    celle du déploiement SUIVANT, sans recréation. Supprimer par le seul nom
+      //    effaçait alors la NOUVELLE : ses contrôles lisaient un corps vide et
+      //    rougissaient sur une fausse absence. On ne supprime que si la liste de types
+      //    du `drop` est celle de la dernière définition (ou si le `drop` n'en donne pas).
+      const typesDrop = argumentsApres(sqlAvecCorps, d.index + d[0].length)
+      const derniere = fonctions.get(nom)
+      const visee = typesDrop === null || !derniere
+        || memesTypes(typesDeSignature(argumentsApres(derniere.corps, derniere.corps.search(/\(/)) ?? ''), typesDeListe(typesDrop))
+      if (!recree && visee) fonctions.delete(nom)
     }
   }
 
   return { schema, mortes, fonctions }
+}
+
+/**
+ * Le texte entre la parenthèse ouvrante qui suit `i` (espaces sautés) et sa fermante —
+ * `null` s'il n'y en a pas (un `drop function f;` sans liste de types).
+ */
+function argumentsApres(texte, i) {
+  let k = i
+  while (k < texte.length && /\s/.test(texte[k])) k++
+  if (texte[k] !== '(') return null
+  let prof = 0
+  for (let j = k; j < texte.length; j++) {
+    if (texte[j] === '(') prof++
+    else if (texte[j] === ')' && --prof === 0) return texte.slice(k + 1, j)
+  }
+  return null
+}
+
+/** Découpe au premier niveau de parenthèses (un `numeric(10,2)` reste entier). */
+function decouper(texte) {
+  const parties = []
+  let prof = 0
+  let courant = ''
+  for (const ch of texte) {
+    if (ch === '(') prof++
+    if (ch === ')') prof--
+    if (ch === ',' && prof === 0) { parties.push(courant); courant = ''; continue }
+    courant += ch
+  }
+  if (courant.trim()) parties.push(courant)
+  return parties.map((p) => p.replace(/\s+/g, ' ').trim().toLowerCase()).filter(Boolean)
+}
+
+const ALIAS = [
+  [/\btimestamptz\b/g, 'timestamp with time zone'],
+  [/\bvarchar\b/g, 'character varying'],
+  [/\bint4?\b/g, 'integer'],
+  [/\bint8\b/g, 'bigint'],
+  [/\bbool\b/g, 'boolean'],
+  [/\bpublic\./g, ''],
+  [/"/g, ''],
+]
+const canonique = (t) => ALIAS.reduce((s, [a, b]) => s.replace(a, b), t).replace(/\s+/g, ' ').trim()
+
+/** Les paramètres d'une DÉFINITION : mode, défaut retirés ; les `out` ne font pas la signature. */
+function typesDeSignature(args) {
+  return decouper(args)
+    .map((p) => p.replace(/\s+(?:default\b|=)[\s\S]*$/, '').trim())
+    .filter((p) => !/^out\s/.test(p))
+    .map((p) => canonique(p.replace(/^(?:in|inout|variadic)\s+/, '')))
+}
+
+/** Les types d'un `drop function f(t1, t2)`. */
+const typesDeListe = (args) => decouper(args).map(canonique)
+
+/** Même arité, et chaque paramètre défini se termine par le type supprimé (le nom le précède). */
+function memesTypes(definis, supprimes) {
+  return definis.length === supprimes.length
+    && definis.every((p, i) => p === supprimes[i] || p.endsWith(' ' + supprimes[i]))
 }
 
 /** Compatibilite : l'appelant historique ne veut que le schema. */

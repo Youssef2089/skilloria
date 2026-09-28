@@ -60,7 +60,7 @@ export const maxDuration = 30
  * └────────────────────────────────────────────────────────────────────────┘
  *
  * ┌─ IDEMPOTENCE PAR CONTRAINTE DE BASE ────────────────────────────────────┐
- * │ `stripe_event_claim` est un unique INSERT ... ON CONFLICT dont la clé    │
+ * │ `stripe_event_reclamer` est un unique INSERT ... ON CONFLICT dont la clé │
  * │ primaire EST l'identifiant Stripe. Deux livraisons simultanées sont      │
  * │ sérialisées par le verrou de ligne de PostgreSQL. Aucune                 │
  * │ lecture-puis-écriture ici : elle aurait précisément le trou qu'on ferme. │
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     console.error(`[stripe:webhook] ${event.type} ${event.id} a échoué :`, message)
-    // 'failed' rend l'événement REJOUABLE par `stripe_event_claim` ; le 500
+    // 'failed' rend l'événement REJOUABLE par `stripe_event_reclamer` ; le 500
     // déclenche le réessai de Stripe. Les deux vont ensemble.
     await mark(admin, event.id, 'failed', message, null)
     return json({ error: 'Handler failed', code: 'handler_failed' }, 500)

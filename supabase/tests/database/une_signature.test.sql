@@ -16,13 +16,8 @@ create extension if not exists pgtap with schema extensions;
 select plan(2);
 
 create temp table exceptions_surcharge (nom name primary key, raison text not null check (raison <> ''));
--- LA PHASE B (28/09/2026), étape 1 de §E.72. La nouvelle signature (uuid, uuid, text, uuid, text, text) porte le
--- contexte du journal (migration journal_tache_lancee_a_la_main) ; l'ANCIENNE (text, uuid) reste parce que le code
--- EN LIGNE l'appelle jusqu'au déploiement de la phase B. Elle se retire par la migration du déploiement SUIVANT
--- (dette nommée, docs/reprise.md ARRÊT 8) — et alors cette ligne rougit (« n'est plus une surcharge ») : on la retire.
--- stripe_event_claim n'a pas d'exception : sa remplaçante porte un AUTRE nom (stripe_event_reclamer), pas une surcharge.
-insert into exceptions_surcharge values ('admin_cron_run_now',
-  'étape 1 de §E.72 : l''ancienne signature (text, uuid) est appelée par le code en ligne jusqu''au déploiement de la phase B ; retirée par la migration du déploiement suivant');
+-- (aucune au 28/09/2026 : la dernière, admin_cron_run_now(text, uuid), est partie avec la migration
+--  retrait_anciennes_signatures, le déploiement de la phase B fait — étape 3 de §E.72)
 -- insert into exceptions_surcharge values ('nom_de_fonction', 'étape 1 de §E.72 : l''ancienne signature reste jusqu''au déploiement de <lot>');
 
 create temp view surcharges as

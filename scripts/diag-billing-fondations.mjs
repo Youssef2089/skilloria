@@ -245,7 +245,11 @@ ok(
   "L'unicité doit être STRUCTURELLE, pas vérifiée applicativement.",
 )
 
-// Le corps de stripe_event_claim : un seul INSERT, aucun SELECT préalable.
+// L'ANCIENNE RÉCLAMATION, stripe_event_claim, EST RETIRÉE (migration retrait_anciennes_signatures,
+// étape 3 de §E.72) : ses propriétés — un seul INSERT, aucune lecture préalable, ON CONFLICT (id),
+// seul un échec rejouable — se vérifient sur sa remplaçante, plus bas. Ce qui suit lit encore le fichier
+// d'ORIGINE parce qu'il documente pourquoi ces propriétés existent ; le contrôle qui compte est celui
+// de la dernière définition (§E.34).
 const claimBody = (sql.match(
   /create\s+or\s+replace\s+function\s+public\.stripe_event_claim[\s\S]*?\$\$([\s\S]*?)\$\$\s*;/i,
 ) || [])[1]
@@ -296,9 +300,24 @@ ok(
   ok(/on\s+conflict\s*\(\s*id\s*\)\s+do\s+update/i.test(corps) && /where\s+se\.status\s*=\s*'failed'/i.test(corps),
      'stripe_event_reclamer : idempotence par ON CONFLICT (id), seul un échec se rejoue')
   ok(/piece\s*=\s*excluded\.piece/i.test(corps), 'stripe_event_reclamer : la pièce de la livraison est posée dans la même instruction')
+  const { migration: fichierReclamer } = rejouerMigrations().fonctions.get('stripe_event_reclamer') ?? {}
+  const sqlReclamer = fichierReclamer ? read(`supabase/migrations/${fichierReclamer}`) : ''
+  ok(/revoke\s+all\s+on\s+function\s+public\.stripe_event_reclamer\([^)]*\)\s+from\s+public,\s*anon,\s*authenticated/i.test(sqlReclamer)
+     && /grant\s+execute\s+on\s+function\s+public\.stripe_event_reclamer\([^)]*\)\s+to\s+service_role/i.test(sqlReclamer),
+     'stripe_event_reclamer : révoquée pour public/anon/authenticated, exécutable par service_role seulement')
+  // L'ANCIENNE EST PARTIE, ET PLUS PERSONNE NE L'APPELLE — un appel restant casserait au runtime (§E.1).
+  ok(!rejouerMigrations().fonctions.has('stripe_event_claim'),
+     'stripe_event_claim est retirée de la base (le rejeu des migrations ne la connaît plus)')
+  const tout = (d, o = []) => { for (const e of readdirSync(join(ROOT, d))) { const p = d + '/' + e; if (statSync(join(ROOT, p)).isDirectory()) tout(p, o); else o.push(p) } return o }
+  const appelants = [...tout('app'), ...tout('lib')].filter((p) => /\.tsx?$/.test(p))
+    .filter((p) => /rpc\(\s*['"]stripe_event_claim['"]/.test(read(p)))
+  const testsAppelants = tout('supabase/tests').filter((p) => /\.(sql|psql)$/.test(p))
+    .filter((p) => /public\.stripe_event_claim\s*\(/.test(read(p).replace(/--[^\n]*/g, '')))
+  ok(appelants.length === 0 && testsAppelants.length === 0, 'aucun code ni aucun test n’appelle encore stripe_event_claim',
+     [...appelants, ...testsAppelants].join(', ') || undefined)
 }
 
-for (const fn of ['stripe_event_claim', 'stripe_event_mark']) {
+for (const fn of ['stripe_event_mark']) {
   ok(
     new RegExp(`revoke\\s+all\\s+on\\s+function\\s+public\\.${fn}[\\s\\S]{0,160}?from\\s+public,\\s*anon,\\s*authenticated`, 'i').test(sql),
     `${fn} est révoquée pour public/anon/authenticated`,

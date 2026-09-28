@@ -45,7 +45,7 @@ begin
   return next ok(not public.solder_relance_expert(v_profil, now()), 'solder_relance_expert : rien de dû — la seconde écriture touche le profil, rend false');
 
   -- ── stripe_event_mark : l'événement réclamé puis clôturé ──
-  perform public.stripe_event_claim(v_evt, 'invoice.paid', '{}'::jsonb, false);
+  perform public.stripe_event_reclamer(v_evt, 'invoice.paid', '{}'::jsonb, false, gen_random_uuid());
   perform public.stripe_event_mark(v_evt, 'processed');
   return next ok(exists (select 1 from public.stripe_events e where e.id = v_evt and e.status = 'processed' and e.processed_at is not null),
                  'stripe_event_mark : l''événement réclamé est clôturé');

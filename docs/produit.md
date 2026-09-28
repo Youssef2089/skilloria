@@ -598,7 +598,7 @@ L'authentification est la **signature cryptographique** du corps.
 - Corps lu **brut** (`await request.text()`, **jamais** `.json()`) : la signature est un HMAC des
   **octets exacts**. Un JSON désérialisé puis re-sérialisé est un autre texte — c'est le piège n°1
   des webhooks Stripe, et il échoue de façon intermittente et incompréhensible.
-- **Idempotence par contrainte de base** : `stripe_event_claim()` est un `INSERT … ON CONFLICT` dont
+- **Idempotence par contrainte de base** : `stripe_event_reclamer()` (ex-`stripe_event_claim()`) est un `INSERT … ON CONFLICT` dont
   la clé primaire **est** l'identifiant Stripe. Deux livraisons simultanées sont sérialisées par le
   verrou de ligne PostgreSQL.
 - Un événement `livemode` arrivé sur un environnement hors production est **ignoré** (journalisé,

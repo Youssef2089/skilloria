@@ -40,7 +40,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * │   ... where package_source_event_at is null                              │
  * │        or package_source_event_at < <horodatage de l'événement>          │
  * │ Un seul statement, donc aucune course entre deux livraisons simultanées. │
- * │ Même principe que `stripe_event_claim` : on ne lit pas pour décider      │
+ * │ Même principe que `stripe_event_reclamer` : on ne lit pas pour décider   │
  * │ d'écrire, on laisse la base arbitrer.                                    │
  * └────────────────────────────────────────────────────────────────────────┘
  *

@@ -188,8 +188,8 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > `admin_cron_run_now(pièce, pièce d'origine, origine, acteur, type, tâche)` : même corps (verrou consultatif, commande
 > rejouée telle quelle, provenance marquée ou ligne manuelle posée), plus AD002 (administrateur vérifié en base), la
 > commande dans un SOUS-BLOC (échec écrit, cause SQLSTATE, issue `echoue`), la ligne (sujet dérivé du nom de la
-> tâche, `etait_active`). **L'ancienne signature `admin_cron_run_now(text, uuid)` reste jusqu'au déploiement
-> suivant** (§E.72) — dette nommée, sa suppression est une migration à part. `diag-cron-supervision` lit la fonction
+> tâche, `etait_active`). **L'ancienne signature `admin_cron_run_now(text, uuid)` est restée jusqu'au déploiement
+> de la phase B** (§E.72), puis **retirée par `retrait_anciennes_signatures`** (ci-dessous). `diag-cron-supervision` lit la fonction
 > dans sa DERNIÈRE définition. Test : `grand_livre/tache_lancee_a_la_main.test.sql`.
 > · `journal_taxonomie_modifiee` (2.2) — `taxonomie_modifiee` (administration) : les SIX routes de la taxonomie
 > (branches, spécialités : créée, modifiée, supprimée), une action, l'objet et l'opération en détail, les NOMS des champs
@@ -223,9 +223,9 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > vérification, dévoilement, sélection, messagerie, approbation/refus) reçoivent la pièce du contexte ouvert.
 > **Limites dites** : `expert-relance` et `match-retry` gardent une pièce PAR élément (chaque recherche est un
 > geste) — la pièce du passage ne relie pas leurs lignes ; un audit écrit hors de tout contexte de journal
-> (préférences, locale, planification des tâches…) reste sans pièce. **DETTES NOMMÉES (§E.72)** : `stripe_event_claim`
-> et l'ancienne `admin_cron_run_now(text, uuid)` sont appelées par le code EN LIGNE — leur suppression est une
-> migration du déploiement SUIVANT. Test : `grand_livre/piece_sous_journaux.test.sql`.
+> (préférences, locale, planification des tâches…) reste sans pièce. **Les deux dettes nommées (§E.72)** — `stripe_event_claim`
+> et l'ancienne `admin_cron_run_now(text, uuid)`, appelées par le code en ligne jusqu'au déploiement de la phase B — sont
+> **soldées** par `retrait_anciennes_signatures` (ci-dessous). Test : `grand_livre/piece_sous_journaux.test.sql`.
 > · `journal_lecture` (2.6) — **`lire_grand_livre()`** et **`lire_piece()`** : SECURITY DEFINER, fermées au navigateur,
 > AD002 pour tout autre qu'un administrateur ACTIF (la sécurité est en base) ; AUCUNE politique RLS sur `grand_livre`
 > (la postcondition le vérifie). Liste bornée à 200 lignes (défaut 50), curseur (horodatage, id) décroissant — servi
@@ -256,6 +256,17 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > efface.** Test :
 > `grand_livre/nettoyage.test.sql`. `diag-grand-livre` : « ni zéro » écrivain (strict, 71/71) et un seul poseur
 > du réglage de nettoyage.
+>
+> **`retrait_anciennes_signatures` (28/09/2026) — l'étape 3 de §E.72, la phase B déployée sur staging.** Supprime
+> `stripe_event_claim(text, text, jsonb, boolean)` et `admin_cron_run_now(text, uuid)` ; ne recrée rien, ne lit
+> aucune ligne. ORDRE : APRÈS le déploiement (passée avant, elle cassait le webhook et le lancement à la main).
+> Postcondition : les deux absentes, leurs remplaçantes présentes, `admin_cron_run_now` à UNE signature. Preuve :
+> `une_signature.test.sql` (plus aucune exception). `diag-billing-fondations` : l'ancienne réclamation est retirée
+> du rejeu et aucun code ni test ne l'appelle ; `stripe_event_reclamer` révoquée au navigateur. **Le rejeu des
+> migrations** (`scripts/lib/schema-migrations.mjs`) tient les fonctions par NOM : un `drop function f(types)` n'y
+> retire plus l'entrée que si ces types sont ceux de la DERNIÈRE définition — sans quoi supprimer l'ancienne
+> surcharge effaçait la nouvelle, et ses contrôles lisaient un corps vide (carte des 135 fonctions identique
+> avant/après la correction, mesuré).
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -1185,7 +1196,8 @@ Stripe n'a ni session, ni jeton, ni domaine, et l'authentification est la **sign
 > résolution d'invitation, désinscription, contact) ou valident le jeton elles-mêmes
 > (`init-session`, `logout`). Aucune n'accorde de droits — **c'est ce qui distingue le webhook**, et
 > c'est ce qu'il fallait écrire. Corps lu **brut** (`request.text()`, jamais `.json()`).
-Idempotence par contrainte de base : `stripe_event_claim()` est un `INSERT … ON CONFLICT` dont la clé
+Idempotence par contrainte de base : `stripe_event_reclamer()` (qui a remplacé `stripe_event_claim()`, retirée le
+28/09/2026, en y ajoutant la pièce) est un `INSERT … ON CONFLICT` dont la clé
 primaire est l'identifiant Stripe. Un événement `livemode` sur un environnement hors production est
 **ignoré** (journalisé, 200) — on ne fait pas échouer l'endpoint, Stripe le désactiverait.
 `applyPackageState()` écrit `package_id` / `package_valid_until` sur **`organizations`**.
@@ -3221,7 +3233,7 @@ sous-journal, FK intacte.
 > `package_valid_until` et `package_source_event_at`, compare en mémoire, puis écrit. C'est la
 > classe que cette section recense.
 >
-> **Ce qui le tient aujourd'hui est le verrou de réclamation** : `stripe_event_claim` sérialise les
+> **Ce qui le tient aujourd'hui est le verrou de réclamation** : `stripe_event_reclamer` (ex-`stripe_event_claim`) sérialise les
 > livraisons du même événement, et deux événements **différents** portent des horodatages
 > différents. La fenêtre est donc étroite — mais **elle n'est pas fermée par le schéma**, et c'est
 > la différence avec son voisin.
@@ -3242,7 +3254,7 @@ l'objet est créé **deux fois**.
 |---|---|
 | Deux modifications de profil simultanées : une relance perdue | `programmer_relance_expert()` / `solder_relance_expert()` — un seul `UPDATE … RETURNING`, `SECURITY DEFINER`, `service_role` seul. `solder` **ne solde que ce qui était dû** (`due_at <= debut_run`) : un déclenchement arrivé pendant le run n'est pas effacé. |
 | Transfert de l'offre par défaut en deux `UPDATE` : fenêtre où une cible n'a **aucune** offre par défaut, et une inscription tombant dedans ne reçoit rien | RPC `set_default_package()` — tout dans une seule transaction serveur. Étendue à la cible `collaboration` par `collaboration_default_coverage`. |
-| Deux livraisons du même événement Stripe : double crédit | `stripe_event_claim()` — `INSERT … ON CONFLICT DO UPDATE … WHERE status = 'failed'`, clé primaire = identifiant Stripe. Le verrou de ligne PostgreSQL sérialise. « Aucune lecture-puis-écriture ici : elle aurait précisément le trou qu'on ferme. » |
+| Deux livraisons du même événement Stripe : double crédit | `stripe_event_reclamer()` (ex-`stripe_event_claim()`, retirée le 28/09/2026) — `INSERT … ON CONFLICT DO UPDATE … WHERE status = 'failed'`, clé primaire = identifiant Stripe. Le verrou de ligne PostgreSQL sérialise. « Aucune lecture-puis-écriture ici : elle aurait précisément le trou qu'on ferme. » |
 | Deux synchros catalogue quasi simultanées : **deux** produits Stripe (le rattrapage par `products.search` ne voit pas le produit créé quelques secondes plus tôt — index différé ~1 min) | Clé d'idempotence **dérivée et stable** ([lib/billing/idempotence.ts](../lib/billing/idempotence.ts)). Un UUID aléatoire ou un horodatage redonnerait deux créations : aucune protection. |
 | Consommation d'un quota | `usage_increment()` — un seul `INSERT … ON CONFLICT DO UPDATE` sous garde de limite. |
 | Limitation de débit | `rate_limit_check()` — vérifie **et** enregistre atomiquement. Contrat : un refus **n'enregistre pas** le hit. |
