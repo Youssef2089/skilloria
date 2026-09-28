@@ -173,6 +173,11 @@ actions, clé étrangère du grand livre).
 > `organisation_personnelle_creee`) : le brouillon, sous DEUX noms comme la publication (la règle du nom, et le
 > précédent `annonce_publiee`/`sous_traitance_publiee`). Écrivain : `POST /api/publications`, journal après
 > écriture, `journal_error` avec l'identifiant écrit. Test : `grand_livre/annonce_creee.test.sql`.
+> · `journal_mission_ecartee` — `mission_ecartee` (candidature) et **`ecarter_mission()`** : l'expert (freelance, CDI,
+> collaboration) écarte une proposition du moteur ; la fonction lit le match du couple SOUS VERROU, vérifie EN BASE
+> que le profil est celui de l'acteur, écarte (EC001), journalise (`publication_id`, `publication_type`, `statut_de`) ;
+> `deja_ecartee` et `introuvable` n'écrivent rien. La route `dismiss` ne touche plus `matches`. Test :
+> `grand_livre/mission_ecartee.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

@@ -38,6 +38,8 @@ export const ACTIONS_JOURNAL = [
   'recherche_notifiee', 'recherche_terminee', 'recherche_echouee', 'recherche_abandonnee',
   // candidature
   'candidature_deposee', 'candidature_declinee', 'candidature_retenue', 'sous_traitance_candidature',
+  // l'expert écarte une proposition du moteur — écrite par ecarter_mission()
+  'mission_ecartee',
   // dévoilement
   'devoilement_ouvert', 'devoilement_ferme',
   // messagerie
@@ -103,6 +105,7 @@ export const CLES_DETAIL = {
   candidature_deposee: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   candidature_declinee: ['publication_id', 'has_reason'],
   candidature_retenue: ['publication_id', 'publication_type', 'profile_id'],
+  mission_ecartee: ['publication_id', 'publication_type', 'statut_de'],
   sous_traitance_candidature: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   devoilement_ouvert: ['publication_id', 'profile_id', 'conversation_id', 'auto', 'expires_at'],
   devoilement_ferme: ['publication_id', 'profile_id', 'unlocked_at', 'fin_echange'],
