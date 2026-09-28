@@ -62,6 +62,8 @@ export const ACTIONS_JOURNAL = [
   'reglage_modifie',
   // la promotion d'un compte créé pour l'administration — écrite par promouvoir_administrateur()
   'administrateur_cree',
+  // une tâche planifiée rejouée hors de son horaire — écrite par admin_cron_run_now()
+  'tache_lancee_a_la_main',
   // rgpd — les trois purges sont SÉPARÉES : elles ne se relisent pas de la même façon
   'inactivite_avertie', 'compte_purge_inactivite', 'compte_purge_demande', 'compte_purge_admin', 'ip_effacees',
   // journal — méta, à part : visible même quand on filtre l'administration
@@ -183,6 +185,7 @@ export const CLES_DETAIL = {
     'mode', 'synchronisees', 'synchronisees[]', 'refusees', 'refusees[]', 'en_echec', 'en_echec[]', 'cause',
   ],
   administrateur_cree: ['jour_zero', 'cause'],
+  tache_lancee_a_la_main: ['tache', 'etait_active', 'cause'],
   inactivite_avertie: ['echeance_purge', 'demande_email_id', 'cause'],
   // Les trois purges : UN écrivain (`anonymiser_compte()`), le code dérivé du motif, la même forme.
   compte_purge_inactivite: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],

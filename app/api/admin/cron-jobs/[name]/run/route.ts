@@ -3,6 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { cronJobAuditId } from '@/lib/admin/cron-audit-id'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -73,6 +74,8 @@ export async function POST(request: NextRequest, ctx: Ctx): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   const { name } = await ctx.params
   const jobName = decodeURIComponent(name ?? '')
@@ -103,9 +106,11 @@ export async function POST(request: NextRequest, ctx: Ctx): Promise<Response> {
   const job = ((overview ?? []) as OverviewRow[]).find((j) => j.job_name === jobName) ?? null
   if (!job) return json({ error: 'Job not found', code: 'not_found' }, 404)
 
+  // La NOUVELLE signature (phase B) : le lancement ET sa ligne `tache_lancee_a_la_main`,
+  // l'administrateur vérifié en base, l'échec de la commande écrit (issue 'echoue').
   const { data: result, error: runErr } = await auth.supabaseAdmin.rpc('admin_cron_run_now', {
+    ...parametresJournal(journal),
     p_job_name: jobName,
-    p_triggered_by: auth.user.id,
   })
 
   if (runErr) {
@@ -123,7 +128,12 @@ export async function POST(request: NextRequest, ctx: Ctx): Promise<Response> {
     return json({ error: 'Could not trigger', code: 'run_failed' }, 500)
   }
 
-  const row = ((result ?? []) as Array<{ started_at: string; logged_rows: number }>)[0] ?? null
+  const row = ((result ?? []) as Array<{ started_at: string; logged_rows: number; issue: 'reussi' | 'echoue' }>)[0] ?? null
+  if (row?.issue === 'echoue') {
+    // La commande a levé : ses effets sont annulés, la ligne échouée dit la cause.
+    console.error('[admin:cron-run] la commande de la tâche a échoué', { jobName })
+    return json({ error: 'Could not trigger', code: 'run_failed' }, 500)
+  }
 
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,

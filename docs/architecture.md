@@ -183,6 +183,13 @@ actions, clé étrangère du grand livre).
 > `non_coince` n'écrit rien. Sujet DÉRIVÉ (`identifiant_derive('stripe_event', id)`), l'identifiant Stripe dans le
 > détail ; le motif (texte libre) reste dans `stripe_events.error` et l'audit, jamais au grand livre.
 > `diag-billing-socle` lit la garde EN BASE. Test : `grand_livre/evenement_stripe_rouvert.test.sql`.
+> · `journal_tache_lancee_a_la_main` — `tache_lancee_a_la_main` (administration) et une **nouvelle signature**
+> `admin_cron_run_now(pièce, pièce d'origine, origine, acteur, type, tâche)` : même corps (verrou consultatif, commande
+> rejouée telle quelle, provenance marquée ou ligne manuelle posée), plus AD002 (administrateur vérifié en base), la
+> commande dans un SOUS-BLOC (échec écrit, cause SQLSTATE, issue `echoue`), la ligne (sujet dérivé du nom de la
+> tâche, `etait_active`). **L'ancienne signature `admin_cron_run_now(text, uuid)` reste jusqu'au déploiement
+> suivant** (§E.72) — dette nommée, sa suppression est une migration à part. `diag-cron-supervision` lit la fonction
+> dans sa DERNIÈRE définition. Test : `grand_livre/tache_lancee_a_la_main.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

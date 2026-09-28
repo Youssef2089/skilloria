@@ -44,6 +44,7 @@ import { readFileSync, readdirSync, mkdtempSync, writeFileSync, rmSync } from 'n
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { rejouerMigrations } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -510,21 +511,26 @@ section('E5. Execution manuelle')
 
 const MANUAL_SQL = migration('cron_manual_run')
 const manualSql = stripComments(read(MANUAL_SQL))
+// LA FONCTION, DANS SA DERNIÈRE DÉFINITION (§E.34) — la phase B (28/09/2026) l'a recréée sous
+// une nouvelle signature qui écrit tache_lancee_a_la_main. Ses propriétés se vérifient LÀ, pas
+// dans le fichier d'origine : un contrôle ancré sur l'ancien fichier resterait vert si la
+// nouvelle perdait son verrou. Le schéma (contrainte, vue d'historique) reste dans l'origine.
+const manualFn = rejouerMigrations().fonctions.get('admin_cron_run_now')?.corps ?? ''
 const runRoute = stripComments(read('app/api/admin/cron-jobs/[name]/run/route.ts'))
 const detailScreen2 = stripComments(read('app/[locale]/admin/taches-planifiees/[job_name]/page.tsx'))
 
 // ── VERROU CONSULTATIF, PAS UN DRAPEAU ──────────────────────────────────────
-ok(/pg_try_advisory_xact_lock\(hashtext\('cron_manual:' \|\| p_job_name\)\)/.test(manualSql),
+ok(/pg_try_advisory_xact_lock\(hashtext\('cron_manual:' \|\| p_job_name\)\)/.test(manualFn),
   'verrou CONSULTATIF de transaction',
   'un drapeau `is_running` en table resterait a true POUR TOUJOURS si le processus tombait')
-ok(!/is_running|running_since/.test(manualSql),
+ok(!/is_running|running_since/.test(manualSql + manualFn),
   'aucun drapeau d’execution en table')
-ok(/cron_already_running/.test(manualSql) && /already_running/.test(runRoute),
+ok(/cron_already_running/.test(manualFn) && /already_running/.test(runRoute),
   'verrou non obtenu → refus lisible, jamais une seconde execution')
 
 // ── ON REJOUE LA COMMANDE, ON NE LA REECRIT PAS ─────────────────────────────
-ok(/select j\.jobid, j\.command::text into v_jobid, v_command/.test(manualSql) &&
-   /execute v_command;/.test(manualSql),
+ok(/select j\.jobid, j\.command::text(, j\.active)? into v_jobid, v_command(, v_active)?/.test(manualFn) &&
+   /execute v_command;/.test(manualFn),
   'la fonction rejoue cron.job.command telle quelle',
   'redefinir « ce que fait cette tache » creerait une seconde definition qui divergerait')
 // La propriete qui rend `execute v_command` SUR : personne ne peut ecrire dans
@@ -546,7 +552,7 @@ ok(/confirm_run_disabled/.test(screen),
   'elle a pu etre arretee volontairement — l’execution manuelle passe outre')
 
 // ── PROVENANCE ──────────────────────────────────────────────────────────────
-ok(/trigger_source/.test(manualSql) && /triggered_by/.test(manualSql),
+ok(/set trigger_source = 'manual',\s*triggered_by\s*= p_acteur_id/.test(manualFn),
   'la provenance est enregistree (source + auteur)')
 ok(/check \(trigger_source in \('schedule', 'manual'\)\)/.test(manualSql),
   'trigger_source contrainte a schedule | manual')
@@ -555,7 +561,7 @@ ok(/check \(trigger_source in \('schedule', 'manual'\)\)/.test(manualSql),
 ok(/union all\n\s+select \* from manual/.test(manualSql),
   'l’historique UNIT executions planifiees et declenchements manuels',
   'pg_cron n’ecrit rien pour un run manuel : sans l’union, il serait invisible')
-ok(/if v_rows = 0 then\n\s+insert into public\.cron_run_log/.test(manualSql),
+ok(/if v_rows = 0 then\s+insert into public\.cron_run_log/.test(manualFn),
   'une tache SQL pure obtient quand meme une ligne de journal',
   'sans elle, son declenchement manuel ne laisserait aucune trace')
 ok(/r\.trigger_source === 'manual'/.test(detailScreen2) && /run_manual_by/.test(detailScreen2),
