@@ -156,6 +156,29 @@ from (values
      where n.nspname = 'public' and p.proname = 'handle_new_user'
        and p.prosrc ~* '\mspeciality_id\M\s*[,)]')),
 
+  -- ⑲ T.6 : les lignes DÉJÀ au grand livre sont-elles de vrais gestes, ou des restes de sonde ?
+  --    Un vrai `ip_effacees` vient de la tâche ip_retention_purge (04:20 UTC) : origine tâche, sujet
+  --    dérivé de la tâche, et SA ligne de journal de tâche à la même minute. Un vrai `reglage_modifie`
+  --    a pour auteur un administrateur qui existe. Toute autre ligne serait un reste — attendu : aucune
+  --    (les sondes du socle sont annulées ou attendent une erreur nommée, lu dans la migration).
+  (19, 'lignes du grand livre qui ne sont NI un passage réel de ip_retention_purge NI un réglage d''un admin existant', '0',
+   (select count(*)::text from public.grand_livre g
+     where not (
+             g.type_action = 'ip_effacees' and g.origine = 'tache_planifiee'
+         and g.sujet_id = public.identifiant_derive('cron_job', 'ip_retention_purge')
+         and exists (select 1 from public.cron_run_log l
+                      where l.job_name = 'ip_retention_purge'
+                        and l.requested_at between g.horodatage - interval '5 minutes' and g.horodatage + interval '5 minutes'))
+       and not (
+             g.type_action = 'reglage_modifie'
+         and exists (select 1 from public.users u where u.id = g.acteur_id and u.user_type = 'admin')))),
+
+  (20, 'les lignes du grand livre, par action et statut (lecture)', 'information : volume à noter',
+   (select coalesce(string_agg(x.k || ' × ' || x.n, ' · ' order by x.k), 'aucune')
+      from (select g.type_action || '/' || g.statut || ' (' || to_char(min(g.horodatage), 'DD/MM HH24:MI') || '→'
+                   || to_char(max(g.horodatage), 'DD/MM HH24:MI') || ')' as k, count(*)::text as n
+              from public.grand_livre g group by g.type_action, g.statut) x)),
+
   (18, 'profiles.speciality_id absente (supprimée le 01/09/2026)', '0',
    (select count(*)::text from information_schema.columns c
      where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id'))
