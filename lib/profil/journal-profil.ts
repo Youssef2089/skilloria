@@ -116,3 +116,23 @@ export async function disponibiliteBasculee(
     detail: { champ: args.champ, de: args.de, vers: args.vers },
   })
 }
+
+/**
+ * LE CV RÉINITIALISÉ — la remise à zéro COMPLÈTE : le fichier, tout ce que
+ * l'analyse avait rempli, les sous-tables, le consentement à l'analyse, et le
+ * profil repasse en brouillon hors-ligne. La ligne dit s'il QUITTE LA VITRINE
+ * (il était visible des organisations) et s'il portait un fichier — deux faits,
+ * aucune valeur du profil.
+ */
+export async function cvReinitialise(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string; retireDeLaVitrine: boolean; avaitUnFichier: boolean },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'cv_reinitialise',
+    statut: 'reussi',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: { retire_de_la_vitrine: args.retireDeLaVitrine, avait_un_fichier: args.avaitUnFichier },
+  })
+}

@@ -209,6 +209,9 @@ actions, clé étrangère du grand livre).
 > · `journal_identite_modifiee` (2.2) — `identite_modifiee` (compte) : prénom et nom par le titulaire ré-authentifié ;
 > les NOMS des champs, jamais les valeurs (une valeur survivrait à la purge). Écrivain : `lib/comptes/journal-compte.ts`.
 > Même test (les cinq populations).
+> · `journal_cv_reinitialise` (2.2) — `cv_reinitialise` (profil) : la remise à zéro complète du CV ; la ligne dit
+> `retire_de_la_vitrine` (visibilité LUE avant) et `avait_un_fichier`. Écrivain : `lib/profil/journal-profil.ts`.
+> Même test (freelance, CDI).
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

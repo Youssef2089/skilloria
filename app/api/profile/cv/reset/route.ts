@@ -1,6 +1,9 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { cvReinitialise } from '@/lib/profil/journal-profil'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -46,11 +49,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   const { supabaseAdmin, user } = auth
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // 1) Récupère le chemin du fichier AVANT de vider les colonnes.
   const { data: profile, error: fetchErr } = await supabaseAdmin
     .from('profiles')
-    .select('id, cv_file_path')
+    .select('id, cv_file_path, visible')
     .eq('user_id', user.id)
     .maybeSingle()
   // Une lecture de `profiles` en panne n'est pas un profil absent (§E.42) :
@@ -167,6 +172,20 @@ export async function POST(request: NextRequest): Promise<Response> {
       console.error(`[cv reset] ${table} delete failed`, delErr)
       return json({ error: 'Update failed', code: 'db_error' }, 500)
     }
+  }
+
+  // Le grand livre (§D.26, phase B) : le profil QUITTE la vitrine s'il y était —
+  // la ligne le dit, lu AVANT la remise à zéro.
+  try {
+    await cvReinitialise(supabaseAdmin, journal, {
+      profileId: profile.id,
+      retireDeLaVitrine: profile.visible === true,
+      avaitUnFichier: !!profile.cv_file_path,
+    })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[cv reset] grand livre en échec après écriture', { profileId: profile.id, message: err.message })
+    return json({ error: 'Journal failed', code: 'journal_error', profile_id: profile.id }, 500)
   }
 
   await logAudit({

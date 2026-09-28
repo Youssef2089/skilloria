@@ -57,7 +57,8 @@ Exception écrite dans `docs/architecture.md`. Un test pgTAP par voie, appel dir
 | 2.2 `ecosysteme_cree` — `POST /api/admin/ecosystemes` : la ligne sur les deux issues de la configuration (`configuration_creee`), sujet et écosystème = le nouvel écosystème, slug seulement. Écrivain `lib/ecosystemes/journal-ecosysteme.ts`. Test : +3 dans `rattachements.test.sql` | fait, non exécuté | `b9fa385` |
 | 2.2 `ecosysteme_modifie` — `[id]` PATCH, `[id]/visuel` POST et DELETE : l'opération en détail (`modification`, `activation`, `desactivation`, `visuel_depose`, `visuel_retire`) ; noms, clés, type — jamais une valeur. Trois preuves D ter. Test : +3 dans `rattachements.test.sql` | fait, non exécuté | `820b1e9` |
 | 2.2 `organisation_modifiee` — PATCH `me/organisation`, logo POST et DELETE : l'opération, les noms de champs, pas d'écosystème. Populations au test : client, cabinet, ESN, organisation personnelle d'un expert. Trois preuves D ter ; test +3 | fait, non exécuté | `71a0fb6` |
-| 2.2 `identite_modifiee` — PATCH `me/identity` : les noms des champs, jamais les valeurs ; `journal_error` si la ligne refuse. Test +2 (freelance, CDI, client, cabinet, administrateur ; la valeur refusée) | fait, non exécuté | ce commit |
+| 2.2 `identite_modifiee` — PATCH `me/identity` : les noms des champs, jamais les valeurs ; `journal_error` si la ligne refuse. Test +2 (freelance, CDI, client, cabinet, administrateur ; la valeur refusée) | fait, non exécuté | `2fafe64` |
+| 2.2 `cv_reinitialise` — POST `profile/cv/reset` : `visible` lu AVANT la remise à zéro → `retire_de_la_vitrine`, `avait_un_fichier` ; la ligne après toutes les écritures. Test +2. **2.2 complet : 71 actions** (56 + 7 gestes + `sous_traitance_creee` + `compte_cree` + 6 rattachements) ; la mesure des routes ne laisse plus que les SEPT exclusions de l'audit | fait, non exécuté | ce commit |
 
 ## ⛔ ARRÊT 7 — PHASE B, AUDIT RENDU (29/09/2026). DEUX DÉCISIONS AVANT LE CODE.
 

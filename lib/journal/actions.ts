@@ -33,6 +33,8 @@ export const ACTIONS_JOURNAL = [
   'annonce_creee', 'sous_traitance_creee',
   // profil
   'cv_televerse', 'profil_publie', 'profil_modifie', 'disponibilite_basculee',
+  // la remise à zéro complète du CV — lib/profil/journal-profil.ts
+  'cv_reinitialise',
   // recherche — une ligne par ÉTAPE de run, jamais par lot ni par profil (§D.26)
   'recherche_lancee', 'recherche_filtree', 'recherche_classee', 'recherche_correspondances',
   'recherche_notifiee', 'recherche_terminee', 'recherche_echouee', 'recherche_abandonnee',
@@ -108,6 +110,7 @@ export const CLES_DETAIL = {
   profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: ['champs', 'champs[]', 'blocs', 'blocs[]'],
   disponibilite_basculee: ['champ', 'de', 'vers'],
+  cv_reinitialise: ['retire_de_la_vitrine', 'avait_un_fichier'],
   recherche_lancee: ['tentative', 'tache'],
   recherche_filtree: ['eligibles', 'sans_matiere', 'a_noter', 'ecartes_deja_decline', 'ecartes_deja_postule', 'chargees'],
   recherche_classee: ['model', 'notes', 'reprises', 'lots_en_echec', 'arret', 'recherches', 'unites_source'],

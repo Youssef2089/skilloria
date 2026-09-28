@@ -7,10 +7,11 @@
 --   ecosysteme_modifie : l'administrateur — les champs, l'activation, le visuel déposé et retiré
 --   organisation_modifiee : l'administrateur d'organisation — client, cabinet, ESN, et l'organisation personnelle d'un expert
 --   identite_modifiee  : toutes les populations — expert freelance, CDI, client, cabinet, administrateur
+--   cv_reinitialise    : expert freelance, expert CDI
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(17);
+select plan(19);
 
 -- Une ligne telle que l'écrivain l'écrit : acteur l'administrateur (origine administrateur).
 create or replace function pg_temp.ecrire(p_piece uuid, p_code text, p_admin uuid, p_dom uuid, p_sujet_type text, p_sujet uuid, p_detail jsonb)
@@ -42,6 +43,7 @@ declare
   v_u     uuid[];
   v_t     text[];
   v_s     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
+  v_pf    uuid[];
   v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
 begin
   -- ── taxonomie_modifiee : une branche, puis une spécialité, créées comme les routes les créent ──
@@ -165,6 +167,26 @@ begin
                                  '{"champs":["first_name"],"first_name":"Sonde"}'::jsonb, null::uuid, null::numeric, null::text)$q$,
                                v_s[6], v_u[3], v_dom, v_u[3]),
                         'GL004', null, 'identite_modifiee : la VALEUR du prénom est refusée');
+
+  -- ── cv_reinitialise : un freelance qui quitte la vitrine ; un CDI qui n'y était pas (la route lit `visible` AVANT) ──
+  v_pf := array[pg_temp.fab_profil('expert'), pg_temp.fab_profil('cdi')];
+  perform public.journaliser(v_s[7], 'cv_reinitialise', 'reussi', 'utilisateur',
+                             (select p.user_id from public.profiles p where p.id = v_pf[1]), 'expert_freelance', v_dom,
+                             'profiles', v_pf[1], '{"retire_de_la_vitrine":true,"avait_un_fichier":true}'::jsonb,
+                             null::uuid, null::numeric, null::text);
+  perform public.journaliser(v_s[8], 'cv_reinitialise', 'reussi', 'utilisateur',
+                             (select p.user_id from public.profiles p where p.id = v_pf[2]), 'expert_cdi', v_dom,
+                             'profiles', v_pf[2], '{"retire_de_la_vitrine":false,"avait_un_fichier":false}'::jsonb,
+                             null::uuid, null::numeric, null::text);
+  return next ok(exists (select 1 from public.grand_livre g where g.piece = v_s[7] and g.type_action = 'cv_reinitialise'
+                           and (g.detail ->> 'retire_de_la_vitrine')::boolean and g.acteur_type = 'expert_freelance')
+                 and exists (select 1 from public.grand_livre g where g.piece = v_s[8] and g.acteur_type = 'expert_cdi'
+                           and not (g.detail ->> 'retire_de_la_vitrine')::boolean),
+                 'CV réinitialisé : le freelance quitte la vitrine, le CDI n''y était pas — la ligne le dit');
+  return next throws_ok(format($q$select public.journaliser(%L, 'cv_reinitialise', 'reussi', 'systeme', null::uuid, null::text, %L,
+                                 'profiles', %L, '{"retire_de_la_vitrine":true,"title":"Sonde"}'::jsonb, null::uuid, null::numeric, null::text)$q$,
+                               gen_random_uuid(), v_dom, v_pf[1]),
+                        'GL004', null, 'cv_reinitialise : une valeur du profil (le titre) est refusée');
 end $$;
 
 select * from pg_temp.essai();
