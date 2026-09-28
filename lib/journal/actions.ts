@@ -43,6 +43,8 @@ export const ACTIONS_JOURNAL = [
   // compte
   // la création d'un compte — écrite par handle_new_user, SEUL passage obligé (migration `journal_compte_cree`)
   'compte_cree',
+  // la preuve qu'une route d'inscription est passée — écrite par la route, sous la pièce de compte_cree
+  'expert_inscrit',
   'compte_valide', 'compte_refuse', 'compte_suspendu', 'compte_reactive', 'session_revoquee',
   'suppression_programmee', 'suppression_annulee', 'email_change', 'mot_de_passe_change', 'telephone_verifie',
   // organisation
@@ -101,6 +103,7 @@ export const CLES_DETAIL = {
   message_envoye: ['conversation_id', 'candidature_id'], // jamais le contenu, ni sa longueur
   // La voie est DÉCLARÉE par l'appelant (métadonnées d'inscription) — la preuve d'une route est sa propre ligne, même pièce.
   compte_cree: ['type_de_compte', 'voie_declaree'],
+  expert_inscrit: ['type_de_compte', 'cgu_version', 'cause', 'compte_nettoye'],
   compte_valide: ['has_reason', 'de'],
   compte_refuse: ['has_reason', 'de'],
   compte_suspendu: ['de', 'vers', 'type_de_compte'],

@@ -7,6 +7,8 @@ import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
 import { CGU_VERSION } from '@/lib/legal'
 import { nouvellePiece } from '@/lib/journal/piece'
+import { ouvrirContexte } from '@/lib/journal/contexte'
+import { expertInscrit } from '@/lib/comptes/journal-inscription'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -364,6 +366,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: signup.message, code: 'create_user_failed' }, 500)
   }
   const user_id = signup.userId
+  // Le contexte du geste : l'acteur est le compte qui vient de naître, dans l'écosystème résolu.
+  const typeDeCompte = input.role === 'cdi' ? 'expert_cdi' : 'expert_freelance'
+  const journal = ouvrirContexte({
+    origine: 'utilisateur',
+    acteur: { id: user_id, type: typeDeCompte },
+    ecosystemeId: domainId,
+    piece,
+  })
 
   // ── À partir d'ici : tout échec déclenche un CLEANUP ATOMIQUE (P8 : 2 étapes,
   //    profiles part en CASCADE avec public.users). ──────────────────────────
@@ -400,6 +410,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       entity_id: user_id,
       detail: { role: input.role },
     })
+    // La ligne de la ROUTE, sous la pièce de `compte_cree` (décision A). Dans le `try` :
+    // un journal qui refuse fait nettoyer le compte — pas de compte finalisé sans sa ligne.
+    await expertInscrit(supabaseAdmin, journal, { userId: user_id, typeDeCompte, issue: 'reussi', cguVersion: CGU_VERSION })
     await logSession({ supabaseAdmin, user_id, request })
 
     return json({ user_id }, 200)
@@ -409,6 +422,19 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Cleanup 2 étapes (P8) : public.users (CASCADE profiles) → auth.users.
     await atomicCleanup(supabaseAdmin, { userId: user_id })
+
+    // La ligne suit l'issue RÉELLE : le compte a existé (`compte_cree`), il n'existe plus.
+    // Jamais de re-throw ici (P3) : une ligne qui ne s'écrit pas se dit en console.
+    try {
+      await expertInscrit(supabaseAdmin, journal, {
+        userId: user_id,
+        typeDeCompte,
+        issue: 'echoue',
+        cause: err instanceof RegisterExpertError ? err.code : 'internal_error',
+      })
+    } catch (jErr) {
+      console.error('[register-expert] ligne d’échec NON écrite', jErr instanceof Error ? jErr.message : String(jErr))
+    }
 
     if (err instanceof RegisterExpertError) {
       return json({ error: err.userMessage, code: err.code }, err.statusCode)

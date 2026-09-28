@@ -150,6 +150,13 @@ actions, clé étrangère du grand livre).
 > fonction de taxonomie). Test : `supabase/tests/database/inscription/compte_cree.test.sql` — une voie par
 > assertion, l'appel direct sans pièce, IN006, la ligne annulée avec un refus, la règle de taxonomie.
 
+> **PHASE B, ÉTAPE 2 — LES ACTIONS NOUVELLES (28/09/2026), une migration par action, une ligne ici chacune.** Toutes
+> **AVANT** le déploiement (le code du même commit écrit l'action), toutes ne font qu'ajouter une ligne à la liste
+> fermée ; postcondition de STRUCTURE (§E.77), comportement prouvé par le test nommé.
+> · `journal_expert_inscrit` — `expert_inscrit` (compte) : la ligne de `register-expert`, sous la pièce de
+> `compte_cree` ; réussie (`type_de_compte`, `cgu_version`) ou échouée APRÈS nettoyage du compte (`cause`,
+> `compte_nettoye`). Écrivain : `lib/comptes/journal-inscription.ts`. Test : `grand_livre/inscriptions.test.sql`.
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **les treize fermées** (dont
