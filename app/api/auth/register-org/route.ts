@@ -5,6 +5,7 @@ import { logSession } from '@/lib/session-log'
 import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
+import { nouvellePiece } from '@/lib/journal/piece'
 import { CGU_VERSION } from '@/lib/legal'
 import {
   COLONNES_REGLE_NUMERO,
@@ -223,6 +224,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid input', code: validation.error }, 400)
   }
   const input = validation.input
+  // La pièce du geste naît à son entrée (§D.26) : elle voyage dans les métadonnées
+  // d'inscription jusqu'au trigger, puis sur la ligne de cette route.
+  const piece = nouvellePiece()
 
   // ── Vérif HMAC du phone_otp_token (B3.2) ─────────────────────────────────
   // Vonage Verify v2 ne propose pas de "GET status" post-completion : on
@@ -415,6 +419,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       lastname: input.last_name,
       role: metadataRoleFromOrgType(input.org_type),
       domain_slug: input.domain_slug,
+      // La pièce du geste et la voie DÉCLARÉE : le trigger écrit `compte_cree` sous cette
+      // pièce, et la ligne de cette route (`organisation_preinscrite`) la reprend (décision A).
+      piece,
+      voie: 'preinscription_organisation',
     },
   })
   if (!signup.ok) {

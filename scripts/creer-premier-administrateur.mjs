@@ -226,6 +226,9 @@ if (!role) {
 
 const TRIGGER_BRIDGE_ROLE = 'entreprise'
 
+// La piece du geste : le jour zero n'a pas d'acteur authentifiable, elle nait ici.
+const piece = randomUUID()
+
 console.log(`  … creation du compte ${email} sur l'ecosysteme « ${domaine.slug} »`)
 
 const { data: cree, error: errCreate } = await db.auth.admin.createUser({
@@ -239,6 +242,10 @@ const { data: cree, error: errCreate } = await db.auth.admin.createUser({
     domain_slug: domaine.slug,
     firstname: prenom,
     lastname: nom,
+    // La piece du geste et la voie DECLAREE (decision A, phase B) : le trigger ecrit
+    // `compte_cree` sous cette piece, la promotion (`administrateur_cree`) la reprend.
+    piece,
+    voie: 'administrateur',
   },
 })
 

@@ -138,6 +138,18 @@ actions, clé étrangère du grand livre).
 > inconnu lève IN001. Test : `supabase/tests/database/inscription/roles.test.sql` — les cinq rôles du code
 > (freelance, CDI, client, cabinet, ESN) et les refus, rien n'en reste.
 
+> **`journal_compte_cree` (28/09/2026, phase B, décision A) — TOUTE CRÉATION DE COMPTE ÉCRIT SA LIGNE.**
+> `handle_new_user` est recréée : elle écrit `compte_cree` par `journaliser()` dans la même transaction que le
+> miroir et le profil (l'exception à « jamais de trigger d'écriture » et sa raison : §D.26). La règle
+> branche/spécialité s'écrit **une fois**, `taxonomie_inscription_refus(domaine, branche, spécialité)` → `null` |
+> `invalid_branch` | `invalid_speciality`, appelée par le trigger **et** par `register-expert` (qui la recopiait).
+> Les métadonnées d'inscription portent désormais `piece` (la pièce du geste) et `voie` (déclarée :
+> `inscription_expert`, `preinscription_organisation`, `invitation`, `administrateur`) — posées par les deux routes
+> d'inscription, `create-admin`, le script du jour zéro et la page d'invitation. **IN006** (nouveau) : voie inconnue
+> ou incohérente avec le rôle, pièce qui n'est pas un uuid. **Ordre : AVANT le déploiement** (la route appelle la
+> fonction de taxonomie). Test : `supabase/tests/database/inscription/compte_cree.test.sql` — une voie par
+> assertion, l'appel direct sans pièce, IN006, la ligne annulée avec un refus, la règle de taxonomie.
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **les treize fermées** (dont
@@ -2957,6 +2969,24 @@ liste et un statut contraire à celui que le type impose (GL003), et passe le d�
 **écrit** une ligne métier passe par une **RPC métier + journal en un appel** : `regler_durees_place()`
 met à jour `duree_reglages` et journalise dans la même transaction — l'un sans l'autre est
 impossible. Détail de la chaîne et de ses raisons : **§C.20**.
+
+**L'exception nommée : `handle_new_user` écrit `compte_cree` (décision A de Youssef, 28/09/2026).** Un compte
+naît par cinq voies — l'inscription d'un expert, la préinscription d'une organisation, l'invitation d'un membre
+(`supabase.auth.signUp` **dans le navigateur**), la création d'un administrateur, et l'**appel direct** à l'API
+d'authentification avec la clé publique, qui ne passe par aucune de nos routes. Déplacer la page d'invitation côté
+serveur aurait laissé ce dernier sans trace. Le **seul** passage obligé de toute création est l'insertion dans
+`auth.users`, donc ce trigger : c'est lui qui écrit la ligne, et toute création de compte a **un** écrivain. Ce
+n'est pas le « trigger d'écriture » que le socle interdit — un trigger qui *déduit* une ligne d'une modification
+de table, loin du geste, sans pièce ; c'est la **fonction métier** de la création de compte (elle écrit le miroir
+et le profil) qui écrit sa ligne dans la même transaction, comme une RPC. **Une action, la voie en détail — la
+règle du nom l'a tranché** : les métadonnées sont écrites par l'appelant, donc le trigger ne SAIT pas par quelle
+voie un compte arrive ; une action par voie afficherait une déclaration comme un fait (§E.24). Le détail dit
+`voie_declaree` ; la **preuve** qu'une route est passée est la ligne que cette route écrit sous la **même pièce**
+(`expert_inscrit`, `organisation_preinscrite`, `administrateur_cree`) — un `compte_cree` sans ligne sœur est un
+compte né hors de nos routes. La pièce vient des métadonnées quand l'appelant l'y met (origine `utilisateur`,
+acteur le compte ; voie `administrateur` : origine `systeme`, sans acteur — l'administrateur qui agit est sur la
+promotion) ; sinon elle naît dans la fonction (origine `systeme`, acteur le compte). Un refus du trigger (IN001 à
+IN006) annule la ligne avec le compte : rien n'a changé.
 
 **Le verrou : revoke ET trigger.** Les privilèges par défaut sont **repris** à tous les rôles applicatifs
 (`service_role` ne garde que la lecture, pour l'écran) ; un UPDATE ou un DELETE lève **SQLSTATE GL001**,

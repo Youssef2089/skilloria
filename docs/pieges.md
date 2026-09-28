@@ -306,8 +306,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **139** migrations : **57 insertions vues, 45 analysées, 2208 valeurs confrontées** (mesuré le
-28/09/2026 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
+Sur les **140** migrations : **58 insertions vues, 46 analysées, 2212 valeurs confrontées** (mesuré le
+28/09/2026 — la 140ᵉ, `journal_compte_cree`, sème son action ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
 lignes existantes ; `inacheves_hors_annonces_expirees` ne fait que remplacer le corps d'une fonction

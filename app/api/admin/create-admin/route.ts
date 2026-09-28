@@ -8,6 +8,7 @@ import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 // Cleanup atomique : le MÊME que les deux routes d'inscription publiques.
 // `auth.admin.deleteUser` ne cascade pas sur public.users — cf. piège P3.
 import { atomicCleanup } from '@/lib/auth-signup'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { sendAdminInvitation } from '@/lib/admin/admin-invitation'
 
 export const runtime = 'nodejs'
@@ -130,6 +131,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   const reauthFail = requireReauth(request, auth.user.id)
   if (reauthFail) return reauthFail
 
+  // La pièce du geste naît à son entrée (§D.26) : elle voyage dans les métadonnées de
+  // création jusqu'au trigger (`compte_cree`), puis jusqu'à la promotion.
+  const journal = contexteDepuisAuth(auth)
+
   // Limitation de débit — mécanisme EXISTANT, pas un second. Clé IP : c'est un
   // signal FAIBLE (x-forwarded-for est falsifiable), mais il est ici en renfort
   // de deux gardes fortes, pas à leur place. Fail-open par conception.
@@ -225,6 +230,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       domain_slug: domainRow.slug,
       firstname: firstName,
       lastname: lastName,
+      // La pièce du geste et la voie DÉCLARÉE (décision A) : le trigger écrit `compte_cree`
+      // sous cette pièce, la promotion (`administrateur_cree`) la reprend.
+      piece: journal.piece,
+      voie: 'administrateur',
     },
   })
   if (createErr || !created?.user) {

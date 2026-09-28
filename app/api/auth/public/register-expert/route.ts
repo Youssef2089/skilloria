@@ -6,6 +6,7 @@ import { verifyPhoneOtpToken } from '@/lib/phone-otp-token'
 import { normalizeE164 } from '@/lib/phone'
 import { signUpWithConfirmation, atomicCleanup, isUniqueViolation } from '@/lib/auth-signup'
 import { CGU_VERSION } from '@/lib/legal'
+import { nouvellePiece } from '@/lib/journal/piece'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -230,6 +231,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid input', code: validation.error }, 400)
   }
   const input = validation.input
+  // La pièce du geste naît à son entrée (§D.26) : elle voyage dans les métadonnées
+  // d'inscription jusqu'au trigger, puis sur la ligne de cette route.
+  const piece = nouvellePiece()
 
   // ── Vérif HMAC du jeton OTP (sur le téléphone CANONIQUE) ─────────────────
   let otpVerify: ReturnType<typeof verifyPhoneOtpToken>
@@ -304,30 +308,26 @@ export async function POST(request: NextRequest): Promise<Response> {
   //    L’écosystème inconnu est désormais refusé au-dessus ; si l’on arrive
   //    ici sans lui, c’est que le slug ne désigne aucun écosystème ACTIF —
   //    et cela se refuse aussi.
-  if (input.branch_id) {
-    const { data: br } = await supabaseAdmin
-      .from('branches')
-      .select('id')
-      .eq('id', input.branch_id)
-      .eq('domain_id', domainId)
-      .eq('active', true)
-      .maybeSingle()
-    if (!br) {
-      return json({ error: 'Invalid branch', code: 'invalid_branch' }, 400)
-    }
+  //
+  // ⚠️ LA RÈGLE S'ÉCRIT UNE FOIS, EN BASE (phase B, 28/09/2026) : la même
+  //    fonction que le trigger `handle_new_user` appelle. Elle était recopiée
+  //    ici ; deux copies divergent (§E.20). Ici, elle rend un refus NOMMÉ
+  //    avant la création du compte ; là-bas, elle arrête l'appel direct qui
+  //    ne passe pas par cette route. Une lecture en panne ne laisse pas passer.
+  const { data: refusTaxonomie, error: taxonomieErr } = await supabaseAdmin.rpc('taxonomie_inscription_refus', {
+    p_domain_id: domainId,
+    p_branch_id: input.branch_id,
+    p_speciality_id: input.speciality_id,
+  })
+  if (taxonomieErr) {
+    console.error('[public/register-expert] taxonomie illisible', taxonomieErr.message)
+    return json({ error: 'Could not check the taxonomy', code: 'ecosystem_unavailable' }, 503)
   }
-
-  if (input.speciality_id && domainId) {
-    const { data: sp } = await supabaseAdmin
-      .from('specialities')
-      .select('id, branch_id')
-      .eq('id', input.speciality_id)
-      .eq('domain_id', domainId)
-      .eq('active', true)
-      .maybeSingle()
-    if (!sp || (input.branch_id && sp.branch_id !== input.branch_id)) {
-      return json({ error: 'Invalid speciality', code: 'invalid_speciality' }, 400)
-    }
+  if (refusTaxonomie === 'invalid_branch') {
+    return json({ error: 'Invalid branch', code: 'invalid_branch' }, 400)
+  }
+  if (refusTaxonomie === 'invalid_speciality') {
+    return json({ error: 'Invalid speciality', code: 'invalid_speciality' }, 400)
   }
 
   // ── Création auth.users via helper partagé (P1) ──────────────────────────
@@ -347,6 +347,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       speciality_other: input.speciality_other ?? '',
       role: input.role, // 'expert' | 'cdi' — accepté tel quel par le trigger
       domain_slug: input.domain_slug,
+      // La pièce du geste et la voie DÉCLARÉE : le trigger écrit `compte_cree` sous cette
+      // pièce, et la ligne de cette route (`expert_inscrit`) la reprend (décision A).
+      piece,
+      voie: 'inscription_expert',
     },
   })
   if (!signup.ok) {

@@ -149,6 +149,11 @@ export default function InvitationPage() {
             // A1 : rôle/domaine DÉRIVÉS de l'org, l'invité ne les choisit pas.
             role: view.data.signup_role,
             domain_slug: view.data.domain_slug ?? domain.subdomain,
+            // La pièce du geste et la voie DÉCLARÉE (décision A) : le trigger d'inscription
+            // écrit `compte_cree` sous cette pièce. Née ici, dans le navigateur — elle n'est
+            // qu'une déclaration, comme la voie ; l'acceptation écrira sa propre ligne.
+            piece: crypto.randomUUID(),
+            voie: 'invitation',
           },
         },
       })

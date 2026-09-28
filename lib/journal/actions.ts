@@ -41,6 +41,8 @@ export const ACTIONS_JOURNAL = [
   // messagerie
   'message_envoye',
   // compte
+  // la création d'un compte — écrite par handle_new_user, SEUL passage obligé (migration `journal_compte_cree`)
+  'compte_cree',
   'compte_valide', 'compte_refuse', 'compte_suspendu', 'compte_reactive', 'session_revoquee',
   'suppression_programmee', 'suppression_annulee', 'email_change', 'mot_de_passe_change', 'telephone_verifie',
   // organisation
@@ -97,6 +99,8 @@ export const CLES_DETAIL = {
   devoilement_ouvert: ['publication_id', 'profile_id', 'conversation_id', 'auto', 'expires_at'],
   devoilement_ferme: ['publication_id', 'profile_id', 'unlocked_at', 'fin_echange'],
   message_envoye: ['conversation_id', 'candidature_id'], // jamais le contenu, ni sa longueur
+  // La voie est DÉCLARÉE par l'appelant (métadonnées d'inscription) — la preuve d'une route est sa propre ligne, même pièce.
+  compte_cree: ['type_de_compte', 'voie_declaree'],
   compte_valide: ['has_reason', 'de'],
   compte_refuse: ['has_reason', 'de'],
   compte_suspendu: ['de', 'vers', 'type_de_compte'],
