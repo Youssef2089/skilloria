@@ -294,6 +294,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.72](docs/pieges.md#e72) | UNE SIGNATURE APPELÉE PAR LE CODE EN LIGNE NE SE SUPPRIME QU'AU DÉPLOIEMENT SUIVANT : ajout, déploiement, puis suppression — jamais les trois ensemble en production. |
 | [E.73](docs/pieges.md#e73) | UNE FONCTION DE TRIGGER QUI CITE UNE COLONNE SUPPRIMÉE PASSE LE LINT ET LE CONTRÔLE STATIQUE : quatre semaines sans inscription d'expert. |
 | [E.74](docs/pieges.md#e74) | UNE SOUS-REQUÊTE LIT L'INSTANTANÉ DU DÉBUT DE SON INSTRUCTION — et une écriture qui ne touche rien passe pour un succès. |
+| [E.75](docs/pieges.md#e75) | UN BLOC SE JUGE SUR SON PROPRE TEXTE : un bloc imbriqué prête ses qualités à son parent — la garde du bloc annulé ne mordait pas. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

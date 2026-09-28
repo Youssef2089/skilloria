@@ -3729,6 +3729,23 @@ dynamique.
 
 ---
 
+<a id="e75"></a>
+### E.75 — UN BLOC SE JUGE SUR SON PROPRE TEXTE : un bloc imbriqué prête ses qualités à son parent.
+
+**Le cas mesuré.** La garde « toute sonde qui écrit est dans un bloc ANNULÉ, ou attend une erreur nommée »
+(`diag-grand-livre`, point 2.3) était verte. Mutée le 28/09/2026 (T.6) — le `raise exception 'SONDE_ANNULEE'`
+de la sonde de `renvoyer_invitation` retiré, donc une sonde qui **laisse** ses écritures — elle est **restée
+verte**. La sonde contient un bloc **imbriqué** qui attend `GL005` ; la garde lisait tout le texte du bloc
+parent, y trouvait `exception when sqlstate 'GL005'`, et le classait « attend une erreur nommée ». Le même défaut
+jouait dans l'autre sens : un bloc imbriqué annulé faisait passer son parent pour annulé.
+**La parade** : chaque bloc se juge sur son **propre** texte, ses blocs imbriqués blanchis (positions
+conservées). Re-muté sur deux sondes : rouge, les deux fois. La garde n'a rien trouvé de réel en plus — les
+sondes étaient saines — mais **elle ne l'aurait pas vu**.
+**La leçon est celle de §E.33, une fois de plus** : un contrôle vert qu'on n'a pas muté est une affirmation.
+Celui-ci l'était depuis le 26/09/2026, et le rapport de 2.3 le disait « gardé ».
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est
