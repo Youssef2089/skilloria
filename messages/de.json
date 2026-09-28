@@ -1043,7 +1043,12 @@
       "error_title": "Überprüfungsfehler",
       "error_subtitle": "Der Link scheint ungültig oder abgelaufen zu sein.",
       "back_to_signup": "Zurück zur Registrierung",
-      "back_to_signin": "Anmelden"
+      "back_to_signin": "Anmelden",
+      "error_expired_title": "Dieser Link ist abgelaufen",
+      "error_expired_subtitle": "Dieser Bestätigungslink ist abgelaufen oder wurde bereits verwendet. Melden Sie sich an: Ist Ihre Adresse noch nicht bestätigt, können Sie einen neuen Link erhalten.",
+      "error_server_title": "Bestätigung derzeit nicht möglich",
+      "error_server_subtitle": "Ihre Adresse konnte aufgrund eines Problems auf unserer Seite nicht bestätigt werden. Versuchen Sie es in einigen Minuten erneut; bleibt das Problem, wenden Sie sich mit dem unten stehenden Code an den Support.",
+      "error_code": "Code: {code}"
     },
     "modal_setup": {
       "title": "Willkommen bei Skilloria!",

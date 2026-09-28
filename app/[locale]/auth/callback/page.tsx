@@ -25,7 +25,31 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
  *     `getSession()` retourne directement la session existante → redirect direct.
  *   - Aucune session (lien expiré, token invalide) : on affiche un état d'erreur
  *     avec 2 actions de récupération.
+ *   - GoTrue a REFUSÉ la confirmation (phase B, 28/09/2026) : il revient ici avec
+ *     `error` / `error_code` dans le fragment (flux implicite) ou la requête. Le
+ *     message dit CE QUI S'EST PASSÉ et quoi faire — jamais la page brute de
+ *     Supabase, jamais un « erreur » générique quand on sait la cause :
+ *       · lien expiré ou déjà servi (`otp_expired`) → se reconnecter ;
+ *       · refus de NOTRE côté (`unexpected_failure`, `server_error` — depuis la
+ *         phase B, le trigger `handle_email_confirmed` LÈVE s'il ne trouve pas le
+ *         compte, EC001) → réessayer plus tard, contacter le support AVEC le code ;
+ *       · autre refus → le lien est invalide.
  */
+
+/** Ce que GoTrue a dit en revenant ici — lu dans le fragment ET la requête. */
+type CauseEchec = { type: 'expire' | 'serveur' | 'invalide'; code: string | null }
+
+function lireCauseEchec(): CauseEchec | null {
+  if (typeof window === 'undefined') return null
+  const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  const requete = new URLSearchParams(window.location.search)
+  const erreur = params.get('error') ?? requete.get('error')
+  const code = params.get('error_code') ?? requete.get('error_code')
+  if (!erreur && !code) return null
+  if (code === 'otp_expired') return { type: 'expire', code }
+  if (erreur === 'server_error' || code === 'unexpected_failure') return { type: 'serveur', code: code ?? erreur }
+  return { type: 'invalide', code: code ?? erreur }
+}
 export default function AuthCallbackPage() {
   const router = useRouter()
   const domain = useDomain()
@@ -33,6 +57,7 @@ export default function AuthCallbackPage() {
 
   const [redirectUrl, setRedirectUrl] = useState<string | null>(null)
   const [hasError, setHasError] = useState(false)
+  const [cause, setCause] = useState<CauseEchec | null>(null)
 
   /**
    * POURQUOI CET ÉCRAN NE PEUT PAS SE FIGER — propriété à ne pas perdre.
@@ -60,6 +85,15 @@ export default function AuthCallbackPage() {
 
     async function run() {
       try {
+        // GoTrue a refusé la confirmation : on le dit, avec sa cause, sans chercher de session.
+        const echec = lireCauseEchec()
+        if (echec) {
+          if (!cancelled) {
+            setCause(echec)
+            setHasError(true)
+          }
+          return
+        }
         const { data: sessionData, error: sessionErr } = await supabase.auth.getSession()
         if (cancelled) return
 
@@ -247,7 +281,9 @@ export default function AuthCallbackPage() {
             <h1
               style={{ fontSize: 20, fontWeight: 800, color: 'var(--sk-text)', marginBottom: 8 }}
             >
-              {t('error_title')}
+              {cause?.type === 'expire' ? t('error_expired_title')
+                : cause?.type === 'serveur' ? t('error_server_title')
+                : t('error_title')}
             </h1>
             <p
               style={{
@@ -257,8 +293,15 @@ export default function AuthCallbackPage() {
                 marginBottom: 28,
               }}
             >
-              {t('error_subtitle')}
+              {cause?.type === 'expire' ? t('error_expired_subtitle')
+                : cause?.type === 'serveur' ? t('error_server_subtitle')
+                : t('error_subtitle')}
             </p>
+            {cause?.code && (
+              <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: -16, marginBottom: 24 }}>
+                {t('error_code', { code: cause.code })}
+              </p>
+            )}
 
             <button
               onClick={() => router.push('/inscription')}

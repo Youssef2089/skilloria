@@ -1043,7 +1043,12 @@
       "error_title": "Verification error",
       "error_subtitle": "The link looks invalid or expired.",
       "back_to_signup": "Back to sign up",
-      "back_to_signin": "Sign in"
+      "back_to_signin": "Sign in",
+      "error_expired_title": "This link has expired",
+      "error_expired_subtitle": "This confirmation link has expired or has already been used. Sign in: if your address is not confirmed yet, you can get a new link.",
+      "error_server_title": "Confirmation not possible right now",
+      "error_server_subtitle": "Your address could not be confirmed because of a problem on our side. Try again in a few minutes; if it persists, contact support and quote the code below.",
+      "error_code": "Code: {code}"
     },
     "modal_setup": {
       "title": "Welcome to Skilloria!",

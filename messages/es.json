@@ -1043,7 +1043,12 @@
       "error_title": "Error de verificación",
       "error_subtitle": "El enlace parece no válido o ha caducado.",
       "back_to_signup": "Volver al registro",
-      "back_to_signin": "Iniciar sesión"
+      "back_to_signin": "Iniciar sesión",
+      "error_expired_title": "Este enlace ha caducado",
+      "error_expired_subtitle": "Este enlace de confirmación ha caducado o ya se ha usado. Inicie sesión: si su dirección aún no está confirmada, podrá recibir un nuevo enlace.",
+      "error_server_title": "No es posible confirmar por ahora",
+      "error_server_subtitle": "Su dirección no se ha podido confirmar por un problema de nuestra parte. Inténtelo de nuevo en unos minutos; si persiste, contacte con soporte indicando el código de abajo.",
+      "error_code": "Código: {code}"
     },
     "modal_setup": {
       "title": "¡Bienvenido a Skilloria!",

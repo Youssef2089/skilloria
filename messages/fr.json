@@ -1043,7 +1043,12 @@
       "error_title": "Erreur de vérification",
       "error_subtitle": "Le lien semble invalide ou expiré.",
       "back_to_signup": "Retour à l'inscription",
-      "back_to_signin": "Se connecter"
+      "back_to_signin": "Se connecter",
+      "error_expired_title": "Ce lien a expiré",
+      "error_expired_subtitle": "Ce lien de confirmation a expiré ou a déjà servi. Connectez-vous : si votre adresse n’est pas encore confirmée, vous pourrez recevoir un nouveau lien.",
+      "error_server_title": "Confirmation impossible pour le moment",
+      "error_server_subtitle": "Votre adresse n’a pas pu être confirmée à cause d’un problème de notre côté. Réessayez dans quelques minutes ; si cela persiste, contactez le support en indiquant le code ci-dessous.",
+      "error_code": "Code : {code}"
     },
     "modal_setup": {
       "title": "Bienvenue sur Skilloria !",
