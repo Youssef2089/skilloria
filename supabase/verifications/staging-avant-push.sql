@@ -12,8 +12,11 @@
 --    ÉCART   — on S'ARRÊTE avant le push, et on lit la ligne.
 --    À LIRE  — un volume, sans bonne ou mauvaise valeur : on le note.
 --
---  Écrite pour l'état AVANT push : elle ne cite aucune colonne ni aucune table
---  que le lot crée (elle les cherche dans le catalogue), sinon elle lèverait.
+--  Écrite pour l'état DU PUSH INTERROMPU (28/09/2026) : les migrations jusqu'à
+--  journal_recherche_abandonnee sont appliquées, les 29 suivantes non. Elle ne
+--  cite aucune colonne ni aucune table que le reste du lot crée (elle les cherche
+--  dans le catalogue), sinon elle lèverait. Lignes mises à jour ce jour-là : ②, ⑦,
+--  ⑨ ; ajoutées : ㉑, ㉒, ㉓.
 --  Le secret du Vault est compté par son NOM ; sa valeur n'est pas lue.
 -- ─────────────────────────────────────────────────────────────────────────────
 
@@ -34,10 +37,11 @@ from (values
        group by g.piece, g.type_action, coalesce(g.sujet_id, '00000000-0000-0000-0000-000000000000'::uuid)
       having count(*) > 1) d)),
 
-  -- ② `create unique index IF NOT EXISTS` saute EN SILENCE si le nom est déjà pris (§E.60).
-  (2, 'nom grand_livre_une_fois_idx déjà pris (la création serait sautée, §E.60)', '0',
-   (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
-     where n.nspname = 'public' and c.relname = 'grand_livre_une_fois_idx')),
+  -- ② L'index d'unicité EXISTE : posé par liste_blanche_par_action, APPLIQUÉE le 28/09/2026. Unique, et sur
+  --    trois attributs — un nom pris par autre chose l'aurait fait sauter en silence (§E.60).
+  (2, 'grand_livre_une_fois_idx existe, UNIQUE (appliqué avec liste_blanche_par_action)', '1',
+   (select count(*)::text from pg_index i join pg_class c on c.oid = i.indexrelid join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relname = 'grand_livre_une_fois_idx' and i.indisunique)),
 
   -- ③ §E.69 : le paiement fait `on conflict (stripe_invoice_id) where stripe_invoice_id is not null` —
   --    il exige un index unique PARTIEL, avec ce prédicat.
@@ -60,23 +64,21 @@ from (values
   (6, 'tâche constats_trigger pas encore planifiée', '0',
    (select count(*)::text from cron.job j where j.jobname = 'constats_trigger')),
 
-  -- ⑦ Ce que le lot AJOUTE ne doit pas exister déjà (une colonne posée à la main aurait un autre type).
-  (7, 'colonnes du lot absentes (cles_detail, candidature_depots.piece, expiration_constatee_at, fermeture_constatee_at)', '0',
+  -- ⑦ Ce que le RESTE du lot ajoute ne doit pas exister déjà (une colonne posée à la main aurait un autre type).
+  --    `cles_detail` et `candidature_depots.piece` sont appliquées : voir ㉑.
+  (7, 'colonnes du reste du lot absentes (expiration_constatee_at, fermeture_constatee_at)', '0',
    (select count(*)::text from information_schema.columns c
      where c.table_schema = 'public'
-       and (c.table_name, c.column_name) in (('grand_livre_actions', 'cles_detail'), ('candidature_depots', 'piece'),
-                                             ('publications', 'expiration_constatee_at'), ('candidatures', 'fermeture_constatee_at')))),
+       and (c.table_name, c.column_name) in (('publications', 'expiration_constatee_at'), ('candidatures', 'fermeture_constatee_at')))),
 
   (8, 'table constats_mise_en_service absente', '0',
    (select count(*)::text from pg_class c join pg_namespace n on n.oid = c.relnamespace
      where n.nspname = 'public' and c.relname = 'constats_mise_en_service')),
 
-  -- ⑨ Les quatre signatures que le push SUPPRIME (§E.72) : présentes aujourd'hui, appelées par le code
-  --    en ligne jusqu'au déploiement — d'où « push PUIS déploiement immédiat ».
-  (9, 'anciennes signatures présentes (supprimées par le push : set_default_package, ouvrir_depot, programmer_suppression, maj_membre)', '4',
+  -- ⑨ Les deux anciennes signatures que le RESTE du push supprime (§E.72) : présentes aujourd'hui, appelées
+  --    par le code en ligne jusqu'au déploiement. Les deux autres sont déjà parties : voir ㉒.
+  (9, 'anciennes signatures encore présentes (supprimées par le reste du push : programmer_suppression, maj_membre)', '2',
    (select count(*)::text from unnest(array[
-      'public.set_default_package(uuid)',
-      'public.ouvrir_depot_candidature(uuid, uuid, uuid, text)',
       'public.programmer_suppression_compte(uuid, timestamptz)',
       'public.maj_membre_organisation(uuid, character varying, character varying, boolean)']) s
      where to_regprocedure(s) is not null)),
@@ -181,7 +183,27 @@ from (values
 
   (18, 'profiles.speciality_id absente (supprimée le 01/09/2026)', '0',
    (select count(*)::text from information_schema.columns c
-     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id'))
+     where c.table_schema = 'public' and c.table_name = 'profiles' and c.column_name = 'speciality_id')),
+
+  -- ㉑ La moitié appliquée est bien là : les deux colonnes posées par les migrations appliquées.
+  (21, 'colonnes déjà appliquées présentes (grand_livre_actions.cles_detail, candidature_depots.piece)', '2',
+   (select count(*)::text from information_schema.columns c
+     where c.table_schema = 'public'
+       and (c.table_name, c.column_name) in (('grand_livre_actions', 'cles_detail'), ('candidature_depots', 'piece')))),
+
+  -- ㉒ Les deux anciennes signatures retirées par les migrations appliquées sont ABSENTES. Tant que le code
+  --    n'est pas déployé, les gestes qui les appelaient (offre par défaut, ouverture du dépôt) ÉCHOUENT sur
+  --    staging — c'est la fenêtre de §E.72, ouverte depuis l'arrêt du push.
+  (22, 'anciennes signatures déjà retirées (set_default_package(uuid), ouvrir_depot_candidature à 4 arguments) absentes', '0',
+   (select count(*)::text from unnest(array[
+      'public.set_default_package(uuid)',
+      'public.ouvrir_depot_candidature(uuid, uuid, uuid, text)']) s
+     where to_regprocedure(s) is not null)),
+
+  -- ㉓ La fonction unique exiger_ecriture (EC001) est appliquée — les migrations suivantes l'appellent.
+  (23, 'exiger_ecriture(bigint, text, bigint) présente (appliquée avec liste_blanche_par_action)', '1',
+   (select count(*)::text from unnest(array['public.exiger_ecriture(bigint, text, bigint)']) s
+     where to_regprocedure(s) is not null))
 
 ) as v(ordre, verification, attendu, observe)
 order by v.ordre;
