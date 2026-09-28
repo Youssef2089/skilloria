@@ -56,6 +56,8 @@ export const ACTIONS_JOURNAL = [
   'membre_retire', 'membre_parti', 'role_membre_change',
   // commerce
   'paiement_recu', 'plafond_atteint',
+  // un événement de paiement coincé, rouvert à la main — écrit par rouvrir_evenement_stripe()
+  'evenement_stripe_rouvert',
   // administration
   'reglage_modifie',
   // la promotion d'un compte créé pour l'administration — écrite par promouvoir_administrateur()
@@ -139,6 +141,8 @@ export const CLES_DETAIL = {
     'periode', 'periode_debut', 'periode_fin',
   ],
   plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd', 'mois'],
+  // Jamais le motif (texte libre) : il vit dans stripe_events.error et l'audit.
+  evenement_stripe_rouvert: ['stripe_event_id', 'type_evenement', 'recu_le', 'organization_id'],
   // L'union des familles de réglages — chaque route n'en remplit qu'une, la
   // base refuse le reste (migration `journal_reglages`).
   reglage_modifie: [

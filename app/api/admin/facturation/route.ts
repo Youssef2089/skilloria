@@ -22,6 +22,7 @@ import {
 import { etatRaccordement } from '@/lib/stripe-exploitation/raccordement'
 import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
 import { logAudit } from '@/lib/audit'
+import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { lireAbonnements, lireEndpoints } from '@/lib/stripe-exploitation/lecture-stripe'
 
 export const runtime = 'nodejs'
@@ -364,6 +365,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   let corps: { evenement_id?: unknown; motif?: unknown }
   try {
@@ -389,14 +392,16 @@ export async function POST(request: NextRequest): Promise<Response> {
   //    Les trois conditions sont portées par l'UPDATE lui-même : la ligne est
   //    encore en `'received'`, et elle l'est depuis plus longtemps que le
   //    plafond de durée du webhook ne le permet.
+  //    L'UPDATE vit dans `rouvrir_evenement_stripe()` (phase B) : la
+  //    réouverture et sa ligne `evenement_stripe_rouvert`, même transaction.
+  //    Le motif va dans `stripe_events.error` et l'audit, jamais au grand livre.
   const limite = new Date(Date.now() - MINUTES_AVANT_COINCE * 60_000).toISOString()
-  const { data: rouvertes, error: majErr } = await auth.supabaseAdmin
-    .from('stripe_events')
-    .update({ status: 'failed', error: `rouvert manuellement — ${motif}` })
-    .eq('id', evenementId)
-    .eq('status', 'received')
-    .lt('received_at', limite)
-    .select('id, type, received_at')
+  const { data: reouverture, error: majErr } = await auth.supabaseAdmin.rpc('rouvrir_evenement_stripe', {
+    ...parametresJournal(journal),
+    p_evenement_id: evenementId,
+    p_motif: motif,
+    p_limite: limite,
+  })
 
   if (majErr) {
     console.error('[admin:facturation] réouverture en panne', { evenementId, message: majErr.message })
@@ -407,14 +412,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   // Zéro ligne : la ligne n’est plus coincée — déjà clôturée, ou trop récente.
   // Ce n’est PAS une erreur, et ce n’est pas un succès : on le dit.
-  if (!rouvertes || rouvertes.length === 0) {
+  const issue = reouverture as { issue: 'rouvert' | 'non_coince'; type?: string; recu_le?: string } | null
+  if (!issue || issue.issue !== 'rouvert') {
     return json(
       { error: 'Event is not stuck (any more)', code: 'evenement_non_coince' },
       409,
     )
   }
 
-  const ligne = rouvertes[0] as { id: string; type: string; received_at: string }
+  const ligne = { id: evenementId, type: issue.type ?? '', received_at: issue.recu_le ?? '' }
   await logAudit({
     supabaseAdmin: auth.supabaseAdmin,
     user_id: auth.user.id,

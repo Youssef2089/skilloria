@@ -178,6 +178,11 @@ actions, clé étrangère du grand livre).
 > que le profil est celui de l'acteur, écarte (EC001), journalise (`publication_id`, `publication_type`, `statut_de`) ;
 > `deja_ecartee` et `introuvable` n'écrivent rien. La route `dismiss` ne touche plus `matches`. Test :
 > `grand_livre/mission_ecartee.test.sql`.
+> · `journal_evenement_stripe_rouvert` — `evenement_stripe_rouvert` (commerce) et **`rouvrir_evenement_stripe()`** :
+> la réouverture d'un événement de paiement coincé (garde DANS le `WHERE`, §E.31) et sa ligne, même transaction ;
+> `non_coince` n'écrit rien. Sujet DÉRIVÉ (`identifiant_derive('stripe_event', id)`), l'identifiant Stripe dans le
+> détail ; le motif (texte libre) reste dans `stripe_events.error` et l'audit, jamais au grand livre.
+> `diag-billing-socle` lit la garde EN BASE. Test : `grand_livre/evenement_stripe_rouvert.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

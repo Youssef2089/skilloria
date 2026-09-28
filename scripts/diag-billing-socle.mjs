@@ -68,6 +68,7 @@ import { readFileSync, existsSync, statSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { definitionsSql, rpcQuiEcrivent } from './lib/ecriture-par-rpc.mjs'
+import { rejouerMigrations } from './lib/schema-migrations.mjs'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 /**
@@ -820,11 +821,15 @@ for (const colonne of colonnesConflit) {
 
 // ④ LE BOUTON LUI-MEME : la garde est dans le WHERE, et le motif est exige.
 const routeFacturation = stripJs(read('app/api/admin/facturation/route.ts'))
+// La réouverture vit en base depuis la phase B (28/09/2026) : rouvrir_evenement_stripe()
+// porte les trois conditions dans son WHERE ET écrit evenement_stripe_rouvert dans la même
+// transaction. Lue dans sa DERNIÈRE définition (§E.34) ; la route doit l'appeler.
+const reouvertureSql = rejouerMigrations().fonctions.get('rouvrir_evenement_stripe')?.corps ?? ''
 ok(
-  /\.update\(\{\s*status:\s*'failed'[\s\S]{0,400}?\.eq\('status',\s*'received'\)[\s\S]{0,200}?\.lt\('received_at'/.test(
-    routeFacturation,
-  ),
-  'la reouverture porte ses trois conditions dans le WHERE, pas dans une lecture prealable',
+  /update public\.stripe_events e\s*set status = 'failed',[\s\S]{0,200}?where e\.id = p_evenement_id\s*and e\.status = 'received'\s*and e\.received_at < p_limite/.test(reouvertureSql)
+    && /\.rpc\('rouvrir_evenement_stripe', \{[\s\S]{0,200}?p_evenement_id: evenementId,[\s\S]{0,120}?p_limite: limite,/.test(routeFacturation)
+    && !/\.from\('stripe_events'\)\s*\.update\(/.test(routeFacturation),
+  'la reouverture porte ses trois conditions dans le WHERE (en base), pas dans une lecture prealable — et la route passe par la fonction',
   'lire puis ecrire laisse une fenetre ou le processus d origine cloture entre les deux',
 )
 ok(
