@@ -84,7 +84,8 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 
 **Journal des transactions (§D.26)** — `grand_livre` (le grand livre, en **ajout seul** : aucun rôle
 applicatif n'y écrit, seule `journaliser()` insère), `grand_livre_actions` (la **liste fermée** des
-actions, clé étrangère du grand livre).
+actions, clé étrangère du grand livre), `grand_livre_conservation` (par famille : la conservation réglée par
+l'administrateur et le PLANCHER légal posé par migration — le nettoyage, phase B 2.7).
 
 **Marketing / contenu — CRÉÉES PAR LA BASELINE, ET JAMAIS TOUCHÉES PAR LE CODE.**
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
@@ -236,6 +237,20 @@ actions, clé étrangère du grand livre).
 > `journal_illisible` sur panne) et `GET /api/admin/journal/piece/[piece]`. Écrans `/admin/journal` (menu) et
 > `/admin/journal/[piece]` (détail) ; `PageHeader` reçoit `flush` (le `<main>` admin a déjà sa marge). Test :
 > `grand_livre/lecture.test.sql`.
+> · `journal_nettoyage` (2.7) — **le seul chemin de suppression.** `grand_livre_conservation` (une ligne par famille :
+> la conservation réglée par l'administrateur, le PLANCHER légal posé par migration — NULL « à arbitrer » bloque le
+> réglage et le nettoyage, 0 « aucun plancher », la famille `journal` jamais nettoyée, par contrainte).
+> `regler_conservation_journal()` (AD002 ; refus nommés `plancher_a_arbitrer`, `sous_le_plancher`,
+> `journal_conserve`, `famille_inconnue` ; la 7ᵉ famille de réglages : `reglage_modifie` porte `famille`,
+> `avant/apres.conservation_mois`). `annoncer_nettoyage_journal()` : par famille la date limite et le nombre de lignes,
+> ou la raison — le même calcul interne que l'acte (`nettoyage_journal_calcul()`). `nettoyer_journal(pièce, acteur,
+> total annoncé)` : recalcule, refuse `annonce_perimee` si le total a changé, pose `grand_livre.nettoyage`, supprime
+> par famille, RETIRE le réglage, exige le compte égal à l'annonce (EC001), écrit `journal_nettoye` (total, par
+> famille la date et le compte). Routes `GET/PATCH /api/admin/journal/conservation`, `POST /api/admin/journal/nettoyage`
+> (ré-authentification). Section « Conservation et nettoyage » de `/admin/journal` : l'annonce AVANT tout bouton,
+> confirmation puis ré-authentification. **Tant que Youssef n'a pas arbitré les planchers, rien ne s'efface.** Test :
+> `grand_livre/nettoyage.test.sql`. `diag-grand-livre` : « ni zéro » écrivain (strict, 71/71) et un seul poseur
+> du réglage de nettoyage.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

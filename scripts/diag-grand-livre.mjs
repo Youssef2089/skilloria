@@ -319,6 +319,16 @@ section('B. La table en ajout seul : colonnes, privilèges, trigger, index date 
     'et le TRUNCATE lève aussi — un trigger de ligne ne le verrait pas')
   const fnVerrou = corpsSql(SQL, 'public.grand_livre_ajout_seul()')
   ok(/using errcode = 'GL001'/.test(fnVerrou), 'le verrou lève avec un SQLSTATE dédié (GL001) — la postcondition l’attend par code, pas par texte')
+  // LE SEUL CHEMIN, POSÉ PAR UNE SEULE FONCTION (phase B 2.7) : parmi les DERNIÈRES définitions, une seule pose
+  // le réglage de nettoyage — nettoyer_journal() — et le RETIRE après ses suppressions.
+  {
+    const poseurs = [...DEFINITIONS_COURANTES].filter(([, d]) => /set_config\('grand_livre\.nettoyage', 'autorise', true\)/.test(d.corps)).map(([n]) => n)
+    const nettoyeur = DEFINITIONS_COURANTES.get('nettoyer_journal')?.corps ?? ''
+    ok(poseurs.length === 1 && poseurs[0] === 'nettoyer_journal'
+         && /set_config\('grand_livre\.nettoyage', 'autorise', true\);[\s\S]*?delete from public\.grand_livre[\s\S]*?set_config\('grand_livre\.nettoyage', '', true\);[\s\S]*?exiger_ecriture\(v_effacees, 'nettoyer_journal : grand_livre', p_total_annonce\);[\s\S]*?'journal_nettoye'/.test(nettoyeur),
+      'le réglage de nettoyage est posé par UNE fonction (nettoyer_journal), retiré après les suppressions, le compte exigé égal à l’annonce, puis sa ligne',
+      `poseurs : ${poseurs.join(', ') || 'aucun'}`)
+  }
   ok(/if tg_op = 'DELETE' and coalesce\(current_setting\('grand_livre\.nettoyage', true\), ''\) = 'autorise' then\s+return old;/.test(fnVerrou),
     'le SEUL chemin : un DELETE sous le réglage local du nettoyage — jamais l’UPDATE',
     'un réglage local meurt avec sa transaction : seul le nettoyage (étape 4) le pose, de l’intérieur')
@@ -691,8 +701,13 @@ section('D bis. Chaque action branchée a UN écrivain, et un seul')
   ok(doubles.length === 0,
     `ni deux : aucune action n’a deux écrivains (${branchees.length} action(s) branchée(s) : ${branchees.join(', ')})`,
     doubles.map(([c, l]) => `${c} ← ${l.join(' | ')}`).join('\n         ') || undefined)
+  // LE CRITÈRE DE FIN DE LA PHASE B (2.8), devenu un contrôle le 28/09/2026 : chaque action de la liste
+  // fermée a EXACTEMENT un écrivain — « ni deux » ci-dessus, « ni zéro » ici. Une action ajoutée sans
+  // écrivain rougit : une action qu'on ne peut pas écrire est une étiquette sans rien dessous.
   const restantes = [...codesSqlGlobal].filter((c) => !branchees.includes(c)).sort()
-  console.log(`  ·    ${restantes.length} action(s) sans écrivain encore — étape 2 en cours : ${restantes.join(', ') || 'aucune'}`)
+  ok(restantes.length === 0,
+    `ni zéro : chacune des ${codesSqlGlobal.size} actions de la liste fermée a son écrivain`,
+    restantes.length ? `sans écrivain : ${restantes.join(', ')}` : undefined)
 }
 
 // ═══ D ter. LA PREUVE PAR ACTION — le bloc qui écrit, pas la fonction qui existe ═

@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import { ACTIONS_JOURNAL } from '@/lib/journal/actions'
 import { FAMILLES_JOURNAL, ORIGINES_JOURNAL, STATUTS_JOURNAL, estUuid, type PageJournal } from '@/lib/journal/lecture'
 import { Acteur, Montant, PastilleStatut, Quand, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
+import NettoyageJournal from '@/components/admin/journal/NettoyageJournal'
 
 /**
  * /admin/journal — LE GRAND LIVRE (§D.26, phase B 2.6). Page de MENU : aucun
@@ -268,6 +269,9 @@ export default function JournalPage() {
           </div>
         </>
       )}
+
+      {/* ─── CONSERVATION ET NETTOYAGE — l'annonce avant l'acte (2.7) ──── */}
+      <NettoyageJournal />
     </div>
   )
 }

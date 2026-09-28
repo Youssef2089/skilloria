@@ -198,6 +198,8 @@ export const CLES_DETAIL = {
     'count', 'skipped_subscribed',
     // catalogue Stripe
     'mode', 'synchronisees', 'synchronisees[]', 'refusees', 'refusees[]', 'en_echec', 'en_echec[]', 'cause',
+    // conservation du grand livre (phase B 2.7)
+    'famille', 'avant.conservation_mois', 'apres.conservation_mois',
   ],
   administrateur_cree: ['jour_zero', 'cause'],
   // Les NOMS des champs et les LANGUES des traductions, jamais un libellé (texte libre).
@@ -211,7 +213,8 @@ export const CLES_DETAIL = {
   compte_purge_demande: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],
   compte_purge_admin: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],
   ip_effacees: ['mois', 'limite', 'audit_logs', 'session_logs', 'cause', 'sqlstate'],
-  journal_nettoye: [],
+  // Le total, et par famille la date limite et le compte — jamais une ligne effacée.
+  journal_nettoye: ['lignes', 'familles', 'familles[]', 'familles[].famille', 'familles[].jusqu_au', 'familles[].lignes'],
   refus_plafond_atteint: ['action', 'fournisseur', 'portee', 'depense_mois_usd', 'plafond_mensuel_usd'],
   refus_expert_inapte: ['raison', 'publication_id'],
   refus_garde_eligibilite: ['code', 'profile_id'],
