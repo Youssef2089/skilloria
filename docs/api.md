@@ -121,17 +121,9 @@ Met à jour le profil. Tous les champs sont optionnels.
 
 ---
 
-## DELETE `/api/profile/cv` (RGPD)
+## ~~DELETE `/api/profile/cv`~~ — SUPPRIMÉE (28/09/2026, phase B, décision B)
 
-Supprime le CV du user (Storage + colonnes `cv_*` dans `profiles`).
-
-**Réponses**
-
-- `200 { success: true }`
-- `404 profile_missing`
-- `500 db_error`
-
-**Effets** : fichier retiré de `cv/{user_id}/{hash}.pdf`, colonnes `cv_file_path/cv_hash/cv_uploaded_at/cv_parsing_status/cv_parsed_at/cv_parsing_error` passées à `NULL`, `audit_logs` `action='cv_delete'` avec `detail = { had_file: boolean }`.
+Route morte : aucun appelant dans le dépôt, et elle ne vidait que le fichier (le profil restait marqué analysé). Le retrait du CV passe par `POST /api/profile/cv/reset`, journalisé (`cv_reinitialise`).
 
 ---
 

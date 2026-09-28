@@ -32,6 +32,20 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
+## ▶ PHASE B, ÉTAPE 2 — DÉCISIONS DE YOUSSEF SUR L'AUDIT (28/09/2026)
+
+**A.** Le compte d'un membre invité se journalise — **pas** en déplaçant la page côté serveur (un appel direct à
+l'API d'authentification avec la clé publique resterait sans trace) : le **seul passage obligé de toute création de
+compte est `handle_new_user`**, c'est donc lui qui écrit la ligne, par `journaliser()`, dans la même transaction.
+Pièce lue dans les métadonnées de l'inscription quand l'appelant l'y met, sinon née dans la fonction (l'origine le dit).
+Exception écrite dans `docs/architecture.md`. Un test pgTAP par voie, appel direct sans pièce compris.
+**B.** `DELETE /api/profile/cv` est **supprimée**. **SIGNUP** : `auth.signUp` gardé. Le reste de l'audit est accepté
+(`ecosysteme_cree` séparée ; une fonction SQL unique pour la règle branche/spécialité).
+
+| Point | État | Commit |
+|---|---|---|
+| B route morte supprimée — aucun appelant (`app/`, `lib/`, `components/`, `hooks/`, `context/`, `scripts/` : relu), aucun contrôle ne la réclame (`mesure-routes-sans-trace` la listait parmi les « sans trace » ; aucun inventaire ne la nomme) ; `docs/api.md` : section barrée, renvoi vers `cv/reset` | fait | ce commit |
+
 ## ⛔ ARRÊT 7 — PHASE B, AUDIT RENDU (29/09/2026). DEUX DÉCISIONS AVANT LE CODE.
 
 **À FAIRE AVANT TOUTE DÉMONSTRATION (reporté par Youssef)** : l'essai d'inscription d'un expert **sur staging**
