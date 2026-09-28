@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 26/09/2026.** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 28/09/2026.** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## Le mandat, en une phrase par étape
 
@@ -32,7 +32,22 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
-## ▶ LOT T — LES TESTS ONT TOURNÉ CHEZ YOUSSEF (28/09/2026), EN COURS
+## ⛔ ARRÊT 3 — LE LOT T EST FAIT (28/09/2026). LA PHASE B N'EST TOUJOURS PAS COMMENCÉE.
+
+**Validations à l'arrêt** : `tsc` 0 erreur (hors `.next/`) ; `next build` vert ; lint 65/25 (cliquet vert) ; parité
+i18n **3 712** clés × 4 (+2 : les messages d'échec d'inscription de la page d'invitation) ; cliquet des plages vert ;
+série `diag` **108 verts / 0 rouge / 5 muets** — les 5 mêmes (3 écartés parce qu'ils écrivent, 2 plantages
+Windows). **Rien n'a tourné sur une base** : 27 fichiers de test, 2 migrations nouvelles, 15 du lot corrigées en place.
+
+**Migrations nouvelles** : `20260928000000_inscription_specialites`, `20260928000010_ecritures_effectives`.
+**Corrigées en place (lot, jamais poussées)** : liste_blanche_par_action, journal_reglages, journal_devoilement_ouvert,
+journal_annonce_depubliee, journal_annonce_expiree, journal_devoilement_ferme, journal_compte_suspendu,
+journal_compte_valide, journal_suppression_programmee, journal_invitation_revoquee, journal_invitation_renvoyee,
+journal_invitation_acceptee, journal_membres, journal_message_envoye, portes_laterales_fermees.
+
+**Prochaine action (Youssef)** : la séquence de CLAUDE.md §G.4 ter, étapes 1 à 4, puis retour des sorties.
+
+## ▶ LOT T — LES TESTS ONT TOURNÉ CHEZ YOUSSEF (28/09/2026)
 
 **Ce qu'il a obtenu** : `db reset --local` vert (47 migrations du lot, « PARTIELLE » où une sonde saute) ;
 `db lint` vide ; `test db --local` **FAIL** — 23 fichiers, 59 tests ; 15 fichiers arrêtés avant leur premier test
