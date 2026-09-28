@@ -1490,7 +1490,16 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
         if (/^begin$/i.test(m[0])) pile.push(m.index)
         else if (/^end\s*;$/i.test(m[0])) { const a = pile.pop(); if (a !== undefined) blocs.push([a, m.index]) }
       }
-      const annule = (a, b) => { const c = post.slice(a, b); return /raise exception 'SONDE_ANNULEE'/.test(c) && /exception when others then\s*if sqlerrm <> 'SONDE_ANNULEE' then\s*raise;/.test(c) }
+      // UN BLOC SE JUGE SUR SON PROPRE TEXTE — ses blocs imbriqués blanchis (positions conservées).
+      // Trouvé par la mutation de T.6 (28/09/2026) : la sonde de renvoyer_invitation, privée de son
+      // `raise 'SONDE_ANNULEE'`, passait pour « attend une erreur nommée » parce qu'un bloc IMBRIQUÉ
+      // attendait GL005 ; et un bloc imbriqué annulé faisait passer son parent pour annulé.
+      const propre = (a, b) => {
+        let t = post.slice(a, b)
+        for (const [x, y] of blocs) if (x > a && y < b) t = t.slice(0, x - a) + ' '.repeat(y - x) + t.slice(y - a)
+        return t
+      }
+      const annule = (a, b) => { const c = propre(a, b); return /raise exception 'SONDE_ANNULEE'/.test(c) && /exception when others then\s*if sqlerrm <> 'SONDE_ANNULEE' then\s*raise;/.test(c) }
       const appels = []
       for (const n of ecritSql) {
         for (const m of post.matchAll(new RegExp('\\b(?:public\\.)?' + n + '\\s*\\(', 'g'))) {
@@ -1505,7 +1514,7 @@ section('F. La postcondition EXÉCUTE : refus, verrou, privilèges, deux actions
         const englobants = blocs.filter(([x, y]) => a.pos > x && a.pos < y).sort((p, q) => q[0] - p[0])
         const proche = englobants[0]
         // Une erreur ATTENDUE, par son code (`sqlstate 'GL004'`) ou par son nom (`check_violation`) — jamais `others`.
-        const attendu = proche && /exception when (sqlstate '[0-9A-Z]{5}'|(?!others\b)[a-z_]+) then/.test(post.slice(proche[0], proche[1]))
+        const attendu = proche && /exception when (sqlstate '[0-9A-Z]{5}'|(?!others\b)[a-z_]+) then/.test(propre(proche[0], proche[1]))
           && /raise exception 'postcondition NON TENUE/.test(post.slice(a.pos, proche[1]))
         if (!englobants.some(([x, y]) => annule(x, y)) && !attendu) hors.push(`${f} : ${a.quoi}`)
       }
