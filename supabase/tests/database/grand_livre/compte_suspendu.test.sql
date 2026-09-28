@@ -30,8 +30,9 @@ begin
                  and pg_temp.lignes(v_p2) = 0,
                  'le rejeu (statut plus admis) rend null et n''écrit rien');
   v_r := public.changer_statut_compte(v_p3, null, 'administrateur', v_admin, 'admin', v_cible, array['suspended'], 'active', false);
-  return next ok(v_r ->> 'vers' = 'active' and exists (select 1 from public.grand_livre g where g.piece = v_p3 and g.type_action = 'compte_reactive'),
-                 'la réactivation passe par la MÊME fonction et écrit compte_reactive');
+  return next ok(v_r ->> 'vers' = 'active' and exists (select 1 from public.grand_livre g where g.piece = v_p3 and g.type_action = 'compte_reactive'
+                                                        and g.detail ->> 'de' = 'suspended' and g.detail ->> 'vers' = 'active'),
+                 'la réactivation passe par la MÊME fonction et écrit compte_reactive, de suspended vers active');
   -- L'ACTEUR LUI-MÊME : refus nommé, rien d'écrit.
   v_r := public.changer_statut_compte(v_p4, null, 'administrateur', v_admin, 'admin', v_admin, array['active'], 'suspended', true);
   return next is(v_r ->> 'refus', 'self_forbidden', 'un administrateur qui se vise lui-même reçoit self_forbidden');

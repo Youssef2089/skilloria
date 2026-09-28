@@ -32,6 +32,20 @@
 
 **Compte : 54 / 55** — reste `journal_nettoye`, dont l’écrivain SQL (le nettoyage) est avancé en fin d’étape 2 ; son écran suit en étape 4.
 
+## ▶ LOT S — LE PUSH S'EST ARRÊTÉ À MI-CHEMIN SUR STAGING (28/09/2026), EN COURS
+
+**L'état, lu dans `migration list` (Youssef)** : appliquées sur staging jusqu'à `20260925000190`
+(journal_recherche_abandonnee) — **GELÉES**. Arrêt sur `20260925000200_journal_annonce_publiee` : sa sonde a pris un
+VRAI brouillon sans zone et tenté de le publier (23514, `publications_publiee_requiert_zones_check`) — la base avait
+raison, la sonde tort ; rien d'écrit. **29 migrations non appliquées** (`000200` → `20260928000010`), corrigibles en
+place. Le code n'est PAS poussé : staging tourne l'ancien code sur une base à moitié migrée. Postgres de staging
+passé à **17.6.1.166** ; cause racine du plantage de « vrai appelant » : supautils en 17.6.1.104 (corrigé ≥ 17.6.1.121).
+**Décision de Youssef** : les sondes sur données réelles sortent des migrations ; les tests prouvent les gestes.
+
+| Point | État | Commit |
+|---|---|---|
+| 3 (d'abord) aucune preuve ne disparaît : les gestes que seules les sondes prouvaient passent aux tests — `invitations` +4 (renvoi : statut non admis, une autre pièce écrit une seconde ligne ; acceptation : statut non admis, invitation échue) et 2 renforcées (échéance du renvoi relue, adresse comparée sans casse) ; `annonce_publiee` (l'organisation dans la ligne) ; `compte_suspendu` (de/vers de la réactivation) | fait, non exécuté | ce commit |
+
 ## ⛔ ARRÊT 5 — 26 FICHIERS SUR 27 VERTS, 206 TESTS, AUCUN PLANTAGE (28/09/2026). LA CAUSE DU PLANTAGE RESTE À TRANCHER.
 
 **Ce que Youssef a obtenu** : 26 fichiers verts. `vrai_appelant/appelant.test.sql` s'est arrêté ligne 62, après

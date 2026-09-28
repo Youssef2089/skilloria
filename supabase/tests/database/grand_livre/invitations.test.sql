@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(16);
+select plan(20);
 
 create or replace function pg_temp.inviter(p_org uuid, p_admin uuid, p_email text, p_piece uuid) returns uuid
 language sql as $$
@@ -25,7 +25,7 @@ declare
   v_inv    uuid;
   v_inv2   uuid;
   v_inv3   uuid;
-  v_p      uuid[] := array(select gen_random_uuid() from generate_series(1, 12));
+  v_p      uuid[] := array(select gen_random_uuid() from generate_series(1, 20));
   v_r      jsonb;
   v_b      boolean;
 begin
@@ -46,21 +46,45 @@ begin
   v_b := public.renvoyer_invitation(v_p[3], null, 'utilisateur', v_admin, 'client', v_dom, v_inv, v_org,
                                     array['pending'], 'jeton_neuf', now() + interval '8 days');
   return next ok(v_b
-                 and exists (select 1 from public.organization_invitations i where i.id = v_inv and i.token = 'jeton_neuf'),
-                 'invitation_renvoyee : le jeton neuf est posé');
+                 and exists (select 1 from public.organization_invitations i where i.id = v_inv and i.token = 'jeton_neuf'
+                              and i.expires_at = now() + interval '8 days'),
+                 'invitation_renvoyee : le jeton neuf ET l''échéance sont posés');
   return next ok(pg_temp.lignes(v_p[3]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[3]
                   and g.type_action = 'invitation_renvoyee' and g.detail::text not like '%jeton_neuf%'),
                  'invitation_renvoyee : UNE ligne, sans le jeton');
   return next throws_ok(format($q$select public.renvoyer_invitation(%L, null, 'utilisateur', %L, 'client', %L, %L, %L, array['pending'], 'jeton_bis', now() + interval '9 days')$q$,
                                v_p[3], v_admin, v_dom, v_inv, v_org),
                         'GL005', null, 'invitation_renvoyee : le MÊME geste ne s''écrit pas deux fois (GL005)');
+  -- (Gestes que prouvait la sonde de journal_invitation_renvoyee, retirée le 28/09/2026 — données réelles.)
+  v_b := public.renvoyer_invitation(v_p[13], null, 'utilisateur', v_admin, 'client', v_dom, v_inv, v_org,
+                                    array['statut_absent'], 'jeton_statut', now() + interval '9 days');
+  return next ok(not v_b and pg_temp.lignes(v_p[13]) = 0
+                 and exists (select 1 from public.organization_invitations i where i.id = v_inv and i.token = 'jeton_neuf'),
+                 'invitation_renvoyee : un statut non admis ne renvoie rien, et n''écrit rien');
+  v_b := public.renvoyer_invitation(v_p[14], null, 'utilisateur', v_admin, 'client', v_dom, v_inv, v_org,
+                                    array['pending'], 'jeton_trois', now() + interval '9 days');
+  return next ok(v_b and (select count(*) from public.grand_livre g
+                           where g.sujet_id = v_inv and g.type_action = 'invitation_renvoyee') = 2,
+                 'invitation_renvoyee : une AUTRE pièce écrit une seconde ligne — une fois par geste, pas une fois par invitation');
   -- ── invitation_acceptee ──
   v_inv2 := pg_temp.inviter(v_org, v_admin, 'autre+' || gen_random_uuid() || '@exemple.invalid', v_p[4]);
   v_r := public.accepter_invitation(v_p[5], null, 'utilisateur', v_invite, 'client', v_dom, v_inv2, array['pending']);
   return next ok(v_r ->> 'issue' = 'email_mismatch' and pg_temp.lignes(v_p[5]) = 0,
                  'invitation_acceptee : une adresse différente est refusée, sans ligne');
+  -- (Gestes que prouvait la sonde de journal_invitation_acceptee, retirée le 28/09/2026 — données réelles.)
+  v_r := public.accepter_invitation(v_p[15], null, 'utilisateur', v_invite, 'client', v_dom, v_inv, array['statut_absent']);
+  return next ok(v_r ->> 'issue' = 'not_pending' and pg_temp.lignes(v_p[15]) = 0
+                 and not exists (select 1 from public.organization_members m where m.organization_id = v_org and m.user_id = v_invite),
+                 'invitation_acceptee : un statut non admis est refusé, sans ligne ni appartenance');
+  update public.organization_invitations set expires_at = now() - interval '1 second' where id = v_inv;
+  v_r := public.accepter_invitation(v_p[16], null, 'utilisateur', v_invite, 'client', v_dom, v_inv, array['pending']);
+  return next ok(v_r ->> 'issue' = 'expired' and pg_temp.lignes(v_p[16]) = 0
+                 and not exists (select 1 from public.organization_members m where m.organization_id = v_org and m.user_id = v_invite),
+                 'invitation_acceptee : une invitation échue est refusée, sans ligne ni appartenance');
+  -- L'adresse de l'invitation en MAJUSCULES : l'acceptation compare sans casse.
+  update public.organization_invitations set expires_at = now() + interval '1 day', email = upper(v_email) where id = v_inv;
   v_r := public.accepter_invitation(v_p[6], null, 'utilisateur', v_invite, 'client', v_dom, v_inv, array['pending']);
-  return next is(v_r ->> 'issue', 'acceptee', 'invitation_acceptee : l''invitation est acceptée');
+  return next is(v_r ->> 'issue', 'acceptee', 'invitation_acceptee : l''invitation est acceptée — l''adresse comparée SANS casse');
   return next ok(exists (select 1 from public.organization_members m where m.organization_id = v_org and m.user_id = v_invite and m.status = 'active')
                  and exists (select 1 from public.organization_invitations i where i.id = v_inv and i.status = 'accepted' and i.accepted_at is not null),
                  'invitation_acceptee : l''appartenance ET l''invitation soldée sont relues');

@@ -28,8 +28,9 @@ begin
   return next ok(v_r ->> 'status' = 'published' and v_r ->> 'published_at' is not null, 'l''annonce est publiée, la base pose published_at');
   return next is(pg_temp.lignes(v_p1), 1::bigint, 'exactement UNE ligne sous la pièce');
   return next ok(exists (select 1 from public.grand_livre g where g.piece = v_p1 and g.type_action = 'annonce_publiee'
-                          and g.sujet_id = v_pub and g.ecosysteme_id = v_dom and g.detail ->> 'type' = 'mission'),
-                 'la ligne annonce_publiee porte le type, sous l''écosystème de l''annonce');
+                          and g.sujet_id = v_pub and g.ecosysteme_id = v_dom and g.detail ->> 'type' = 'mission'
+                          and g.detail ->> 'organization_id' = v_org::text),
+                 'la ligne annonce_publiee porte le type et l''organisation, sous l''écosystème de l''annonce');
   return next ok(public.publier_annonce(v_p2, null, 'utilisateur', v_admin, 'client', v_pub, v_dom, v_org,
                                         array['draft'], 'published', 8, 'sonde', '{}'::jsonb) is null
                  and pg_temp.lignes(v_p2) = 0,
