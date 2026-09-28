@@ -3774,6 +3774,40 @@ coupable nommé ; jusque-là, **aucune hypothèse n'est écrite comme un fait**.
 
 ---
 
+<a id="e77"></a>
+### E.77 — UNE SONDE SUR DONNÉE RÉELLE A ARRÊTÉ LE PUSH DE STAGING À MI-CHEMIN — et en production elle toucherait de vraies personnes.
+
+**Le cas mesuré (28/09/2026).** `npx supabase db push` sur staging : les 20 premières migrations du lot passent, puis
+**arrêt** sur `journal_annonce_publiee` — `new row for relation "publications" violates check constraint
+"publications_publiee_requiert_zones_check"` (23514). Sa postcondition avait pris **un vrai brouillon** (`select …
+from publications where status = 'draft' limit 1`), sans zone de travail, et tenté de le publier. **La base avait
+raison, la sonde tort** ; rien n'a été écrit, mais staging est resté sur une base **à moitié migrée**, avec l'ancien
+code. Sur base vierge la même sonde « sautait » (§E.67) : elle n'avait donc jamais été confrontée à une donnée
+imprévue — la première fois, c'était sur le chemin du déploiement.
+
+**Pourquoi c'est une classe, pas un accident.** Une sonde sur donnée réelle dépend de ce que la base contient au
+moment du push : un brouillon incomplet, un compte particulier, une invitation échue. Chacune peut arrêter le
+déploiement. Et en production, elles suspendraient, anonymiseraient, publieraient **les lignes de vraies personnes**
+— annulé ensuite, mais touché, verrouillé, parfois déclenché (un trigger, une notification). Seize migrations du lot
+en portaient une.
+
+**La règle (décision de Youssef) : une postcondition vérifie la STRUCTURE ; le COMPORTEMENT se prouve par les tests
+pgTAP sur données fabriquées ; aucune sonde ne touche une donnée réelle.** Restent permis : signatures, listes
+blanches, droits, colonnes, index ; sondes sur identifiants **inventés** (compte inconnu → `introuvable`) ou données
+**fabriquées** dans un bloc annulé (l'inscription) ; les **reprises de données voulues** dans leur propre bloc (le
+passif des annonces expirées). Chaque ligne de fin nomme le test qui prouve le geste. **Aucune preuve n'a disparu** :
+chaque geste d'une sonde retirée est prouvé par un test (six assertions ajoutées ou renforcées là où seule la sonde
+le prouvait — invitations, publication, réactivation).
+
+**Le contrôle** : [`diag-postconditions-structure`](../scripts/diag-postconditions-structure.mjs). Les tables
+**métier** sont **dérivées** — une table qu'aucune migration ne sème par des littéraux ou depuis un autre
+référentiel (`notification_preferences`, recopiée de `users`, reste métier) ; toute migration postérieure à
+l'héritage (les migrations appliquées sur staging au 28/09, gelées — résolues par suffixe) ne lit aucune table
+métier et n'écrit aucune table publique dans une postcondition, et chaque ligne de fin renvoie à un fichier qui
+existe. **Ce qu'il ne voit pas** : une RPC appelée sur un identifiant LU dans un référentiel ; le SQL dynamique.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

@@ -296,6 +296,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.74](docs/pieges.md#e74) | UNE SOUS-REQUÊTE LIT L'INSTANTANÉ DU DÉBUT DE SON INSTRUCTION — et une écriture qui ne touche rien passe pour un succès. |
 | [E.75](docs/pieges.md#e75) | UN BLOC SE JUGE SUR SON PROPRE TEXTE : un bloc imbriqué prête ses qualités à son parent — la garde du bloc annulé ne mordait pas. |
 | [E.76](docs/pieges.md#e76) | UN TEST QUI CHANGE D'IDENTITÉ DANS UNE FONCTION A TUÉ LE SERVEUR — et n'a laissé qu'un coupable anonyme. Cause racine NON VÉRIFIÉE. |
+| [E.77](docs/pieges.md#e77) | UNE SONDE SUR DONNÉE RÉELLE A ARRÊTÉ LE PUSH DE STAGING À MI-CHEMIN — et en production elle toucherait de vraies personnes. La structure dans la migration, le comportement par les tests. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -391,6 +392,13 @@ Une sonde de postcondition **saute** sur base vierge (§E.67) : au rejeu du 26/0
 · **Une fonction, une signature** : `supabase/tests/database/une_signature.test.sql` lit `pg_proc` sur la
   base rejouée — aucune fonction `public` à deux signatures, sauf exception écrite **avec sa raison**
   (l'étape 1 de §E.72) ; une exception qui n'est plus une surcharge rougit.
+· **UNE POSTCONDITION VÉRIFIE LA STRUCTURE ; LE COMPORTEMENT SE PROUVE PAR LES TESTS ; AUCUNE SONDE NE TOUCHE
+  UNE DONNÉE RÉELLE** (décision de Youssef, 28/09/2026 — §E.77). Une postcondition vérifie signatures, listes
+  blanches, droits, colonnes, index, et peut sonder sur des identifiants **inventés** ou des données **fabriquées**
+  dans un bloc annulé ; elle ne lit aucune table métier et n'écrit aucune table publique. Sa ligne de fin dit ce
+  qu'elle a vérifié et **nomme le test** (ou le module) qui prouve le geste. Les reprises de données **voulues**
+  restent dans leur propre bloc. Gardé par [`diag-postconditions-structure`](scripts/diag-postconditions-structure.mjs)
+  (tables métier dérivées, héritage appliqué gelé).
 · **Le vrai appelant** (`vrai_appelant/`) : un changement de rôle est une **instruction**, jamais dans une
   fonction (comme PostgREST), un appel par instruction, et ces fichiers passent **en dernier** — un plantage
   n'y prive aucun autre fichier de son verdict (§E.76, garde J).
