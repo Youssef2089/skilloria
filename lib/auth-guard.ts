@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
 import { resolveEcosystemAccess, type EcosystemDenialCode } from '@/lib/ecosystem-guard'
+import { sousDomaineDeLaRequete } from '@/lib/subdomain'
 
 /** Messages techniques des refus d'écosystème. L'UI, elle, traduit sur `code`. */
 const ECOSYSTEM_DENIAL_MESSAGES: Record<EcosystemDenialCode, string> = {
@@ -344,9 +345,20 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     | { id: string; slug: string; active: boolean }
     | null
 
+  // L'ÉCOSYSTÈME SE LIT DANS L'ADRESSE DE LA REQUÊTE, et nulle part ailleurs (§E.85). Plus
+  // l'en-tête `x-subdomain` que le navigateur renvoyait : une COPIE prise au rendu de la page,
+  // qui valait `'default'` sur une adresse sans écosystème actif. Un appel `/api` relatif part
+  // de l'adresse de la page : c'est elle que l'hôte porte.
+  let sousDomaine: string | null
+  try {
+    sousDomaine = sousDomaineDeLaRequete(request.headers)
+  } catch (err) {
+    console.error('[auth-guard] adresse illisible : configuration absente', err instanceof Error ? err.message : String(err))
+    throw new AuthError(500, { error: 'Server misconfigured', code: 'ecosysteme_non_configure' })
+  }
   const access = await resolveEcosystemAccess({
     admin: supabaseAdmin,
-    headerSubdomain: request.headers.get('x-subdomain'),
+    sousDomaine,
     userType: (userRow.user_type ?? null) as string | null,
     userDomainId: userRow.domain_id as string,
     ownDomain,

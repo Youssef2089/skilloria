@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
-import { ecosystemHref, parseEcosystemScreenParams } from '@/lib/ecosystem-url'
+import { parseEcosystemScreenParams } from '@/lib/ecosystem-url'
+import { adresseEcosysteme } from '@/lib/subdomain'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,24 +43,24 @@ export async function generateMetadata({ params }: PageParams): Promise<Metadata
 
 export default async function EcosystemUnavailablePage({ params, searchParams }: PageParams) {
   const { locale } = await params
-  const [t, sp, hdrs] = await Promise.all([
+  const [t, sp] = await Promise.all([
     getTranslations({ locale, namespace: 'ecosystem_unavailable' }),
     searchParams,
-    headers(),
   ])
 
   // Paramètres LAVÉS : un code non reconnu retombe sur l'écran générique, un
   // slug qui n'est pas une étiquette DNS est jeté.
   const { code, slug } = parseEcosystemScreenParams(sp)
 
-  // Le lien de sortie est reconstruit à partir de l'HÔTE COURANT, jamais d'une
-  // valeur reçue : seul le slug vient de l'URL, et il a été validé.
-  const host = hdrs.get('host')
-  const proto = (hdrs.get('x-forwarded-proto') ?? 'https').split(',')[0].trim()
-  const ownHref =
-    code === 'domain_mismatch' && slug
-      ? ecosystemHref({ host, slug, protocol: proto, pathname: `/${locale}` })
-      : null
+  // LA SORTIE : l'adresse de l'écosystème DU COMPTE, dans CET environnement — `https://<slug>.<racine>`,
+  // la racine venant de la configuration, jamais d'une valeur reçue ; seul le slug vient de l'URL, et il a
+  // été validé (une étiquette DNS ne peut pas nommer un autre hôte). Pas d'échange de l'hôte courant :
+  // sur une adresse qui ne porte aucun écosystème (`…vercel.app`, un sous-domaine renommé), il n'y avait
+  // rien à échanger — et c'est là que la sortie manquait (§E.85). Une adresse inconnue (`unknown_domain`)
+  // a donc, elle aussi, son chemin vers l'écosystème du compte.
+  const aSortie = (code === 'domain_mismatch' || code === 'unknown_domain') && slug
+  const adresse = aSortie ? adresseEcosysteme(slug) : null
+  const ownHref = adresse ? `${adresse}/${locale}` : null
 
   const title = code ? t(`${code}.title`) : t('generic.title')
   const body = code ? t(`${code}.body`) : t('generic.body')
@@ -138,7 +138,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
 
         {/* SORTIE. Un expert égaré ne lit pas « accès refusé » : il lit le nom
             de son écosystème et le chemin pour y retourner. */}
-        {code === 'domain_mismatch' && slug && (
+        {aSortie && code && (
           <div
             style={{
               marginTop: 22,
@@ -158,7 +158,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
                 marginBottom: 6,
               }}
             >
-              {t('domain_mismatch.own_label')}
+              {t(`${code}.own_label`)}
             </div>
             <div
               style={{
@@ -188,7 +188,7 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
                   textDecoration: 'none',
                 }}
               >
-                {t('domain_mismatch.cta')}
+                {t(`${code}.cta`)}
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path
                     d="M5 12h14m-6-6 6 6-6 6"
@@ -200,10 +200,10 @@ export default async function EcosystemUnavailablePage({ params, searchParams }:
                 </svg>
               </a>
             ) : (
-              // L'hôte ne permet pas de fabriquer l'adresse (développement
-              // local). On le dit plutôt que d'afficher un bouton mort.
+              // Aucune racine : le poste local, où l'adresse ne se fabrique pas.
+              // On le dit plutôt que d'afficher un bouton mort.
               <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--sk-accent)' }}>
-                {t('domain_mismatch.no_link')}
+                {t(`${code}.no_link`)}
               </p>
             )}
           </div>

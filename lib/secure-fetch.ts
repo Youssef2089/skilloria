@@ -2,7 +2,6 @@
 
 import { useCallback } from 'react'
 import { useRouter } from '@/i18n/navigation'
-import { useDomain } from '@/context/DomainContext'
 import { supabase } from '@/lib/supabase'
 import {
   ECOSYSTEM_SCREEN_CODES,
@@ -14,7 +13,10 @@ import {
  *
  * Garanties pour tout call-site :
  *   1. Authorization: Bearer <access_token> Supabase (injecté à chaque appel)
- *   2. x-subdomain: <domain.subdomain> depuis useDomain() (multi-tenant)
+ *   2. AUCUN en-tête d'écosystème : le serveur lit l'écosystème dans l'ADRESSE de la
+ *      requête (un appel relatif part de l'adresse de la page). L'en-tête `x-subdomain`
+ *      qui partait d'ici était une COPIE prise au rendu — il valait `'default'` sur une
+ *      adresse sans écosystème actif, et la garde le déclarait inconnu (§E.85).
  *   3. credentials: 'include' → le cookie httpOnly `ss_token` (posé par
  *      /api/auth/init-session) est envoyé automatiquement
  *   4. Interception du 403 `session_superseded` (D2) :
@@ -23,8 +25,8 @@ import {
  *      - laisse remonter la Response 403 au caller (qui peut afficher
  *        son propre fallback, mais en pratique le redirect prend le pas)
  *
- * À utiliser via le hook React `useSecureFetch()` (qui câble useDomain
- * et useRouter automatiquement) ou directement via `secureFetch()` si
+ * À utiliser via le hook React `useSecureFetch()` (qui câble useRouter
+ * automatiquement) ou directement via `secureFetch()` si
  * on n'est pas dans un composant.
  *
  * Les fetchs PUBLICS (countries, taxonomy, send/verify OTP, register-org)
@@ -40,8 +42,6 @@ import {
 const ECOSYSTEM_DENIALS = new Set<string>(ECOSYSTEM_SCREEN_CODES)
 
 export type SecureFetchContext = {
-  /** Subdomain du tenant courant (cf. useDomain) — exigé par auth-guard. */
-  subdomain: string
   /** Callback appelé après 403 session_superseded — pour redirect UI. */
   onSuperseded: () => void
   /**
@@ -91,7 +91,6 @@ export async function secureFetch(
   if (session?.access_token) {
     headers.set('Authorization', `Bearer ${session.access_token}`)
   }
-  headers.set('x-subdomain', ctx.subdomain)
 
   const res = await fetch(input, {
     ...init,
@@ -124,17 +123,15 @@ export async function secureFetch(
 
 /**
  * Hook React qui retourne une fonction `(input, init?) => Promise<Response>`
- * câblée à useDomain + useRouter. La onSuperseded :
+ * câblée à useRouter. La onSuperseded :
  *   - signOut Supabase (purge la session locale)
  *   - redirect /connexion?reason=session_superseded (locale préservée)
  */
 export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
-  const domain = useDomain()
   const router = useRouter()
   return useCallback(
     (input, init) =>
       secureFetch(input, init, {
-        subdomain: domain.subdomain,
         onSuperseded: () => {
           void supabase.auth.signOut()
           router.replace('/connexion?reason=session_superseded')
@@ -156,14 +153,15 @@ export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit)
         },
         // Écosystème refusé : on EXPLIQUE, on ne déconnecte pas. `slug` est
         // celui de l'écosystème DU COMPTE, seul moyen de proposer une sortie
-        // plutôt qu'un mur.
+        // plutôt qu'un mur. Chemin RELATIF : le renvoi reste sur l'adresse du
+        // visiteur (§E.85) — l'écran construit la sortie dans l'environnement.
         onEcosystemDenied: (code, ownSlug) => {
           const params = new URLSearchParams({ code })
           if (ownSlug) params.set('slug', ownSlug)
           router.replace(`${ECOSYSTEM_UNAVAILABLE_PATH}?${params.toString()}`)
         },
       }),
-    [domain.subdomain, router],
+    [router],
   )
 }
 
@@ -178,14 +176,12 @@ export function useSecureFetch(): (input: RequestInfo | URL, init?: RequestInit)
  */
 export async function initSession(args: {
   accessToken: string
-  subdomain: string
 }): Promise<{ ok: boolean; code?: string }> {
   try {
     const res = await fetch('/api/auth/init-session', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${args.accessToken}`,
-        'x-subdomain': args.subdomain,
       },
       credentials: 'include',
     })
@@ -219,7 +215,6 @@ export async function initSession(args: {
 export function useSecureLogout(): (
   options?: { redirectTo?: string },
 ) => Promise<void> {
-  const domain = useDomain()
   const router = useRouter()
   return useCallback(
     async (options) => {
@@ -232,7 +227,6 @@ export function useSecureLogout(): (
             method: 'POST',
             headers: {
               Authorization: `Bearer ${session.access_token}`,
-              'x-subdomain': domain.subdomain,
             },
             credentials: 'include',
           }).catch(() => {
@@ -245,6 +239,6 @@ export function useSecureLogout(): (
       await supabase.auth.signOut()
       router.push(options?.redirectTo ?? '/')
     },
-    [domain.subdomain, router],
+    [router],
   )
 }

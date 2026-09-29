@@ -29,7 +29,7 @@ export const dynamic = 'force-dynamic'
  *   - 401 { code: 'no_token' | 'invalid_token' } si Bearer manque/invalide
  *   - 403 { code: 'session_superseded' } si le cookie ne matche pas
  *     users.last_session_token (autre login a écrasé)
- *   - 403 { code: 'domain_mismatch' } si x-subdomain ne correspond pas
+ *   - 403 { code: 'domain_mismatch' | 'unknown_domain' | … } si l'ADRESSE de la requête ne donne pas accès (§E.85)
  *
  * Aucune mutation, aucun side-effect. Coût ≈ 1 SELECT users.
  */

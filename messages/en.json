@@ -4316,7 +4316,10 @@
     },
     "unknown_domain": {
       "title": "This address matches no ecosystem",
-      "body": "The subdomain used does not exist. Check the address, or go back to the home page."
+      "body": "This address's subdomain does not exist, or it has changed. Check the address, or go back to the home page.",
+      "own_label": "Your ecosystem",
+      "cta": "Go to my ecosystem",
+      "no_link": "Open this subdomain directly in your browser."
     },
     "domain_inactive": {
       "title": "This ecosystem is deactivated",
@@ -4457,7 +4460,9 @@
         "lecture_indisponible": "The ecosystem cannot be read right now: nothing was changed. Try again in a moment.",
         "journal_error": "The subdomain was changed, but its record could not be written to the ledger. Report it to the technical team.",
         "generic": "The change did not go through. Try again; if it persists, report it to the technical team."
-      }
+      },
+      "fait_ici": "Subdomain changed. This address no longer serves the ecosystem: continue at {adresse} — you will sign in again there.",
+      "continuer": "Continue at the new address"
     }
   },
   "plafonds": {

@@ -9,7 +9,8 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  *
  * OBLIGATOIRE de passer par `useSecureFetch` :
  *   - injecte `Authorization: Bearer <access_token>` requis par requireAuth
- *   - injecte `x-subdomain: <domain>` requis pour le tenant guard
+ *   - intercepte les refus (session, suspension, écosystème) ; l'écosystème, lui, se lit
+ *     dans l'adresse de la requête (§E.85)
  * Un fetch() direct renvoie 401 silencieux (cf. bug récent sur section-visit).
  *
  * Au succès, dispatch `skilloria:notif-bump` → useNavBadges.mutate() →

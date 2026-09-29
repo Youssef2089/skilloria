@@ -6,20 +6,15 @@ import { resolveSubdomainFromHost } from './lib/subdomain'
 const handleI18n = createMiddleware(routing)
 
 export function proxy(request: NextRequest) {
-  // Résolution mutualisée avec les routes /api publiques (lib/subdomain.ts) :
-  // localhost → DEV_DOMAIN_SLUG ; production ET staging → `<écosystème>.<racine>`, la
-  // racine venant de NEXT_PUBLIC_DOMAINE_RACINE (§E.83). Aucun slug figé en dur.
-  // Hôte sans écosystème (la racine seule, une adresse `…vercel.app`) → null :
-  // x-subdomain vide, getDomainConfig retombera sur le repli NEUTRE. Une
-  // configuration absente (DEV_DOMAIN_SLUG en local, la racine ailleurs) LÈVE
-  // une erreur actionnable : ce n'est pas « aucun écosystème ».
-  const subdomain = resolveSubdomainFromHost(request.headers.get('host')) ?? ''
-
-  // Injecte x-subdomain sur les headers de requête AVANT next-intl.
-  // next-intl copie request.headers via `new Headers(request.headers)` dans son
-  // NextResponse.next({ request: { headers } }), donc x-subdomain est transmis
-  // aux Server Components (lecture via next/headers) avec la locale.
-  request.headers.set('x-subdomain', subdomain)
+  // LA CONFIGURATION EST VÉRIFIÉE ICI, À CHAQUE PAGE : localhost → DEV_DOMAIN_SLUG ; production
+  // ET staging → `<écosystème>.<racine>`, la racine venant de NEXT_PUBLIC_DOMAINE_RACINE (§E.83).
+  // Une configuration absente LÈVE une erreur actionnable : ce n'est pas « aucun écosystème ».
+  //
+  // ⚠️ LE PROXY N'INJECTE PLUS `x-subdomain` (§E.85, 29/09/2026). Chaque lecteur — pages,
+  //    gardes, routes — relit l'ADRESSE par `sousDomaineDeLaRequete` (lib/subdomain.ts). Un
+  //    en-tête nommé `x-subdomain` n'est plus lu nulle part : ni le proxy ni le navigateur
+  //    n'ont à en transporter une copie.
+  resolveSubdomainFromHost(request.headers.get('host'))
   // Injecte x-pathname pour la garde routing par rôle du dashboard
   // (cf. app/[locale]/dashboard/layout.tsx). Le pathname n'est pas
   // exposé nativement aux Server Components — middleware = seule façon

@@ -13,8 +13,8 @@ import LogoOrganisation from '@/components/admin/LogoOrganisation'
  * Onglet par défaut "En attente". Compteur par onglet.
  *
  * Source : GET /api/admin/list-orgs?status=<filter>
- * Headers : Bearer (Supabase session) + x-subdomain
- *           (pattern projet, requireAdmin attend ces 3 headers).
+ * Headers : Bearer (Supabase session) et le cookie de session ; l'écosystème
+ *           se lit dans l'adresse de la requête (§E.85), aucun en-tête.
  *
  * Tableau adaptatif :
  *   - pending/all : col_registered = created_at

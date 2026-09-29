@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
 import { adresseEcosysteme } from '@/lib/subdomain'
@@ -128,6 +128,7 @@ function Num({ v }: { v: number | null }) {
 
 export default function AdminEcosystemesPage() {
   const t = useTranslations('admin_ecosystemes')
+  const locale = useLocale()
   const secureFetch = useSecureFetch()
 
   const [list, setList] = useState<Eco[] | null>(null)
@@ -152,6 +153,8 @@ export default function AdminEcosystemesPage() {
   const [sdConfirm, setSdConfirm] = useState(false)
   const [sdSaving, setSdSaving] = useState(false)
   const [sdErr, setSdErr] = useState<string | null>(null)
+  // L'adresse où continuer, quand l'écosystème de CETTE adresse vient d'en changer.
+  const [demenage, setDemenage] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setError(null)
@@ -255,6 +258,16 @@ export default function AdminEcosystemesPage() {
         return
       }
       const adresse = adresseEcosysteme(apres)
+      // L'ÉCOSYSTÈME DE CETTE ADRESSE vient de changer d'adresse (§E.85) : elle ne le sert plus, et le prochain
+      // appel serait refusé (`unknown_domain`) — l'écran éjecterait l'administrateur au milieu de son geste.
+      // On ne recharge rien ; on DIT où continuer. Comparé à l'adresse RÉELLE de la page, pas à une copie.
+      const ancienne = adresseEcosysteme(detail.ecosystem.slug)
+      const surCetteAdresse = ancienne !== null && typeof window !== 'undefined' && new URL(ancienne).host === window.location.host
+      if (surCetteAdresse && adresse) {
+        setDemenage(`${adresse}/${locale}/admin/ecosystemes`)
+        setMsg({ kind: 'ok', text: t('sous_domaine.fait_ici', { adresse }) })
+        return
+      }
       setMsg({ kind: 'ok', text: adresse ? t('sous_domaine.fait', { adresse }) : t('sous_domaine.fait_local', { slug: apres }) })
       await load()
       await openDetail(detail.ecosystem.id)
@@ -302,6 +315,13 @@ export default function AdminEcosystemesPage() {
           }}
         >
           {msg.text}
+          {demenage && (
+            <div style={{ marginTop: 10 }}>
+              <a href={demenage} style={{ ...btn('primary'), display: 'inline-block', textDecoration: 'none' }}>
+                {t('sous_domaine.continuer')}
+              </a>
+            </div>
+          )}
         </div>
       )}
 

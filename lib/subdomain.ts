@@ -1,9 +1,9 @@
 // lib/subdomain.ts
 //
 // L'ÉCOSYSTÈME SE LIT DANS L'ADRESSE — une règle, une définition, pour la production ET pour staging.
-// SOURCE UNIQUE partagée par proxy.ts (qui injecte x-subdomain sur les pages), par les routes /api
-// PUBLIQUES qui résolvent l'écosystème elles-mêmes (le proxy n'injecte rien sur /api) et par la
-// construction des adresses (liens d'e-mail, sélecteur).
+// SOURCE UNIQUE — `sousDomaineDeLaRequete` pour qui lit une requête (pages, gardes, routes : §E.85, plus
+// aucun en-tête `x-subdomain`), `adresseEcosysteme` pour qui construit une adresse (liens d'e-mail,
+// sélecteur, écran de refus), et le proxy qui vérifie la configuration à chaque page.
 //
 // LA RÈGLE : une adresse est `<écosystème>.<racine>`, un seul label devant la racine.
 //   · la RACINE est ce qui diffère entre les environnements, et RIEN D'AUTRE :
@@ -92,6 +92,21 @@ export function resolveSubdomainFromHost(host: string | null | undefined): strin
   if (!hostname.endsWith(`.${racine}`)) return null
   const label = hostname.slice(0, -(racine.length + 1))
   return SLUG_ECOSYSTEME.test(label) ? label : null
+}
+
+/**
+ * LE SOUS-DOMAINE D'UNE REQUÊTE — lu dans SON ADRESSE, et nulle part ailleurs (§E.85, 29/09/2026).
+ *
+ * Le SEUL point d'entrée des gardes et des pages : la garde des routes (`requireAuth`), la garde du tableau
+ * de bord, `getDomainConfig`, les routes publiques. Jamais un en-tête `x-subdomain` : c'était une COPIE que le
+ * navigateur renvoyait, prise au rendu de la page — sur une adresse sans écosystème actif, la copie valait
+ * le pseudo-slug `'default'` de la configuration neutre, et la garde déclarait « inconnu » un écosystème que
+ * l'adresse ne nommait même pas. Une copie peut diverger de ce qu'elle copie ; l'adresse, non.
+ *
+ * @throws comme `resolveSubdomainFromHost` : une configuration absente n'est pas « aucun écosystème ».
+ */
+export function sousDomaineDeLaRequete(entetes: { get(nom: string): string | null }): string | null {
+  return resolveSubdomainFromHost(entetes.get('host') ?? entetes.get('x-forwarded-host'))
 }
 
 /**

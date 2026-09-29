@@ -1,5 +1,11 @@
 // scripts/diag-cloisonnement-ecosysteme.mjs — LA FALSIFICATION DE `x-subdomain`
 //
+// ⚠️ 29/09/2026 (§E.85) : L'EN-TÊTE N'EST PLUS LA SOURCE. La garde lit l'écosystème dans l'ADRESSE de la
+//    requête (`sousDomaineDeLaRequete`, lib/subdomain.ts) ; `x-subdomain` n'est plus ni envoyé ni lu. La
+//    question ci-dessous reste la bonne — « que fait le serveur d'une valeur que l'appelant choisit ? » —
+//    et sa réponse est devenue plus simple : il ne lit plus de valeur que l'appelant choisit. Le visiteur
+//    choisit son ADRESSE, c'est-à-dire l'écosystème qu'il vise ; la borne de l'expert juge ce choix.
+//
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // LA QUESTION, POSÉE FRANCHEMENT
 //   `x-subdomain` est un en-tête. Un en-tête se falsifie : n'importe qui peut
@@ -130,19 +136,19 @@ ok(
   "la borne « son écosystème à vie » a disparu : un expert atteindrait un autre écosystème",
 )
 
-// Règle d'or : aucun écosystème par défaut. Un en-tête absent est une anomalie,
-// pas une invitation à choisir à la place de l'appelant.
+// Règle d'or : aucun écosystème par défaut. Une ADRESSE qui n'en porte aucun est refusée,
+// jamais rattachée à un écosystème choisi à la place de l'appelant.
 ok(
-  'un en-tête absent est REFUSÉ (aucun rattachement implicite)',
-  /if \(!headerSubdomain\) return deny\('domain_mismatch'\)/.test(guard),
-  "l'absence d'en-tête vaudrait autorisation, sur un écosystème figé par défaut",
+  'une adresse sans écosystème est REFUSÉE (aucun rattachement implicite)',
+  /if \(!sousDomaine\) return deny\('unknown_domain'\)/.test(guard),
+  "une adresse sans écosystème vaudrait autorisation, sur un écosystème figé par défaut",
 )
 
 // Le slug est RÉSOLU en base, jamais comparé de chaîne à chaîne : sans cela un
 // écosystème inexistant et l'écosystème d'autrui deviennent indistinguables.
 ok(
   'le slug est résolu en base, pas comparé de chaîne à chaîne',
-  /\.from\('domains'\)/.test(guard) && /\.eq\('slug', headerSubdomain\)/.test(guard),
+  /\.from\('domains'\)/.test(guard) && /\.eq\('slug', sousDomaine\)/.test(guard),
 )
 ok('un écosystème inexistant est REFUSÉ', /return deny\('unknown_domain'\)/.test(guard))
 
@@ -164,12 +170,13 @@ ok(
 // ═══════════════════════════════════════════════════════════════════════════
 // (C) LA SANCTION — le verdict est appliqué, sur l'en-tête REÇU
 // ═══════════════════════════════════════════════════════════════════════════
-titre('(C) requireAuth transmet l’en-tête reçu, et sanctionne le verdict')
+titre('(C) requireAuth transmet l’ADRESSE de la requête, et sanctionne le verdict')
 
 ok(
-  "l'arbitrage est appelé avec l'en-tête x-subdomain de la requête",
-  /headerSubdomain:\s*request\.headers\.get\('x-subdomain'\)/.test(auth),
-  "l'en-tête n'alimente plus l'arbitrage : la garde jugerait autre chose que ce que le client a envoyé",
+  "l'arbitrage est appelé avec l'écosystème lu dans l'ADRESSE de la requête",
+  /sousDomaine = sousDomaineDeLaRequete\(request\.headers\)/.test(auth) && /resolveEcosystemAccess\(\{\s*admin: supabaseAdmin,\s*sousDomaine,/.test(auth)
+    && !/x-subdomain'\)/.test(auth),
+  "la garde jugerait une COPIE que le navigateur renvoie, pas l'adresse où il se trouve (§E.85)",
 )
 ok(
   'un verdict négatif lève une AuthError 403',

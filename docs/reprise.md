@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 29/09/2026 (ARRÊT 15).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 29/09/2026 (ARRÊT 16).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,11 +13,11 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — UNE migration en attente, `sous_domaine_reglable` (ARRÊT 15) : staging est à jour jusqu'à
-`domaines_adresse_reglables` (le push 3 a passé la porte d'inscription). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
+**Au prochain push** — AUCUNE migration en attente : staging est à jour jusqu'à `sous_domaine_reglable` (ARRÊT 15,
+déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 16 (la garde lit l'adresse). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
 l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
 `NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
-(étapes de Youssef, ARRÊT 14). La requête de staging est écrite pour cet état (⓪ `domaines_adresse_reglables`,
+(étapes de Youssef, ARRÊT 14). La requête de staging est écrite pour cet état (⓪ `sous_domaine_reglable`,
 listes vides). **Si `npx supabase db reset --local` échoue sur « EUNKNOWN … uv_spawn »** : c'est le Contrôle
 intelligent des applications de Windows (§E.82) — Sécurité Windows → Contrôle des applications et du navigateur →
 Paramètres du Contrôle intelligent des applications → Désactivé.
@@ -54,6 +54,95 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 16 — L'ADMIN SE FERMAIT EN TROIS SECONDES : UNE COPIE DU SOUS-DOMAINE DÉCIDAIT À LA PLACE DE L'ADRESSE (29/09/2026)
+
+Constat de Youssef (staging à jour jusqu'à `sous_domaine_reglable`, `1233b15` déployé) : l'admin s'affiche trois
+secondes puis renvoie vers `…/ecosysteme-indisponible?code=unknown_domain&slug=microsoft` — sur `skilloria365.staging`,
+et sur l'adresse `…vercel.app` de la branche depuis `microsoft.staging`. Tag local `sauvegarde-avant-garde-admin` sur
+`1233b15`, arbre propre (hormis `supabase/snippets/`). Détail : [pieges.md §E.85](pieges.md#e85).
+
+**LA CAUSE EXACTE (point 1), lue dans le code à `1233b15`.**
+1. `lib/get-domain-config.ts` l. 138 : une adresse sans écosystème ACTIF (`skilloria365`, pas encore renommé ;
+   toute adresse `…vercel.app`) rend la configuration neutre, dont le sous-domaine est le pseudo-slug `'default'`
+   (`lib/domain-config.ts` l. 100).
+2. `lib/secure-fetch.ts` l. 94 : le navigateur RECOPIAIT ce sous-domaine dans chaque appel (`x-subdomain`).
+3. `lib/auth-guard.ts` l. 349 : la garde jugeait la copie → `lib/ecosystem-guard.ts` l. 113 : `unknown_domain`.
+4. `lib/secure-fetch.ts` l. 163 : le filet client renvoie vers l'écran, avec `slug` = `ownSlug`
+   (`lib/ecosystem-guard.ts` l. 81) — **l'écosystème DU COMPTE**, pas celui de l'adresse : d'où `microsoft` sur une
+   adresse `skilloria365`. Ni cookie, ni jeton, ni stockage : la valeur vient de `users.domain_id → domains.slug`.
+   Les trois secondes : le premier appel `/api` de l'écran.
+
+**POURQUOI `…vercel.app` (point 2).** Aucun renvoi du code ne sort de l'adresse : les deux renvois vers l'écran sont
+RELATIFS (`lib/secure-fetch.ts`, `lib/dashboard-routing-guard.ts`) — contrôlé. Le chemin et la requête de l'adresse
+d'arrivée ont donc été produits par la page, déjà sur `…vercel.app`. La documentation Vercel (lue le 29/09/2026) le
+rend probable : la protection STANDARD couvre toutes les adresses sauf la production — `*.staging.skilloria.io`
+compris — et, après la connexion Vercel, « *you will be redirected to the deployment URL* ». **HYPOTHÈSE, NON
+MESURÉE** : c'est un réglage Vercel, pas du code ; la mesure est l'étape A.1 ci-dessous.
+
+**Contradictions signalées :** ① le départ vers `…vercel.app` ne se corrige pas dans le code — il se règle dans
+Vercel (exception de protection pour staging), à décider par Youssef ; ② le test ne rejoue ni un navigateur ni la
+base : il exécute les VRAIES fonctions de garde contre une base en mémoire ; ③ une adresse sans écosystème reste un
+refus pour TOUS, administrateur compris — l'admin travaille sur l'adresse d'un écosystème qui existe ; l'écran lui
+donne désormais le chemin.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. La cause | **prouvée par le code** | Ci-dessus ; une requête en lecture seule pour Youssef (étape A.2). |
+| 2. Le départ de staging | **expliqué, non mesuré** | Aucun renvoi absolu dans le code (contrôlé) ; la protection Vercel, documentée ; procédure : mise-en-production, étape 6 bis. |
+| 3. Le correctif | **fait** | `sousDomaineDeLaRequete()` (lib/subdomain.ts) : l'écosystème lu dans l'ADRESSE, seul point d'entrée de `requireAuth`, de la garde du tableau de bord et de `getDomainConfig`. Le navigateur n'envoie plus `x-subdomain`, le proxy n'en pose plus, aucun code ne le lit. Adresse sans écosystème : `unknown_domain`. L'écran de refus propose l'écosystème du compte DANS L'ENVIRONNEMENT (`adresseEcosysteme`), pour `unknown_domain` aussi, textes dans les quatre langues. Renommer l'écosystème de sa propre adresse n'éjecte plus l'admin : l'écran donne la nouvelle adresse. Six commentaires qui décrivaient l'en-tête corrigés. |
+| 4. La preuve | **faite** | `diag-garde-adresse` : la séquence exécutée (connexion sur alpha, renommage en beta, l'onglet sur l'ancienne adresse, le retour sur la nouvelle avec une copie périmée, l'adresse de Preview, l'écosystème désactivé) + une seule source + renvois relatifs + écran. `diag-cloisonnement-ecosysteme` et `diag-selecteur-ecosysteme` défendaient l'ANCIENNE source (l'en-tête, l'échange d'hôte) : portés sur la nouvelle, avec la raison. |
+| 5. Le piège | **écrit** | §E.85 : pourquoi 447 tests et 114 contrôles ne l'ont pas vu (la base n'est pas la requête ; un contrôle statique défendait le défaut ; aucun test n'exécutait la garde avec un hôte ; un pseudo-slug recopié ; les sessions déclarées non mesurées). |
+
+**Checklist** : 0 (aucun nom, aucun slug par défaut ne décide) · 2 (l'écosystème réellement résolu : l'adresse) ·
+12 (codes stables : `unknown_domain` garde son nom ; une adresse sans écosystème le rend au lieu de
+`domain_mismatch`, qui ne vaut plus que pour l'expert hors de son écosystème ; `ecosysteme_non_configure` à la
+garde quand la racine manque) · 13-14 (sortie actionnable, quatre langues) · 15 (V0 = la prod : même garde partout).
+
+**Migrations nouvelles : AUCUNE.** La requête de staging déclare le nouvel état (⓪ `sous_domaine_reglable`, listes
+vides ; ⑭ devient l'invariant « contrainte de forme présente et validée »).
+
+**Épreuve** : voir le commit suivant.
+
+### Les étapes de Youssef — dans cet ordre
+**A. Avant tout : mesurer, puis régler Vercel**
+1. **La mesure** (deux minutes) : navigateur en fenêtre privée, outils de développement → onglet **Réseau**, case
+   « Conserver le journal ». Ouvre `https://microsoft.staging.skilloria.io/fr/connexion`. Si une réponse renvoie vers
+   `vercel.com` puis vers `…vercel.app`, c'est la protection Vercel (§E.85). Envoie-moi la ligne si c'est autre chose.
+2. **La base, en lecture seule** (éditeur SQL de staging) :
+   `select d.slug, d.active, d.name, (select count(*) from public.users u where u.domain_id = d.id and u.user_type = 'admin') as administrateurs from public.domains d order by d.slug;`
+   Attendu : une ligne `microsoft`, `active = true`, au moins un administrateur. Si `active = false` : l'ancien code
+   éjectait l'admin sur TOUTE adresse de cet écosystème (§E.85) — dis-le-moi.
+3. **Vercel → le projet → Settings → Deployment Protection → Deployment Protection Exceptions → Add Domain** :
+   `*.staging.skilloria.io`. Si l'écran refuse le générique : ajoute `microsoft.staging.skilloria.io` et
+   `skilloria365.staging.skilloria.io`. (Ou, si tu préfères : Vercel Authentication désactivée pour Preview. Dans les
+   deux cas, staging devient public, comme la production.)
+
+**B. Le déploiement** — pas de migration, donc pas de `db push` :
+1. la requête de staging : ⓪ `sous_domaine_reglable`, **aucun ÉCART** ;
+2. `npm run build`, puis `git push`.
+
+**C. Le sous-domaine passe à `skilloria365`**
+1. Fenêtre privée → `https://microsoft.staging.skilloria.io/fr/connexion` → connecte-toi. **Vérifie que la barre
+   d'adresse reste sur `microsoft.staging.skilloria.io`.**
+2. Administration → **Écosystèmes** → Skilloria 365 → **Modifier** → section **Sous-domaine** → `skilloria365` →
+   **Changer le sous-domaine** → lis les conséquences → **Oui, changer le sous-domaine**.
+3. L'écran dit que cette adresse ne sert plus l'écosystème : clique **Continuer sur la nouvelle adresse** et
+   reconnecte-toi sur `https://skilloria365.staging.skilloria.io`.
+
+**D. Les réglages Auth de Supabase staging** — Authentication → URL Configuration :
+Site URL `https://skilloria365.staging.skilloria.io` ; Redirect URLs `https://*.staging.skilloria.io/*/auth/callback`
+et `https://*.staging.skilloria.io/*/nouveau-mot-de-passe`.
+
+**E. L'essai de l'inscription expert sur `skilloria365.staging.skilloria.io`** : « Créer un profil Expert » → branches
+et spécialités → inscription jusqu'au bout → le lien de l'e-mail commence par
+`https://skilloria365.staging.skilloria.io/` → `/admin/journal` : `compte_cree`, `expert_inscrit`, et la ligne
+`ecosysteme_modifie` (`microsoft` → `skilloria365`).
+
+**S'il te reste un cookie ou une session périmés.** Plus aucun cookie ni stockage ne décide de l'écosystème : au pire,
+une session d'avant te renvoie à la connexion. Pour repartir propre : déconnecte-toi, ou, dans les outils de
+développement → **Application** → **Effacer les données du site**, sur l'adresse concernée (et sur l'adresse
+`…vercel.app` si tu y es allé) ; ou fais l'essai en fenêtre privée.
 
 ## ⛔ ARRÊT 15 — LE SOUS-DOMAINE D'UN ÉCOSYSTÈME SE RÈGLE DANS L'ADMIN ET SE MODIFIE (29/09/2026)
 

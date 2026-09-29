@@ -24,8 +24,8 @@ import { spawnSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** LA BASE — abaissée à 65/25 le 26/09/2026 (point 2.10). Elle ne remonte jamais. */
-const BASE = { erreurs: 65, avertissements: 25 }
+/** LA BASE — abaissée à 65/25 le 26/09/2026 (point 2.10), à 65/24 le 29/09/2026 (§E.85). Elle ne remonte jamais. */
+const BASE = { erreurs: 65, avertissements: 24 }
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const r = spawnSync('npx', ['eslint', '-f', 'json', '.'], { cwd: ROOT, encoding: 'utf8', shell: true, maxBuffer: 256 * 1024 * 1024 })

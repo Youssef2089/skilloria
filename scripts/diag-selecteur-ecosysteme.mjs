@@ -288,8 +288,12 @@ for (const k of ['own_label', 'cta', 'no_link']) {
 const PAGE = strip(read('app/[locale]/ecosysteme-indisponible/page.tsx'))
 ok(/parseEcosystemScreenParams\(sp\)/.test(PAGE),
   'l’ecran lave ses parametres avant de les afficher')
-ok(/ecosystemHref\(\{ host, slug, protocol: proto/.test(PAGE),
-  'le lien de sortie est reconstruit depuis l’HOTE COURANT',
+// ⚠️ 29/09/2026 (§E.85) : la sortie n'echange plus l'hote courant — sur une adresse qui ne porte aucun
+//    ecosysteme (`…vercel.app`, un sous-domaine renomme) il n'y avait rien a echanger, et la sortie manquait
+//    la ou elle servait. Elle se construit dans l'ENVIRONNEMENT : `https://<slug>.<racine>`, la racine venant de
+//    la configuration. La garantie defendue ici ne change pas : aucun hote recu ne devient une destination.
+ok(/const adresse = aSortie \? adresseEcosysteme\(slug\) : null/.test(PAGE) && !/headers\(\)/.test(PAGE),
+  'le lien de sortie est construit dans l’ENVIRONNEMENT (la racine configuree), jamais depuis un hote recu',
   'jamais depuis une valeur recue : c’est ce qui empeche la redirection ouverte')
 
 // Le filet cote client intercepte EXACTEMENT ces codes, sans deconnecter.

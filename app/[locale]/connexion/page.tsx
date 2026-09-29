@@ -139,10 +139,7 @@ export default function ConnexionPage() {
       // d'être ré-établie → on établit le cookie puis on mène droit à
       // /reactivation (évite un flash de dashboard avant le redirect du gate).
       if (userData.deletion_scheduled_at && !userData.anonymized_at) {
-        const initGrace = await initSession({
-          accessToken: data.session.access_token,
-          subdomain: domain.subdomain,
-        })
+        const initGrace = await initSession({ accessToken: data.session.access_token })
         // La SUSPENSION PRIME sur la suppression programmée — même ordre que
         // dans lib/auth-guard.ts. Un compte suspendu ne doit pas atteindre
         // /reactivation : la réactivation est en self-service, la levée de
@@ -172,10 +169,7 @@ export default function ConnexionPage() {
       // Session unique (11F) : on pose le last_session_token + cookie httpOnly
       // AVANT le redirect. Effet voulu : invalide les sessions actives du
       // même compte sur d'autres appareils/onglets (D2). Best-effort.
-      const init = await initSession({
-        accessToken: data.session.access_token,
-        subdomain: domain.subdomain,
-      })
+      const init = await initSession({ accessToken: data.session.access_token })
 
       // COMPTE SUSPENDU : le serveur a refusé d'ouvrir la session. On purge
       // l'authentification Supabase (sans quoi l'utilisateur resterait à

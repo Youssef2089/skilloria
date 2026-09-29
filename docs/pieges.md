@@ -4036,6 +4036,55 @@ commentaires, et ce que devient une adresse renommée chez ceux qui l'avaient �
 
 ---
 
+<a id="e85"></a>
+### E.85 — UNE COPIE DU SOUS-DOMAINE, PRISE PAR LE NAVIGATEUR AU RENDU, DÉCIDAIT À LA PLACE DE L'ADRESSE : l'admin éjecté en trois secondes, et aucun test n'exécutait la garde avec un hôte.
+
+**Le cas mesuré (29/09/2026, staging, `1233b15` déployé).** Sur `skilloria365.staging.skilloria.io`, Youssef se
+connecte, voit l'admin trois secondes, puis tombe sur `…/ecosysteme-indisponible?code=unknown_domain&slug=microsoft`.
+Sur `microsoft.staging.skilloria.io`, même chute — mais sur l'adresse `…vercel.app` de la branche.
+
+**La chaîne, lue dans le code.** ① La page rend sa configuration par `getDomainConfig`
+(`lib/get-domain-config.ts`, l. 138 à `1233b15`) : un sous-domaine qui ne désigne aucun écosystème **actif** —
+`skilloria365`, pas encore renommé ; toute adresse `…vercel.app` — rend la configuration NEUTRE, dont le
+« sous-domaine » vaut le pseudo-slug `'default'` (`lib/domain-config.ts`, l. 100). ② Le navigateur RECOPIAIT ce
+sous-domaine dans chaque appel : `headers.set('x-subdomain', ctx.subdomain)` (`lib/secure-fetch.ts`, l. 94). ③ La
+garde des routes jugeait la COPIE : `headerSubdomain: request.headers.get('x-subdomain')` (`lib/auth-guard.ts`,
+l. 349) → aucun écosystème `'default'` → `unknown_domain` (`lib/ecosystem-guard.ts`, l. 113). ④ Le filet client
+renvoyait vers l'écran de refus (`lib/secure-fetch.ts`, l. 163) avec `slug` = l'écosystème **du compte**
+(`ownSlug: ownDomain?.slug`, `lib/ecosystem-guard.ts`, l. 81) — d'où `microsoft` sur une adresse `skilloria365`.
+Les trois secondes : le temps du premier appel `/api` de l'écran.
+
+**Pourquoi l'adresse `…vercel.app`.** Aucun renvoi du code ne la construit : les deux renvois vers l'écran de refus
+sont RELATIFS (le filet client, la garde du tableau de bord), et une navigation relative garde l'adresse. Le chemin
+et la requête de l'adresse d'arrivée (`/fr/ecosysteme-indisponible?code=…`) ont donc été produits PAR la page, déjà
+sur `…vercel.app`. La documentation de Vercel explique comment elle y était : la protection **standard** des
+déploiements couvre toutes les adresses sauf la production — `*.staging.skilloria.io` compris —, et après la
+connexion Vercel « *you will be redirected to the deployment URL* ». **HYPOTHÈSE documentée, NON MESURÉE** : le
+réglage de protection du projet et la réponse réelle se lisent dans Vercel et dans l'onglet Réseau du navigateur.
+
+**Pourquoi 447 tests verts et 114 contrôles ne l'ont pas vu.** ① Les tests pgTAP éprouvent la BASE ; la décision
+se prenait avant elle, entre une adresse, un en-tête et une garde. ② Les contrôles de la garde étaient STATIQUES —
+et l'un d'eux **défendait le défaut** : `diag-cloisonnement-ecosysteme` exigeait mot pour mot que « l'arbitrage
+soit appelé avec l'en-tête `x-subdomain` de la requête ». Un contrôle qui fige une conception protège aussi son
+erreur. ③ Aucun test n'EXÉCUTAIT la garde avec un hôte : la copie et l'adresse coïncident sur toute page d'un
+écosystème actif — il fallait une page neutre (un sous-domaine pas encore renommé, un écosystème désactivé, une
+adresse de Preview) pour qu'elles divergent. ④ Le repli neutre portait un pseudo-slug (`'default'`) : une valeur
+qui n'existe pas, recopiée comme si elle existait. ⑤ L'ARRÊT 15 avait déclaré les sessions NON MESURÉES en
+navigateur : c'était le bon endroit où regarder, et rien ne l'exécutait.
+
+**La parade.** **L'écosystème se lit dans l'adresse, et nulle part ailleurs** : `sousDomaineDeLaRequete()`
+(`lib/subdomain.ts`) est le seul point d'entrée de `requireAuth`, de la garde du tableau de bord et de
+`getDomainConfig` ; le navigateur n'envoie plus de copie, le proxy n'en pose plus, aucun code ne lit
+`x-subdomain`. Une adresse sans écosystème est `unknown_domain`, et l'écran de refus propose l'écosystème du compte
+**dans l'environnement** (`adresseEcosysteme`) — jamais en échangeant l'hôte courant, qui n'a parfois rien à
+échanger. Un administrateur qui renomme l'écosystème de sa propre adresse n'est plus éjecté : l'écran lui donne la
+nouvelle. [`diag-garde-adresse`](../scripts/diag-garde-adresse.mjs) EXÉCUTE la séquence (connexion, sous-domaine
+changé, ancienne adresse, nouvelle adresse avec une copie périmée, adresse de Preview, écosystème désactivé) avec les
+vraies fonctions de garde et une base en mémoire ; sans le correctif, il rougit. **Ce qu'il ne voit pas** : un
+navigateur réel — le stockage de session par adresse, la protection de Vercel ; l'essai de Youssef le dit.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

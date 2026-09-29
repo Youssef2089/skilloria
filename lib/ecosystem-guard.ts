@@ -49,7 +49,11 @@ export type EcosystemDenialCode =
 
 export type EcosystemDenial = {
   code: EcosystemDenialCode
-  /** Slug de l'écosystème DU COMPTE — renseigné pour `domain_mismatch`. */
+  /**
+   * Slug de l'écosystème DU COMPTE (lu en base, `users.domain_id → domains.slug`), JAMAIS celui de l'adresse.
+   * ⚠️ C'est lui qu'on lisait dans `…?code=unknown_domain&slug=microsoft` sur une adresse skilloria365 (§E.85) :
+   *    l'écran s'en sert pour proposer le chemin vers l'écosystème du compte.
+   */
   ownSlug: string | null
 }
 
@@ -67,40 +71,45 @@ export type EcosystemResolution =
  */
 export async function resolveEcosystemAccess(args: {
   admin: SupabaseClient
-  headerSubdomain: string | null | undefined
+  /**
+   * Le sous-domaine LU DANS L'ADRESSE de la requête (`sousDomaineDeLaRequete`, lib/subdomain.ts) — jamais
+   * un en-tête posé par le navigateur (§E.85). `null` : l'adresse ne porte aucun écosystème.
+   */
+  sousDomaine: string | null
   userType: string | null
   userDomainId: string
   ownDomain: EcosystemRow | null
   /** Préfixe des journaux, pour distinguer les deux appelants. */
   logTag: string
 }): Promise<EcosystemResolution> {
-  const { admin, headerSubdomain, userType, userDomainId, ownDomain, logTag } = args
+  const { admin, sousDomaine, userType, userDomainId, ownDomain, logTag } = args
 
   const deny = (code: EcosystemDenialCode): EcosystemResolution => ({
     ok: false,
     denial: { code, ownSlug: ownDomain?.slug ?? null },
   })
 
-  // Règle d'or : AUCUN slug d'écosystème par défaut. `x-subdomain` est injecté
-  // par useSecureFetch sur toute requête authentifiée ; absent = anomalie →
-  // échec, jamais un rattachement implicite à un écosystème figé.
-  if (!headerSubdomain) return deny('domain_mismatch')
+  // Règle d'or : AUCUN slug d'écosystème par défaut. Une adresse qui ne porte aucun
+  // écosystème (la racine seule, une adresse `…vercel.app`) ne se rattache à RIEN :
+  // `unknown_domain` — ce que l'écran dit (« cette adresse ne correspond à aucun
+  // écosystème »), avec le chemin vers l'écosystème du compte.
+  if (!sousDomaine) return deny('unknown_domain')
 
   // LE SLUG EST RÉSOLU EN BASE, jamais comparé de chaîne à chaîne. Tant que la
   // garde se résumait à « le slug reçu vaut-il celui de mon compte ? », un
   // écosystème inexistant ou désactivé était impossible à distinguer : le test
   // passait ou échouait pour la seule raison que le compte était ailleurs.
   let target: EcosystemRow | null =
-    ownDomain && ownDomain.slug === headerSubdomain ? ownDomain : null
+    ownDomain && ownDomain.slug === sousDomaine ? ownDomain : null
   if (!target) {
     const { data: domRow, error: domErr } = await admin
       .from('domains')
       .select('id, slug, active')
-      .eq('slug', headerSubdomain)
+      .eq('slug', sousDomaine)
       .maybeSingle()
     if (domErr) {
       console.error(`[${logTag}] domain lookup error`, {
-        slug: headerSubdomain,
+        slug: sousDomaine,
         msg: domErr.message,
       })
       // Une base muette ne vaut PAS une autorisation.

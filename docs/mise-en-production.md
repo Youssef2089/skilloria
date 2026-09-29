@@ -379,6 +379,16 @@ Tout ce qui suit a été **lu dans la documentation de Vercel le 29/09/2026** (s
    Les deux `NS` laissent Vercel émettre et renouveler le certificat générique — **gardez-les en place** ; le `CNAME` amène les visiteurs. **Ce que ça change pour Resend : rien.** Aucun des trois ne touche un nom existant ; ils vivent tous sous `staging.`. La documentation prévient qu'une délégation de `_acme-challenge` empêche un **autre** hébergeur d'émettre un certificat pour les mêmes noms — ici, uniquement les noms en `.staging.skilloria.io`, que rien d'autre ne sert (**NON VÉRIFIÉ** : à confirmer d'un coup d'œil sur la zone).
 5. **La racine.** Vercel → **Settings** → **Environment Variables** → **Preview** : `NEXT_PUBLIC_DOMAINE_RACINE` = `staging.skilloria.io`. Retirez `DEV_DOMAIN_SLUG` de Preview si elle y est.
 6. **L'authentification du projet Supabase de staging** : la **Site URL** et les deux **Redirect URLs** de staging (étape 4).
+6 bis. **La protection des déploiements de Vercel** (Settings → **Deployment Protection**). La protection *standard*
+   couvre toutes les adresses **sauf la production** — donc `*.staging.skilloria.io` —, et après la connexion Vercel
+   elle renvoie « *to the deployment URL* » : l'adresse `…vercel.app` de la branche, qui ne porte aucun écosystème
+   (§E.85 ; documentation Vercel, *Vercel Authentication* et *Deployment Protection*, lue le 29/09/2026). Staging
+   se comporte comme la production, qui n'est pas protégée : ajoutez l'adresse de staging aux **Deployment
+   Protection Exceptions** (« *disable Deployment Protection for a list of preview domains* », sans supplément
+   d'après la page des tarifs). **NON VÉRIFIÉ** : qu'une exception accepte le générique `*.staging.skilloria.io` —
+   si l'écran le refuse, ajoutez l'adresse de chaque écosystème d'essai, ou désactivez la protection pour Preview.
+   Décision à prendre en connaissance de cause : sans protection, staging est public (ses données sont des
+   données d'essai).
 7. **Redéployez** la branche de test, puis attendez dans **Settings → Domains** que `*.staging.skilloria.io` soit en configuration valide.
 
 **Comment savoir que c'est bon :**

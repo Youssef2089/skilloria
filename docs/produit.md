@@ -28,7 +28,7 @@
 
 **1. Il s'inscrit.** `/inscription/[role]` → `POST /api/auth/public/register-expert`.
 La route est **publique** (bare `fetch`, pas `useSecureFetch`) et résout l'écosystème elle-même via
-`resolveSubdomainFromHost()` : le proxy n'injecte pas `x-subdomain` sur `/api`.
+l'adresse de la requête (`sousDomaineDeLaRequete()`) — aucune route ne lit plus d'en-tête `x-subdomain` (§E.85).
 L'inscription exige une **branche et une spécialité choisies dans le référentiel**, pas du texte
 libre — avant la migration `taxonomie_specialite_autre_et_inscription`, la spécialité était stockée
 dans `profiles.title`, `branch_id`/`speciality_id` restaient NULL, et **le profil n'alimentait pas le

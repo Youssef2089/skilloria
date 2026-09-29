@@ -1,4 +1,4 @@
-import { resolveSubdomainFromHost, adresseEcosysteme } from '@/lib/subdomain'
+import { sousDomaineDeLaRequete, adresseEcosysteme } from '@/lib/subdomain'
 
 /**
  * LE LIEN DE L'E-MAIL DE CONFIRMATION — construit au SERVEUR, sur l'adresse de l'écosystème résolu,
@@ -37,7 +37,7 @@ export type EcosystemeResolu =
 export function ecosystemeDeLaRequete(request: Request): EcosystemeResolu {
   let slug: string | null
   try {
-    slug = resolveSubdomainFromHost(request.headers.get('host') ?? request.headers.get('x-forwarded-host'))
+    slug = sousDomaineDeLaRequete(request.headers)
   } catch (err) {
     console.error('[inscription] résolution de l’écosystème en panne', err instanceof Error ? err.message : String(err))
     return { ok: false, raison: 'configuration' }

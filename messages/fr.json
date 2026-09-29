@@ -4316,7 +4316,10 @@
     },
     "unknown_domain": {
       "title": "Cette adresse ne correspond à aucun écosystème",
-      "body": "Le sous-domaine utilisé n'existe pas. Vérifiez l'adresse, ou revenez à l'accueil."
+      "body": "Le sous-domaine de cette adresse n'existe pas, ou il a changé. Vérifiez l'adresse, ou revenez à l'accueil.",
+      "own_label": "Votre écosystème",
+      "cta": "Aller sur mon écosystème",
+      "no_link": "Ouvrez ce sous-domaine directement dans votre navigateur."
     },
     "domain_inactive": {
       "title": "Cet écosystème est désactivé",
@@ -4457,7 +4460,9 @@
         "lecture_indisponible": "Impossible de lire l’écosystème pour le moment : rien n’a été modifié. Réessayez dans un instant.",
         "journal_error": "Le sous-domaine a été changé, mais sa trace n’a pas pu être écrite au grand livre. Signalez-le à l’équipe technique.",
         "generic": "Le changement n’a pas abouti. Réessayez ; si cela persiste, signalez-le à l’équipe technique."
-      }
+      },
+      "fait_ici": "Sous-domaine changé. Cette adresse ne sert plus l’écosystème : continuez sur {adresse} — vous vous y reconnecterez.",
+      "continuer": "Continuer sur la nouvelle adresse"
     }
   },
   "plafonds": {

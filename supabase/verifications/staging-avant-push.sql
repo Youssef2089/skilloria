@@ -37,17 +37,14 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- Ce push (le sous-domaine réglable, 29/09/2026) : UNE migration, `sous_domaine_reglable` — elle ne retire
-  -- aucune signature ; elle pose une contrainte de forme sur `domains.slug`.
+  -- Ce push (la garde lit l'adresse, 29/09/2026, §E.85) : AUCUNE migration — les deux listes sont vides.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
   prochain_push_cree(genre, nom) as (
-    select v.genre, v.nom from (values
-      ('contrainte', 'domains_sous_domaine_forme')
-    ) v(genre, nom)
+    select v.genre, v.nom from (values (null::text, null::text)) v(genre, nom) where false
   )
 
 select v.ordre,
@@ -59,7 +56,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'domaines_adresse_reglables',
+   'sous_domaine_reglable',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 
@@ -78,11 +75,11 @@ from (values
         or (c.genre = 'contrainte' and exists (select 1 from pg_constraint k join pg_namespace n on n.oid = k.connamespace
                                                  where n.nspname = 'public' and k.conname = c.nom)))),
 
-  -- ② bis La contrainte de forme est posée VALIDÉE (jamais `not valid`, §E.64) : un sous-domaine existant hors de
-  --      la forme ARRÊTERAIT la migration au milieu du push. On les compte AVANT — une lecture, rien d'écrit.
-  --      Hors forme : ni une étiquette DNS (minuscules, chiffres, tirets, 1 à 63 caractères, ni tiret en tête ni en fin).
-  (14, 'prochain push : sous-domaines existants hors de la forme que sous_domaine_reglable pose (elle s''arrêterait)', '0',
-   (select count(*)::text from public.domains d where d.slug !~ '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$')),
+  -- ⑭ Le sous-domaine est un réglage (§D.28) : sa forme est tenue EN BASE par une contrainte posée VALIDÉE (§E.64).
+  --    Absente ou non validée, l'écran accepterait ce que le résolveur refuse ensuite — un écosystème injoignable.
+  (14, 'invariant : contrainte domains_sous_domaine_forme présente et validée', '1',
+   (select count(*)::text from pg_constraint k join pg_namespace n on n.oid = k.connamespace
+     where n.nspname = 'public' and k.conname = 'domains_sous_domaine_forme' and k.convalidated)),
 
   -- ③ Une surcharge posée à la main échappe au balayage statique des migrations. Les signatures que
   --    le push supprime sont retirées du compte : elles sont la seule surcharge ATTENDUE avant lui.

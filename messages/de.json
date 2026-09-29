@@ -4316,7 +4316,10 @@
     },
     "unknown_domain": {
       "title": "Diese Adresse gehört zu keinem Ökosystem",
-      "body": "Die verwendete Subdomain existiert nicht. Prüfen Sie die Adresse oder kehren Sie zur Startseite zurück."
+      "body": "Die Subdomain dieser Adresse existiert nicht oder wurde geändert. Prüfen Sie die Adresse oder kehren Sie zur Startseite zurück.",
+      "own_label": "Ihr Ökosystem",
+      "cta": "Zu meinem Ökosystem",
+      "no_link": "Öffnen Sie diese Subdomain direkt in Ihrem Browser."
     },
     "domain_inactive": {
       "title": "Dieses Ökosystem ist deaktiviert",
@@ -4457,7 +4460,9 @@
         "lecture_indisponible": "Das Ökosystem kann gerade nicht gelesen werden: Es wurde nichts geändert. Versuchen Sie es gleich noch einmal.",
         "journal_error": "Die Subdomain wurde geändert, aber ihr Eintrag konnte nicht ins Hauptbuch geschrieben werden. Melden Sie es dem technischen Team.",
         "generic": "Die Änderung ist nicht durchgegangen. Versuchen Sie es erneut; falls es weiterhin auftritt, melden Sie es dem technischen Team."
-      }
+      },
+      "fait_ici": "Subdomain geändert. Diese Adresse stellt das Ökosystem nicht mehr bereit: Fahren Sie unter {adresse} fort – dort melden Sie sich erneut an.",
+      "continuer": "Unter der neuen Adresse fortfahren"
     }
   },
   "plafonds": {

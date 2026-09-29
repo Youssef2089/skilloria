@@ -148,8 +148,8 @@ const guardBody = guard.slice(
 )
 
 // R2 — le slug est RESOLU EN BASE, pas compare a une chaine.
-ok(/\.from\('domains'\)[\s\S]{0,200}?\.eq\('slug', headerSubdomain\)/.test(resolver),
-  'le slug recu est resolu sur la table domains',
+ok(/\.from\('domains'\)[\s\S]{0,200}?\.eq\('slug', sousDomaine\)/.test(resolver),
+  'le sous-domaine de l’ADRESSE est resolu sur la table domains',
   'une comparaison de chaines ne peut pas distinguer inconnu / desactive / ailleurs')
 ok(/if \(!target\) return deny\('unknown_domain'\)/.test(resolver),
   'un ecosysteme INEXISTANT est refuse explicitement')
@@ -167,13 +167,16 @@ ok(/if \(domErr\)[\s\S]{0,320}?return deny\('domain_lookup_failed'\)/.test(resol
   'une erreur de lecture sur domains REFUSE',
   'une base muette ne vaut pas une autorisation')
 
-// L'en-tete absent refuse, et aucun slug par defaut ne le remplace.
-ok(/if \(!headerSubdomain\) return deny\('domain_mismatch'\)/.test(resolver),
-  'un x-subdomain absent refuse')
-// La LECTURE doit etre nue. Chercher un repli sur la VARIABLE etait decoratif :
-// le repli s'ecrit sur la lecture (\`.get('x-subdomain') ?? 'default'\`).
-ok(/headerSubdomain: request\.headers\.get\('x-subdomain'\),/.test(guardBody),
-  'aucun slug par defaut ne remplace un en-tete manquant',
+// Une adresse sans ecosysteme refuse, et aucun slug par defaut ne la remplace.
+// ⚠️ 29/09/2026 (§E.85) : la source n'est plus l'en-tete `x-subdomain` (une COPIE que le navigateur renvoyait —
+//    et c'est precisement un repli `'default'`, pris au rendu d'une page neutre, qui ejectait l'admin) :
+//    c'est l'ADRESSE, lue par `sousDomaineDeLaRequete`. Ce que ces deux controles defendent ne change pas.
+ok(/if \(!sousDomaine\) return deny\('unknown_domain'\)/.test(resolver),
+  'une adresse sans ecosysteme refuse (unknown_domain)')
+// La LECTURE doit etre nue : l'adresse, passee telle quelle, sans repli sur la lecture.
+ok(/sousDomaine = sousDomaineDeLaRequete\(request\.headers\)\s*\n/.test(guardBody)
+   && /resolveEcosystemAccess\(\{\s*admin: supabaseAdmin,\s*sousDomaine,/.test(guardBody),
+  'aucun slug par defaut ne remplace une adresse sans ecosysteme',
   'un repli implicite rattacherait le compte a un ecosysteme fige')
 
 // La regle par population vient de la source unique, elle n'est pas recopiee.

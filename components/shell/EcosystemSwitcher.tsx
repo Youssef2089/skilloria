@@ -15,7 +15,7 @@ import { ecosystemHref } from '@/lib/ecosystem-url'
  * ║ Aucun état local, aucun cookie de préférence, aucun paramètre d'URL :    ║
  * ║ l'adresse EST l'écosystème. C'est pourquoi la bascule est une            ║
  * ║ NAVIGATION COMPLÈTE (`location.assign`) et non un `router.push` : on     ║
- * ║ quitte l'origine, le serveur relit `x-subdomain`, et tout ce qui         ║
+ * ║ quitte l'origine, le serveur relit l'ADRESSE, et tout ce qui            ║
  * ║ dépendait de l'écosystème est reconstruit à partir de la seule vérité.   ║
  * ║                                                                          ║
  * ║ Un second état — « écosystème sélectionné » quelque part en mémoire —    ║

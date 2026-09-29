@@ -160,7 +160,7 @@ export default function NouveauMotDePassePage() {
             router.push('/connexion')
             return
           }
-          const init = await initSession({ accessToken: session.access_token, subdomain: domain.subdomain })
+          const init = await initSession({ accessToken: session.access_token })
           // Compte suspendu : réinitialiser son mot de passe ne rend pas l'accès.
           // Sans ce test, la page de reset serait la troisième porte d'entrée
           // (avec /connexion et /auth/callback) et la seule restée ouverte.

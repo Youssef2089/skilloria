@@ -4316,7 +4316,10 @@
     },
     "unknown_domain": {
       "title": "Esta dirección no corresponde a ningún ecosistema",
-      "body": "El subdominio utilizado no existe. Compruebe la dirección o vuelva al inicio."
+      "body": "El subdominio de esta dirección no existe o ha cambiado. Compruebe la dirección o vuelva a la página de inicio.",
+      "own_label": "Su ecosistema",
+      "cta": "Ir a mi ecosistema",
+      "no_link": "Abra este subdominio directamente en su navegador."
     },
     "domain_inactive": {
       "title": "Este ecosistema está desactivado",
@@ -4457,7 +4460,9 @@
         "lecture_indisponible": "No se puede leer el ecosistema en este momento: no se ha modificado nada. Inténtelo de nuevo en unos instantes.",
         "journal_error": "El subdominio se cambió, pero su registro no pudo escribirse en el libro mayor. Comuníquelo al equipo técnico.",
         "generic": "El cambio no se ha completado. Inténtelo de nuevo; si persiste, comuníquelo al equipo técnico."
-      }
+      },
+      "fait_ici": "Subdominio cambiado. Esta dirección ya no sirve el ecosistema: continúe en {adresse}; tendrá que volver a iniciar sesión allí.",
+      "continuer": "Continuar en la nueva dirección"
     }
   },
   "plafonds": {

@@ -107,7 +107,7 @@ export default function AuthCallbackPage() {
 
         // Session unique (11F) : on pose le token+cookie AVANT le redirect.
         // Best-effort, ne bloque pas le flow d'arrivée sur le dashboard.
-        const init = await initSession({ accessToken, subdomain: domain.subdomain })
+        const init = await initSession({ accessToken })
 
         // Compte suspendu : ce sas de confirmation d'e-mail ne doit pas
         // devenir un contournement du blocage. On purge et on renvoie vers

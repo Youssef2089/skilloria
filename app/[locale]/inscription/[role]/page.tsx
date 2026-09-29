@@ -45,7 +45,7 @@ export default function InscriptionRolePage() {
 
   // D5/D6 : sélection structurée branche → spécialité (remplace le champ libre
   // « spécialité »), alimentée par /api/taxonomy (domain_id résolu côté serveur
-  // depuis x-subdomain). L'option « Autre » ouvre un champ de précision libre.
+  // depuis l'adresse de la requête). L'option « Autre » ouvre un champ de précision libre.
   const [branches, setBranches] = useState<TaxBranch[]>([])
   const [specialities, setSpecialities] = useState<TaxSpeciality[]>([])
   const [branchId, setBranchId] = useState('')

@@ -2316,10 +2316,14 @@ Le cloisonnement des **données** se fait sur `publications.domain_id` et `candi
 il renvoie simplement trop de lignes. Le filtre est posé **dans** la recherche par identifiant, pas
 après : un objet hors écosystème est **introuvable** (404, jamais 403 — « cet objet existe, mais
 ailleurs » serait déjà une fuite).
-`x-subdomain` **est falsifiable** : le proxy ne l'injecte pas sur `/api` (son matcher exclut `api`),
-c'est le client qui le pose via `useSecureFetch`. La garde ne dépend donc pas de l'appelant, elle
-recroise l'en-tête avec `users.domain_id` et la population. Gardé par
-`diag-cloisonnement-ecosysteme.mjs` et `diag-ecosystem-scope.mjs`.
+**L'écosystème visé se lit dans l'ADRESSE de la requête, et nulle part ailleurs** (§E.85, 29/09/2026) :
+`sousDomaineDeLaRequete()` ([lib/subdomain.ts](../lib/subdomain.ts)) pour `requireAuth`, la garde du tableau de
+bord et `getDomainConfig`. ~~`x-subdomain`, posé par le client via `useSecureFetch`~~ : cet en-tête était une
+COPIE prise au rendu de la page — `'default'` sur une page neutre — et la garde jugeait la copie ; il n'est plus
+ni envoyé ni lu. Le visiteur choisit son adresse, c'est-à-dire l'écosystème qu'il vise ; la garde recroise ce
+choix avec `users.domain_id` et la population. Une adresse qui ne porte aucun écosystème est `unknown_domain`.
+Gardé par `diag-cloisonnement-ecosysteme.mjs`, `diag-ecosystem-scope.mjs` et `diag-garde-adresse.mjs` (qui
+EXÉCUTE la garde sur une séquence d'adresses).
 
 <a id="d4"></a>
 
@@ -3358,7 +3362,7 @@ l'hébergeur »). Il doit porter `skilloria365`.
 
 **L'état, prouvé par le code et les migrations.** `domains.slug` EST le sous-domaine : unique (`domains_slug_key`),
 lu **à chaque requête, par sa valeur** — le proxy et `resolveSubdomainFromHost()` (l'adresse → le sous-domaine),
-`getDomainConfig()` et la garde d'écosystème (`x-subdomain` → `domains.slug`, **sans cache**), `inscription_refus()`
+`getDomainConfig()` et la garde d'écosystème (l'adresse → `domains.slug`, **sans cache** ; §E.85), `inscription_refus()`
 et `handle_new_user` (le sous-domaine signé → l'écosystème), les liens d'e-mail (`expertSiteOrigin` → le sous-domaine
 du destinataire, lu en base), le sélecteur (la liste lue en base). **Rien ne le recopie comme clé** : toute référence
 (comptes, organisations, publications, grand livre, métadonnées Stripe — `skilloria_domain_id`) passe par

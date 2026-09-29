@@ -9,6 +9,7 @@ import {
   ecosystemeLogoStoragePath,
   urlPubliqueEcosysteme,
 } from './org-logo'
+import { sousDomaineDeLaRequete } from './subdomain'
 import type { Locale } from '@/i18n/routing'
 import { routing } from '@/i18n/routing'
 
@@ -132,10 +133,14 @@ function normalizeLocale(locale?: string): Locale {
 export async function getDomainConfig(locale?: string): Promise<DomainConfig> {
   const resolvedLocale = normalizeLocale(locale)
 
+  // L'écosystème de la page se lit dans son ADRESSE (§E.85) — la même fonction que les gardes.
+  // Une adresse qui n'en porte aucun rend la configuration NEUTRE, sans chercher de slug.
   let slug: string
   try {
     const h = await headers()
-    slug = h.get('x-subdomain') ?? defaultDomainConfig.subdomain
+    const lu = sousDomaineDeLaRequete(h)
+    if (!lu) return defaultDomainConfig
+    slug = lu
   } catch {
     return defaultDomainConfig
   }

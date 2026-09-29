@@ -82,10 +82,10 @@ Environment is targeted per-remote with `supabase link <ref>` (staging ref `wnay
 
 ### Multi-tenancy by subdomain
 Each tenant is a "domain" (e.g. `microsoft.skilloria.io`). Resolution flow:
-1. `proxy.ts` extracts the subdomain from the `host` header and injects it as the `x-subdomain` request header (also injects `x-pathname` for the dashboard role guard). ~~Locally it hardcodes `microsoft`.~~ **⚠️ PÉRIMÉ — voir §M0** : `resolveSubdomainFromHost()` lit `DEV_DOMAIN_SLUG` en dev et lève si elle manque. Le matcher du proxy **exclut `/api`** : sur les routes API, `x-subdomain` est posé par le client (`useSecureFetch`) — cf. §D.3.
-2. Server components read `x-subdomain` via `getDomainConfig()` ([lib/get-domain-config.ts](lib/get-domain-config.ts)), which loads the `domains` + `domain_configs` rows and returns a `DomainConfig` (branding, colors, ecosystem labels, featured products). Falls back to `defaultDomainConfig` ([lib/domain-config.ts](lib/domain-config.ts)) on any error.
+1. `proxy.ts` extracts the subdomain from the `host` header and injects it as the `x-subdomain` request header (also injects `x-pathname` for the dashboard role guard). **⚠️ PÉRIMÉ — voir §E.85** : le proxy n'injecte plus `x-subdomain` ; pages, gardes et routes relisent l'ADRESSE (`sousDomaineDeLaRequete`, [lib/subdomain.ts](lib/subdomain.ts)). ~~Locally it hardcodes `microsoft`.~~ **⚠️ PÉRIMÉ — voir §M0** : `resolveSubdomainFromHost()` lit `DEV_DOMAIN_SLUG` en dev et lève si elle manque. Le matcher du proxy **exclut `/api`** : sur les routes API, `x-subdomain` est posé par le client (`useSecureFetch`) — cf. §D.3.
+2. Server components read ~~`x-subdomain`~~ **l'adresse de la requête (§E.85)** via `getDomainConfig()` ([lib/get-domain-config.ts](lib/get-domain-config.ts)), which loads the `domains` + `domain_configs` rows and returns a `DomainConfig` (branding, colors, ecosystem labels, featured products). Falls back to `defaultDomainConfig` ([lib/domain-config.ts](lib/domain-config.ts)) on any error.
 3. The root layout ([app/[locale]/layout.tsx](app/[locale]/layout.tsx)) wraps the tree in `<DomainProvider>`; client code reads it via `useDomain()` ([context/DomainContext.tsx](context/DomainContext.tsx)).
-4. Every authenticated request re-checks that the user's `domain_id` matches `x-subdomain` (`domain_mismatch` → 403). Tenant isolation is enforced on the server, not just in the URL. **⚠️ PÉRIMÉ — voir §M0 et §D.3** : l'égalité stricte ne vaut que pour les **experts** ; une organisation accède à tous les écosystèmes **actifs**, un admin à tous. La règle vit dans `ecosystemAccessScope()`.
+4. Every authenticated request re-checks that the user's `domain_id` matches ~~`x-subdomain`~~ **l'écosystème lu dans l'adresse de la requête (§E.85)** (`domain_mismatch` → 403). Tenant isolation is enforced on the server, not just in the URL. **⚠️ PÉRIMÉ — voir §M0 et §D.3** : l'égalité stricte ne vaut que pour les **experts** ; une organisation accède à tous les écosystèmes **actifs**, un admin à tous. La règle vit dans `ecosystemAccessScope()`.
 
 ### i18n (next-intl) — two translation layers
 - **Static UI strings**: `messages/{fr,en,es,de}.json`, accessed with `t('key')`. Locales are `fr` (default) `en` `es` `de`, always prefixed (`/fr/...`). Config in [i18n/routing.ts](i18n/routing.ts), [i18n/request.ts](i18n/request.ts). **No hardcoded strings in JSX** — a hard project rule.
@@ -95,7 +95,7 @@ Each tenant is a "domain" (e.g. `microsoft.skilloria.io`). Resolution flow:
 Auth is Supabase, but with a **custom single-session layer on top**:
 - The client sends `Authorization: Bearer <supabase_access_token>`. Server routes call `requireAuth(request)` ([lib/auth-guard.ts](lib/auth-guard.ts)), which validates the JWT, loads the user + domain + organization context, and returns `{ user, domain, organization, supabaseAdmin }`.
 - A **separate opaque session token** (`ss_token` httpOnly cookie) enforces "one active session per user". Its **sha256 hash** is stored in `users.last_session_token` (cookie keeps the raw value); mismatch → 403 `session_superseded`. Lifecycle helpers in [lib/session-token.ts](lib/session-token.ts). Login calls `/api/auth/init-session`; logout calls `/api/auth/logout`. Cookie is scoped to `.skilloria.io` in prod (cross-subdomain) and suffixed `_staging` on staging to avoid clobbering prod.
-- **Client-side fetches must use `useSecureFetch()`** ([lib/secure-fetch.ts](lib/secure-fetch.ts)) — it injects the bearer token, `x-subdomain`, `credentials: 'include'`, and auto-handles `session_superseded` by signing out + redirecting. Public endpoints (countries, taxonomy, OTP, register-org) are the only ones that use bare `fetch`.
+- **Client-side fetches must use `useSecureFetch()`** ([lib/secure-fetch.ts](lib/secure-fetch.ts)) — it injects the bearer token, ~~`x-subdomain`~~ (**plus depuis §E.85** : aucune copie du sous-domaine ne part du navigateur), `credentials: 'include'`, and auto-handles `session_superseded` by signing out + redirecting. Public endpoints (countries, taxonomy, OTP, register-org) are the only ones that use bare `fetch`.
 - Account-deletion grace period is gated inside `requireAuth` (allowlist of reachable paths); `requireOrgApproved(ctx)` gates org-restricted routes.
 
 ### User types → dashboards (the "voie" split)
@@ -180,7 +180,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 
 - **D.1** — **Le lancement est gratuit et rien n'encaisse.** Deux verrous, tous deux au serveur : la clé Stripe scopée par environnement (`sk_test_` en prod et `sk_live_` hors prod refusés) et `ENABLE_BILLING === 'true'`. Aucune variable `NEXT_PUBLIC_`, aucun bouton désactivé sur un mur, mur fermé par ignorance. → [détail](docs/architecture.md#d1)
 - **D.2** — **Les SMS de notification sont coupés AU DISPATCHER** (`CANAUX_OUVERTS = ['email']`, un seul point, fermé par défaut) ; les OTP Vonage Verify sont intacts. Rouvrir `sms` réactive une dépense sortante : opt-in d'abord. → [détail](docs/architecture.md#d2)
-- **D.3** — **Un expert appartient à un écosystème à vie ; une organisation voit tous les actifs ; l'admin tout ; tout autre type = REFUS** (`ecosystemAccessScope()`). Le filtre est posé DANS la recherche par identifiant (404, jamais 403) ; `x-subdomain` est falsifiable, la garde recroise `users.domain_id`. → [détail](docs/architecture.md#d3)
+- **D.3** — **Un expert appartient à un écosystème à vie ; une organisation voit tous les actifs ; l'admin tout ; tout autre type = REFUS** (`ecosystemAccessScope()`). Le filtre est posé DANS la recherche par identifiant (404, jamais 403) ; l'écosystème se lit dans l'ADRESSE de la requête, jamais dans une copie venue du navigateur (§E.85), et la garde recroise `users.domain_id`. → [détail](docs/architecture.md#d3)
 - **D.4** — **Le nom de l'expert s'affiche abrégé, au serveur** (`Youssef Cherif → YCH`, `toUpperCase()` jamais `toLocaleUpperCase()`) ; e-mail, téléphone, LinkedIn et CV ne sortent JAMAIS vers une organisation, `reveal_contact` vaut `false` toujours. → [détail](docs/architecture.md#d4)
 - **D.5** — **Le dévoilement se referme à l'archivage de la candidature** (l'état de vie prime sur le statut), sauf `selected`, actif sans limite. Le motif d'archivage est indifférent ; on ferme le chemin d'accès, pas la trace. → [détail](docs/architecture.md#d5)
 - **D.6** — **Aucun score de PERTINENCE chiffré à l'expert** — seul le palier `strong`/`normal` sort ; **la note de CANDIDATURE `N/10`, oui, et c'est voulu** : les deux grandeurs ne disent pas la même chose. → [détail](docs/architecture.md#d6)
@@ -307,6 +307,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.82](docs/pieges.md#e82) | WINDOWS SMART APP CONTROL BLOQUE LE BINAIRE NON SIGNÉ DE LA CLI SUPABASE : `db reset --local` échoue sur « EUNKNOWN … uv_spawn », sans rien d'autre. Vérifier le poste avant le dépôt. |
 | [E.83](docs/pieges.md#e83) | UNE PREVIEW VERCEL N'A PAS D'ÉCOSYSTÈME DANS SON HÔTE : le « premier label » était le nom du déploiement, l'inscription expert était bloquée — et 423 tests pgTAP ne voient pas un hôte. Le correctif par variable sur la Preview a été REFUSÉ : staging lit l'écosystème dans l'adresse, comme la production ; seule la racine diffère. |
 | [E.84](docs/pieges.md#e84) | UN VERROU D'ÉCRAN SURVIT À SA RAISON : le sous-domaine « non modifiable » parce qu'il fallait le déclarer chez l'hébergeur — l'adresse générique a supprimé la raison, pas le verrou. |
+| [E.85](docs/pieges.md#e85) | UNE COPIE DU SOUS-DOMAINE, PRISE PAR LE NAVIGATEUR AU RENDU, DÉCIDAIT À LA PLACE DE L'ADRESSE : `'default'` sur une page neutre, « inconnu » à la garde, l'admin éjecté en trois secondes — et aucun test n'exécutait la garde avec un hôte. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -465,7 +466,7 @@ fichiers a cassé **55 liens** relatifs, et il les a tous nommés avant le commi
 > moitié des phrases, et aucune machine ne les aurait trouvées. Ce qui les a trouvées, c'est une
 > relecture contre le code — il n'y a pas de raccourci.
 
-**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (65 erreurs / 25 avertissements au 26/09/2026)
+**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (65 erreurs / 24 avertissements au 29/09/2026)
 vit dans [`diag-lint-cliquet`](scripts/diag-lint-cliquet.mjs), pas dans une consigne : rouge dès qu'un des
 deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commit**.
 

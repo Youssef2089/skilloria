@@ -42,6 +42,7 @@ import {
 import { hashSessionToken, sessionCookieNameForHost } from '@/lib/session-token'
 import { resolveEcosystemAccess } from '@/lib/ecosystem-guard'
 import { ECOSYSTEM_UNAVAILABLE_PATH } from '@/lib/ecosystem-url'
+import { sousDomaineDeLaRequete } from '@/lib/subdomain'
 
 function getSupabaseAdmin(): SupabaseClient | null {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -116,10 +117,17 @@ export async function assertDashboardRoleGuard(): Promise<void> {
   if (!userType) return
 
   // ── ÉCOSYSTÈME D'ABORD ────────────────────────────────────────────────────
-  // `x-subdomain` est posé par proxy.ts sur les PAGES (il n'exclut que /api).
+  // L'écosystème se lit dans l'ADRESSE de la page (§E.85) — la même fonction que la garde des routes.
+  let sousDomaine: string | null
+  try {
+    sousDomaine = sousDomaineDeLaRequete(hdrs)
+  } catch (err) {
+    console.error('[dashboard-routing-guard] adresse illisible : configuration absente', err instanceof Error ? err.message : String(err))
+    return   // la page lèvera la même erreur, nommée, par le proxy — rien à décider ici
+  }
   const access = await resolveEcosystemAccess({
     admin: supabaseAdmin,
-    headerSubdomain: hdrs.get('x-subdomain'),
+    sousDomaine,
     userType,
     userDomainId: row.domain_id,
     ownDomain: (Array.isArray(row.domains) ? row.domains[0] : row.domains) ?? null,
