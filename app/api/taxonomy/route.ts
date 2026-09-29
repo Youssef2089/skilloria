@@ -6,7 +6,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
-import { resolveSubdomainFromHost } from '@/lib/subdomain'
+import { ecosystemeDeLaRequete } from '@/lib/inscription/ecosysteme'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,42 +43,43 @@ export async function GET(req: NextRequest) {
     // D5 : le domain_id est facultatif. Les surfaces authentifiées le fournissent
     // (profil, publication) ; la page publique d'inscription ne le connaît pas et
     // ne DOIT PAS deviner d'identifiant de domaine (checklist #20). On le résout
-    // donc SERVEUR, à partir du sous-domaine de la requête.
+    // donc SERVEUR, depuis l'HÔTE de la requête — par la même fonction que les
+    // routes d'inscription (checklist 2 : l'écosystème réellement résolu). Plus
+    // `x-subdomain` : il est posé par l'appelant, pas par l'hôte.
     //
-    // ⚠️ Le proxy N'INJECTE PAS x-subdomain sur /api (son matcher exclut `api`).
-    // On lit donc directement l'en-tête Host — présent sur toute requête, y
-    // compris pré-authentification — via le même résolveur que le proxy
-    // (localhost → "microsoft" en dev, sinon 1er label ; multi-écosystème :
-    // sap.skilloria.io → taxonomie SAP). x-subdomain reste lu en priorité au cas
-    // où un appelant l'aurait déjà posé.
+    // ⚠️ LA PANNE DIT SA CAUSE, AU SERVEUR (§E.83). Le 29/09/2026, sur une Preview
+    //    Vercel, cette route rendait 400 `missing_domain_id` : l'hôte
+    //    `<déploiement>.vercel.app` ne portait aucun écosystème, et rien, nulle
+    //    part, ne le disait — l'écran affichait « impossible de charger », sans
+    //    cause. Chaque échec a désormais un CODE, et sa cause part aux journaux :
+    //    ecosysteme_non_configure (DEV_DOMAIN_SLUG absente sur un hôte qui n'a pas
+    //    d'écosystème) · ecosysteme_non_resolu (hôte non résolvable) ·
+    //    ecosysteme_inconnu (aucun écosystème ACTIF sous ce slug) ·
+    //    ecosysteme_indisponible (la lecture a échoué). L'écran reste traduit.
     if (!domainId) {
-      const subdomain =
-        req.headers.get('x-subdomain') ||
-        resolveSubdomainFromHost(req.headers.get('host') ?? req.headers.get('x-forwarded-host'))
-      if (subdomain) {
-        const { data: dom, error: domErr } = await supabase
-          .from('domains')
-          .select('id')
-          .eq('slug', subdomain)
-          .eq('active', true)
-          .maybeSingle()
-        // ⚠️ `null` TOMBAIT SUR 400 `missing_domain_id` — « vous n’avez pas
-        //    fourni d’écosystème », dit à un appelant qui en a fourni un,
-        //    valide. Refus juste, motif faux (§E.22 ③) : on ne sert pas une
-        //    taxonomie qu’on n’a pas su rattacher, mais 503.
-        if (domErr) {
-          console.error('[taxonomy] résolution de l’écosystème en panne', { subdomain, message: domErr.message })
-          return json(
-            { error: 'Could not resolve the ecosystem', code: 'ecosysteme_indisponible' },
-            503,
-          )
-        }
-        domainId = dom?.id ?? null
+      const hote = req.headers.get('host') ?? req.headers.get('x-forwarded-host')
+      const ecosysteme = ecosystemeDeLaRequete(req)
+      if (!ecosysteme.ok) {
+        const code = ecosysteme.raison === 'configuration' ? 'ecosysteme_non_configure' : 'ecosysteme_non_resolu'
+        console.error('[taxonomy] écosystème de la requête non résolu', { code, hote })
+        return json({ error: 'Could not resolve the ecosystem', code }, ecosysteme.raison === 'configuration' ? 500 : 400)
       }
-    }
-
-    if (!domainId) {
-      return json({ error: 'domain_id required', code: 'missing_domain_id' }, 400)
+      const { data: dom, error: domErr } = await supabase
+        .from('domains')
+        .select('id')
+        .eq('slug', ecosysteme.slug)
+        .eq('active', true)
+        .maybeSingle()
+      // Ne pas savoir n'est pas « inconnu » (§E.22 ③) : une lecture en panne rend 503.
+      if (domErr) {
+        console.error('[taxonomy] résolution de l’écosystème en panne', { code: 'ecosysteme_indisponible', slug: ecosysteme.slug, message: domErr.message })
+        return json({ error: 'Could not resolve the ecosystem', code: 'ecosysteme_indisponible' }, 503)
+      }
+      if (!dom) {
+        console.error('[taxonomy] aucun écosystème actif sous ce slug', { code: 'ecosysteme_inconnu', slug: ecosysteme.slug, hote })
+        return json({ error: 'Unknown ecosystem', code: 'ecosysteme_inconnu' }, 404)
+      }
+      domainId = dom.id as string
     }
     const [
       { data: brs, error: brsErr },
@@ -113,7 +114,7 @@ export async function GET(req: NextRequest) {
       ])
 
     if (brsErr || spsErr || wzsErr) {
-      console.error('[taxonomy]', brsErr?.message, spsErr?.message, wzsErr?.message)
+      console.error('[taxonomy] référentiel illisible', { code: 'db_error', branches: brsErr?.message, specialites: spsErr?.message, zones: wzsErr?.message })
       return json({ error: 'Failed to load taxonomy', code: 'db_error' }, 500)
     }
 
@@ -145,7 +146,7 @@ export async function GET(req: NextRequest) {
 
     return json({ locale, branches, specialities, work_zones })
   } catch (err) {
-    console.error('[taxonomy] exception:', err)
+    console.error('[taxonomy] exception', { code: 'internal', message: err instanceof Error ? err.message : String(err) })
     return json({ error: 'Internal error', code: 'internal' }, 500)
   }
 }

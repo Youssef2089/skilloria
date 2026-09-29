@@ -3892,6 +3892,13 @@ périmée ; une de moins : non préparée), aucun invariant qui cite ce que le p
 mutation. **Ce qu'il ne voit pas** : l'état RÉEL de staging (c'est ⓪ qui le compare) ; les colonnes, politiques et
 contraintes créées par un push (seuls fonctions, tables et index sont suivis) ; une nouvelle signature d'un nom connu.
 
+**Le cas du push 3 (28/09/2026) — une ligne JUSTE qui compare mal.** La ligne ③ (« aucune surcharge, hors ce que le
+push supprime ») a sorti un ÉCART à tort : elle comparait `p.oid::regprocedure::text` — que Postgres écrit
+« admin_cron_run_now(text,uuid) », sans schéma ni espace — au texte de la liste, « public.admin_cron_run_now(text,
+uuid) ». L'exclusion ne reconnaissait rien (Youssef l'a vérifié à la main sur staging). La ligne compare désormais
+par IDENTIFIANT (`to_regprocedure()`), comme la ligne ① ; `diag-requete-staging` (F bis) rougit sur toute
+signature de la liste qui ne passe pas par `to_regprocedure()`, et sur tout texte de `regprocedure` (§E.67).
+
 ---
 
 <a id="e81"></a>
@@ -3915,6 +3922,71 @@ perdue (le domaine pris entre-temps) se nomme alors ; sinon « indisponible », 
 création de compte appelle `refusInscription()` et ne juge rien elle-même. **Ce qu'il ne voit pas** : une route
 neuve qui créerait un compte sans passer par ces quatre fichiers — la section B (tout créateur de compte signe la
 preuve) la ferait rougir, pas la section D.
+
+---
+
+<a id="e82"></a>
+### E.82 — WINDOWS SMART APP CONTROL BLOQUE LE BINAIRE NON SIGNÉ QU'EMBARQUE LA CLI SUPABASE : `db reset --local` échoue sur « EUNKNOWN: unknown error, uv_spawn », sans rien d'autre.
+
+**Le cas (29/09/2026, poste de Youssef).** `npx supabase db reset --local` échouait IMMÉDIATEMENT, avant tout
+contact avec Docker : `EUNKNOWN: unknown error, uv_spawn` ; `--debug` n'ajoutait rien. `npx supabase --version`
+répondait (2.108.0), `docker version` aussi, retirer `.env.local` ne changeait rien — et la même commande passait
+quelques jours plus tôt. La piste « ligne de commande trop longue » (issue CLI #5711, `ENAMETOOLONG … uv_spawn`)
+ressemblait au symptôme ; elle n'était pas la cause. **Cause, trouvée par Youssef** : le **Contrôle intelligent des
+applications** de Windows (Smart App Control) bloque le binaire NON SIGNÉ que `supabase.exe` lance : Node reçoit un
+refus de `CreateProcess` qu'il ne sait pas nommer — EUNKNOWN. Rien, dans le dépôt, n'avait changé la commande.
+
+**Pourquoi c'est un piège.** Le symptôme accuse le dernier changement du dépôt (trois migrations, des scripts) et
+envoie chercher dans le code ; le message ne nomme ni Windows ni le blocage ; et la session d'un agent qui n'a pas
+le droit de lancer la CLI ne peut pas le reproduire (29/09/2026 : commande refusée par les permissions — la mesure
+a été rendue à Youssef plutôt que supposée).
+
+**Le remède.** Sécurité Windows → **Contrôle des applications et du navigateur** → **Paramètres du Contrôle
+intelligent des applications** → **Désactivé**. ⚠️ **NON VÉRIFIÉ sur ce poste** : selon Microsoft, un
+Contrôle intelligent désactivé ne se réactive pas sans réinitialiser Windows — c'est un choix de poste, pas du dépôt. La séquence de déploiement le rappelle (reprise.md).
+
+**Le contrôle** : aucun — c'est l'environnement d'un poste, pas le dépôt (§E.38 : ce qui ne se balaie pas se
+déclare). La règle qui en sort : devant une erreur de lancement de processus (`uv_spawn`, `EUNKNOWN`,
+`ENAMETOOLONG`), vérifier D'ABORD que le poste laisse le binaire s'exécuter, avant de relire le dépôt.
+
+---
+
+<a id="e83"></a>
+### E.83 — UNE PREVIEW VERCEL N'A PAS D'ÉCOSYSTÈME DANS SON HÔTE : la règle « premier label » en tirait le nom du déploiement, et l'inscription expert était impossible. 423 tests verts ne l'ont pas vu.
+
+**Le cas mesuré (29/09/2026, Preview Vercel de `feat/sprint-archi-orga`, commit `1c518a9`).** Le formulaire
+« Créer un profil Expert » affichait « Impossible de charger les branches et spécialités » : la spécialité étant
+obligatoire, aucune inscription expert ne passait. **La cause, lue dans le code** : le formulaire
+(`app/[locale]/inscription/[role]/page.tsx`) appelle `/api/taxonomy` SANS `domain_id` ; la route
+(`app/api/taxonomy/route.ts`) résolvait l'écosystème par `resolveSubdomainFromHost()` (`lib/subdomain.ts`) —
+premier label d'un hôte d'au moins trois labels. Un hôte de Preview `<déploiement>.vercel.app` en a trois : le
+« slug » était le nom du déploiement, aucun écosystème ne le porte, la route rendait **400 `missing_domain_id`**,
+et l'écran affichait son message générique. Aucune migration en cause : la route lit en clé de service — ni droit
+ni politique RLS n'entrent en jeu. Même défaut pour l'hôte unique de staging, `staging.skilloria.io` (« staging »).
+
+**Pourquoi 423 tests verts ne l'ont pas vu.** ① Les tests pgTAP éprouvent la BASE ; la panne vivait AVANT elle,
+entre l'hôte de la requête et l'écosystème. ② Le contrôle du sélecteur d'écosystème (`diag-selecteur-ecosysteme`)
+éprouvait des hôtes de production, de staging à sous-domaine et localhost — **jamais l'hôte où l'on essaie avant la
+production**. ③ La panne se TAISAIT : 400 sans journal au serveur, message générique à l'écran — Youssef ne pouvait
+rien diagnostiquer, et un agent ne pouvait que supposer (les pistes « droits » et « portes latérales » étaient
+plausibles et fausses).
+
+**La parade.** `lib/subdomain.ts` nomme les hôtes qui ne portent PAS d'écosystème (`hoteSansEcosysteme` : localhost,
+une Preview `*.vercel.app` hors production, l'hôte unique de staging) : ils le reçoivent de `DEV_DOMAIN_SLUG`, et
+lèvent en la nommant si elle manque. En production, `.vercel.app` rend `null` (l'alias du projet ne devine rien).
+`lib/ecosystem-url.ts` ne bascule jamais depuis ces hôtes (depuis `staging.skilloria.io`, remplacer le premier label
+menait en PRODUCTION). `/api/taxonomy` résout par l'hôte seul (`ecosystemeDeLaRequete`, plus `x-subdomain` posé par
+l'appelant) et **nomme chaque panne au serveur** : `ecosysteme_non_configure`, `ecosysteme_non_resolu`,
+`ecosysteme_inconnu`, `ecosysteme_indisponible`. Plus aucun diagnostic à la console du navigateur sur les écrans
+publics.
+
+**Les contrôles.** [`diag-hotes-ecosysteme`](../scripts/diag-hotes-ecosysteme.mjs) EXÉCUTE le résolveur et le
+sélecteur sur une matrice d'hôtes × environnements (production, Preview, staging, local ; variable posée et absente)
+et garde la résolution unique, les causes nommées, la console muette — éprouvé par mutation. Et
+`vrai_appelant/visiteur.test.sql` prouve chaque lecture d'un visiteur non connecté au rôle qui la fait vraiment (la
+seule en `anon` : `/api/countries` ; les autres en clé de service) — la famille « un droit retiré casse un écran
+public », que ce cas-ci n'était pas, mais qu'aucun test ne gardait. **Ce qu'ils ne voient pas** : la variable
+réellement posée sur Vercel — la réponse de `/api/taxonomy` sur la Preview la dit (`ecosysteme_non_configure`).
 
 ---
 

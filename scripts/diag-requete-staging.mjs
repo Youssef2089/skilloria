@@ -146,6 +146,18 @@ const tablesAbsentes = invariants.flatMap((l) => [...l.bloc.matchAll(/tablename\
   .flatMap((m) => [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1])).filter((t) => !schema.has(t)).map((t) => `ligne ${l.n} : ${t}`))
 ok(tablesAbsentes.length === 0, 'F. chaque table nommée par un invariant existe en état final', tablesAbsentes.join(' · ') || undefined)
 
+// ── F bis. UNE SIGNATURE DE LA LISTE SE COMPARE PAR IDENTIFIANT, JAMAIS PAR TEXTE (push 3, 28/09/2026) ──
+//  La ligne ③ comparait « p.oid::regprocedure::text » — « admin_cron_run_now(text,uuid) », sans schéma ni
+//  espace — au texte de la liste, « public.admin_cron_run_now(text, uuid) » : ÉCART à tort, la surcharge que
+//  le push supprimait n'était pas reconnue. Toute référence à « r.signature » passe par « to_regprocedure() ».
+{
+  const refs = (code.match(/\br\.signature\b/g) ?? []).length
+  const resolues = (requete.match(/to_regprocedure\(r\.signature\)/g) ?? []).length
+  ok(refs === resolues && !/regprocedure::text/i.test(code),
+    `F bis. chaque signature de prochain_push_retire est résolue par to_regprocedure() — jamais comparée en texte (${resolues}/${refs})`,
+    'un texte rendu par Postgres ne ressemble pas à la liste : l’exclusion ne reconnaîtrait rien (§E.67)')
+}
+
 // ── G. LES DEUX INVARIANTS DE §E.73, TENUS PAR CONSTRUCTION ──
 //  La liste des colonnes de handle_new_user est ÉGALE aux insertions de sa DERNIÈRE définition (§E.34) :
 //  une colonne de plus ou de moins, et la ligne mentirait — dans un sens ou dans l'autre.

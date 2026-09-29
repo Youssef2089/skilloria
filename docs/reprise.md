@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 28/09/2026 (ARRÊT 12).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 29/09/2026 (ARRÊT 13).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,11 +13,12 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — TROIS migrations en attente : `retrait_anciennes_signatures` (§E.72, étape 3), puis la porte
-d'inscription (`porte_inscription`, `domaines_adresse_reglables`, §D.27 — ARRÊT 12). **Prérequis : le secret
-`inscription_hmac_secret` au Vault de staging ET `INSCRIPTION_HMAC_SECRET` sur Vercel, à la même valeur.** Coller
-d'abord la requête de staging (⓪ `journal_nettoyage`, ⑬ le secret), puis la séquence de §G.4 ter. Après ce push,
-déclarer le nouvel état en ⓪ et vider les deux listes du `with` (`diag-requete-staging` le demande).
+**Au prochain push** — AUCUNE migration en attente : staging est à jour jusqu'à `domaines_adresse_reglables` (le push 3
+a passé la porte d'inscription). Le correctif de l'ARRÊT 13 est dans le code seul ; il demande `DEV_DOMAIN_SLUG` sur
+l'environnement Preview de Vercel. La requête de staging est écrite pour cet état (⓪ `domaines_adresse_reglables`,
+listes vides). **Si `npx supabase db reset --local` échoue sur « EUNKNOWN … uv_spawn »** : c'est le Contrôle
+intelligent des applications de Windows (§E.82) — Sécurité Windows → Contrôle des applications et du navigateur →
+Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Restent à faire, par Youssef :**
 1. **L'essai d'inscription sur staging** — un expert freelance, un expert CDI, une organisation, une invitation
@@ -51,6 +52,58 @@ déclarer le nouvel état en ⓪ et vider les deux listes du `with` (`diag-reque
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 13 — LE FORMULAIRE EXPERT SANS BRANCHES SUR LA PREVIEW : L'HÔTE NE PORTAIT PAS D'ÉCOSYSTÈME (29/09/2026)
+
+Tag local `sauvegarde-avant-taxonomie-inscription` sur `1c518a9`. Détail : [pieges.md §E.83](pieges.md#e83).
+
+**LA CAUSE, lue dans le code (aucune migration en cause).** Le formulaire `app/[locale]/inscription/[role]/page.tsx`
+(l. 65-77) appelle `/api/taxonomy` sans `domain_id`. La route (`app/api/taxonomy/route.ts`, l. 54-81 à `1c518a9`)
+résolvait l'écosystème par `resolveSubdomainFromHost()` (`lib/subdomain.ts`, l. 53-55 à `1c518a9` : « premier
+label d'un hôte d'au moins trois labels »). Sur la Preview, l'hôte est `<déploiement>.vercel.app` : le « slug » était
+le nom du déploiement, aucun écosystème ne le porte → **400 `missing_domain_id`** → le message de l'écran. La route
+lit en clé de service : ni les droits (`portes_laterales_fermees`), ni la fermeture de `taxonomie_inscription_refus`
+(`journal_compte_cree`), ni `porte_inscription` n'entrent en jeu. Même défaut sur l'hôte unique `staging.skilloria.io`.
+Et depuis `porte_inscription`, register-expert résout aussi par l'hôte : l'envoi aurait échoué pareil.
+**Contradiction signalée** : le balayage demandé « au vrai rôle (anon) » — un seul écran public lit la base en
+`anon` (`/api/countries`) ; toutes les autres lectures d'un visiteur passent par la clé de service. Le test les prouve
+chacune au rôle qui la fait VRAIMENT.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. La cause | **prouvée par le code** | Ci-dessus. Une seule vérification en lecture seule, pour Youssef (étape 1 ci-dessous). |
+| 2. Le correctif | **fait** | `lib/subdomain.ts` : `hoteSansEcosysteme` (localhost, Preview `*.vercel.app` hors production, `staging.skilloria.io`) reçoit `DEV_DOMAIN_SLUG`, lève en la nommant sinon ; en production `.vercel.app` rend null. `lib/ecosystem-url.ts` ne bascule plus depuis ces hôtes. `/api/taxonomy` résout par l'hôte seul (`ecosystemeDeLaRequete`, plus `x-subdomain`). Rien n'est ouvert de plus en base. |
+| 3. Le balayage | **fait** | Accueil et pages publiques (getDomainConfig, traductions), inscription expert (taxonomie, règle), organisation et téléphone (`/api/countries` en ANON), invitation (resolve, inscription). `vrai_appelant/visiteur.test.sql` (12) : chaque lecture au rôle réel, et la règle d'inscription fermée à anon et authenticated. |
+| 4. La panne dit sa cause | **fait** | `/api/taxonomy` : `ecosysteme_non_configure`, `ecosysteme_non_resolu`, `ecosysteme_inconnu`, `ecosysteme_indisponible`, `db_error` — chacun journalisé au serveur avec son code ; l'écran reste traduit. La page d'invitation n'écrit plus à la console du navigateur. |
+| 5. Le piège et son contrôle | **fait** | §E.83 ; `diag-hotes-ecosysteme` (nouveau) exécute le résolveur sur une matrice hôtes × environnements. |
+| 6. Requête d'avant-push | **fait** | ⓪ `domaines_adresse_reglables` ; ce lot n'a AUCUNE migration : les deux listes sont vides. |
+| 7. Ligne ③ | **fait** | Comparaison par identifiant (`to_regprocedure`), plus par texte ; `diag-requete-staging` F bis mord (§E.80, le cas du push 3). |
+| 8. Smart App Control | **fait** | §E.82 ; rappel dans la séquence ci-dessous. |
+| 9. Vercel « Production » | **documenté** | `mise-en-production.md` : `main` = Production, la version du 29 avril sur `skilloria-chi.vercel.app` ; recommandation A (branche de production dédiée) + C (protéger la Production actuelle). Rien n'est touché. |
+
+**Migrations nouvelles : AUCUNE.** Le correctif est dans le code ; la base n'a rien à changer.
+
+### Les étapes de Youssef
+1. **La vérification, en lecture seule, sur la Preview ACTUELLE (`1c518a9`), avant tout déploiement** : ouvre dans ton
+   navigateur `https://<adresse-de-la-preview>/api/taxonomy?locale=fr`. Attendu : `{"error":"domain_id required","code":"missing_domain_id"}`
+   — c'est la cause prouvée. Si tu lis autre chose, arrête-toi et envoie-moi la réponse.
+2. **Vercel → Settings → Environment Variables** : ajoute `DEV_DOMAIN_SLUG` = le slug d'un écosystème ACTIF de staging
+   (celui de tes essais, par exemple `microsoft`), **sur l'environnement Preview seulement**. Une variable ne vaut
+   qu'au déploiement suivant.
+3. **La séquence** — ce lot n'a pas de migration, donc **pas de `db push`** :
+   - en local : `npx supabase db reset --local` puis `npx supabase test db --local` (un fichier neuf :
+     `vrai_appelant/visiteur.test.sql`). **Si `db reset` échoue sur « EUNKNOWN … uv_spawn »** : Sécurité Windows →
+     Contrôle des applications et du navigateur → Paramètres du Contrôle intelligent des applications → **Désactivé**
+     (§E.82), puis recommence ;
+   - la requête de staging : ⓪ doit dire `domaines_adresse_reglables`, aucun ÉCART (la ligne ③ ne peut plus en donner à tort) ;
+   - `npm run build`, puis `git push` : la Preview se redéploie, avec la variable.
+4. **Le nouvel essai** : sur la Preview, « Créer un profil Expert » — les branches et spécialités s'affichent. Inscris
+   un expert jusqu'au bout (téléphone, CGU) : l'e-mail de confirmation arrive, et `/admin/journal` montre deux
+   lignes sous une pièce. Si le formulaire affiche encore le message, rouvre `/api/taxonomy?locale=fr` : le code dit
+   pourquoi (`ecosysteme_non_configure` = variable absente ou pas redéployée ; `ecosysteme_inconnu` = ce slug n'est
+   pas un écosystème actif) — et les journaux Vercel portent la même ligne.
+5. **Avant la vraie bascule** : lis la section « Avant la vraie bascule » de `mise-en-production.md` (Vercel met `main`
+   en production) — la décision est la tienne.
 
 ## ⛔ ARRÊT 12 — LA PORTE D'INSCRIPTION EST FERMÉE EN BASE (28/09/2026)
 

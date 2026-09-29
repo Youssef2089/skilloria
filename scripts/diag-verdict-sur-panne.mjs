@@ -342,6 +342,8 @@ const GEL_NON_RESOLUES = {
     'LEGITIME — un parametre de requete vide : validation de FORMAT, aucune lecture',
   'app/api/invitations/inscription/route.ts | !token':
     'LEGITIME — un champ du corps vide : validation de FORMAT, aucune lecture (la jumelle de resolve, meme garde, meme 404 uniforme)',
+  'app/api/taxonomy/route.ts | !domainId':
+    'LEGITIME — `domainId` vient du parametre de requete `domain_id` (aucune lecture) ; absent, l ecosysteme se resout par l hote, et chaque panne de CETTE resolution rend son propre code (§E.83)',
   'app/api/me/invitations/accept/route.ts | block':
     "LEGITIME — `block === 'indisponible'` sort en 503 sur la ligne PRECEDENTE (§E.22 ⑥) ; ce qui reste est un motif metier",
   'app/api/me/missions/route.ts | !isApproved':

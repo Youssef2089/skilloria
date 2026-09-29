@@ -37,25 +37,14 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
+  -- Ce push (le correctif de l'hôte de Preview, 29/09/2026) : AUCUNE migration — les deux listes sont vides.
   prochain_push_retire(signature) as (
-    select unnest(array[
-      'public.stripe_event_claim(text, text, jsonb, boolean)',
-      'public.admin_cron_run_now(text, uuid)'
-    ]::text[])
+    select unnest(array[]::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index.
-  -- Ce push : les six fonctions de la porte d'inscription et l'écrivain des domaines d'adresse (§D.27).
   prochain_push_cree(genre, nom) as (
-    select v.genre, v.nom from (values
-      ('fonction', 'preuve_inscription_canonique'),
-      ('fonction', 'preuve_inscription_signature'),
-      ('fonction', 'preuve_inscription_refus'),
-      ('fonction', 'numero_identification_normalise'),
-      ('fonction', 'numero_identification_refus'),
-      ('fonction', 'inscription_refus'),
-      ('fonction', 'regler_domaine_adresse')
-    ) v(genre, nom)
+    select v.genre, v.nom from (values (null::text, null::text)) v(genre, nom) where false
   )
 
 select v.ordre,
@@ -67,7 +56,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'journal_nettoyage',
+   'domaines_adresse_reglables',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 
@@ -86,12 +75,18 @@ from (values
 
   -- ③ Une surcharge posée à la main échappe au balayage statique des migrations. Les signatures que
   --    le push supprime sont retirées du compte : elles sont la seule surcharge ATTENDUE avant lui.
+  --    ⚠️ ELLES SE COMPARENT PAR IDENTIFIANT, JAMAIS PAR TEXTE (push 3, 28/09/2026) : `p.oid::regprocedure::text`
+  --    rend « admin_cron_run_now(text,uuid) » — sans `public.`, sans espace — et la liste écrit
+  --    « public.admin_cron_run_now(text, uuid) ». L'exclusion ne reconnaissait RIEN : ÉCART à tort, alors que ce
+  --    push supprimait bien la surcharge (vérifié à la main sur staging). `to_regprocedure()` résout la liste en
+  --    identifiants, comme la ligne ① (§E.67 : une comparaison de chaînes rendues par Postgres parie sur un format).
   (3, 'invariant : fonctions public à deux signatures ou plus (hors extensions, hors ce que le push supprime)', '0',
    (select count(*)::text from (
       select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace
        where n.nspname = 'public'
          and not exists (select 1 from pg_depend d where d.classid = 'pg_proc'::regclass and d.objid = p.oid and d.deptype = 'e')
-         and p.oid::regprocedure::text not in (select r.signature from prochain_push_retire r)
+         and p.oid not in (select to_regprocedure(r.signature)::oid from prochain_push_retire r
+                            where to_regprocedure(r.signature) is not null)
        group by p.proname having count(*) > 1) d)),
 
   -- ④ Une fois par geste (§D.26, GL005) : l'index unique (pièce, action, sujet) existe, UNIQUE.

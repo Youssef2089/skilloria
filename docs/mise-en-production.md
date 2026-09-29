@@ -17,6 +17,34 @@ Elle couvre **tout ce qui ne peut pas vivre dans le dépôt** : des secrets, des
 
 ---
 
+## ⚠️ Avant la vraie bascule : ce que Vercel sert sous « Production »
+
+**Le fait (constat de Youssef, 29/09/2026 — NON VÉRIFIÉ dans le dépôt, c'est un réglage Vercel).** Vercel met en ligne
+**tout envoi sur `main`** sous l'étiquette « Production ». La version servie aujourd'hui date du **29 avril**
+(`68622f9`, la fusion des Voies 1 et 3), sur `skilloria-chi.vercel.app`.
+
+**Ce que ça veut dire.**
+- **Fusionner la branche de travail dans `main` la mettrait en ligne À L'INSTANT** — avant les migrations de la base
+  de production, avant ses secrets (`cron_secret`, `inscription_hmac_secret`…), avant ses variables. C'est l'inverse
+  de la séquence de déploiement (§G.4 ter : la base d'abord, le code aussitôt après), et rien ne l'empêche.
+- **Une version d'avril est publique** sur l'alias `.vercel.app`, et elle parle à une base (laquelle : NON VÉRIFIÉ).
+- Sur cet alias, depuis §E.83, le site ne devine aucun écosystème : `.vercel.app` en production ne se résout pas.
+
+**Les options.**
+- **A — une branche de production dédiée** : Vercel → Settings → Git → **Production Branch** = `production` (une
+  branche qu'on crée le jour de la bascule). `main` redevient une branche de Preview ; mettre en production devient
+  un geste EXPLICITE (fusionner vers `production`), placé dans la séquence, après la base.
+- **B — bloquer le déploiement de `main`** (« Ignored Build Step ») jusqu'à la bascule : efficace, mais un réglage
+  qu'on oubliera de retirer, et qui ne dit pas pourquoi.
+- **C — protéger la Production actuelle** : Settings → Deployment Protection → **Vercel Authentication** sur la
+  Production, pour que la version d'avril ne soit plus publique.
+
+**Recommandation : A et C, avant la bascule.** A fait de la mise en production un acte délibéré qui suit la base ;
+C retire du public une version de cinq mois dont on ne sait pas à quelle base elle parle. B n'apporte rien que A ne
+donne mieux. **Rien n'est touché ici** : c'est un réglage du projet Vercel, à décider par Youssef.
+
+---
+
 ## L'ordre des opérations
 
 Neuf étapes, de 0 à 8. **L'ordre compte** : chacune suppose la précédente.
@@ -201,6 +229,12 @@ Vercel → votre projet → **Settings** → **Environment Variables**.
 > **`NEXT_PUBLIC_SITE_URL` n'est pas optionnelle en production.**
 > C'est elle qui construit les liens de **tous** les e-mails : approbation d'un expert, refus d'une organisation, invitation à rejoindre une équipe, notifications, et l'avertissement d'inactivité à 23 mois.
 > Si elle manque en production, **ces e-mails ne partent plus du tout** — c'est volontaire : un message contenant un lien mort est pire qu'un message absent. Vous le verrez dans les journaux Vercel, sous la mention `origine du site inconnaissable`.
+
+> **Sur l'environnement *Preview* SEULEMENT : `DEV_DOMAIN_SLUG`** — le slug d'un écosystème ACTIF de la base de staging
+> (par exemple celui de vos essais). Un hôte de Preview (`…vercel.app`) ne porte pas d'écosystème dans son nom : sans
+> cette variable, les formulaires d'inscription ne chargent pas leurs listes et `/api/taxonomy` répond
+> `ecosysteme_non_configure` (§E.83). **Jamais sur *Production*** : la production sert chaque écosystème par son
+> sous-domaine, et la variable n'y est pas lue.
 
 ### Services externes
 

@@ -77,6 +77,11 @@ export function swapEcosystemHost(
     return null
   }
 
+  // Un hôte qui ne PORTE pas d'écosystème (§E.83) : une Preview ou l'alias Vercel (`<déploiement>.vercel.app`
+  // — `sap.vercel.app` n'est pas à nous), l'hôte unique de staging (remplacer « staging » par un slug
+  // mènerait en PRODUCTION). Là, l'écosystème vient de la configuration : aucune bascule par l'hôte.
+  if (hostname.endsWith('.vercel.app') || hostname === 'staging.skilloria.io') return null
+
   const parts = hostname.split('.')
   if (parts.length < 3) return null
 

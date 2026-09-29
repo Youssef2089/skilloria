@@ -86,8 +86,9 @@ export default function InvitationPage() {
       if (!data?.valid) { setView({ kind: 'invalid' }); return }
       setCompanyName(data.company_name)
       setView({ kind: 'ready', data, hasSession: !!sess.data.session?.user })
-    } catch (e) {
-      console.error('[invitation] resolve failed', e)
+    } catch {
+      // Aucun diagnostic à la console du navigateur (§E.83) : la route `resolve` journalise ses
+      // pannes au SERVEUR, avec leur cause ; ici, seul le réseau a pu manquer.
       setView({ kind: 'invalid' })
     }
   }, [token])
