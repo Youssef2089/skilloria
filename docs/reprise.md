@@ -99,7 +99,23 @@ prod : même route, même base, même règle).
 
 **Migration nouvelle : `sous_domaine_reglable`.** ORDRE : AVANT le déploiement.
 
-**Épreuve** : voir le commit suivant.
+**Épreuve** (lot commité en `3033ec8` AVANT de muter) :
+- `tsc --noEmit` : aucune erreur hors `.next/` · `next build` : **exit 0** · lint : **65 / 25**, le cliquet ne monte
+  pas · parité i18n : **4021 clés** dans les quatre langues · série complète `diag.mjs` : **114 verts, 0 rouge, 5 muets**
+  — les mêmes qu'à l'ARRÊT 14 (trois écartés parce qu'ils ÉCRIVENT en base ; `diag-supabase` et
+  `diag-readonly-expert-achwek`, qui lisent la base et plantent sur une assertion libuv de Windows).
+- Pendant la série, **`diag-admin-ecosystemes` a rougi à raison** : il gardait l'ANCIENNE décision (slug en lecture
+  seule, étapes « hébergeur » et « CNAME »). Mis à jour sur la décision de Youssef — il garde maintenant « jamais
+  parmi les champs ordinaires » et « plus d'étape hébergeur », pas « jamais ». **`diag-requete-staging` ne voyait
+  pas les contraintes** : il les suit, et il a rougi sur la requête avant qu'elle décrive ce lot.
+- **15 mutations, 15 rouges** : la contrainte à 64 caractères ; le résolveur qui accepte les majuscules ; l'écriture
+  sans condition ; le 23505 non nommé ; d'autres champs acceptés avec le sous-domaine ; le slug replacé parmi les
+  champs ordinaires ; la trace sans avant/après ; le champ refigé en lecture seule ; un refus sans message allemand ;
+  « Skilloria 365 » revenu dans un message ; `skilloria365` en placeholder ; `microsoft` en dur dans la résolution ;
+  la requête de staging sans la contrainte ; la requête avec un autre motif ; la liste blanche TS amputée. Arbre
+  restauré, contrôles **reverts sur les fichiers restaurés en CRLF** (§E.3).
+- **Ce qui n'a pas tourné, et qui est à Youssef** : les tests pgTAP (`db reset` + `test db --local`) — Docker et la base
+  ne sont pas lancés ici ; le test `grand_livre/sous_domaine.test.sql` n'a donc **jamais été exécuté**.
 
 ### Les étapes de Youssef — dans cet ordre
 **A. Le déploiement** (une migration : la séquence complète de §G.4 ter)
