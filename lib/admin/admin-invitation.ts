@@ -72,10 +72,11 @@ export async function sendAdminInvitation(params: AdminInvitationParams): Promis
     return false
   }
 
-  // Le lien doit ramener l'invité sur SON écosystème (prod), pas sur celui de
-  // l'administrateur qui l'a créé. `expertSiteOrigin` porte déjà cette règle et
-  // ses replis (staging, localhost, previews Vercel) : on la réutilise.
+  // Le lien doit ramener l'invité sur SON écosystème, dans l'environnement courant
+  // (production ou staging, jamais l'un pour l'autre), pas sur celui de l'administrateur
+  // qui l'a créé. `expertSiteOrigin` porte cette règle (§E.83) ; null → pas d'envoi.
   const base = expertSiteOrigin({ origin: params.origin, slug: params.domainSlug })
+  if (!base) return false
   const redirectTo = `${base}/${params.locale}/nouveau-mot-de-passe`
 
   try {

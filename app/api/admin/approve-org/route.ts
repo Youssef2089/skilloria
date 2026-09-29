@@ -9,6 +9,7 @@ import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { resolveLocale } from '@/lib/emails/locales'
 import { siteOriginPourRequete } from '@/lib/site-url'
+import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -40,11 +41,14 @@ function json(data: unknown, status = 200): Response {
 
 type Body = { organization_id?: unknown; site_url?: unknown }
 
-function siteOriginFromRequest(request: NextRequest, body: Body): string | null {
+function siteOriginFromRequest(request: NextRequest, body: Body, slug: string): string | null {
   // Origine resolue par la source unique (lib/site-url.ts) : corps > en-tete
   // Origin > variable d'environnement. Rend NULL en PRODUCTION si la variable
   // manque — l'appelant N'ENVOIE PAS plutot que d'expedier un lien mort.
-  return siteOriginPourRequete({ fourni: body.site_url, origin: request.headers.get('origin') })
+  // L'ADRESSE DE L'ÉCOSYSTÈME, dans l'environnement courant (§E.83) : production ou staging, jamais l'un
+  // pour l'autre, jamais une adresse aléatoire. L'origine de la requête ne sert plus qu'au poste local.
+  const origine = siteOriginPourRequete({ fourni: body.site_url, origin: request.headers.get('origin') })
+  return origine ? expertSiteOrigin({ origin: origine, slug }) : null
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
@@ -154,7 +158,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  manque (cf. lib/site-url.ts). Un e-mail parti avec un lien `localhost` est
   //  pire qu'un e-mail qui ne part pas : le premier se découvre par un
   //  destinataire, le second par les journaux.
-  const origin = siteOriginFromRequest(request, body)
+  const origin = siteOriginFromRequest(request, body, auth.domain.slug)
   if (contactEmail && !origin) {
     console.error('[admin:approve-org] e-mail ANNULÉ — origine du site inconnaissable')
     emailResult = { ok: false, code: 'site_origin_unknown' }

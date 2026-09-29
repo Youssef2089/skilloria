@@ -9,7 +9,7 @@ import { nouvellePiece } from '@/lib/journal/piece'
 import { CGU_VERSION } from '@/lib/legal'
 import { signerPreuveInscription } from '@/lib/inscription/preuve.mjs'
 import { refusInscription, nommerLeRefus, INSCRIPTION_INDISPONIBLE } from '@/lib/inscription/refus'
-import { ecosystemeDeLaRequete } from '@/lib/inscription/ecosysteme'
+import { ecosystemeDeLaRequete, redirectionConfirmation } from '@/lib/inscription/ecosysteme'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -136,7 +136,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const domainSlug = ecosysteme.slug
   const redirectRaw = texte(body.email_redirect_to)
-  const emailRedirectTo = /^https?:\/\/[^\s/]{1,200}\/[a-z]{2}\/auth\/callback$/.test(redirectRaw) ? redirectRaw : null
+  // Le lien de confirmation : l'adresse de l'écosystème résolu, au serveur (§E.83) — seule la langue vient du navigateur.
+  const emailRedirectTo = redirectionConfirmation(redirectRaw, domainSlug)
 
   let supabaseAdmin: SupabaseClient
   try {

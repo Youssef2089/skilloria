@@ -218,6 +218,8 @@ export async function POST(request: NextRequest): Promise<Response> {
           return
         }
         const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
+        // L'adresse de SON écosystème, dans l'environnement courant (§E.83) — inconstructible : pas d'envoi.
+        if (!baseOrigin) return
         contactUrl = `${baseOrigin}/${locale}`
       }
       // D3 : marque = domaine de l'EXPERT destinataire (row.domain_id).

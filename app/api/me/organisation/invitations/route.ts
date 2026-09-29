@@ -13,6 +13,7 @@ import { renderInvitationEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { siteOriginPourRequete } from '@/lib/site-url'
+import { expertSiteOrigin } from '@/lib/emails/domain-url'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -55,9 +56,12 @@ function normalizeLocale(raw: string | null | undefined): string {
 }
 
 /** Origin de base pour construire le lien d'invitation (même logique qu'admin). */
-function siteOriginFromRequest(request: NextRequest): string | null {
+function siteOriginFromRequest(request: NextRequest, slug: string): string | null {
   // Cf. lib/site-url.ts : rend NULL en PRODUCTION si NEXT_PUBLIC_SITE_URL manque.
-  return siteOriginPourRequete({ origin: request.headers.get('origin') })
+  // L'ADRESSE DE L'ÉCOSYSTÈME, dans l'environnement courant (§E.83) : production ou staging, jamais l'un
+  // pour l'autre, jamais une adresse aléatoire. L'origine de la requête ne sert plus qu'au poste local.
+  const origine = siteOriginPourRequete({ origin: request.headers.get('origin') })
+  return origine ? expertSiteOrigin({ origin: origine, slug }) : null
 }
 
 /** Libellé humain d'un rôle, dans la locale de l'inviteur (pour l'email). */
@@ -276,7 +280,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   })
 
   // ── Email (after() — locale = users.locale de l'inviteur) ───────────────────
-  const origin = siteOriginFromRequest(request)
+  const origin = siteOriginFromRequest(request, auth.domain.slug)
   const { data: inviter } = await admin
     .from('users')
     .select('locale')

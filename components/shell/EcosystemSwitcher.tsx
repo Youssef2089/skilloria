@@ -123,7 +123,8 @@ export default function EcosystemSwitcher() {
   if (list.length < 2) return null
 
   // L'hôte ne permet pas la bascule — développement local, où l'écosystème
-  // vient de DEV_DOMAIN_SLUG et non du sous-domaine. On le DIT, au lieu
+  // vient de DEV_DOMAIN_SLUG et non du sous-domaine, ou une adresse qui ne
+  // porte aucun écosystème (`…vercel.app`, la racine seule). On le DIT, au lieu
   // d'offrir un menu dont chaque entrée serait sans effet.
   const swappable =
     typeof window !== 'undefined' &&

@@ -173,7 +173,9 @@ export async function dispatchNotificationsForUsers(
     const domain = domainById.get(rows[0].domain_id)
     const platform = domain?.name ?? 'Skilloria'
     const locale = normalizeLocale(user.locale)
+    // L'adresse de l'écosystème du destinataire, dans l'environnement courant (§E.83) ; null → pas d'envoi.
     const base = expertSiteOrigin({ origin: siteOrigin, slug: domain?.slug ?? null })
+    if (!base) continue
     let brandName = platform
     try {
       brandName = await resolveEmailBrandName(admin, rows[0].domain_id)

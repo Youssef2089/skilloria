@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 29/09/2026 (ARRÊT 13).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 29/09/2026 (ARRÊT 14).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -14,8 +14,10 @@ dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
 **Au prochain push** — AUCUNE migration en attente : staging est à jour jusqu'à `domaines_adresse_reglables` (le push 3
-a passé la porte d'inscription). Le correctif de l'ARRÊT 13 est dans le code seul ; il demande `DEV_DOMAIN_SLUG` sur
-l'environnement Preview de Vercel. La requête de staging est écrite pour cet état (⓪ `domaines_adresse_reglables`,
+a passé la porte d'inscription). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
+l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
+`NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
+(étapes de Youssef, ARRÊT 14). La requête de staging est écrite pour cet état (⓪ `domaines_adresse_reglables`,
 listes vides). **Si `npx supabase db reset --local` échoue sur « EUNKNOWN … uv_spawn »** : c'est le Contrôle
 intelligent des applications de Windows (§E.82) — Sécurité Windows → Contrôle des applications et du navigateur →
 Paramètres du Contrôle intelligent des applications → Désactivé.
@@ -53,7 +55,84 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
+## ⛔ ARRÊT 14 — STAGING SE COMPORTE EXACTEMENT COMME LA PRODUCTION : L'ÉCOSYSTÈME SE LIT DANS L'ADRESSE (29/09/2026)
+
+Décision de Youssef sur l'ARRÊT 13 : **la cause est acceptée, le correctif ne l'est pas** — pas de `DEV_DOMAIN_SLUG`
+sur la Preview. Tag local `sauvegarde-avant-staging-comme-prod` sur `df6f687`, posé avant tout (git status propre,
+hormis `supabase/snippets/`, à Youssef, non touché). Détail : [pieges.md §E.83](pieges.md#e83) ;
+l'infrastructure : [mise-en-production.md](mise-en-production.md), étape 6.
+
+**Contradictions et limites, signalées plutôt que tranchées en silence :**
+① **Une variable par environnement, mais pas un nom d'écosystème** : `NEXT_PUBLIC_DOMAINE_RACINE` porte la racine
+(`skilloria.io`, `staging.skilloria.io`) — c'est « ce qui diffère se limite au domaine racine », dit par une variable.
+Publique, parce que le sélecteur, dans le navigateur, applique la même règle.
+② **Le cookie de session** (`lib/session-token.ts`) connaît encore `staging.skilloria.io` et `.skilloria.io` en
+toutes lettres : il ne résout pas d'écosystème, il empêche une session de staging d'écraser celle de la production. Il
+fonctionne tel quel sur `<écosystème>.staging.skilloria.io` (il en avait été écrit pour ça). Le dériver de la racine
+changerait le nom du cookie de production — hors du mandat, **laissé et déclaré**.
+③ **Deux variables gardent les e-mails en production** : `NEXT_PUBLIC_SITE_URL` (la garde existante de
+`lib/site-url.ts`, que ce lot ne rouvre pas) et la racine, qui construit désormais les liens. Documenté ensemble.
+④ **Sans la racine, un environnement déployé ne sert AUCUNE page** (le proxy lève en la nommant) : l'ordre des étapes
+de Youssef compte — la variable avant le déploiement.
+⑤ **Les adresses `…vercel.app` ne servent plus d'essai** : elles s'affichent neutres et l'inscription le dit. C'est
+la décision même (« une adresse qui ne porte aucun écosystème ne résout rien »).
+⑥ **NON VÉRIFIÉ dans la documentation Vercel** : qu'un domaine GÉNÉRIQUE se rattache à une branche de Preview (les
+deux gestes y sont décrits séparément). Si l'écran le refuse : s'arrêter, la voie de repli est l'environnement
+personnalisé (plan Pro), pas le déménagement des serveurs de noms.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. Une règle, une définition | **fait** | `lib/subdomain.ts` : `<écosystème>.<racine>`, un label ; `domaineRacine()` lit `NEXT_PUBLIC_DOMAINE_RACINE` et elle seule ; `adresseEcosysteme()` en est la réciproque. `lib/ecosystem-url.ts` : le sélecteur n'accepte qu'un hôte `<écosystème>.<racine>` et reste dans son environnement. Schéma de staging : `<écosystème>.staging.skilloria.io`. Aucune adresse d'environnement dans le code de la règle (contrôlé). |
+| 2. Plus de `DEV_DOMAIN_SLUG` hors du poste local | **fait** | Lue dans la seule branche `localhost` (contrôlé : une lecture, dans cette branche). `…vercel.app`, la racine seule, deux labels → `null`, code `ecosysteme_non_resolu` ; racine absente → lève, `ecosysteme_non_configure` / `missing_env`. L'écran d'inscription dit, en quatre langues, d'ouvrir l'adresse de l'écosystème (`taxonomy_adresse_sans_ecosysteme`) au lieu de « rechargez ». |
+| 3. Le reste du lot gardé | **fait** | Sélecteur, `visiteur.test.sql`, codes nommés, §E.82, requête d'avant-push et ligne ③ : inchangés. §E.83 réécrit (le correctif refusé et pourquoi, la règle). `diag-hotes-ecosysteme` réécrit : production, staging (`<écosystème>.staging.skilloria.io`), poste local, `DEV_DOMAIN_SLUG` posée partout pour prouver que rien de déployé ne la lit. `diag-selecteur-ecosysteme` : chaque cas éprouvé dans son environnement. |
+| 4. Les liens des e-mails | **fait** | `expertSiteOrigin` → `https://<écosystème du destinataire>.<racine>` ; `null` (et l'e-mail ne part pas, journalisé `lien_sans_ecosysteme` / `domaine_racine_absent`) quand l'adresse ne se construit pas. Neuf appelants : notifications, approbation et refus d'un expert, approbation et refus d'une organisation, invitation d'équipe et sa relance, avertissement d'inactivité (une SIXIÈME issue écrite au grand livre, cause `lien_sans_ecosysteme` — le contrôle de `diag-grand-livre` en attend désormais six), invitation d'administrateur. La confirmation d'inscription est construite au serveur (`redirectionConfirmation`) ; seule la langue vient du navigateur. |
+| 5. L'infrastructure | **documenté, rien touché** | Cinq voies comparées sur la documentation Vercel lue le 29/09/2026 ; **retenue : A** — `*.staging.skilloria.io` rattachée à Preview + la branche de test, certificat délégué par `_acme-challenge.staging`, **serveurs de noms inchangés** : trois enregistrements ajoutés sous `staging.`, **Resend non touché**. Écartées : serveurs de noms chez Vercel (toute la zone, e-mails compris, à recopier), projet dédié (staging y tournerait en `VERCEL_ENV=production` → verrou Stripe live), environnement personnalisé (plan Pro, `VERCEL_ENV` non documenté), suffixe de Preview (100 $/mois, et le label est le nom du déploiement : la panne de §E.83). Supabase : deux Redirect URLs génériques par environnement (`*` ne traverse ni `.` ni `/`). Répétition pour la production écrite. |
+
+**Checklist** : 0 (tag, état propre) · 2 (l'écosystème réellement résolu : par l'hôte, une fonction) · 12 (codes stables :
+`ecosysteme_non_resolu`, `ecosysteme_non_configure`, `ecosysteme_inconnu`, `ecosysteme_indisponible`,
+`lien_sans_ecosysteme`, `domaine_racine_absent` — aucun renommé) · 13-14 (messages : le nouveau en quatre langues,
+contrôlé sans « rechargez ») · 15 (V0 = la production : staging prend le même chemin de code, seule la racine diffère).
+
+**Migrations nouvelles : AUCUNE.** Rien en base.
+
+**Validations et mutations** : voir le commit suivant (ci-dessous, « Épreuve »).
+
+### Les étapes de Youssef — dans cet ordre
+**A. L'infrastructure (une fois)** — le détail, écran par écran, est à l'étape 6 de `mise-en-production.md` :
+1. Vercel → le projet → Settings → Domains → **Add Domain** : `*.staging.skilloria.io`. Puis **Edit** → Connect to an
+   environment : **Preview**, Git Branch = la branche de test (`feat/sprint-archi-orga`, ou une branche `staging`
+   durable). Si l'écran refuse un domaine générique sur une branche : **arrête-toi et dis-le-moi**.
+2. Vercel → Domains de l'équipe → `skilloria.io` → **Enable Vercel DNS**, sans toucher aux serveurs de noms.
+3. Chez l'hébergeur DNS actuel de `skilloria.io` : `NS _acme-challenge.staging` → `ns1.vercel-dns.com.` et
+   `ns2.vercel-dns.com.` ; `CNAME *.staging` → la valeur que Vercel affiche. Rien d'autre ne change.
+4. Vercel → Environment Variables : `NEXT_PUBLIC_DOMAINE_RACINE` = `staging.skilloria.io` sur **Preview** ;
+   `NEXT_PUBLIC_DOMAINE_RACINE` = `skilloria.io` sur **Production** (sinon, le jour où `main` reçoit ce code, la
+   production ne sert plus aucune page) ; **retire `DEV_DOMAIN_SLUG`** de Preview si tu l'y as posée.
+5. Supabase **staging** → Authentication → URL Configuration : Site URL `https://<ton écosystème d'essai>.staging.skilloria.io` ;
+   Redirect URLs `https://*.staging.skilloria.io/*/auth/callback` et `https://*.staging.skilloria.io/*/nouveau-mot-de-passe`.
+6. Attends que Settings → Domains dise la configuration valide.
+
+**B. Le déploiement** — ce lot n'a **pas de migration**, donc **pas de `db push`** :
+1. en local, si tu veux rejouer : `npx supabase db reset --local` puis `npx supabase test db --local` (rien de neuf en
+   base ; §E.82 si « EUNKNOWN … uv_spawn ») ;
+2. la requête de staging : ⓪ `domaines_adresse_reglables`, aucun ÉCART ;
+3. `npm run build`, puis `git push` : la branche de test se redéploie, avec la racine.
+
+**C. Le nouvel essai de l'inscription expert, sur une adresse de staging** :
+1. ouvre `https://<ton écosystème d'essai>.staging.skilloria.io/fr` : cadenas valide, **couleurs de l'écosystème** ;
+   ouvre aussi `https://nexistepas.staging.skilloria.io/fr` : **gris neutre** (l'adresse est lue, pas devinée) ;
+2. « Créer un profil Expert » : les branches et spécialités s'affichent ;
+3. inscris un expert jusqu'au bout (téléphone, CGU) : l'e-mail de confirmation arrive, **son lien commence par
+   `https://<ton écosystème d'essai>.staging.skilloria.io/`** ; clique-le : tu reviens connecté, sur staging ;
+4. `/admin/journal` : deux lignes sous une pièce (`compte_cree`, `expert_inscrit`) ;
+5. si quelque chose manque : `https://<écosystème>.staging.skilloria.io/api/taxonomy?locale=fr` dit le code
+   (`ecosysteme_non_configure` = racine absente ou pas redéployée ; `ecosysteme_inconnu` = pas un écosystème actif) ;
+   une page qui ne s'affiche pas du tout = racine absente, nommée dans les journaux Vercel. Envoie-moi ce que tu lis.
+
 ## ⛔ ARRÊT 13 — LE FORMULAIRE EXPERT SANS BRANCHES SUR LA PREVIEW : L'HÔTE NE PORTAIT PAS D'ÉCOSYSTÈME (29/09/2026)
+
+> ⚠️ **REMPLACÉ PAR L'ARRÊT 14** pour le correctif (point 2) et les étapes 2 et 4 : **ne pose pas `DEV_DOMAIN_SLUG`
+> sur la Preview.** La cause (point 1) et le reste restent vrais.
 
 Tag local `sauvegarde-avant-taxonomie-inscription` sur `1c518a9`. Détail : [pieges.md §E.83](pieges.md#e83).
 

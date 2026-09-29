@@ -1161,7 +1161,8 @@
       "speciality_required": "Bitte wählen Sie ein Fachgebiet aus.",
       "speciality_other_required": "Bitte geben Sie Ihr Fachgebiet an.",
       "taxonomy_invalid": "Ungültige Branche oder ungültiges Fachgebiet. Bitte versuchen Sie es erneut.",
-      "taxonomy_unavailable": "Branchen und Fachgebiete können derzeit nicht geladen werden. Laden Sie die Seite neu oder versuchen Sie es später erneut."
+      "taxonomy_unavailable": "Branchen und Fachgebiete können derzeit nicht geladen werden. Laden Sie die Seite neu oder versuchen Sie es später erneut.",
+      "taxonomy_adresse_sans_ecosysteme": "Diese Adresse gehört zu keinem Skilloria-Bereich. Öffnen Sie die Website über die Adresse Ihres Ökosystems (zum Beispiel die aus einer erhaltenen Einladung) und beginnen Sie die Registrierung erneut."
     },
     "otp": {
       "send_sms_button": "SMS senden",

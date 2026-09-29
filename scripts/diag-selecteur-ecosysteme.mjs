@@ -77,17 +77,28 @@ const { fichiers: balayer, lire: lireRel, sansCommentaires: sansComm, RACINES_CL
 // ═══ A. L'URL, SEULE SOURCE DE VERITE ══════════════════════════════════════
 section('A. Construction d’adresse, executee')
 
+// LA RACINE DE L'ENVIRONNEMENT (§E.83) : la même règle en production et sur staging, seule la racine
+// (NEXT_PUBLIC_DOMAINE_RACINE) diffère. Chaque cas est éprouvé DANS son environnement.
+const RACINE_PROD = 'skilloria.io'
+const RACINE_STAGING = 'staging.skilloria.io'
+const avecRacine = (racine, fn) => {
+  const avant = process.env.NEXT_PUBLIC_DOMAINE_RACINE
+  if (racine === null) delete process.env.NEXT_PUBLIC_DOMAINE_RACINE; else process.env.NEXT_PUBLIC_DOMAINE_RACINE = racine
+  try { return fn() } finally { if (avant === undefined) delete process.env.NEXT_PUBLIC_DOMAINE_RACINE; else process.env.NEXT_PUBLIC_DOMAINE_RACINE = avant }
+}
 const HOSTS = [
-  ['microsoft.skilloria.io', 'sap', 'sap.skilloria.io', 'production'],
-  ['microsoft.staging.skilloria.io', 'sap', 'sap.staging.skilloria.io', 'staging par sous-domaine'],
-  ['microsoft.skilloria.io:3000', 'sap', 'sap.skilloria.io:3000', 'le port est conserve'],
-  ['MICROSOFT.Skilloria.IO', 'sap', 'sap.skilloria.io', 'casse normalisee'],
-  ['skilloria.io', 'sap', null, 'apex : rien a remplacer'],
-  ['localhost:3000', 'sap', null, 'developpement local'],
-  ['127.0.0.1:3000', 'sap', null, 'developpement local (IP)'],
+  ['microsoft.skilloria.io', 'sap', 'sap.skilloria.io', 'production', RACINE_PROD],
+  ['microsoft.staging.skilloria.io', 'sap', 'sap.staging.skilloria.io', 'staging par sous-domaine', RACINE_STAGING],
+  ['microsoft.skilloria.io:3000', 'sap', 'sap.skilloria.io:3000', 'le port est conserve', RACINE_PROD],
+  ['MICROSOFT.Skilloria.IO', 'sap', 'sap.skilloria.io', 'casse normalisee', RACINE_PROD],
+  ['skilloria.io', 'sap', null, 'apex : rien a remplacer', RACINE_PROD],
+  ['staging.skilloria.io', 'sap', null, 'racine de staging : rien a remplacer (ni vers la production)', RACINE_STAGING],
+  ['microsoft.staging.skilloria.io', 'sap', null, 'une adresse de staging ne bascule pas en production', RACINE_PROD],
+  ['localhost:3000', 'sap', null, 'developpement local', null],
+  ['127.0.0.1:3000', 'sap', null, 'developpement local (IP)', null],
 ]
-for (const [host, slug, attendu, quoi] of HOSTS) {
-  const got = swapEcosystemHost(host, slug)
+for (const [host, slug, attendu, quoi, racine] of HOSTS) {
+  const got = avecRacine(racine, () => swapEcosystemHost(host, slug))
   ok(got === attendu, `${quoi} — ${host} → ${attendu ?? 'null'}`, `obtenu ${JSON.stringify(got)}`)
 }
 
@@ -101,7 +112,7 @@ for (const [host, slug, attendu, quoi] of HOSTS) {
 //    verifie rien.
 process.env.DEV_DOMAIN_SLUG ||= 'diag'
 const allerRetour = HOSTS.filter(([, , a]) => a !== null).every(
-  ([host, slug]) => resolveSubdomainFromHost(swapEcosystemHost(host, slug)) === slug,
+  ([host, slug, , , racine]) => avecRacine(racine, () => resolveSubdomainFromHost(swapEcosystemHost(host, slug))) === slug,
 )
 ok(allerRetour,
   'tout hote construit se reparse en le slug demande',
@@ -109,13 +120,13 @@ ok(allerRetour,
 
 // Le chemin est conserve — la bascule ne fait pas perdre le fil.
 ok(
-  ecosystemHref({
+  avecRacine(RACINE_PROD, () => ecosystemHref({
     host: 'microsoft.skilloria.io',
     slug: 'sap',
     protocol: 'https:',
     pathname: '/fr/dashboard/entreprise/annonces',
     search: '?statut=publiee',
-  }) === 'https://sap.skilloria.io/fr/dashboard/entreprise/annonces?statut=publiee',
+  })) === 'https://sap.skilloria.io/fr/dashboard/entreprise/annonces?statut=publiee',
   'le chemin ET les parametres sont conserves a la bascule')
 ok(ecosystemHref({ host: 'localhost:3000', slug: 'sap' }) === null,
   'un hote sans sous-domaine ne produit AUCUNE adresse',
@@ -137,7 +148,7 @@ ok(['sap', 'microsoft', 'a', 'a-b-c', 'x1'].every(isValidEcosystemSlug),
   'une garde qui refuse tout ne garde rien, elle casse')
 
 const construits = HOSTILES.filter(
-  (v) => swapEcosystemHost('microsoft.skilloria.io', v) !== null,
+  (v) => avecRacine(RACINE_PROD, () => swapEcosystemHost('microsoft.skilloria.io', v)) !== null,
 )
 ok(construits.length === 0,
   'aucune entree hostile ne construit d’adresse',

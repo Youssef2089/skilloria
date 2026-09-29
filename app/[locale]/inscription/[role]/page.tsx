@@ -54,7 +54,10 @@ export default function InscriptionRolePage() {
   // Fail-safe : si la taxonomie est irrésolvable (domaine introuvable, réseau…),
   // on affiche un message explicite plutôt que deux listes vides silencieuses.
   const [taxonomyLoading, setTaxonomyLoading] = useState(true)
-  const [taxonomyError, setTaxonomyError] = useState(false)
+  // Deux pannes, deux messages (§E.83) : une ADRESSE qui ne porte aucun écosystème
+  // (`ecosysteme_non_resolu`, `ecosysteme_inconnu`) ne se répare pas en rechargeant —
+  // le message dit d'ouvrir l'adresse de l'écosystème ; tout le reste est une indisponibilité.
+  const [taxonomyError, setTaxonomyError] = useState<false | 'adresse' | 'indisponible'>(false)
 
   useEffect(() => {
     let active = true
@@ -63,8 +66,12 @@ export default function InscriptionRolePage() {
     // domain_id volontairement omis : le serveur résout l'écosystème depuis le
     // sous-domaine de la requête (checklist #20). Le client ne devine rien.
     fetch(`/api/taxonomy?locale=${encodeURIComponent(locale)}`)
-      .then(r => {
-        if (!r.ok) throw new Error('taxonomy_failed')
+      .then(async r => {
+        if (!r.ok) {
+          const corps = (await r.json().catch(() => null)) as { code?: unknown } | null
+          const code = typeof corps?.code === 'string' ? corps.code : ''
+          throw new Error(code === 'ecosysteme_non_resolu' || code === 'ecosysteme_inconnu' ? 'adresse' : 'indisponible')
+        }
         return r.json()
       })
       .then((d: { branches?: TaxBranch[]; specialities?: TaxSpeciality[] }) => {
@@ -72,9 +79,11 @@ export default function InscriptionRolePage() {
         const brs = d.branches ?? []
         setBranches(brs)
         setSpecialities(d.specialities ?? [])
-        setTaxonomyError(brs.length === 0)
+        setTaxonomyError(brs.length === 0 ? 'indisponible' : false)
       })
-      .catch(() => { if (active) setTaxonomyError(true) })
+      .catch((err: unknown) => {
+        if (active) setTaxonomyError(err instanceof Error && err.message === 'adresse' ? 'adresse' : 'indisponible')
+      })
       .finally(() => { if (active) setTaxonomyLoading(false) })
     return () => { active = false }
   }, [locale])
@@ -322,7 +331,7 @@ export default function InscriptionRolePage() {
             <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('fields.taxonomy_loading')}</div>
           ) : taxonomyError ? (
             <div style={{ background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.5 }}>
-              {t('errors.taxonomy_unavailable')}
+              {taxonomyError === 'adresse' ? t('errors.taxonomy_adresse_sans_ecosysteme') : t('errors.taxonomy_unavailable')}
             </div>
           ) : (
           <>

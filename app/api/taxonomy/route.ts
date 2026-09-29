@@ -52,8 +52,9 @@ export async function GET(req: NextRequest) {
     //    `<déploiement>.vercel.app` ne portait aucun écosystème, et rien, nulle
     //    part, ne le disait — l'écran affichait « impossible de charger », sans
     //    cause. Chaque échec a désormais un CODE, et sa cause part aux journaux :
-    //    ecosysteme_non_configure (DEV_DOMAIN_SLUG absente sur un hôte qui n'a pas
-    //    d'écosystème) · ecosysteme_non_resolu (hôte non résolvable) ·
+    //    ecosysteme_non_configure (NEXT_PUBLIC_DOMAINE_RACINE absente sur un
+    //    environnement déployé, DEV_DOMAIN_SLUG en local) · ecosysteme_non_resolu
+    //    (l'adresse ne porte aucun écosystème : la racine seule, `…vercel.app`) ·
     //    ecosysteme_inconnu (aucun écosystème ACTIF sous ce slug) ·
     //    ecosysteme_indisponible (la lecture a échoué). L'écran reste traduit.
     if (!domainId) {

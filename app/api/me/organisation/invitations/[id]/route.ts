@@ -12,6 +12,7 @@ import { renderInvitationEmail } from '@/lib/emails/templates'
 import { resolveEmailBrandName } from '@/lib/emails/brand'
 import { sendEmail } from '@/lib/emails/resend'
 import { siteOriginPourRequete } from '@/lib/site-url'
+import { expertSiteOrigin } from '@/lib/emails/domain-url'
 import { INVITATION_MODIFIABLE } from '@/lib/invitation-accept'
 
 export const runtime = 'nodejs'
@@ -39,9 +40,12 @@ const VALID_LOCALES = ['fr', 'en', 'es', 'de'] as const
 function normalizeLocale(raw: string | null | undefined): string {
   return raw && (VALID_LOCALES as readonly string[]).includes(raw) ? raw : 'fr'
 }
-function siteOriginFromRequest(request: NextRequest): string | null {
+function siteOriginFromRequest(request: NextRequest, slug: string): string | null {
   // Cf. lib/site-url.ts : rend NULL en PRODUCTION si NEXT_PUBLIC_SITE_URL manque.
-  return siteOriginPourRequete({ origin: request.headers.get('origin') })
+  // L'ADRESSE DE L'ÉCOSYSTÈME, dans l'environnement courant (§E.83) : production ou staging, jamais l'un
+  // pour l'autre, jamais une adresse aléatoire. L'origine de la requête ne sert plus qu'au poste local.
+  const origine = siteOriginPourRequete({ origin: request.headers.get('origin') })
+  return origine ? expertSiteOrigin({ origin: origine, slug }) : null
 }
 const ROLE_LABELS: Record<string, Record<string, string>> = {
   fr: { admin: 'Administrateur', editor: 'Éditeur', viewer: 'Lecteur' },
@@ -185,7 +189,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx): Promise<Response> {
     detail: { expires_at: expiresAt },
   })
 
-  const origin = siteOriginFromRequest(request)
+  const origin = siteOriginFromRequest(request, auth.domain.slug)
   const [{ data: inviter }, { data: orgRow }] = await Promise.all([
     admin.from('users').select('locale').eq('id', auth.user.id).maybeSingle(),
     admin.from('organizations').select('company_name').eq('id', org.id).maybeSingle(),

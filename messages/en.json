@@ -1161,7 +1161,8 @@
       "speciality_required": "Please select a speciality.",
       "speciality_other_required": "Please specify your speciality.",
       "taxonomy_invalid": "Invalid branch or speciality. Please try again.",
-      "taxonomy_unavailable": "Unable to load branches and specialities right now. Reload the page or try again later."
+      "taxonomy_unavailable": "Unable to load branches and specialities right now. Reload the page or try again later.",
+      "taxonomy_adresse_sans_ecosysteme": "This address does not match any Skilloria space. Open the site from your ecosystem’s address (for example the one in an invitation you received), then start signing up again."
     },
     "otp": {
       "send_sms_button": "Send SMS",

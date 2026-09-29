@@ -39,21 +39,32 @@ export function isValidEcosystemSlug(slug: string | null | undefined): slug is s
   return typeof slug === 'string' && SLUG_RE.test(slug)
 }
 
+/** La racine de l'environnement — la MÊME lecture que `domaineRacine()` (lib/subdomain.ts), vérifiée par diag. */
+const RACINE_VALIDE = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/
+function racine(): string | null {
+  // Écrit en toutes lettres : Next inscrit la valeur dans le code du navigateur, au build de chaque environnement.
+  const brut = (process.env.NEXT_PUBLIC_DOMAINE_RACINE ?? '').trim().toLowerCase().replace(/^\.+|\.+$/g, '')
+  return RACINE_VALIDE.test(brut) ? brut : null
+}
+
 /**
- * Remplace le premier label de l'hôte par `slug`.
+ * L'hôte d'un autre écosystème, DANS L'ENVIRONNEMENT COURANT : `<slug>.<racine>`, le port conservé.
  *
- *   'microsoft.skilloria.io'          + 'sap' → 'sap.skilloria.io'
- *   'microsoft.staging.skilloria.io'  + 'sap' → 'sap.staging.skilloria.io'
- *   'microsoft.skilloria.io:3000'     + 'sap' → 'sap.skilloria.io:3000'
- *   'skilloria.io'                    + 'sap' → null  (apex : rien à remplacer)
- *   'localhost:3000'                  + 'sap' → null  (pas de sous-domaine)
+ *   racine skilloria.io          'microsoft.skilloria.io'          + 'sap' → 'sap.skilloria.io'
+ *   racine staging.skilloria.io  'microsoft.staging.skilloria.io'  + 'sap' → 'sap.staging.skilloria.io'
+ *   racine skilloria.io          'microsoft.skilloria.io:3000'     + 'sap' → 'sap.skilloria.io:3000'
+ *   'skilloria.io', 'staging.skilloria.io' (la racine), '…vercel.app' (hors racine) + 'sap' → null
+ *   'localhost:3000'                                                + 'sap' → null  (pas de sous-domaine)
  *
- * `null` signifie « cet hôte ne permet pas de changer d'écosystème ». C'est le
- * cas en développement, où l'écosystème vient de DEV_DOMAIN_SLUG et non du
- * host : le sélecteur le DIT au lieu de proposer un lien qui ne marcherait pas.
+ * `null` signifie « cet hôte ne permet pas de changer d'écosystème » — un hôte qui ne PORTE pas
+ * d'écosystème, ou le poste local, où il vient de DEV_DOMAIN_SLUG : le sélecteur le DIT au lieu de
+ * proposer un lien qui ne marcherait pas.
  *
- * Le seuil de trois labels est celui de `resolveSubdomainFromHost` — la même
- * règle, écrite une seule fois de chaque côté et vérifiée en aller-retour.
+ * ⚠️ LE SÉLECTEUR RESTE DANS SON ENVIRONNEMENT (§E.83). L'ancienne règle remplaçait le premier label de
+ *    n'importe quel hôte de trois labels : depuis `staging.skilloria.io`, elle menait en PRODUCTION
+ *    (`sap.skilloria.io`), depuis une Preview vers `sap.vercel.app`. La nouvelle n'accepte qu'un hôte
+ *    `<écosystème>.<racine>` et rend `<slug>.<racine>` — la réciproque de `resolveSubdomainFromHost`,
+ *    vérifiée en aller-retour par le diagnostic.
  */
 export function swapEcosystemHost(
   host: string | null | undefined,
@@ -77,15 +88,11 @@ export function swapEcosystemHost(
     return null
   }
 
-  // Un hôte qui ne PORTE pas d'écosystème (§E.83) : une Preview ou l'alias Vercel (`<déploiement>.vercel.app`
-  // — `sap.vercel.app` n'est pas à nous), l'hôte unique de staging (remplacer « staging » par un slug
-  // mènerait en PRODUCTION). Là, l'écosystème vient de la configuration : aucune bascule par l'hôte.
-  if (hostname.endsWith('.vercel.app') || hostname === 'staging.skilloria.io') return null
+  const r = racine()
+  if (!r || !hostname.endsWith(`.${r}`)) return null
+  if (!isValidEcosystemSlug(hostname.slice(0, -(r.length + 1)))) return null
 
-  const parts = hostname.split('.')
-  if (parts.length < 3) return null
-
-  return [slug, ...parts.slice(1)].join('.') + port
+  return `${slug}.${r}${port}`
 }
 
 /**

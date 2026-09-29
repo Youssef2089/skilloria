@@ -341,6 +341,13 @@ async function purgerInactifs(admin: SupabaseClient, journal: ContexteJournal): 
         try {
           const locale = normalizeLocale(u.locale)
           const base = expertSiteOrigin({ origin: siteOrigin, slug: slugOf(u.domains) })
+          // L'adresse de l'écosystème du destinataire (§E.83). Inconstructible (racine absente, écosystème
+          // illisible) : l'avertissement ne part pas, et une obligation légale qui n'est pas tenue se CHERCHE —
+          // elle s'écrit, avec sa cause, distincte de l'origine du site absente.
+          if (!base) {
+            await constaterAvertissement(admin, journal, u, { envoye: false, cause: 'lien_sans_ecosysteme' })
+            continue
+          }
           const loginUrl = `${base}/${locale}/connexion`
           const deadline = shiftMonths(new Date(u.last_login_at), PURGE_MONTHS)
           const deadlineLabel = new Intl.DateTimeFormat(locale, { dateStyle: 'long' }).format(deadline)

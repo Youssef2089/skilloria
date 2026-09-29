@@ -7,10 +7,12 @@ const handleI18n = createMiddleware(routing)
 
 export function proxy(request: NextRequest) {
   // Résolution mutualisée avec les routes /api publiques (lib/subdomain.ts) :
-  // dev → DEV_DOMAIN_SLUG, prod → 1er label du host. Aucun slug figé en dur.
-  // Hôte non résolvable → null : x-subdomain vide, getDomainConfig retombera sur
-  // le repli NEUTRE (defaultDomainConfig, sans écosystème). En dev sans
-  // DEV_DOMAIN_SLUG, resolveSubdomainFromHost lève une erreur actionnable.
+  // localhost → DEV_DOMAIN_SLUG ; production ET staging → `<écosystème>.<racine>`, la
+  // racine venant de NEXT_PUBLIC_DOMAINE_RACINE (§E.83). Aucun slug figé en dur.
+  // Hôte sans écosystème (la racine seule, une adresse `…vercel.app`) → null :
+  // x-subdomain vide, getDomainConfig retombera sur le repli NEUTRE. Une
+  // configuration absente (DEV_DOMAIN_SLUG en local, la racine ailleurs) LÈVE
+  // une erreur actionnable : ce n'est pas « aucun écosystème ».
   const subdomain = resolveSubdomainFromHost(request.headers.get('host')) ?? ''
 
   // Injecte x-subdomain sur les headers de requête AVANT next-intl.

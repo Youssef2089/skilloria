@@ -1161,7 +1161,8 @@
       "speciality_required": "Seleccione una especialidad.",
       "speciality_other_required": "Especifique su especialidad.",
       "taxonomy_invalid": "Rama o especialidad no válida. Vuelva a intentarlo.",
-      "taxonomy_unavailable": "No se pueden cargar las ramas y especialidades en este momento. Recargue la página o inténtelo más tarde."
+      "taxonomy_unavailable": "No se pueden cargar las ramas y especialidades en este momento. Recargue la página o inténtelo más tarde.",
+      "taxonomy_adresse_sans_ecosysteme": "Esta dirección no corresponde a ningún espacio de Skilloria. Abra el sitio desde la dirección de su ecosistema (por ejemplo, la que recibió en una invitación) y vuelva a iniciar el registro."
     },
     "otp": {
       "send_sms_button": "Enviar SMS",

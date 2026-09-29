@@ -3971,22 +3971,45 @@ production**. ③ La panne se TAISAIT : 400 sans journal au serveur, message gé
 rien diagnostiquer, et un agent ne pouvait que supposer (les pistes « droits » et « portes latérales » étaient
 plausibles et fausses).
 
-**La parade.** `lib/subdomain.ts` nomme les hôtes qui ne portent PAS d'écosystème (`hoteSansEcosysteme` : localhost,
-une Preview `*.vercel.app` hors production, l'hôte unique de staging) : ils le reçoivent de `DEV_DOMAIN_SLUG`, et
-lèvent en la nommant si elle manque. En production, `.vercel.app` rend `null` (l'alias du projet ne devine rien).
-`lib/ecosystem-url.ts` ne bascule jamais depuis ces hôtes (depuis `staging.skilloria.io`, remplacer le premier label
-menait en PRODUCTION). `/api/taxonomy` résout par l'hôte seul (`ecosystemeDeLaRequete`, plus `x-subdomain` posé par
-l'appelant) et **nomme chaque panne au serveur** : `ecosysteme_non_configure`, `ecosysteme_non_resolu`,
-`ecosysteme_inconnu`, `ecosysteme_indisponible`. Plus aucun diagnostic à la console du navigateur sur les écrans
-publics.
+**Le premier correctif, et pourquoi il a été REFUSÉ.** Il donnait l'écosystème aux hôtes qui n'en portent pas
+(localhost, une Preview `*.vercel.app`, l'hôte unique de staging) par `DEV_DOMAIN_SLUG`, posée sur l'environnement
+Preview. Il réparait le formulaire, et il était faux : **décision de Youssef (29/09/2026) — staging se comporte
+EXACTEMENT comme la production.** Un chemin que la production ne prend jamais ne prouve rien sur la production ; un
+écosystème créé dans l'administration n'aurait pas marché sur staging sans changer une variable ; et le jour de la
+bascule, la règle de lecture de l'adresse aurait tourné pour la première fois. **La cause était juste, la parade
+déplaçait la panne vers le seul environnement qu'on n'essaie pas.** Généralisé : *un correctif qui ouvre à staging un
+chemin que la production ne prend pas rend staging aveugle à ce qu'il était censé essayer.*
 
-**Les contrôles.** [`diag-hotes-ecosysteme`](../scripts/diag-hotes-ecosysteme.mjs) EXÉCUTE le résolveur et le
-sélecteur sur une matrice d'hôtes × environnements (production, Preview, staging, local ; variable posée et absente)
-et garde la résolution unique, les causes nommées, la console muette — éprouvé par mutation. Et
+**La parade.** **Une règle, une définition, pour la production ET pour staging** : une adresse est
+`<écosystème>.<racine>`, un seul label devant la racine ; **seule la racine diffère**, posée par environnement dans
+`NEXT_PUBLIC_DOMAINE_RACINE` (`skilloria.io`, `staging.skilloria.io`) — jamais un nom d'écosystème. `lib/subdomain.ts`
+la lit (`resolveSubdomainFromHost`, `adresseEcosysteme`) ; `DEV_DOMAIN_SLUG` ne sert plus qu'au **poste local**. Une
+adresse sans écosystème (la racine seule, deux labels, `…vercel.app`) rend `null` ; la racine absente hors local
+**lève** en la nommant. `lib/ecosystem-url.ts` n'accepte qu'un hôte `<écosystème>.<racine>` et rend
+`<slug>.<racine>` : le sélecteur reste dans son environnement (depuis `staging.skilloria.io`, l'ancienne règle menait
+en PRODUCTION). **Les liens des e-mails** partent de l'adresse de l'écosystème du destinataire dans l'environnement
+courant (`expertSiteOrigin` → `adresseEcosysteme`) — depuis staging, vers staging ; une adresse inconstructible
+annule l'envoi (`lien_sans_ecosysteme`, `domaine_racine_absent`) ; la confirmation d'inscription est construite au
+serveur (`redirectionConfirmation`), seule la langue vient du navigateur. `/api/taxonomy` résout par l'hôte seul
+(`ecosystemeDeLaRequete`, plus `x-subdomain` posé par l'appelant) et **nomme chaque panne au serveur** :
+`ecosysteme_non_configure`, `ecosysteme_non_resolu`, `ecosysteme_inconnu`, `ecosysteme_indisponible` ; le
+formulaire dit, dans les quatre langues, qu'une adresse sans écosystème se quitte (on ne la répare pas en rechargeant).
+Plus aucun diagnostic à la console du navigateur sur les écrans publics. **L'infrastructure** — le générique
+`*.staging.skilloria.io` sur Preview et la branche de test, certificat délégué, serveurs de noms inchangés — et sa
+répétition pour la production sont dans [docs/mise-en-production.md](mise-en-production.md), étape 6.
+
+**Les contrôles.** [`diag-hotes-ecosysteme`](../scripts/diag-hotes-ecosysteme.mjs) EXÉCUTE le résolveur, le
+sélecteur et l'origine des liens d'e-mail sur une matrice d'hôtes × environnements (production, staging, poste local ;
+racine posée et absente ; `DEV_DOMAIN_SLUG` posée PARTOUT, pour prouver qu'aucun environnement déployé ne la lit) et
+garde la règle unique (aucune adresse en dur dans les trois modules), la variable locale confinée à sa branche, les
+liens d'e-mail et la confirmation construits depuis l'écosystème, les causes nommées, la console muette — éprouvé
+par mutation. Et
 `vrai_appelant/visiteur.test.sql` prouve chaque lecture d'un visiteur non connecté au rôle qui la fait vraiment (la
 seule en `anon` : `/api/countries` ; les autres en clé de service) — la famille « un droit retiré casse un écran
-public », que ce cas-ci n'était pas, mais qu'aucun test ne gardait. **Ce qu'ils ne voient pas** : la variable
-réellement posée sur Vercel — la réponse de `/api/taxonomy` sur la Preview la dit (`ecosysteme_non_configure`).
+public », que ce cas-ci n'était pas, mais qu'aucun test ne gardait. **Ce qu'ils ne voient pas** : la racine
+réellement posée sur Vercel, le domaine générique et son certificat, les Redirect URLs de Supabase — ce sont des
+réglages hors dépôt (§E.10). L'essai sur `<écosystème>.staging.skilloria.io` les dit ; une page qui ne s'affiche pas
+du tout nomme la racine absente dans les journaux Vercel.
 
 ---
 

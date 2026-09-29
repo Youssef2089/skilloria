@@ -1,26 +1,30 @@
 #!/usr/bin/env node
-// scripts/diag-hotes-ecosysteme.mjs — CHAQUE HÔTE OÙ LE PRODUIT EST SERVI RÉSOUT SON ÉCOSYSTÈME, OU DIT POURQUOI.
+// scripts/diag-hotes-ecosysteme.mjs — L'ÉCOSYSTÈME SE LIT DANS L'ADRESSE, PAR LA MÊME RÈGLE EN PRODUCTION ET SUR
+// STAGING ; SEULE LA RACINE DIFFÈRE. Une adresse qui n'en porte pas ne résout rien, et le dit.
 //
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POURQUOI IL EXISTE (29/09/2026, §E.83)
 //   Sur la Preview Vercel, le formulaire expert n'avait ni branche ni spécialité : l'hôte
 //   `<déploiement>.vercel.app` a trois labels, et la règle « premier label » en tirait le NOM DU
-//   DÉPLOIEMENT. /api/taxonomy rendait 400, l'inscription expert était impossible. 423 tests pgTAP
-//   verts : aucun ne passe par un HÔTE — la panne vivait entre la requête HTTP et la base. Et le
-//   contrôle du sélecteur éprouvait des hôtes de production, de staging à sous-domaine et localhost —
-//   jamais celui où Youssef essaie avant la production.
+//   DÉPLOIEMENT. 423 tests pgTAP verts : aucun ne passe par un HÔTE. Un premier correctif donnait
+//   l'écosystème à la Preview par DEV_DOMAIN_SLUG — REFUSÉ par Youssef : staging se comporte EXACTEMENT
+//   comme la production. La règle : `<écosystème>.<racine>`, la racine seule différant
+//   (NEXT_PUBLIC_DOMAINE_RACINE : skilloria.io, staging.skilloria.io) ; DEV_DOMAIN_SLUG au poste local seul.
 //
 // LA PROPRIÉTÉ — éprouvée en EXÉCUTANT lib/subdomain.ts et lib/ecosystem-url.ts, environnement par
-// environnement (VERCEL_ENV, DEV_DOMAIN_SLUG posés et retirés), jamais en relisant leur texte :
-//   A. production : un sous-domaine rend son slug ; l'apex et l'alias `.vercel.app` rendent null ;
-//   B. Preview : `<déploiement>.vercel.app` et l'hôte unique de staging reçoivent DEV_DOMAIN_SLUG ;
-//      un sous-domaine de staging garde le sien ;
-//   C. sans DEV_DOMAIN_SLUG, un hôte qui ne porte pas d'écosystème LÈVE, en nommant la variable ;
-//   D. le sélecteur ne bascule jamais depuis un hôte qui ne porte pas d'écosystème ;
-//   E. une seule résolution pour les routes publiques (ecosystemeDeLaRequete), et /api/taxonomy nomme
-//      chaque panne au serveur ; aucun diagnostic à la console du navigateur sur les écrans publics.
-// CE QU'IL NE VOIT PAS, ET LE DIT : la variable réellement posée sur Vercel — la réponse de
-//   /api/taxonomy sur la Preview le dit (code ecosysteme_non_configure), et les journaux Vercel.
+// environnement (variables posées et retirées), jamais en relisant leur texte :
+//   A. production : `<éco>.skilloria.io` rend son slug ; la racine, l'alias `.vercel.app` et une adresse
+//      de staging rendent null ; DEV_DOMAIN_SLUG n'y est jamais lue ;
+//   B. staging : `<éco>.staging.skilloria.io` rend son slug — TOUT slug, sans réglage (un écosystème créé
+//      dans l'admin y fonctionne aussitôt) ; la racine, une Preview aléatoire, une adresse de production
+//      rendent null ; DEV_DOMAIN_SLUG n'y est jamais lue ;
+//   C. une configuration absente LÈVE en nommant sa variable (la racine hors local, DEV_DOMAIN_SLUG en local) ;
+//   D. le sélecteur reste dans son environnement, et l'aller-retour résolveur ↔ sélecteur ↔ adresse tient ;
+//   E. une seule résolution ; aucune adresse d'environnement écrite dans le code de la règle ; les liens
+//      d'e-mail passent par l'adresse de l'écosystème ; /api/taxonomy nomme chaque panne au serveur ;
+//      aucun diagnostic à la console du navigateur sur les écrans publics.
+// CE QU'IL NE VOIT PAS, ET LE DIT : les variables réellement posées sur Vercel, et les enregistrements DNS —
+//   la réponse de /api/taxonomy sur une adresse de staging le dit (codes nommés), et les journaux Vercel.
 //
 //   node scripts/diag-hotes-ecosysteme.mjs   → statique + exécution pure, aucun accès base ni réseau.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -45,67 +49,105 @@ const fichiers = (d, o = []) => {
   return o
 }
 
-const { resolveSubdomainFromHost } = await import(pathToFileURL(join(ROOT, 'lib/subdomain.ts')).href)
+const { resolveSubdomainFromHost, adresseEcosysteme } = await import(pathToFileURL(join(ROOT, 'lib/subdomain.ts')).href)
 const { swapEcosystemHost } = await import(pathToFileURL(join(ROOT, 'lib/ecosystem-url.ts')).href)
 
-const avant = { VERCEL_ENV: process.env.VERCEL_ENV, DEV_DOMAIN_SLUG: process.env.DEV_DOMAIN_SLUG }
+const VARS = ['VERCEL_ENV', 'NEXT_PUBLIC_DOMAINE_RACINE', 'DEV_DOMAIN_SLUG']
+const avant = Object.fromEntries(VARS.map((k) => [k, process.env[k]]))
 const dans = (env, fn) => {
-  for (const [k, v] of Object.entries(env)) { if (v === undefined) delete process.env[k]; else process.env[k] = v }
+  for (const k of VARS) { if (env[k] === undefined) delete process.env[k]; else process.env[k] = env[k] }
   try { return fn() } finally {
-    for (const [k, v] of Object.entries(avant)) { if (v === undefined) delete process.env[k]; else process.env[k] = v }
+    for (const k of VARS) { if (avant[k] === undefined) delete process.env[k]; else process.env[k] = avant[k] }
   }
 }
 const rend = (env, hote) => dans(env, () => { try { return resolveSubdomainFromHost(hote) } catch (e) { return `LÈVE:${e.message}` } })
 
 const PREVIEW = 'skilloria-git-feat-sprint-archi-orga-cheri.vercel.app'
-console.log('\n═══ Chaque hôte résout son écosystème, ou dit pourquoi ═══\n')
+// DEV_DOMAIN_SLUG est posée PARTOUT ci-dessous, exprès : aucun environnement déployé ne doit la lire.
+const PROD = { VERCEL_ENV: 'production', NEXT_PUBLIC_DOMAINE_RACINE: 'skilloria.io', DEV_DOMAIN_SLUG: 'piege-dev' }
+const STAGING = { VERCEL_ENV: 'preview', NEXT_PUBLIC_DOMAINE_RACINE: 'staging.skilloria.io', DEV_DOMAIN_SLUG: 'piege-dev' }
+console.log('\n═══ L’écosystème se lit dans l’adresse — même règle en production et sur staging ═══\n')
 
 // ── A. PRODUCTION ──
-const PROD = { VERCEL_ENV: 'production', DEV_DOMAIN_SLUG: 'sonde-eco' }
-ok(rend(PROD, 'microsoft.skilloria.io') === 'microsoft', 'A. production : un sous-domaine rend son slug')
-ok(rend(PROD, 'skilloria.io') === null, 'A. production : l’apex ne porte pas d’écosystème (null, jamais de repli)')
-ok(rend(PROD, 'skilloria-chi.vercel.app') === null, 'A. production : l’alias `.vercel.app` rend null — ni son nom de projet, ni la variable de Preview')
+ok(rend(PROD, 'microsoft.skilloria.io') === 'microsoft', 'A. production : `<éco>.skilloria.io` rend son slug')
+ok(rend(PROD, 'microsoft.skilloria.io:443') === 'microsoft', 'A. production : le port ne change rien')
+ok(rend(PROD, 'skilloria.io') === null, 'A. production : la racine ne porte pas d’écosystème (null, jamais de repli)')
+ok(rend(PROD, 'skilloria-chi.vercel.app') === null, 'A. production : l’alias `.vercel.app` rend null — DEV_DOMAIN_SLUG n’est pas lue')
+ok(rend(PROD, 'microsoft.staging.skilloria.io') === null, 'A. production : une adresse de staging n’est pas servie par la production')
 
-// ── B. PREVIEW ──
-const PREV = { VERCEL_ENV: 'preview', DEV_DOMAIN_SLUG: 'sonde-eco' }
-ok(rend(PREV, PREVIEW) === 'sonde-eco', `B. Preview : « ${PREVIEW} » reçoit DEV_DOMAIN_SLUG (le cas du 29/09/2026)`,
-  `rendu : ${rend(PREV, PREVIEW)} — le premier label d’un hôte de Preview est le nom du déploiement, pas un écosystème`)
-ok(rend(PREV, `${PREVIEW}:443`) === 'sonde-eco', 'B. Preview : le port ne change rien')
-ok(rend(PREV, 'staging.skilloria.io') === 'sonde-eco', 'B. staging (hôte unique) : reçoit DEV_DOMAIN_SLUG, pas « staging »')
-ok(rend(PREV, 'microsoft.staging.skilloria.io') === 'microsoft', 'B. staging à sous-domaine : garde son écosystème')
+// ── B. STAGING : LA MÊME RÈGLE, UNE AUTRE RACINE ──
+ok(rend(STAGING, 'microsoft.staging.skilloria.io') === 'microsoft', 'B. staging : `<éco>.staging.skilloria.io` rend son slug')
+ok(rend(STAGING, 'nouvel-eco.staging.skilloria.io') === 'nouvel-eco',
+  'B. staging : un écosystème créé dans l’admin fonctionne SANS RÉGLAGE — son adresse existe dès qu’il existe')
+ok(rend(STAGING, PREVIEW) === null, `B. staging : l’adresse aléatoire « ${PREVIEW} » ne résout RIEN (le cas du 29/09/2026)`,
+  `rendu : ${rend(STAGING, PREVIEW)} — une Preview ne reçoit pas d’écosystème par une variable (décision de Youssef)`)
+ok(rend(STAGING, 'staging.skilloria.io') === null, 'B. staging : la racine elle-même ne porte pas d’écosystème')
+ok(rend(STAGING, 'microsoft.skilloria.io') === null, 'B. staging : une adresse de PRODUCTION n’est pas servie par staging')
+ok(rend(STAGING, 'a.b.staging.skilloria.io') === null, 'B. staging : deux labels devant la racine ne font pas un écosystème')
 
-// ── C. LA VARIABLE ABSENTE SE NOMME ──
-const SANS = { VERCEL_ENV: 'preview', DEV_DOMAIN_SLUG: undefined }
-ok(String(rend(SANS, PREVIEW)).startsWith('LÈVE:') && /DEV_DOMAIN_SLUG/.test(rend(SANS, PREVIEW)),
-  'C. Preview sans DEV_DOMAIN_SLUG : le résolveur LÈVE en nommant la variable — jamais un slug deviné')
-ok(String(rend({ VERCEL_ENV: undefined, DEV_DOMAIN_SLUG: undefined }, 'localhost:3000')).startsWith('LÈVE:'),
+// ── C. UNE CONFIGURATION ABSENTE SE NOMME ──
+const sansRacine = rend({ VERCEL_ENV: 'preview', NEXT_PUBLIC_DOMAINE_RACINE: undefined, DEV_DOMAIN_SLUG: 'piege-dev' }, 'microsoft.staging.skilloria.io')
+ok(String(sansRacine).startsWith('LÈVE:') && /NEXT_PUBLIC_DOMAINE_RACINE/.test(sansRacine),
+  'C. déployé sans racine : le résolveur LÈVE en nommant NEXT_PUBLIC_DOMAINE_RACINE — jamais une règle de repli')
+ok(String(rend({ VERCEL_ENV: undefined, NEXT_PUBLIC_DOMAINE_RACINE: undefined, DEV_DOMAIN_SLUG: undefined }, 'localhost:3000')).startsWith('LÈVE:'),
   'C. localhost sans DEV_DOMAIN_SLUG : lève aussi')
-ok(rend({ VERCEL_ENV: undefined, DEV_DOMAIN_SLUG: 'sonde-eco' }, 'localhost:3000') === 'sonde-eco', 'C. localhost avec la variable : son slug')
+ok(rend({ VERCEL_ENV: undefined, NEXT_PUBLIC_DOMAINE_RACINE: undefined, DEV_DOMAIN_SLUG: 'poste-local' }, 'localhost:3000') === 'poste-local',
+  'C. le poste local, et lui seul, lit DEV_DOMAIN_SLUG')
 
-// ── D. LE SÉLECTEUR NE BASCULE PAS DEPUIS UN HÔTE SANS ÉCOSYSTÈME ──
-ok(swapEcosystemHost(PREVIEW, 'sap') === null && swapEcosystemHost('skilloria-chi.vercel.app', 'sap') === null,
-  'D. aucune bascule depuis `.vercel.app` (`sap.vercel.app` n’est pas à nous)')
-ok(swapEcosystemHost('staging.skilloria.io', 'sap') === null,
-  'D. aucune bascule depuis l’hôte unique de staging (elle mènerait en PRODUCTION)')
-ok(swapEcosystemHost('microsoft.staging.skilloria.io', 'sap') === 'sap.staging.skilloria.io',
-  'D. un sous-domaine de staging bascule vers son voisin de staging')
+// ── D. LE SÉLECTEUR RESTE DANS SON ENVIRONNEMENT ; L'ALLER-RETOUR TIENT ──
+dans(STAGING, () => {
+  ok(swapEcosystemHost('microsoft.staging.skilloria.io', 'sap') === 'sap.staging.skilloria.io',
+    'D. staging : le sélecteur mène vers le voisin DE STAGING')
+  ok(swapEcosystemHost('staging.skilloria.io', 'sap') === null && swapEcosystemHost(PREVIEW, 'sap') === null,
+    'D. staging : aucune bascule depuis la racine ni depuis une Preview (elle menait en PRODUCTION, ou vers `sap.vercel.app`)')
+  ok(swapEcosystemHost('microsoft.skilloria.io', 'sap') === null, 'D. staging : le sélecteur ne fabrique pas d’adresse de production')
+  const aller = swapEcosystemHost('microsoft.staging.skilloria.io:3000', 'sap')
+  ok(aller === 'sap.staging.skilloria.io:3000' && resolveSubdomainFromHost(aller) === 'sap'
+     && resolveSubdomainFromHost(new URL(adresseEcosysteme('sap')).host) === 'sap',
+    'D. staging : aller-retour — sélecteur → résolveur, adresse d’écosystème → résolveur')
+})
+dans(PROD, () => {
+  ok(swapEcosystemHost('microsoft.skilloria.io', 'sap') === 'sap.skilloria.io' && adresseEcosysteme('sap') === 'https://sap.skilloria.io',
+    'D. production : le sélecteur et l’adresse d’écosystème restent en production')
+})
+ok(dans({ VERCEL_ENV: undefined, NEXT_PUBLIC_DOMAINE_RACINE: undefined, DEV_DOMAIN_SLUG: 'poste-local' }, () => swapEcosystemHost('localhost:3000', 'sap')) === null,
+  'D. poste local : aucune bascule par l’hôte')
 
-// ── E. UNE RÉSOLUTION, DES CAUSES NOMMÉES, RIEN DANS LA CONSOLE DU NAVIGATEUR ──
+// ── E. UNE RÈGLE, DES LIENS, DES CAUSES NOMMÉES ──
 {
   const appelants = [...fichiers('app'), ...fichiers('lib'), 'proxy.ts']
     .filter((f) => /\bresolveSubdomainFromHost\(/.test(sansCom(read(f))))
   const permis = new Set(['lib/subdomain.ts', 'lib/inscription/ecosysteme.ts', 'proxy.ts'])
   ok(appelants.every((f) => permis.has(f)), 'E. le résolveur n’est appelé que par le proxy et ecosystemeDeLaRequete — une seule résolution pour les routes',
     appelants.filter((f) => !permis.has(f)).join(', ') || undefined)
+  const regle = ['lib/subdomain.ts', 'lib/ecosystem-url.ts', 'lib/emails/domain-url.ts']
+  const enDur = regle.filter((f) => /skilloria\.io|vercel\.app|'staging\./.test(sansCom(read(f))))
+  ok(enDur.length === 0, 'E. aucune adresse d’environnement écrite dans le code de la règle — la racine vient de la seule variable',
+    enDur.join(', ') || undefined)
+  const sub = sansCom(read('lib/subdomain.ts'))
+  const iDev = sub.indexOf('process.env.DEV_DOMAIN_SLUG')
+  ok(iDev > 0 && /if \(isLocalHost\(hostname\)\) \{\s*const devSlug = process\.env\.DEV_DOMAIN_SLUG/.test(sub)
+     && (sub.match(/process\.env\.DEV_DOMAIN_SLUG/g) ?? []).length === 1,
+    'E. DEV_DOMAIN_SLUG n’est lue QUE dans la branche du poste local')
   const routesPubliques = ['app/api/taxonomy/route.ts', 'app/api/auth/public/register-expert/route.ts', 'app/api/auth/register-org/route.ts']
   const sansResolution = routesPubliques.filter((f) => !/\becosystemeDeLaRequete\(req(uest)?\)/.test(sansCom(read(f))))
   ok(sansResolution.length === 0, 'E. les routes publiques résolvent l’écosystème par l’HÔTE (ecosystemeDeLaRequete), jamais par x-subdomain',
     sansResolution.join(', ') || undefined)
+  // LES LIENS D'E-MAIL : l'adresse de l'écosystème du destinataire, dans l'environnement courant.
+  const liens = sansCom(read('lib/emails/domain-url.ts'))
+  ok(/adresseEcosysteme\(params\.slug\)/.test(liens) && !/isProdSkilloria|APEX/.test(liens),
+    'E. les liens d’e-mail sont l’adresse de l’écosystème (adresseEcosysteme) — plus de cas « production seulement »')
+  const courriels = fichiers('app/api').filter((f) => /\bsiteOriginPourRequete\(/.test(sansCom(read(f))))
+  const directs = courriels.filter((f) => !/\bexpertSiteOrigin\(/.test(sansCom(read(f))))
+  ok(courriels.length >= 6 && directs.length === 0,
+    `E. chaque route qui construit un lien d’e-mail passe par l’adresse de l’écosystème (${courriels.length})`,
+    directs.length ? `origine de requête brute : ${directs.join(', ')}` : 'moins de six routes : le balayage a perdu des appelants')
+  const inscriptions = ['app/api/auth/public/register-expert/route.ts', 'app/api/auth/register-org/route.ts']
+  ok(inscriptions.every((f) => /redirectionConfirmation\(redirectRaw, domainSlug\)/.test(sansCom(read(f)))),
+    'E. le lien de confirmation d’inscription est construit au serveur, sur l’adresse de l’écosystème résolu')
+  // LA PANNE DIT SA CAUSE : chaque appel console.error(...) lu SEUL (parenthèses équilibrées, §E.8).
   const tax = sansCom(read('app/api/taxonomy/route.ts'))
   const codes = ['ecosysteme_non_configure', 'ecosysteme_non_resolu', 'ecosysteme_inconnu', 'ecosysteme_indisponible']
-  // CHAQUE APPEL console.error(...) EST LU SEUL (parenthèses équilibrées) : un motif qui traverse le fichier
-  // associait une journalisation à un code lu ailleurs — mutation « panne muette » passée au travers (§E.8).
-  // Un appel qui journalise « { code, … } » en raccourci compte les codes de la ligne `const code = …` qui le précède.
   const journalises = new Set()
   for (let i = tax.indexOf('console.error('); i >= 0; i = tax.indexOf('console.error(', i + 1)) {
     let prof = 0, j = i + 'console.error'.length
@@ -113,14 +155,26 @@ ok(swapEcosystemHost('microsoft.staging.skilloria.io', 'sap') === 'sap.staging.s
     const appel = tax.slice(i, j + 1)
     for (const m of appel.matchAll(/\bcode:\s*'([a-z_]+)'/g)) journalises.add(m[1])
     if (/[{,]\s*code\s*[,}]/.test(appel)) {
-      const avant = tax.slice(0, i).split('\n').reverse().find((l) => /\bconst code = /.test(l)) ?? ''
-      for (const m of avant.matchAll(/'([a-z_]+)'/g)) journalises.add(m[1])
+      const precedente = tax.slice(0, i).split('\n').reverse().find((l) => /\bconst code = /.test(l)) ?? ''
+      for (const m of precedente.matchAll(/'([a-z_]+)'/g)) journalises.add(m[1])
     }
   }
   const nonJournalises = codes.filter((c) => !journalises.has(c))
   ok(!/x-subdomain/.test(tax) && !/missing_domain_id/.test(tax) && nonJournalises.length === 0,
     'E. /api/taxonomy nomme chaque panne de résolution ET la journalise au serveur, avec son code',
     nonJournalises.length ? `sans journal : ${nonJournalises.join(', ')}` : 'x-subdomain ou missing_domain_id encore présent')
+  // LE MESSAGE SE LIT (checklist 13-14) : une adresse sans écosystème ne se répare pas en rechargeant — l'écran
+  // d'inscription le dit, dans les quatre langues, pour les DEUX codes qui la signifient, et pour eux seuls.
+  const form = sansCom(read('app/[locale]/inscription/[role]/page.tsx'))
+  const mappe = /code === 'ecosysteme_non_resolu' \|\| code === 'ecosysteme_inconnu' \? 'adresse' : 'indisponible'/.test(form)
+    && /taxonomyError === 'adresse' \? t\('errors\.taxonomy_adresse_sans_ecosysteme'\) : t\('errors\.taxonomy_unavailable'\)/.test(form)
+  const langues = ['fr', 'en', 'es', 'de'].filter((l) => {
+    const v = JSON.parse(read(`messages/${l}.json`))?.signup_form?.errors?.taxonomy_adresse_sans_ecosysteme
+    return typeof v !== 'string' || v.trim() === '' || /recharg|reload|recarg|neu laden/i.test(v)
+  })
+  ok(mappe && langues.length === 0,
+    'E. l’inscription dit qu’une adresse sans écosystème se quitte (ecosysteme_non_resolu, ecosysteme_inconnu) — quatre langues, sans « rechargez »',
+    !mappe ? 'le formulaire ne distingue plus l’adresse de l’indisponibilité' : `message absent ou non actionnable : ${langues.join(', ')}`)
   const ecrans = ['app/[locale]/inscription/[role]/page.tsx', 'app/[locale]/inscription/organisation/page.tsx',
     'app/[locale]/invitation/[token]/page.tsx', 'components/phone/SaisieTelephone.tsx', 'lib/pays/referentiel-client.ts']
   const bavards = ecrans.filter((f) => /\bconsole\.(error|log|warn|info|debug)\(/.test(sansCom(read(f))))
@@ -128,6 +182,6 @@ ok(swapEcosystemHost('microsoft.staging.skilloria.io', 'sap') === 'sap.staging.s
 }
 
 console.log(failures === 0
-  ? '\n✅ Chaque hôte où le produit est servi — production, Preview, staging, local — résout son écosystème, ou nomme sa cause.'
-  : `\n✘ ${failures} CONTRÔLE(S) EN ÉCHEC — un hôte sert un écosystème deviné, ou une panne se tait`)
+  ? '\n✅ Production et staging lisent l’écosystème dans l’adresse, par la même règle ; seule la racine diffère.'
+  : `\n✘ ${failures} CONTRÔLE(S) EN ÉCHEC — un environnement suit une autre règle, ou une adresse sert un écosystème deviné`)
 process.exit(failures === 0 ? 0 : 1)
