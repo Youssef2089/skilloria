@@ -95,7 +95,20 @@ contrôlé sans « rechargez ») · 15 (V0 = la production : staging prend le m�
 
 **Migrations nouvelles : AUCUNE.** Rien en base.
 
-**Validations et mutations** : voir le commit suivant (ci-dessous, « Épreuve »).
+**Épreuve** (lot commité en `eaacac6` AVANT de muter) :
+- `tsc --noEmit` : aucune erreur hors `.next/` · `next build` : **exit 0**, deux fois (avant et après les mutations) ·
+  lint : **65 / 25**, le cliquet ne monte pas · parité i18n : **3996 clés** dans les quatre langues ·
+  série complète `diag.mjs` : **113 verts, 0 rouge, 5 muets** — trois écartés parce qu'ils ÉCRIVENT en base, deux
+  (`diag-supabase`, `diag-readonly-expert-achwek`) qui lisent la base et plantent sur une assertion libuv de Windows ;
+  aucun des deux n'importe un fichier du lot. Pendant la série, `diag-grand-livre` a rougi à raison : l'avertissement
+  d'inactivité avait gagné une issue ; elle a reçu sa propre cause, et le contrôle en attend six.
+- **9 mutations, 9 rouges** (`diag-hotes-ecosysteme`) : le « premier label » d'origine ; `DEV_DOMAIN_SLUG` lue sur
+  `.vercel.app` ; la racine absente rendue `null` au lieu de lever ; le sélecteur renvoyé en production ; les liens
+  d'e-mail sur l'origine brute ; la confirmation sur l'adresse du navigateur ; le formulaire qui confond adresse et
+  indisponibilité ; le message allemand qui redit « neu laden » ; une route d'organisation sur l'origine brute.
+  Arbre restauré, et les contrôles **reverts sur les fichiers restaurés en CRLF** (§E.3). Limite dite :
+  `diag-selecteur-ecosysteme` ne pose pas `VERCEL_ENV` — la mutation « sélecteur vers la production » ne l'a pas fait
+  rougir, `diag-hotes-ecosysteme` si.
 
 ### Les étapes de Youssef — dans cet ordre
 **A. L'infrastructure (une fois)** — le détail, écran par écran, est à l'étape 6 de `mise-en-production.md` :
