@@ -92,7 +92,20 @@ actionnables, quatre langues, trois écrans) · 15 (V0 = la prod : la même list
 
 **Migrations nouvelles : AUCUNE.** La requête de staging reste écrite pour ⓪ `sous_domaine_reglable`, listes vides.
 
-**Épreuve** : voir le commit suivant.
+**Épreuve** (lot commité en `3c87a36` AVANT de muter) :
+- `tsc --noEmit` : aucune erreur hors `.next/` · `next build` : **exit 0** · lint : **65 / 24** · parité i18n :
+  **4030 clés** · série complète `diag.mjs` : **117 verts, 0 rouge, 5 muets** (les mêmes).
+- Pendant la série, `diag-lot7-securite` a rougi à raison : il exigeait que le limiteur absent se dise « trop
+  d'essais » (`refus()`). Porté sur la forme nouvelle, avec la raison : le refus reste FAIL-CLOSED, il se nomme.
+- **14 mutations, 14 rouges** : **l'écran qui retombe sur « temporairement » pour une configuration absente (le
+  défaut d'origine)** ; la route qui rend `missing_env` à la main ; le classificateur qui ne lit plus le `type` ; un
+  401 redevenu « temporaire » ; le limiteur redit « trop d'essais » ; une variable lue hors de l'inventaire ;
+  l'inventaire qui perd `VONAGE_API_KEY` ; le démarrage qui journalise une valeur ; le démarrage qui parle sur le
+  poste local ; la supervision privée des manques ; la route des paramètres sans ses 6 chiffres ; la vérification qui
+  redit « code invalide » ; le journal sans cause ; la réponse publique qui expose la cause. Arbre restauré, contrôles
+  reverts sur les fichiers restaurés.
+- **Ce qui n'a pas tourné** : Vercel et Vonage réels — la lecture A.1 et l'essai C le disent ; les tests pgTAP (aucune
+  migration).
 
 ### Les étapes de Youssef — dans cet ordre
 **A. Les réglages Vercel et Vonage**
