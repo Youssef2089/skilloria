@@ -287,6 +287,13 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > dynamique. Liste blanche de `reglage_modifie` reprise EN ENTIER (116 clés). Route `GET/POST /api/admin/domaines-adresse`,
 > écran `/admin/domaines-adresse`. `blocked_email_domains` et `public_email_domains` deviennent des tables journalisées
 > (portes latérales : la requête de staging les couvre). ORDRE : AVANT le déploiement. Test : `grand_livre/domaines_adresse.test.sql`.
+>
+> **`sous_domaine_reglable` (29/09/2026) — le sous-domaine d’un écosystème est un réglage (§D.28).** Contrainte
+> `domains_sous_domaine_forme` (étiquette DNS, VALIDÉE à la pose — jamais `not valid`, §E.64 ; une ligne existante hors
+> forme arrêterait la migration : la requête de staging la compte avant le push) ; commentaires de schéma sur
+> `domains.id` (la clé technique, immuable) et `domains.slug` (le sous-domaine, un réglage) ; liste blanche de
+> `ecosysteme_modifie` étendue à `sous_domaine.avant` / `sous_domaine.apres`. Aucune fonction. ORDRE : AVANT le
+> déploiement. Test : `grand_livre/sous_domaine.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -3342,6 +3349,65 @@ preuve signée, que le trigger journalise) ; `diag-grand-livre` (D ter) ; tests 
 téléphone écrits, l'organisation avec son compte ou pas du tout, chaque règle), `compte_cree`, `roles`,
 `grand_livre/inscriptions`, `administrateur_cree`.
 
+<a id="d28"></a>
+### D.28 — LE SOUS-DOMAINE D'UN ÉCOSYSTÈME EST UN RÉGLAGE : il se modifie dans l'admin, l'identifiant technique ne change jamais (29/09/2026)
+
+**Le constat (Youssef, 29/09/2026, écran Écosystèmes).** Le champ « Sous-domaine » n'apparaissait qu'à la création :
+Skilloria 365 portait `microsoft`, et l'écran le montrait en lecture seule (« une adresse publique, déclarée chez
+l'hébergeur »). Il doit porter `skilloria365`.
+
+**L'état, prouvé par le code et les migrations.** `domains.slug` EST le sous-domaine : unique (`domains_slug_key`),
+lu **à chaque requête, par sa valeur** — le proxy et `resolveSubdomainFromHost()` (l'adresse → le sous-domaine),
+`getDomainConfig()` et la garde d'écosystème (`x-subdomain` → `domains.slug`, **sans cache**), `inscription_refus()`
+et `handle_new_user` (le sous-domaine signé → l'écosystème), les liens d'e-mail (`expertSiteOrigin` → le sous-domaine
+du destinataire, lu en base), le sélecteur (la liste lue en base). **Rien ne le recopie comme clé** : toute référence
+(comptes, organisations, publications, grand livre, métadonnées Stripe — `skilloria_domain_id`) passe par
+`domains.id`. Ce qui le recopie n'est jamais relu : la métadonnée `domain_slug` d'un compte (lue par le seul
+`handle_new_user`, dans la même requête), la preuve signée (5 min), le détail historique de `ecosysteme_cree`.
+**La clé technique existe donc déjà** : aucune colonne à séparer. Le verrou n'était qu'une décision d'écran, dont la
+raison — déclarer chaque sous-domaine chez l'hébergeur — a disparu avec l'adresse générique (`*.<racine>`).
+
+**La décision.** Le sous-domaine se modifie dans `/admin/ecosystemes`, **comme un geste à part** :
+- **seul dans sa requête** (`sous_domaine_seul`) — un nom et une adresse changés d'un même clic ne se relisent pas ;
+- **la forme et l'unicité en base** (`domains_sous_domaine_forme`, `domains_slug_key`) ; la route les nomme
+  (`sous_domaine_invalide` ← 23514, `sous_domaine_pris` ← 23505), l'écran les dit à la saisie sans les garantir ;
+- **écrit à la condition que la valeur lue n'ait pas bougé** (`… where id = ? and slug = <lu>` —
+  `sous_domaine_concurrent`, §F) ; `sous_domaine_inchange`, `lecture_indisponible` (503, §E.22) ;
+- **tracé** sous `ecosysteme_modifie`, opération `sous_domaine`, `sous_domaine.avant` / `.apres` (des identifiants
+  d'adresse, pas une donnée personnelle), sous la pièce du geste ; `audit_logs` aussi ;
+- **confirmé à l'écran après lecture de ce qu'il déplace** (ci-dessous), jamais d'un seul clic.
+Le motif de forme est écrit à quatre endroits — la contrainte, `SLUG_ECOSYSTEME` (lib/subdomain.ts), `SLUG_RE`
+(lib/ecosystem-url.ts), la requête de staging — et `diag-sous-domaine` prouve qu'ils disent la même chose, en les
+exécutant.
+
+**Ce que le changement déplace (point 4 du mandat), et qui est dit à l'écran avant de confirmer.**
+- **L'ancienne adresse ne sert plus l'écosystème, sans redirection.** L'adresse générique la sert encore, mais
+  elle ne résout plus rien : page neutre, et les appels portent un sous-domaine inconnu (`unknown_domain`).
+- **Les liens des e-mails déjà envoyés** (confirmation d'inscription, invitations, approbations, avertissement
+  d'inactivité) mènent à l'ancienne adresse : une inscription d'expert ou d'organisation y est refusée
+  (`invalid_domain`), la taxonomie répond `ecosysteme_inconnu`. La création du compte d'un invité, elle, lit
+  l'écosystème de l'ORGANISATION (`app/api/invitations/inscription`), pas l'adresse : elle aboutit. L'acceptation par
+  un compte déjà connecté passe par la garde d'écosystème de la requête : **NON VÉRIFIÉ** depuis l'ancienne adresse.
+  Les e-mails suivants portent la nouvelle.
+- **Les sessions ouvertes** : le cookie `ss_token` est posé sur le domaine parent, il n'est pas touché ; mais la
+  session Supabase du navigateur est gardée par `supabase-js` dans le stockage de l'ORIGINE (`lib/supabase.ts` ne
+  configure aucun stockage) — à la nouvelle adresse, on se reconnecte. **NON MESURÉ en navigateur.** Un onglet resté
+  ouvert sur l'ancienne adresse envoie l'ancien sous-domaine et tombe sur l'écran « écosystème indisponible ».
+- **Une inscription en cours à l'instant du changement** échoue (sa preuve signe l'ancien sous-domaine) : la fenêtre
+  est celle d'un formulaire.
+- **Hors dépôt** : `DEV_DOMAIN_SLUG` (poste local) désigne un sous-domaine RÉGLÉ — à mettre à jour ; la **Site URL**
+  de Supabase, si elle nomme l'ancienne adresse ; rien d'autre si l'adresse générique et les deux redirections
+  génériques sont en place (mise-en-production, étapes 4 et 6).
+
+**Ce qui n'est PAS fait, et qui est dit.** Aucune redirection de l'ancienne adresse vers la nouvelle (une table des
+anciens sous-domaines, avec la question de leur réemploi, serait un lot à arbitrer). Aucun label réservé : un
+écosystème nommé comme le premier label d'une autre racine (`staging` en production) serait injoignable — aucune
+liste n'est écrite dans le code, la règle est dans la documentation. **Aucun nom d'écosystème dans le code** :
+`diag-sous-domaine` lit les noms que la graine des migrations sème (sous-domaine, nom, nom d'écosystème, et leur forme
+tassée) et rougit s'il en trouve un dans le code (commentaires exclus), les messages des quatre langues ou les
+documents légaux ; les trois descriptions des pages légales portaient « Skilloria 365 » en dur — elles lisent
+désormais le nom de l'écosystème servi.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »
@@ -3385,6 +3451,7 @@ l'objet est créé **deux fois**.
 | **Une organisation à ZÉRO administrateur** : deux admins qui se rétrogradent au même instant lisent tous deux « il en reste 2 » | migration `siege_administrateur` — trigger `organizations_cliquet_siege_admin` + RPC `maj_membre_organisation` |
 | **La PLATEFORME à zéro administrateur** : deux admins qui programment leur suppression au même instant | migration `siege_admin_plateforme` — table `plateforme`, `cliquet_siege_admin()` |
 | **Une organisation née sans aucun membre** : `register-org` insère l'org, PUIS le membre — un échec entre les deux laisse une coquille | migration `organisation_jamais_sans_membre` |
+| **Deux administrateurs qui renomment le même écosystème** : chacun lit l'ancien sous-domaine, le second écrase le premier en silence | `PATCH /api/admin/ecosystemes/[id]` (sous-domaine) — l'écriture porte la valeur lue dans son `WHERE` (`slug = <lu>`) : zéro ligne ⇒ `sous_domaine_concurrent` (409). L'unicité (`domains_slug_key`) arbitre deux écosystèmes qui visent le même nom (§D.28). |
 | **Deux runs du même cron qui se chevauchent** : `expert_relance_trigger` tourne toutes les 5 min pour un run de 300 s max — le chevauchement est **structurel**, et deux runs simultanés reçoivent **le même profil** et repaient le même travail d'IA | migration `bail_de_run_cron` — `cron_run_leases`, RPC `prendre_bail_run` / `rendre_bail_run`, [lib/cron/bail-de-run.ts](../lib/cron/bail-de-run.ts) |
 
 > ⚠️ **CES SIX LIGNES MANQUAIENT.** Elles sont toutes de la classe que cette section recense, et

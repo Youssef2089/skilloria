@@ -11,10 +11,14 @@ type PageParams = { params: Promise<{ locale: string }> }
 
 export async function generateMetadata({ params }: PageParams): Promise<Metadata> {
   const { locale } = await params
-  const t = await getTranslations({ locale, namespace: 'legal' })
+  // Le nom de l'écosystème vient de sa configuration (getDomainConfig), jamais du texte.
+  const [t, domain] = await Promise.all([
+    getTranslations({ locale, namespace: 'legal' }),
+    getDomainConfig(locale),
+  ])
   return {
     title: t('cgu.title'),
-    description: t('cgu.meta_description'),
+    description: t('cgu.meta_description', { name: domain.name }),
   }
 }
 

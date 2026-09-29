@@ -163,7 +163,9 @@ export async function getDomainConfig(locale?: string): Promise<DomainConfig> {
     }
 
     if (!data) {
-      console.warn(`[getDomainConfig] Domaine inconnu pour slug="${slug}", fallback utilisé`)
+      // Le sous-domaine est un RÉGLAGE de l'admin (écran Écosystèmes) : une adresse qui ne résout plus
+      // est souvent un ancien sous-domaine. En local, DEV_DOMAIN_SLUG doit désigner un sous-domaine réglé.
+      console.warn(`[getDomainConfig] Aucun écosystème ACTIF sous le sous-domaine "${slug}" (renommé dans l'admin ? en local : DEV_DOMAIN_SLUG), affichage neutre`)
       return defaultDomainConfig
     }
 

@@ -3566,15 +3566,15 @@
     "language_notice": "Dieses Dokument ist auf Französisch verfügbar. Allein die französische Fassung ist rechtsverbindlich.",
     "mentions_legales": {
       "title": "Impressum",
-      "meta_description": "Impressum der Plattform Skilloria 365, herausgegeben von WinOps."
+      "meta_description": "Impressum der Plattform {name}, herausgegeben von WinOps."
     },
     "confidentialite": {
       "title": "Datenschutzerklärung",
-      "meta_description": "Wie Skilloria 365 Ihre personenbezogenen Daten erhebt, nutzt und schützt (DSGVO)."
+      "meta_description": "Wie {name} Ihre personenbezogenen Daten erhebt, verwendet und schützt (DSGVO)."
     },
     "cgu": {
       "title": "Nutzungsbedingungen",
-      "meta_description": "Nutzungsbedingungen der Plattform Skilloria 365 für Experten."
+      "meta_description": "Allgemeine Nutzungsbedingungen der Plattform {name} für Experten."
     }
   },
   "session": {
@@ -4364,7 +4364,6 @@
       "name": "Name",
       "slug": "Subdomain",
       "tagline": "Claim",
-      "slug_locked": "Nicht änderbar: eine öffentliche Adresse, beim Hoster hinterlegt und in bereits versendeten Links enthalten.",
       "primary_color": "Hauptfarbe",
       "secondary_color": "Sekundärfarbe",
       "logo_url": "Logo",
@@ -4379,7 +4378,8 @@
       "tags": "Schlagwörter",
       "tags_hint": "durch Kommas getrennt",
       "ecosystem_name": "Name des Ökosystems im Fließtext",
-      "ecosystem_name_hint": "Wird in den Texten der Website verwendet. Leer → der Name oben."
+      "ecosystem_name_hint": "Wird in den Texten der Website verwendet. Leer → der Name oben.",
+      "slug_placeholder": "mein-oekosystem"
     },
     "visuel": {
       "deposer": "Hochladen",
@@ -4403,12 +4403,12 @@
     },
     "after_create": {
       "title": "Was außerhalb dieser Ansicht noch zu tun ist",
-      "intro": "„{name}“ existiert nun in der Datenbank. Drei Schritte machen es tatsächlich nutzbar.",
-      "step_host": "Die Domain {slug} beim Hoster hinterlegen (Vercel → Settings → Domains).",
-      "step_dns": "Einen CNAME für {slug} auf cname.vercel-dns.com anlegen.",
+      "intro": "„{name}“ existiert in der Datenbank. Zwei Schritte machen es tatsächlich nutzbar.",
       "step_branch": "Mindestens eine Sparte unter Taxonomie anlegen — ohne sie weder Registrierung noch Ausschreibung.",
       "step_activate": "Hierher zurückkehren und aktivieren: dann wird es für Organisationen sichtbar.",
-      "dismiss": "Verstanden"
+      "dismiss": "Verstanden",
+      "step_adresse": "Seine Adresse existiert bereits: {adresse} – beim Hoster ist nichts anzumelden (Platzhalter-Adresse).",
+      "step_adresse_local": "Seine Subdomain ist {slug}; seine öffentliche Adresse existiert, sobald es bereitgestellt ist (Platzhalter-Adresse)."
     },
     "deactivate": {
       "open": "Deaktivieren…",
@@ -4429,6 +4429,35 @@
       "name_required": "Der Name ist erforderlich.",
       "invalid_slug": "Ungültige Subdomain: Kleinbuchstaben, Ziffern und Bindestriche, kein Punkt, kein Leerzeichen.",
       "slug_taken": "Diese Subdomain ist bereits vergeben."
+    },
+    "sous_domaine": {
+      "titre": "Subdomain",
+      "actuel": "Aktuelle Adresse: {adresse}",
+      "actuel_local": "Aktuelle Subdomain: {slug} (lokaler Rechner: keine öffentliche Adresse)",
+      "nouveau": "Neue Subdomain",
+      "aide": "Kleinbuchstaben, Ziffern und Bindestriche, ohne Punkt oder Leerzeichen. Das ist die Adresse des Ökosystems.",
+      "apercu": "Neue Adresse: {adresse}",
+      "changer": "Subdomain ändern",
+      "confirmer_titre": "Adresse von „{name}“ ändern?",
+      "consequence_adresse": "Das Ökosystem wird unter {nouvelle} bereitgestellt. Die alte Adresse, {ancienne}, zeigt nur noch die neutrale Seite von Skilloria: Es gibt keine Weiterleitung.",
+      "consequence_liens": "Links in bereits versendeten E-Mails (Bestätigung der Registrierung, Einladungen, Benachrichtigungen) führen zur alten Adresse und funktionieren nicht mehr. Künftige E-Mails tragen die neue.",
+      "consequence_sessions": "Angemeldete Personen müssen sich unter der neuen Adresse erneut anmelden.",
+      "consequence_reglages": "Beim Hoster und in der Authentifizierung ist nichts anzumelden, sofern die Platzhalter-Adresse und die beiden Platzhalter-Weiterleitungen eingerichtet sind. Für die lokale Entwicklung DEV_DOMAIN_SLUG anpassen.",
+      "confirmer": "Ja, Subdomain ändern",
+      "annuler": "Abbrechen",
+      "en_cours": "Wird geändert…",
+      "fait": "Subdomain geändert. Das Ökosystem wird jetzt unter {adresse} bereitgestellt.",
+      "fait_local": "Subdomain geändert: {slug}.",
+      "errors": {
+        "sous_domaine_invalide": "Ungültige Subdomain: Kleinbuchstaben, Ziffern und Bindestriche, höchstens 63 Zeichen, ohne Punkt oder Leerzeichen, kein Bindestrich am Anfang oder Ende.",
+        "sous_domaine_pris": "Diese Subdomain wird bereits von einem anderen Ökosystem verwendet. Wählen Sie eine andere.",
+        "sous_domaine_inchange": "Das ist bereits die Subdomain dieses Ökosystems: nichts zu ändern.",
+        "sous_domaine_concurrent": "Die Subdomain wurde zwischenzeitlich geändert. Öffnen Sie den Eintrag erneut, um den aktuellen Wert zu sehen, und versuchen Sie es noch einmal.",
+        "sous_domaine_seul": "Speichern Sie zuerst Ihre anderen Änderungen und ändern Sie dann die Subdomain allein.",
+        "lecture_indisponible": "Das Ökosystem kann gerade nicht gelesen werden: Es wurde nichts geändert. Versuchen Sie es gleich noch einmal.",
+        "journal_error": "Die Subdomain wurde geändert, aber ihr Eintrag konnte nicht ins Hauptbuch geschrieben werden. Melden Sie es dem technischen Team.",
+        "generic": "Die Änderung ist nicht durchgegangen. Versuchen Sie es erneut; falls es weiterhin auftritt, melden Sie es dem technischen Team."
+      }
     }
   },
   "plafonds": {

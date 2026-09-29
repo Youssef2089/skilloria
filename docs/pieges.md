@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **159** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
+Sur les **160** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
@@ -4010,6 +4010,29 @@ public », que ce cas-ci n'était pas, mais qu'aucun test ne gardait. **Ce qu'il
 réellement posée sur Vercel, le domaine générique et son certificat, les Redirect URLs de Supabase — ce sont des
 réglages hors dépôt (§E.10). L'essai sur `<écosystème>.staging.skilloria.io` les dit ; une page qui ne s'affiche pas
 du tout nomme la racine absente dans les journaux Vercel.
+
+---
+
+<a id="e84"></a>
+### E.84 — UN VERROU D'ÉCRAN SURVIT À SA RAISON : le sous-domaine était « non modifiable » parce qu'il fallait le déclarer chez l'hébergeur — l'adresse générique a supprimé la raison, pas le verrou.
+
+**Le cas mesuré (29/09/2026).** Skilloria 365 portait le sous-domaine `microsoft`, et l'écran Écosystèmes le
+montrait en lecture seule : « une adresse publique, déclarée chez l'hébergeur et présente dans des liens déjà
+envoyés ». La première moitié était vraie tant que chaque sous-domaine se déclarait un par un chez Vercel ; le lot
+précédent (§E.83) a branché l'adresse générique `*.<racine>`, et le verrou est resté — commentaire de route,
+message d'écran, étapes « déclarer chez l'hébergeur » après la création. **Rien en base ne l'imposait** : toutes les
+références passent par `domains.id` ; le sous-domaine est lu par sa valeur, à chaque requête.
+
+**La leçon.** Un verrou d'écran porte sa raison dans un commentaire ; quand un lot retire la raison (ici,
+l'infrastructure), il doit relire les verrous qui la citaient. Et la seconde moitié de la raison — les liens déjà
+envoyés — ne justifie pas un verrou : elle justifie une **confirmation qui dit ce qui se déplace** (§D.28).
+
+**La parade.** Le sous-domaine se modifie (§D.28), la forme et l'unicité sont tenues **en base** ; les conséquences
+sont affichées avant de confirmer. [`diag-sous-domaine`](../scripts/diag-sous-domaine.mjs) garde le chemin
+modifiable (plus de lecture seule, plus d'« hébergeur » après création), les refus nommés dans les quatre langues, le
+motif de forme identique en base, dans le code et dans la requête de staging, et l'absence de nom d'écosystème dans le
+code. **Ce qu'il ne voit pas** : un nom qui n'existe que dans une base (créé dans l'admin, jamais semé), les
+commentaires, et ce que devient une adresse renommée chez ceux qui l'avaient — documenté, pas contrôlable.
 
 ---
 

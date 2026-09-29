@@ -323,6 +323,33 @@ Une adresse est `<écosystème>.<racine>` : **un seul label devant la racine**, 
 - **Le sélecteur d'écosystème reste dans son environnement** : depuis `microsoft.staging.skilloria.io`, il mène à `sap.staging.skilloria.io`.
 - Le cookie de session de staging porte un autre nom que celui de la production (`ss_token_staging`) : se connecter à staging ne déconnecte personne de la production.
 
+## Le sous-domaine d'un écosystème se règle dans l'administration
+
+Le label devant la racine est le **sous-domaine** de l'écosystème : Administration → **Écosystèmes** → **Modifier** →
+section **Sous-domaine**. Il se choisit à la création et **se change ensuite** au même endroit (§D.28). L'identifiant
+technique de l'écosystème, lui, ne change jamais : comptes, organisations, annonces, grand livre restent rattachés.
+
+- **La forme** : minuscules, chiffres et tirets, 63 caractères au plus, sans point ni espace, ni tiret au début ou à la
+  fin. **Unique** : deux écosystèmes ne portent jamais le même. La base refuse le reste, l'écran le dit à la saisie.
+- **Ne choisissez pas `www` ni `staging`** en production : `staging.skilloria.io` est la racine de staging, et `www`
+  a souvent son propre enregistrement — un écosystème ainsi nommé serait injoignable. Rien dans le code ne l'interdit
+  (aucune liste écrite en dur) : c'est une règle de cette page.
+
+**Ce qu'un changement de sous-domaine déplace — l'écran le fait lire avant de confirmer :**
+
+| Ce qui existait | Ce qu'il devient |
+|---|---|
+| **L'ancienne adresse** (`https://<ancien>.<racine>`) | Elle affiche la page **neutre** de Skilloria. **Aucune redirection** vers la nouvelle. |
+| **Les liens des e-mails déjà envoyés** — confirmation d'inscription, invitations, approbations, notifications, avertissement d'inactivité | Ils mènent à l'ancienne adresse, qui s'affiche neutre. Une inscription d'**expert** ou d'**organisation** y est **refusée** (« cet espace n'accepte pas d'inscription »). La création du compte d'un **invité** lit l'écosystème de l'organisation, pas l'adresse : elle aboutit — la personne se connecte ensuite à la nouvelle adresse. Les e-mails suivants portent la nouvelle adresse. |
+| **Les personnes connectées** | Le navigateur garde la session **par adresse** : à la nouvelle adresse, elles se **reconnectent** (NON MESURÉ en navigateur). Un onglet resté ouvert sur l'ancienne tombe sur « écosystème indisponible ». |
+| **Une inscription en cours** à l'instant du changement | Elle échoue (sa preuve signée nomme l'ancien sous-domaine) : la personne recommence sur la nouvelle adresse. |
+| **Supabase → Authentication → Site URL**, si elle nomme l'ancienne adresse | À mettre à jour à la main (étape 4). Les deux **Redirect URLs** génériques, elles, couvrent déjà la nouvelle. |
+| **Vercel** | Rien à faire : l'adresse générique `*.<racine>` sert déjà la nouvelle adresse. |
+| **Le poste local** | `DEV_DOMAIN_SLUG` (dans `.env.local`) désigne un sous-domaine réglé : mettez-le à jour. |
+
+> **Changez un sous-domaine AVANT d'avoir envoyé des liens**, ou acceptez que ceux-ci cessent de marcher. C'est
+> pourquoi le changement est un geste à part, confirmé — jamais un champ parmi d'autres du bouton « Enregistrer ».
+
 ## Comment relier ces adresses à Vercel — la voie retenue
 
 Tout ce qui suit a été **lu dans la documentation de Vercel le 29/09/2026** (sources en fin de section). Ce qu'elle ne dit pas en toutes lettres est marqué **NON VÉRIFIÉ**.
@@ -374,7 +401,7 @@ Staging est la répétition : si la voie A y marche, la production est **le mêm
 
 **Comment savoir que c'est bon :** les quatre vérifications de staging, avec `.skilloria.io`.
 
-> **Si le site s'affiche en gris neutre** sur l'adresse d'un écosystème qui existe, c'est que l'adresse n'a pas été reconnue : ou bien la racine posée ne correspond pas à l'adresse visitée, ou bien le label ne correspond pas **exactement** à la colonne `slug` de la table `domains`, ou bien l'écosystème n'est pas actif. L'application ne plante pas — elle retombe sur un affichage neutre. **C'est confortable et trompeur : vérifiez toujours les couleurs.**
+> **Si le site s'affiche en gris neutre** sur l'adresse d'un écosystème qui existe, c'est que l'adresse n'a pas été reconnue : ou bien la racine posée ne correspond pas à l'adresse visitée, ou bien le label ne correspond pas **exactement** au sous-domaine réglé dans l'écran Écosystèmes (il a peut-être été changé), ou bien l'écosystème n'est pas actif. L'application ne plante pas — elle retombe sur un affichage neutre. **C'est confortable et trompeur : vérifiez toujours les couleurs.**
 
 **Sources (documentation Vercel, lue le 29/09/2026)** :
 [Adding & Configuring a Custom Domain](https://vercel.com/docs/domains/working-with-domains/add-a-domain) (adresses génériques, délégation de `_acme-challenge`) ·

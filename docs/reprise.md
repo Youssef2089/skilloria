@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 29/09/2026 (ARRÊT 14).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 29/09/2026 (ARRÊT 15).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,8 +13,8 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — AUCUNE migration en attente : staging est à jour jusqu'à `domaines_adresse_reglables` (le push 3
-a passé la porte d'inscription). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
+**Au prochain push** — UNE migration en attente, `sous_domaine_reglable` (ARRÊT 15) : staging est à jour jusqu'à
+`domaines_adresse_reglables` (le push 3 a passé la porte d'inscription). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
 l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
 `NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
 (étapes de Youssef, ARRÊT 14). La requête de staging est écrite pour cet état (⓪ `domaines_adresse_reglables`,
@@ -54,6 +54,82 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 15 — LE SOUS-DOMAINE D'UN ÉCOSYSTÈME SE RÈGLE DANS L'ADMIN ET SE MODIFIE (29/09/2026)
+
+Constat de Youssef (écran Écosystèmes) : le champ « Sous-domaine » n'apparaissait qu'à la création ; Skilloria 365
+portait `microsoft`. Tag local `sauvegarde-avant-sous-domaine` sur `935ffdf`, arbre propre (hormis
+`supabase/snippets/`, non touché). Détail : [architecture.md §D.28](architecture.md#d28), piège
+[§E.84](pieges.md#e84), procédure : [mise-en-production.md](mise-en-production.md), étape 6.
+
+**L'état constaté (point 1), par le code et les migrations.** `domains.slug` EST le sous-domaine : unique, lu **par sa
+valeur, à chaque requête** (proxy, `getDomainConfig` et la garde d'écosystème sans cache, `inscription_refus` et
+`handle_new_user`, les liens d'e-mail, le sélecteur). **Aucune référence ne le recopie comme clé** : tout passe par
+`domains.id` (Stripe compris : `skilloria_domain_id`). Ce qui le recopie n'est jamais relu (métadonnée `domain_slug`
+lue par le seul trigger, preuve signée de 5 min, détail historique de `ecosysteme_cree`). Le verrou n'était qu'une
+décision d'écran, dont la raison (déclarer chaque sous-domaine chez l'hébergeur) a disparu avec l'adresse générique.
+
+**Contradictions et limites, signalées :**
+① **« Sépare la clé technique » : déjà fait** — `domains.id` l'est ; renommer la colonne `slug` coûterait tout le
+code (§E.1) pour rien. Rien n'est séparé : c'est dit dans le schéma (commentaires de colonne).
+② **L'ancienne adresse devient une impasse, sans redirection** — documenté et affiché avant de confirmer ; une table
+des anciens sous-domaines (et leur réemploi) serait un lot à arbitrer.
+③ **Les sessions sont tenues par adresse** (`supabase-js`, stockage de l'origine) : on se reconnecte à la nouvelle.
+NON MESURÉ en navigateur — et le commentaire du sélecteur d'écosystème affirme qu'une session « traverse la bascule »
+entre écosystèmes : c'est vrai du cookie `ss_token`, pas nécessairement de la session du navigateur. À mesurer.
+④ **Aucun label réservé dans le code** : `staging` ou `www` en production seraient injoignables — la règle est écrite
+dans la procédure, pas dans une liste en dur (« aucune valeur dans le code »).
+⑤ **« Aucun nom d'écosystème dans le code »** : le contrôle connaît les noms que la GRAINE sème (et leur forme
+tassée, `skilloria365`) ; un nom créé seulement dans une base lui échappe. Les commentaires, les tests, les scripts et
+les migrations (la graine est une donnée) sont hors de son champ, et il le dit. Trois descriptions de pages légales
+portaient « Skilloria 365 » en dur : elles lisent le nom servi.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. L'état | **prouvé** | Ci-dessus ; classement complet des lecteurs (résolution, affichage, recopies, caches, littéraux). |
+| 2. Modifiable | **fait** | `PATCH /api/admin/ecosystemes/[id]` : le sous-domaine SEUL, refus nommés (`sous_domaine_seul`, `_invalide`, `_inchange`, `_pris`, `_concurrent`, `lecture_indisponible`, `journal_error`), écrit sous condition (`slug = <lu>`), tracé `ecosysteme_modifie` / `sous_domaine` avant-après, et `audit_logs`. Forme et unicité EN BASE (`domains_sous_domaine_forme`, `domains_slug_key`). Écran : saisie, validation en ligne, aperçu de l'adresse, confirmation qui fait lire les conséquences ; messages dans les quatre langues ; après création, plus d'étape « déclarer chez l'hébergeur ». |
+| 3. Une seule source | **fait** | Résolution, liens d'e-mail et sélecteur lisent la valeur réglée (prouvé, point 1). `diag-sous-domaine` : le motif de forme identique en base, dans les deux modules et dans la requête de staging (exécuté sur 17 cas) ; aucun nom d'écosystème dans le code, les messages, les documents légaux. `DEV_DOMAIN_SLUG` désigne un sous-domaine réglé ; le journal de `getDomainConfig` le dit quand un sous-domaine ne résout plus. |
+| 4. Changer un sous-domaine | **documenté** | Ancienne adresse neutre sans redirection ; liens envoyés : inscription d'expert ou d'organisation refusée, compte d'invité créé (il lit l'organisation) ; sessions à rouvrir ; inscription en cours échouée ; Site URL de Supabase à mettre à jour si elle nomme l'ancienne adresse ; rien chez Vercel. Écran, §D.28, procédure étape 6. |
+| 5. La migration | **faite** | `20260929000000_sous_domaine_reglable` (§G.2 : tronc `0xxxxx`, après la plus récente de toutes les branches et de tous les worktrees). Test `grand_livre/sous_domaine.test.sql` (12). Requête de staging : ⓪ inchangée (`domaines_adresse_reglables`), `prochain_push_cree` = la contrainte, ligne ⑭ = les sous-domaines existants hors forme (attendu 0 : sinon la migration s'arrêterait au milieu du push). `diag-requete-staging` suit désormais les CONTRAINTES (il ne voyait que fonctions, tables, index — il mord). |
+
+**Checklist** : 0 (aucun nom d'écosystème dans le code, contrôlé) · 2 (l'écosystème résolu par le sous-domaine réglé,
+test : l'ancien refusé, le nouveau résout) · 5 (forme et unicité en base ; l'écran ne fait que prévenir) · 12 (codes
+stables, nouveaux codes nommés, aucun renommé) · 13-14 (messages actionnables, quatre langues, contrôlés) · 15 (V0 = la
+prod : même route, même base, même règle).
+
+**Migration nouvelle : `sous_domaine_reglable`.** ORDRE : AVANT le déploiement.
+
+**Épreuve** : voir le commit suivant.
+
+### Les étapes de Youssef — dans cet ordre
+**A. Le déploiement** (une migration : la séquence complète de §G.4 ter)
+1. En local : `npx supabase db reset --local` (160 migrations), `npx supabase db lint -s public --level error` (sortie
+   vide), `npx supabase test db --local` (un fichier neuf : `grand_livre/sous_domaine.test.sql`). §E.82 si « EUNKNOWN … uv_spawn ».
+2. La requête de staging, collée dans l'éditeur SQL de staging : ⓪ `domaines_adresse_reglables`, **aucun ÉCART** — la
+   ligne ⑭ doit dire 0 (sinon un sous-domaine existant n'est pas une étiquette DNS : arrête-toi, envoie-moi la ligne).
+3. `npm run build`, puis `npx supabase db push`, puis `git push` aussitôt.
+
+**B. Le sous-domaine passe à `skilloria365`**
+1. Ouvre l'admin sur staging, **à l'adresse actuelle** : `https://microsoft.staging.skilloria.io/fr/admin/ecosystemes`.
+2. Skilloria 365 → **Modifier** → section **Sous-domaine** → nouveau sous-domaine `skilloria365` → l'aperçu dit
+   `https://skilloria365.staging.skilloria.io` → **Changer le sous-domaine** → lis les quatre conséquences → **Oui,
+   changer le sous-domaine**. Le message confirme la nouvelle adresse.
+3. Ton adresse actuelle ne sert plus l'écosystème : ouvre `https://skilloria365.staging.skilloria.io/fr` (couleurs de
+   Skilloria 365) et **reconnecte-toi** ; `https://microsoft.staging.skilloria.io/fr` s'affiche désormais neutre.
+4. Si tu utilises `DEV_DOMAIN_SLUG` en local, passe-la à `skilloria365` (sur la base de staging, pas de la tienne).
+
+**C. Les réglages Auth de Supabase staging** — Authentication → URL Configuration :
+1. **Site URL** : `https://skilloria365.staging.skilloria.io`
+2. **Redirect URLs** (si elles n'y sont pas déjà) : `https://*.staging.skilloria.io/*/auth/callback` et
+   `https://*.staging.skilloria.io/*/nouveau-mot-de-passe`.
+
+**D. L'essai de l'inscription expert, sur `skilloria365.staging.skilloria.io`**
+1. `https://skilloria365.staging.skilloria.io/fr` → « Créer un profil Expert » : branches et spécialités s'affichent.
+2. Inscris un expert jusqu'au bout : le lien de l'e-mail commence par `https://skilloria365.staging.skilloria.io/` ;
+   clique-le : tu reviens connecté.
+3. `/admin/journal` : `compte_cree` et `expert_inscrit` sous une pièce ; et, plus haut, la ligne `ecosysteme_modifie`
+   de l'étape B (opération `sous_domaine`, `microsoft` → `skilloria365`).
+4. Si quelque chose manque : `https://skilloria365.staging.skilloria.io/api/taxonomy?locale=fr` dit le code ; envoie-le-moi.
 
 ## ⛔ ARRÊT 14 — STAGING SE COMPORTE EXACTEMENT COMME LA PRODUCTION : L'ÉCOSYSTÈME SE LIT DANS L'ADRESSE (29/09/2026)
 

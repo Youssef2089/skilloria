@@ -3566,15 +3566,15 @@
     "language_notice": "Este documento está disponible en francés. Solo la versión francesa da fe.",
     "mentions_legales": {
       "title": "Aviso legal",
-      "meta_description": "Aviso legal de la plataforma Skilloria 365, editada por WinOps."
+      "meta_description": "Aviso legal de la plataforma {name}, editada por WinOps."
     },
     "confidentialite": {
       "title": "Política de privacidad",
-      "meta_description": "Cómo Skilloria 365 recopila, usa y protege tus datos personales (RGPD)."
+      "meta_description": "Cómo {name} recopila, utiliza y protege sus datos personales (RGPD)."
     },
     "cgu": {
       "title": "Condiciones generales de uso",
-      "meta_description": "Condiciones generales de uso de la plataforma Skilloria 365 para expertos."
+      "meta_description": "Condiciones generales de uso de la plataforma {name} para los expertos."
     }
   },
   "session": {
@@ -4364,7 +4364,6 @@
       "name": "Nombre",
       "slug": "Subdominio",
       "tagline": "Lema",
-      "slug_locked": "No modificable: es una dirección pública, declarada en el proveedor y presente en enlaces ya enviados.",
       "primary_color": "Color principal",
       "secondary_color": "Color secundario",
       "logo_url": "Logo",
@@ -4379,7 +4378,8 @@
       "tags": "Palabras clave",
       "tags_hint": "separadas por comas",
       "ecosystem_name": "Nombre del ecosistema en las frases",
-      "ecosystem_name_hint": "Se usa en los textos del sitio. Vacío → el nombre de arriba."
+      "ecosystem_name_hint": "Se usa en los textos del sitio. Vacío → el nombre de arriba.",
+      "slug_placeholder": "mi-ecosistema"
     },
     "visuel": {
       "deposer": "Subir",
@@ -4403,12 +4403,12 @@
     },
     "after_create": {
       "title": "Lo que queda por hacer, fuera de esta pantalla",
-      "intro": "«{name}» ya existe en la base de datos. Tres pasos lo hacen realmente utilizable.",
-      "step_host": "Declarar el dominio {slug} en el proveedor (Vercel → Settings → Domains).",
-      "step_dns": "Añadir un CNAME para {slug} apuntando a cname.vercel-dns.com.",
+      "intro": "«{name}» existe en la base de datos. Dos pasos lo hacen realmente utilizable.",
       "step_branch": "Crear al menos una rama en Taxonomía — sin ella, ni registro ni anuncios.",
       "step_activate": "Volver aquí y activar: entonces será visible para las organizaciones.",
-      "dismiss": "Entendido"
+      "dismiss": "Entendido",
+      "step_adresse": "Su dirección ya existe: {adresse}; nada que declarar ante el proveedor de alojamiento (dirección comodín).",
+      "step_adresse_local": "Su subdominio es {slug}; su dirección pública existe en cuanto se despliega (dirección comodín)."
     },
     "deactivate": {
       "open": "Desactivar…",
@@ -4429,6 +4429,35 @@
       "name_required": "El nombre es obligatorio.",
       "invalid_slug": "Subdominio no válido: minúsculas, cifras y guiones, sin punto ni espacio.",
       "slug_taken": "Este subdominio ya está en uso."
+    },
+    "sous_domaine": {
+      "titre": "Subdominio",
+      "actuel": "Dirección actual: {adresse}",
+      "actuel_local": "Subdominio actual: {slug} (equipo local: sin dirección pública)",
+      "nouveau": "Nuevo subdominio",
+      "aide": "Minúsculas, cifras y guiones, sin punto ni espacio. Es la dirección del ecosistema.",
+      "apercu": "Nueva dirección: {adresse}",
+      "changer": "Cambiar el subdominio",
+      "confirmer_titre": "¿Cambiar la dirección de «{name}»?",
+      "consequence_adresse": "El ecosistema se servirá en {nouvelle}. La dirección anterior, {ancienne}, solo mostrará la página neutra de Skilloria: no hay redirección.",
+      "consequence_liens": "Los enlaces de los correos ya enviados (confirmación de registro, invitaciones, notificaciones) llevan a la dirección anterior y dejarán de funcionar. Los próximos correos llevarán la nueva.",
+      "consequence_sessions": "Las personas conectadas tendrán que volver a iniciar sesión en la nueva dirección.",
+      "consequence_reglages": "Nada que declarar ante el proveedor de alojamiento ni en la autenticación, siempre que la dirección comodín y las dos redirecciones comodín estén configuradas. En desarrollo local, actualice DEV_DOMAIN_SLUG.",
+      "confirmer": "Sí, cambiar el subdominio",
+      "annuler": "Cancelar",
+      "en_cours": "Cambiando…",
+      "fait": "Subdominio cambiado. El ecosistema se sirve ahora en {adresse}.",
+      "fait_local": "Subdominio cambiado: {slug}.",
+      "errors": {
+        "sous_domaine_invalide": "Subdominio no válido: minúsculas, cifras y guiones, 63 caracteres como máximo, sin punto ni espacio, sin guion al principio ni al final.",
+        "sous_domaine_pris": "Este subdominio ya lo usa otro ecosistema. Elija otro.",
+        "sous_domaine_inchange": "Ya es el subdominio de este ecosistema: no hay nada que cambiar.",
+        "sous_domaine_concurrent": "El subdominio se modificó mientras tanto. Vuelva a abrir la ficha para ver el valor actual y repita la operación.",
+        "sous_domaine_seul": "Guarde primero sus otros cambios y después cambie el subdominio por separado.",
+        "lecture_indisponible": "No se puede leer el ecosistema en este momento: no se ha modificado nada. Inténtelo de nuevo en unos instantes.",
+        "journal_error": "El subdominio se cambió, pero su registro no pudo escribirse en el libro mayor. Comuníquelo al equipo técnico.",
+        "generic": "El cambio no se ha completado. Inténtelo de nuevo; si persiste, comuníquelo al equipo técnico."
+      }
     }
   },
   "plafonds": {

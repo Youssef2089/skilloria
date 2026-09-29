@@ -3566,15 +3566,15 @@
     "language_notice": "Ce document est disponible en français. La version française fait seule foi.",
     "mentions_legales": {
       "title": "Mentions légales",
-      "meta_description": "Mentions légales de la plateforme Skilloria 365, éditée par WinOps."
+      "meta_description": "Mentions légales de la plateforme {name}, éditée par WinOps."
     },
     "confidentialite": {
       "title": "Politique de confidentialité",
-      "meta_description": "Comment Skilloria 365 collecte, utilise et protège vos données personnelles (RGPD)."
+      "meta_description": "Comment {name} collecte, utilise et protège vos données personnelles (RGPD)."
     },
     "cgu": {
       "title": "Conditions générales d'utilisation",
-      "meta_description": "Conditions générales d'utilisation de la plateforme Skilloria 365 pour les experts."
+      "meta_description": "Conditions générales d’utilisation de la plateforme {name} pour les experts."
     }
   },
   "session": {
@@ -4364,7 +4364,6 @@
       "name": "Nom",
       "slug": "Sous-domaine",
       "tagline": "Accroche",
-      "slug_locked": "Non modifiable : c'est une adresse publique, déclarée chez l'hébergeur et présente dans des liens déjà envoyés.",
       "primary_color": "Couleur principale",
       "secondary_color": "Couleur secondaire",
       "logo_url": "Logo",
@@ -4379,7 +4378,8 @@
       "tags": "Mots-clés",
       "tags_hint": "séparés par des virgules",
       "ecosystem_name": "Nom de l'écosystème dans les phrases",
-      "ecosystem_name_hint": "Utilisé dans les textes du site. Vide → le nom ci-dessus."
+      "ecosystem_name_hint": "Utilisé dans les textes du site. Vide → le nom ci-dessus.",
+      "slug_placeholder": "mon-ecosysteme"
     },
     "visuel": {
       "deposer": "Déposer",
@@ -4403,12 +4403,12 @@
     },
     "after_create": {
       "title": "Ce qu’il reste à faire, hors de cet écran",
-      "intro": "« {name} » existe en base. Trois étapes le rendent réellement utilisable.",
-      "step_host": "Déclarer le domaine {slug} chez l'hébergeur (Vercel → Settings → Domains).",
-      "step_dns": "Ajouter un CNAME pour {slug} vers cname.vercel-dns.com.",
+      "intro": "« {name} » existe en base. Deux étapes le rendent réellement utilisable.",
       "step_branch": "Créer au moins une branche dans Taxonomie — sans elle, ni inscription ni annonce.",
       "step_activate": "Revenir ici et activer : il devient alors visible des organisations.",
-      "dismiss": "J'ai lu"
+      "dismiss": "J'ai lu",
+      "step_adresse": "Son adresse existe déjà : {adresse} — rien à déclarer chez l’hébergeur (adresse générique).",
+      "step_adresse_local": "Son sous-domaine est {slug} ; son adresse publique existe dès qu’il est déployé (adresse générique)."
     },
     "deactivate": {
       "open": "Désactiver…",
@@ -4429,6 +4429,35 @@
       "name_required": "Le nom est obligatoire.",
       "invalid_slug": "Sous-domaine invalide : minuscules, chiffres et tirets, sans point ni espace.",
       "slug_taken": "Ce sous-domaine est déjà utilisé."
+    },
+    "sous_domaine": {
+      "titre": "Sous-domaine",
+      "actuel": "Adresse actuelle : {adresse}",
+      "actuel_local": "Sous-domaine actuel : {slug} (poste local : pas d’adresse publique)",
+      "nouveau": "Nouveau sous-domaine",
+      "aide": "Minuscules, chiffres et tirets, sans point ni espace. C’est l’adresse de l’écosystème.",
+      "apercu": "Nouvelle adresse : {adresse}",
+      "changer": "Changer le sous-domaine",
+      "confirmer_titre": "Changer l’adresse de « {name} » ?",
+      "consequence_adresse": "L’écosystème sera servi à {nouvelle}. L’ancienne adresse, {ancienne}, n’affichera plus que la page neutre de Skilloria : il n’y a pas de redirection.",
+      "consequence_liens": "Les liens des e-mails déjà envoyés (confirmation d’inscription, invitations, notifications) mènent à l’ancienne adresse et ne fonctionneront plus. Les prochains e-mails porteront la nouvelle.",
+      "consequence_sessions": "Les personnes connectées devront se reconnecter à la nouvelle adresse.",
+      "consequence_reglages": "Rien à déclarer chez l’hébergeur ni dans l’authentification, si l’adresse générique et les deux redirections génériques sont en place. En développement local, mettez à jour DEV_DOMAIN_SLUG.",
+      "confirmer": "Oui, changer le sous-domaine",
+      "annuler": "Annuler",
+      "en_cours": "Changement…",
+      "fait": "Sous-domaine changé. L’écosystème est désormais servi à {adresse}.",
+      "fait_local": "Sous-domaine changé : {slug}.",
+      "errors": {
+        "sous_domaine_invalide": "Sous-domaine invalide : minuscules, chiffres et tirets, 63 caractères au plus, sans point ni espace, ni tiret au début ou à la fin.",
+        "sous_domaine_pris": "Ce sous-domaine est déjà porté par un autre écosystème. Choisissez-en un autre.",
+        "sous_domaine_inchange": "C’est déjà le sous-domaine de cet écosystème : rien à changer.",
+        "sous_domaine_concurrent": "Le sous-domaine a été modifié entre-temps. Rouvrez la fiche pour voir la valeur actuelle, puis recommencez.",
+        "sous_domaine_seul": "Enregistrez d’abord vos autres modifications, puis changez le sous-domaine seul.",
+        "lecture_indisponible": "Impossible de lire l’écosystème pour le moment : rien n’a été modifié. Réessayez dans un instant.",
+        "journal_error": "Le sous-domaine a été changé, mais sa trace n’a pas pu être écrite au grand livre. Signalez-le à l’équipe technique.",
+        "generic": "Le changement n’a pas abouti. Réessayez ; si cela persiste, signalez-le à l’équipe technique."
+      }
     }
   },
   "plafonds": {

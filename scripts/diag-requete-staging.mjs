@@ -20,8 +20,9 @@
 //   D. la liste `prochain_push_retire` est EXACTEMENT l'ensemble des
 //      `drop function f(types)` en attente — ni une de plus (périmée), ni une de moins ;
 //   E. la liste `prochain_push_cree` est EXACTEMENT ce que les migrations en attente
-//      créent de NOUVEAU : noms de fonctions, tables, index inconnus des migrations
-//      appliquées (§E.60) ;
+//      créent de NOUVEAU : noms de fonctions, tables, index et contraintes inconnus des
+//      migrations appliquées (§E.60) — les contraintes depuis le 29/09/2026 (sous_domaine_reglable :
+//      la première contrainte posée par un push passait sous le contrôle) ;
 //   F. une ligne `invariant :` ne cite aucun objet que le push retire ou crée, et
 //      les tables qu'elle nomme (`tablename in (…)`) existent en état final.
 //   G. les deux invariants de §E.73 tiennent par construction : la liste des colonnes de
@@ -29,7 +30,7 @@
 //      absente n'existe pas en état final.
 // CE QU'IL NE VOIT PAS, ET LE DIT : l'état RÉEL de staging — c'est la ⓪ qui le
 //   compare, au moment où Youssef colle la requête ; une colonne, une politique ou
-//   une contrainte créée par le push (seuls fonctions, tables et index sont suivis) ;
+//   une colonne ou une politique créée par le push (fonctions, tables, index et contraintes sont suivis) ;
 //   une nouvelle SIGNATURE d'un nom de fonction déjà connu.
 //
 //   node scripts/diag-requete-staging.mjs   → statique, aucun accès base.
@@ -115,12 +116,13 @@ ok(retireManquantes.length === 0,
 
 // ── E. CE QUE LE PUSH CRÉE ──
 const blocCree = /prochain_push_cree\s*\(\s*genre\s*,\s*nom\s*\)\s*as\s*\(([\s\S]*?)\)\s*\n\s*select/.exec(requete)?.[1] ?? ''
-const cree = new Set([...blocCree.matchAll(/\(\s*'(fonction|table|index)'\s*,\s*'(\w+)'\s*\)/g)].map((m) => `${m[1]}:${m[2].toLowerCase()}`))
-const connus = { fonction: new Set(), table: new Set(), index: new Set() }
+const cree = new Set([...blocCree.matchAll(/\(\s*'(fonction|table|index|contrainte)'\s*,\s*'(\w+)'\s*\)/g)].map((m) => `${m[1]}:${m[2].toLowerCase()}`))
+const connus = { fonction: new Set(), table: new Set(), index: new Set(), contrainte: new Set() }
 const MOTIFS = {
   fonction: /create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\.)?"?(\w+)"?\s*\(/gi,
   table: /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?(\w+)"?/gi,
   index: /create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?(\w+)"?\s+on\b/gi,
+  contrainte: /add\s+constraint\s+"?(\w+)"?/gi,
 }
 for (const f of appliquees) for (const [g, re] of Object.entries(MOTIFS)) for (const m of sqlDe(f).matchAll(re)) connus[g].add(m[1].toLowerCase())
 const nouveaux = new Set()
@@ -131,7 +133,7 @@ ok(blocCree !== '' && creePerimes.length === 0,
   `E. chaque entrée de prochain_push_cree est créée, NOUVELLE, par une migration en attente (${cree.size})`,
   creePerimes.length ? `PÉRIMÉE(S) : ${creePerimes.join(' · ')}` : undefined)
 ok(creeManquants.length === 0,
-  `E. chaque fonction, table ou index NOUVEAU en attente est dans prochain_push_cree (${nouveaux.size})`,
+  `E. chaque fonction, table, index ou contrainte NOUVEAU en attente est dans prochain_push_cree (${nouveaux.size})`,
   creeManquants.length ? `NON PRÉPARÉ(S) — un nom déjà pris sauterait en silence (§E.60) : ${creeManquants.join(' · ')}` : undefined)
 
 // ── F. LES INVARIANTS NE DÉPENDENT PAS DU PUSH ──

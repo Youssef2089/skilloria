@@ -3,9 +3,10 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // POURQUOI CE DIAG
 //   Ouvrir un marche ne doit pas supposer un deploiement. Cet ecran cree un
-//   ecosysteme, l'habille, le traduit et l'ouvre — mais DEUX etapes lui
-//   echappent (le sous-domaine chez l'hebergeur, la premiere branche), et
-//   c'est precisement la que se joue la qualite de l'ecran.
+//   ecosysteme, l'habille, le traduit et l'ouvre — mais une etape lui
+//   echappe (la premiere branche ; le sous-domaine chez l'hebergeur n'en est
+//   plus une depuis l'adresse generique, 29/09/2026), et c'est precisement la
+//   que se joue la qualite de l'ecran.
 //
 //   Sept regressions le vident de son sens :
 //
@@ -21,10 +22,10 @@
 //        de profil ni publier : l'ecosysteme existe et ne sert a rien, sans
 //        que rien ne le dise.
 //
-//   R4 — le slug devient modifiable, ou cesse d'etre valide par la MEME
-//        fonction que le selecteur. C'est une adresse publique : la renommer
-//        depuis un formulaire rend l'ecosysteme injoignable, et l'accepter
-//        malformee le rend injoignable des la creation.
+//   R4 — le slug cesse d'etre valide par la MEME fonction que le selecteur
+//        (malforme, il rend l'ecosysteme injoignable des la creation), ou se
+//        modifie PARMI les autres champs. Depuis le 29/09/2026 il est un
+//        reglage (§D.28) : il se change, mais par son seul chemin, confirme.
 //
 //   R5 — la table `translations` s'ouvre a l'ecriture libre. Sans le filtre
 //        des champs declares traduisibles, le corps de la requete choisit
@@ -96,18 +97,21 @@ ok(/config_failed: true/.test(LIST),
 // ═══ B. CE QU'IL RESTE A FAIRE ═════════════════════════════════════════════
 section('B. Le travail restant est affiche')
 
-// R2 — les quatre etapes, dans les quatre langues.
-for (const step of ['step_host', 'step_dns', 'step_branch', 'step_activate']) {
+// R2 — les etapes, dans les quatre langues.
+// ⚠️ 29/09/2026 (§D.28, §E.84) : les etapes « declarer chez l'hebergeur » et « CNAME » ont DISPARU, et ce n'est
+//    pas une regression : l'adresse generique `*.<racine>` sert tout ecosysteme des sa creation. L'etape qui
+//    les remplace DIT l'adresse, et dit qu'il n'y a rien a declarer. Les exiger encore ferait afficher un
+//    travail qui n'existe plus — un ecran qui ment dans l'autre sens.
+for (const step of ['step_adresse', 'step_adresse_local', 'step_branch', 'step_activate']) {
   const m = inAll(`admin_ecosystemes.after_create.${step}`)
   ok(m.length === 0, `after_create.${step} existe dans les 4 langues`,
     m.length ? `manquant en : ${m.join(', ')}` : undefined)
   ok(new RegExp(`after_create\\.${step}`).test(PAGE), `l’ecran affiche ${step}`)
 }
-// Les deux etapes hors application sont NOMMEES, pas suggerees.
-ok(/Vercel/.test(at(msgs.fr, 'admin_ecosystemes.after_create.step_host') ?? ''),
-  'l’etape hebergeur nomme l’endroit exact ou aller')
-ok(/cname\.vercel-dns\.com/.test(at(msgs.fr, 'admin_ecosystemes.after_create.step_dns') ?? ''),
-  'l’etape DNS donne l’enregistrement exact')
+ok(/\{adresse\}/.test(at(msgs.fr, 'admin_ecosystemes.after_create.step_adresse') ?? ''),
+  'l’etape adresse DONNE l’adresse de l’ecosysteme, construite par la regle unique (adresseEcosysteme)')
+ok(!/step_host|step_dns/.test(PAGE) && inAll('admin_ecosystemes.after_create.step_host').length === 4,
+  'plus aucune etape « hebergeur » ni « DNS » par ecosysteme : l’adresse generique les a remplacees')
 
 // ═══ C. « NON PRET » ═══════════════════════════════════════════════════════
 section('C. Sans branche, l’ecosysteme ne sert a rien')
@@ -139,8 +143,8 @@ for (const k of ['state.not_ready', 'state.not_ready_hint', 'state.not_ready_det
   ok(m.length === 0, `${k} existe dans les 4 langues`, m.length ? `manquant en : ${m.join(', ')}` : undefined)
 }
 
-// ═══ D. LE SLUG EST UNE ADRESSE PUBLIQUE ═══════════════════════════════════
-section('D. Le slug : valide a la creation, fige ensuite')
+// ═══ D. LE SLUG EST UNE ADRESSE PUBLIQUE — ET UN REGLAGE (§D.28) ═══════════
+section('D. Le slug : valide a la creation, modifiable par son seul chemin')
 
 // R4 — meme fonction que le selecteur et l'ecran de refus.
 ok(/import \{ isValidEcosystemSlug \} from '@\/lib\/ecosystem-url'/.test(LIST),
@@ -151,12 +155,15 @@ ok(/if \(!isValidEcosystemSlug\(slug\)\) \{[\s\S]{0,160}?invalid_slug/.test(LIST
 ok(/isValidEcosystemSlug/.test(PAGE),
   'l’ecran valide le slug a la saisie, pas seulement au serveur')
 
-// Le PATCH ne doit PAS pouvoir renommer le sous-domaine.
+// ⚠️ 29/09/2026 — LA DECISION A CHANGE (Youssef, §D.28) : le slug EST modifiable. Ce controle gardait
+//    « jamais » ; il garde desormais « jamais PARMI LES AUTRES CHAMPS » : le sous-domaine a son propre
+//    chemin, seul dans sa requete, confirme a l'ecran — `diag-sous-domaine` en garde le detail.
 const patchBody = DETAIL.slice(DETAIL.indexOf('export async function PATCH'))
 ok(!/for \(const k of \[[^\]]*'slug'/.test(patchBody),
-  'le PATCH ne met JAMAIS a jour le slug',
-  'c’est une adresse publique : declaree chez l’hebergeur, dans le DNS, et dans des liens deja envoyes')
-ok(/readOnly/.test(PAGE), 'le champ slug est en lecture seule dans l’ecran')
+  'le PATCH ne met pas a jour le slug avec les champs ordinaires',
+  'un nom et une adresse changes d’un meme clic ne se relisent pas : le sous-domaine a son geste a part')
+ok(/if \(has\('slug'\)\) return changerSousDomaine\(/.test(patchBody) && !/readOnly/.test(PAGE),
+  'le sous-domaine se modifie par son SEUL chemin (changerSousDomaine), et l’ecran ne le fige plus')
 
 // ═══ E. TRADUCTIONS ════════════════════════════════════════════════════════
 section('E. Le FR est la colonne, les trois autres sont des lignes')

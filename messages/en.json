@@ -3566,15 +3566,15 @@
     "language_notice": "This document is available in French. Only the French version is legally binding.",
     "mentions_legales": {
       "title": "Legal notice",
-      "meta_description": "Legal notice of the Skilloria 365 platform, published by WinOps."
+      "meta_description": "Legal notice of the {name} platform, published by WinOps."
     },
     "confidentialite": {
       "title": "Privacy policy",
-      "meta_description": "How Skilloria 365 collects, uses and protects your personal data (GDPR)."
+      "meta_description": "How {name} collects, uses and protects your personal data (GDPR)."
     },
     "cgu": {
       "title": "Terms of use",
-      "meta_description": "Terms of use of the Skilloria 365 platform for experts."
+      "meta_description": "Terms of use of the {name} platform for experts."
     }
   },
   "session": {
@@ -4364,7 +4364,6 @@
       "name": "Name",
       "slug": "Subdomain",
       "tagline": "Tagline",
-      "slug_locked": "Not editable: it is a public address, declared with the host and present in links already sent.",
       "primary_color": "Primary colour",
       "secondary_color": "Secondary colour",
       "logo_url": "Logo",
@@ -4379,7 +4378,8 @@
       "tags": "Keywords",
       "tags_hint": "comma-separated",
       "ecosystem_name": "Ecosystem name used in sentences",
-      "ecosystem_name_hint": "Used in site copy. Empty → the name above."
+      "ecosystem_name_hint": "Used in site copy. Empty → the name above.",
+      "slug_placeholder": "my-ecosystem"
     },
     "visuel": {
       "deposer": "Upload",
@@ -4403,12 +4403,12 @@
     },
     "after_create": {
       "title": "What is left to do, outside this screen",
-      "intro": "\"{name}\" now exists in the database. Three steps make it actually usable.",
-      "step_host": "Declare the domain {slug} with the host (Vercel → Settings → Domains).",
-      "step_dns": "Add a CNAME for {slug} pointing to cname.vercel-dns.com.",
+      "intro": "“{name}” exists in the database. Two steps make it actually usable.",
       "step_branch": "Create at least one branch under Taxonomy — without it, no sign-up and no listing.",
       "step_activate": "Come back here and activate: it then becomes visible to organisations.",
-      "dismiss": "Got it"
+      "dismiss": "Got it",
+      "step_adresse": "Its address already exists: {adresse} — nothing to declare with the host (wildcard address).",
+      "step_adresse_local": "Its subdomain is {slug}; its public address exists as soon as it is deployed (wildcard address)."
     },
     "deactivate": {
       "open": "Deactivate…",
@@ -4429,6 +4429,35 @@
       "name_required": "Name is required.",
       "invalid_slug": "Invalid subdomain: lowercase letters, digits and hyphens, no dot or space.",
       "slug_taken": "This subdomain is already in use."
+    },
+    "sous_domaine": {
+      "titre": "Subdomain",
+      "actuel": "Current address: {adresse}",
+      "actuel_local": "Current subdomain: {slug} (local machine: no public address)",
+      "nouveau": "New subdomain",
+      "aide": "Lowercase letters, digits and hyphens, no dot or space. This is the ecosystem’s address.",
+      "apercu": "New address: {adresse}",
+      "changer": "Change the subdomain",
+      "confirmer_titre": "Change the address of “{name}”?",
+      "consequence_adresse": "The ecosystem will be served at {nouvelle}. The old address, {ancienne}, will only show Skilloria’s neutral page: there is no redirect.",
+      "consequence_liens": "Links in e-mails already sent (sign-up confirmation, invitations, notifications) lead to the old address and will stop working. Future e-mails will carry the new one.",
+      "consequence_sessions": "People who are signed in will have to sign in again at the new address.",
+      "consequence_reglages": "Nothing to declare with the host or in authentication, provided the wildcard address and the two wildcard redirects are in place. For local development, update DEV_DOMAIN_SLUG.",
+      "confirmer": "Yes, change the subdomain",
+      "annuler": "Cancel",
+      "en_cours": "Changing…",
+      "fait": "Subdomain changed. The ecosystem is now served at {adresse}.",
+      "fait_local": "Subdomain changed: {slug}.",
+      "errors": {
+        "sous_domaine_invalide": "Invalid subdomain: lowercase letters, digits and hyphens, at most 63 characters, no dot or space, no hyphen at the start or end.",
+        "sous_domaine_pris": "This subdomain is already used by another ecosystem. Choose a different one.",
+        "sous_domaine_inchange": "This is already the ecosystem’s subdomain: nothing to change.",
+        "sous_domaine_concurrent": "The subdomain was changed in the meantime. Reopen the record to see the current value, then try again.",
+        "sous_domaine_seul": "Save your other changes first, then change the subdomain on its own.",
+        "lecture_indisponible": "The ecosystem cannot be read right now: nothing was changed. Try again in a moment.",
+        "journal_error": "The subdomain was changed, but its record could not be written to the ledger. Report it to the technical team.",
+        "generic": "The change did not go through. Try again; if it persists, report it to the technical team."
+      }
     }
   },
   "plafonds": {

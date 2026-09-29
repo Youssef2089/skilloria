@@ -53,19 +53,22 @@ export async function ecosystemeCree(
 
 /**
  * L'ÉCOSYSTÈME MODIFIÉ — les champs (l'activation et la désactivation sont des
- * OPÉRATIONS à part, elles ouvrent ou ferment l'écosystème), ou le visuel déposé,
- * ou le visuel retiré. Les NOMS des champs, les CLÉS des traductions touchées
- * (`table.champ.langue`), le TYPE de visuel — jamais une valeur.
+ * OPÉRATIONS à part, elles ouvrent ou ferment l'écosystème), le visuel déposé,
+ * le visuel retiré, ou le SOUS-DOMAINE changé (une opération à part, elle aussi :
+ * elle déplace l'adresse de l'écosystème). Les NOMS des champs, les CLÉS des
+ * traductions touchées (`table.champ.langue`), le TYPE de visuel, et pour le
+ * sous-domaine l'ancien et le nouveau — des identifiants d'adresse, jamais un texte.
  */
 export async function ecosystemeModifie(
   admin: SupabaseClient,
   journal: ContexteJournal,
   args: {
     id: string
-    operation: 'modification' | 'activation' | 'desactivation' | 'visuel_depose' | 'visuel_retire'
+    operation: 'modification' | 'activation' | 'desactivation' | 'visuel_depose' | 'visuel_retire' | 'sous_domaine'
     champs?: string[]
     traductions?: string[]
     visuel?: string | null
+    sousDomaine?: { avant: string; apres: string }
   },
 ): Promise<ResultatJournal> {
   return ecrire(() =>
@@ -79,6 +82,8 @@ export async function ecosystemeModifie(
         champs: args.champs ?? [],
         traductions: args.traductions ?? [],
         visuel: args.visuel ?? null,
+        // Clé par clé, jamais par étalement (§E.38) : le type vérifie ce qui part.
+        sous_domaine: args.sousDomaine ? { avant: args.sousDomaine.avant, apres: args.sousDomaine.apres } : null,
       },
     }),
   )

@@ -207,7 +207,9 @@ export const CLES_DETAIL = {
   // Les NOMS des champs et les LANGUES des traductions, jamais un libellé (texte libre).
   taxonomie_modifiee: ['objet', 'operation', 'branch_id', 'champs', 'champs[]', 'traductions', 'traductions[]'],
   ecosysteme_cree: ['slug', 'configuration_creee'],
-  ecosysteme_modifie: ['operation', 'champs', 'champs[]', 'traductions', 'traductions[]', 'visuel'],
+  // Le sous-domaine (un identifiant d'adresse, pas une donnée personnelle) : avant et après (sous_domaine_reglable).
+  ecosysteme_modifie: ['operation', 'champs', 'champs[]', 'traductions', 'traductions[]', 'visuel',
+    'sous_domaine', 'sous_domaine.avant', 'sous_domaine.apres'],
   tache_lancee_a_la_main: ['tache', 'etait_active', 'cause'],
   inactivite_avertie: ['echeance_purge', 'demande_email_id', 'cause'],
   // Les trois purges : UN écrivain (`anonymiser_compte()`), le code dérivé du motif, la même forme.

@@ -2,8 +2,9 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
-import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { contexteDepuisAuth, type ContexteJournal } from '@/lib/journal/contexte'
 import { ecosystemeModifie } from '@/lib/ecosystemes/journal-ecosysteme'
+import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
 import {
   COLONNE_PAR_ROLE,
   ROLES_PALETTE,
@@ -36,10 +37,26 @@ export const dynamic = 'force-dynamic'
  * ║ afficherait un libellé blanc au lieu de retomber sur le français.        ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
- * ⚠️ LE SLUG N'EST PAS MODIFIABLE ICI. C'est un sous-domaine : il est déclaré
- *    chez l'hébergeur, il est dans le DNS, il est en favori chez des gens, et
- *    il apparaît dans les liens des e-mails déjà envoyés. Le renommer depuis un
- *    formulaire rendrait l'écosystème injoignable sans que rien ne l'annonce.
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ LE SOUS-DOMAINE (`slug`) EST UN RÉGLAGE — décision de Youssef, 29/09/2026 ║
+ * ║                                                                          ║
+ * ║ Il était « non modifiable ici » : il fallait le déclarer chez l'hébergeur║
+ * ║ un par un. Depuis l'adresse générique (`*.<racine>`, mise-en-production  ║
+ * ║ étape 6), il n'y a plus rien à déclarer, et l'identifiant technique      ║
+ * ║ (`domains.id`) porte toutes les références : rien n'en dépend en base.   ║
+ * ║                                                                          ║
+ * ║ SON CHANGEMENT EST UN GESTE À PART : seul dans la requête (un nom et un  ║
+ * ║ sous-domaine changés d'un même clic ne se relisent pas), confirmé à      ║
+ * ║ l'écran, écrit à la condition que la valeur lue n'ait pas bougé, tracé   ║
+ * ║ sous `ecosysteme_modifie` avec l'opération `sous_domaine`, avant/après.  ║
+ * ║ La FORME et l'UNICITÉ sont tenues EN BASE (`domains_sous_domaine_forme`, ║
+ * ║ `domains_slug_key`) : la route les nomme, elle ne les invente pas.       ║
+ * ║                                                                          ║
+ * ║ CE QUE LE CHANGEMENT DÉPLACE (docs/mise-en-production.md, étape 6) :     ║
+ * ║ l'ancienne adresse ne sert plus l'écosystème — les liens des e-mails     ║
+ * ║ déjà envoyés y mènent et tombent sur un écran neutre ; la session du     ║
+ * ║ navigateur est tenue par adresse, on se reconnecte à la nouvelle.        ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
  */
 
 function json(data: unknown, status = 200): Response {
@@ -190,7 +207,10 @@ export async function PATCH(
   if (!body) return json({ error: 'Invalid body', code: 'invalid_body' }, 400)
   const has = (k: string) => Object.prototype.hasOwnProperty.call(body, k)
 
-  // ⚠️ `slug` est volontairement ABSENT de cette liste — cf. l'en-tête.
+  // ── LE SOUS-DOMAINE : un geste à part (cf. l'en-tête) ─────────────────────
+  if (has('slug')) return changerSousDomaine(auth, journal, id, body, request)
+
+  // `slug` n'est PAS dans cette liste : il a son propre chemin, ci-dessus.
   const domainUpdates: Record<string, unknown> = {}
   for (const k of ['name', 'tagline', 'description'] as const) {
     if (has(k)) {
@@ -430,4 +450,94 @@ export async function PATCH(
   })
 
   return json({ ok: true }, 200)
+}
+
+/**
+ * CHANGER LE SOUS-DOMAINE — refus nommés, jamais devinés :
+ *   sous_domaine_seul        400 — d'autres champs accompagnent le changement ;
+ *   sous_domaine_invalide    400 — pas une étiquette DNS (la base le refuse aussi : 23514) ;
+ *   sous_domaine_inchange    400 — c'est déjà le sous-domaine de l'écosystème ;
+ *   not_found                404 ;
+ *   sous_domaine_pris        409 — un autre écosystème le porte (unicité en base : 23505) ;
+ *   sous_domaine_concurrent  409 — il a changé entre la lecture et l'écriture ;
+ *   lecture_indisponible     503 — la lecture est en panne : ce n'est pas « introuvable » (§E.22).
+ */
+async function changerSousDomaine(
+  auth: Awaited<ReturnType<typeof requireAdmin>>,
+  journal: ContexteJournal,
+  id: string,
+  body: Record<string, unknown>,
+  request: NextRequest,
+): Promise<Response> {
+  const autres = Object.keys(body).filter((k) => k !== 'slug')
+  if (autres.length > 0) {
+    return json({ error: 'Subdomain change must be sent alone', code: 'sous_domaine_seul', champs: autres }, 400)
+  }
+  const apres = typeof body.slug === 'string' ? body.slug.trim().toLowerCase() : ''
+  // La MÊME règle que la base, le résolveur et le sélecteur (diag-sous-domaine le prouve).
+  if (!isValidEcosystemSlug(apres)) {
+    return json({ error: 'Invalid subdomain', code: 'sous_domaine_invalide' }, 400)
+  }
+
+  const { data: actuel, error: lectureErr } = await auth.supabaseAdmin
+    .from('domains')
+    .select('slug')
+    .eq('id', id)
+    .maybeSingle()
+  if (lectureErr) {
+    console.error('[admin:ecosysteme] lecture du sous-domaine en panne', lectureErr.message)
+    return json({ error: 'Read failed', code: 'lecture_indisponible' }, 503)
+  }
+  if (!actuel) return json({ error: 'Not found', code: 'not_found' }, 404)
+  const avant = (actuel as { slug: string }).slug
+  if (avant === apres) {
+    return json({ error: 'Subdomain unchanged', code: 'sous_domaine_inchange' }, 400)
+  }
+
+  // Écrit À LA CONDITION que la valeur lue soit toujours là (lire puis écrire, §F) :
+  // deux administrateurs qui renomment en même temps ne s'écrasent pas en silence.
+  const { data: ecrit, error: ecritureErr } = await auth.supabaseAdmin
+    .from('domains')
+    .update({ slug: apres })
+    .eq('id', id)
+    .eq('slug', avant)
+    .select('id')
+  if (ecritureErr) {
+    if (ecritureErr.code === '23505') {
+      return json({ error: 'Subdomain already used', code: 'sous_domaine_pris' }, 409)
+    }
+    if (ecritureErr.code === '23514') {
+      return json({ error: 'Invalid subdomain', code: 'sous_domaine_invalide' }, 400)
+    }
+    console.error('[admin:ecosysteme] changement du sous-domaine en échec', ecritureErr.message)
+    return json({ error: 'Update failed', code: 'db_error' }, 500)
+  }
+  if (!ecrit || ecrit.length === 0) {
+    return json({ error: 'Subdomain changed meanwhile', code: 'sous_domaine_concurrent' }, 409)
+  }
+
+  const ligne = await ecosystemeModifie(auth.supabaseAdmin, journal, {
+    id,
+    operation: 'sous_domaine',
+    champs: ['slug'],
+    sousDomaine: { avant, apres },
+  })
+  if (!ligne.ok) {
+    console.error('[admin:ecosysteme] grand livre en échec après écriture', { id, message: ligne.message })
+    return json({ error: 'Journal failed', code: 'journal_error', id }, 500)
+  }
+
+  await logAudit({
+    piece: journal.piece,
+    supabaseAdmin: auth.supabaseAdmin,
+    user_id: auth.user.id,
+    domain_id: auth.domain.id,
+    action: 'ecosystem_updated',
+    entity_type: 'domain',
+    entity_id: id,
+    detail: { domain_fields: ['slug'], slug_avant: avant, slug_apres: apres },
+    request,
+  })
+
+  return json({ ok: true, slug: apres }, 200)
 }

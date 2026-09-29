@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
+import { adresseEcosysteme } from '@/lib/subdomain'
 import PalettePanel from '@/components/admin/PalettePanel'
 import { PALETTE_REFERENCE } from '@/lib/palette'
 import EcosystemeVisuelUpload from '@/components/admin/EcosystemeVisuelUpload'
@@ -14,11 +15,16 @@ import EcosystemeVisuelUpload from '@/components/admin/EcosystemeVisuelUpload'
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║ CET ÉCRAN DIT CE QU'IL NE PEUT PAS FAIRE.                                ║
  * ║                                                                          ║
- * ║ Créer un écosystème ici ne le rend pas atteignable : le sous-domaine se  ║
- * ║ déclare chez l'hébergeur, et sans branche personne ne peut s'y inscrire. ║
- * ║ Ces deux étapes sont AFFICHÉES, avec leur état — un écran qui masque le  ║
- * ║ travail restant fait croire que c'est fini, et on découvre le trou le    ║
- * ║ jour du lancement.                                                       ║
+ * ║ Créer un écosystème ici ne le rend pas utilisable : sans branche,        ║
+ * ║ personne ne peut s'y inscrire, et il naît désactivé. Son ADRESSE, elle,  ║
+ * ║ existe dès sa création (adresse générique `*.<racine>`). Ce qui reste   ║
+ * ║ est AFFICHÉ — un écran qui masque le travail restant fait croire que     ║
+ * ║ c'est fini, et on découvre le trou le jour du lancement.                 ║
+ * ║                                                                          ║
+ * ║ LE SOUS-DOMAINE SE MODIFIE ICI (29/09/2026) — un geste à part, confirmé  ║
+ * ║ après avoir LU ce qu'il déplace : l'ancienne adresse, les liens déjà     ║
+ * ║ envoyés, les sessions. La forme et l'unicité sont tenues en base ;       ║
+ * ║ l'écran les dit à la saisie, il ne les garantit pas (§E.15).             ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
  * Page de MENU (dérivée de ADMIN_NAV_SECTIONS) → aucun bouton Retour.
@@ -141,6 +147,12 @@ export default function AdminEcosystemesPage() {
   const [impact, setImpact] = useState<Impact | null>(null)
   const [confirmOff, setConfirmOff] = useState(false)
 
+  // Le sous-domaine : saisie, confirmation, envoi — hors du cycle « Enregistrer ».
+  const [sdDraft, setSdDraft] = useState('')
+  const [sdConfirm, setSdConfirm] = useState(false)
+  const [sdSaving, setSdSaving] = useState(false)
+  const [sdErr, setSdErr] = useState<string | null>(null)
+
   const load = useCallback(async () => {
     setError(null)
     try {
@@ -157,6 +169,7 @@ export default function AdminEcosystemesPage() {
 
   const openDetail = async (id: string) => {
     setOpenId(id); setDetail(null); setDraft({}); setImpact(null); setConfirmOff(false)
+    setSdDraft(''); setSdConfirm(false); setSdErr(null)
     try {
       const res = await secureFetch(`/api/admin/ecosystemes/${id}`)
       if (!res.ok) { setMsg({ kind: 'err', text: t('errors.load') }); return }
@@ -220,6 +233,39 @@ export default function AdminEcosystemesPage() {
     }
   }
 
+  // Les refus que le serveur NOMME ; tout autre code retombe sur le message générique.
+  const SD_CODES = ['sous_domaine_invalide', 'sous_domaine_pris', 'sous_domaine_inchange', 'sous_domaine_concurrent',
+    'sous_domaine_seul', 'lecture_indisponible', 'journal_error'] as const
+  const changerSousDomaine = async () => {
+    if (!detail) return
+    const apres = sdDraft.trim().toLowerCase()
+    if (!isValidEcosystemSlug(apres)) { setSdErr(t('sous_domaine.errors.sous_domaine_invalide')); setSdConfirm(false); return }
+    setSdSaving(true); setSdErr(null); setMsg(null)
+    try {
+      const res = await secureFetch(`/api/admin/ecosystemes/${detail.ecosystem.id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ slug: apres }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as { code?: string }
+      if (!res.ok) {
+        const code = SD_CODES.find((c) => c === payload.code)
+        setSdErr(t(`sous_domaine.errors.${code ?? 'generic'}`))
+        setSdConfirm(false)
+        return
+      }
+      const adresse = adresseEcosysteme(apres)
+      setMsg({ kind: 'ok', text: adresse ? t('sous_domaine.fait', { adresse }) : t('sous_domaine.fait_local', { slug: apres }) })
+      await load()
+      await openDetail(detail.ecosystem.id)
+    } catch {
+      setSdErr(t('sous_domaine.errors.generic'))
+      setSdConfirm(false)
+    } finally {
+      setSdSaving(false)
+    }
+  }
+
   const askImpact = async (id: string) => {
     setImpact(null); setConfirmOff(true)
     try {
@@ -267,8 +313,9 @@ export default function AdminEcosystemesPage() {
             {t('after_create.intro', { name: justCreated.name })}
           </p>
           <ol style={{ margin: 0, paddingLeft: 20, fontSize: 13.5, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
-            <li>{t('after_create.step_host', { slug: justCreated.slug })}</li>
-            <li>{t('after_create.step_dns', { slug: justCreated.slug })}</li>
+            <li>{adresseEcosysteme(justCreated.slug)
+              ? t('after_create.step_adresse', { adresse: adresseEcosysteme(justCreated.slug) ?? '' })
+              : t('after_create.step_adresse_local', { slug: justCreated.slug })}</li>
             <li>{t('after_create.step_branch')}</li>
             <li>{t('after_create.step_activate')}</li>
           </ol>
@@ -289,7 +336,7 @@ export default function AdminEcosystemesPage() {
           </div>
           <div>
             <label style={label} htmlFor="eco-slug">{t('fields.slug')}</label>
-            <input id="eco-slug" style={input} value={form.slug} placeholder="sap"
+            <input id="eco-slug" style={input} value={form.slug} placeholder={t('fields.slug_placeholder')}
               onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} />
             {/* Validation INLINE : le slug est un sous-domaine, une faute ici
                 produit un écosystème injoignable. On le dit à la saisie. */}
@@ -438,12 +485,76 @@ export default function AdminEcosystemesPage() {
                       field('tags', ev.target.value.split(',').map((x) => x.trim()).filter(Boolean))
                     } />
                 </div>
+              </div>
+
+              {/* ── LE SOUS-DOMAINE : un geste à part, confirmé après lecture de ce qu'il déplace ── */}
+              <h3 style={sectionTitle}>{t('sous_domaine.titre')}</h3>
+              <div style={{ display: 'grid', gap: 10, marginBottom: 18 }}>
+                <p style={{ fontSize: 13, color: 'var(--sk-text)', margin: 0 }}>
+                  {adresseEcosysteme(detail.ecosystem.slug)
+                    ? t('sous_domaine.actuel', { adresse: adresseEcosysteme(detail.ecosystem.slug) ?? '' })
+                    : t('sous_domaine.actuel_local', { slug: detail.ecosystem.slug })}
+                </p>
                 <div>
-                  <label style={label} htmlFor={`sl-${e.id}`}>{t('fields.slug')}</label>
-                  <input id={`sl-${e.id}`} style={{ ...input, background: 'var(--sk-surface-2)', color: 'var(--sk-muted)' }}
-                    value={detail.ecosystem.slug} readOnly />
-                  <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '5px 0 0' }}>{t('fields.slug_locked')}</p>
+                  <label style={label} htmlFor={`sl-${e.id}`}>{t('sous_domaine.nouveau')}</label>
+                  <input id={`sl-${e.id}`} style={input} value={sdDraft} placeholder={detail.ecosystem.slug}
+                    aria-invalid={sdDraft.trim() !== '' && !isValidEcosystemSlug(sdDraft.trim().toLowerCase())}
+                    onChange={(ev) => { setSdDraft(ev.target.value); setSdConfirm(false); setSdErr(null) }} />
+                  <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '5px 0 0' }}>{t('sous_domaine.aide')}</p>
+                  {/* Validation INLINE : la même règle que la base, dite à la saisie. */}
+                  {sdDraft.trim() !== '' && !isValidEcosystemSlug(sdDraft.trim().toLowerCase()) && (
+                    <p style={{ fontSize: 12, color: 'var(--sk-red)', margin: '5px 0 0' }}>{t('sous_domaine.errors.sous_domaine_invalide')}</p>
+                  )}
+                  {isValidEcosystemSlug(sdDraft.trim().toLowerCase()) && adresseEcosysteme(sdDraft.trim().toLowerCase()) && (
+                    <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '5px 0 0' }}>
+                      {t('sous_domaine.apercu', { adresse: adresseEcosysteme(sdDraft.trim().toLowerCase()) ?? '' })}
+                    </p>
+                  )}
+                  {sdErr && (
+                    <p role="alert" style={{ fontSize: 12.5, color: 'var(--sk-red)', margin: '6px 0 0' }}>{sdErr}</p>
+                  )}
                 </div>
+                {!sdConfirm && (
+                  <div>
+                    <button type="button"
+                      disabled={!isValidEcosystemSlug(sdDraft.trim().toLowerCase()) || sdDraft.trim().toLowerCase() === detail.ecosystem.slug}
+                      onClick={() => { setSdErr(null); setSdConfirm(true) }}
+                      style={{
+                        ...btn('ghost'),
+                        opacity: !isValidEcosystemSlug(sdDraft.trim().toLowerCase()) || sdDraft.trim().toLowerCase() === detail.ecosystem.slug ? 0.5 : 1,
+                      }}>
+                      {t('sous_domaine.changer')}
+                    </button>
+                  </div>
+                )}
+                {sdConfirm && (
+                  <div role="alertdialog" aria-labelledby={`sdc-${e.id}`} style={{
+                    padding: '16px 18px', borderRadius: 12,
+                    background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)',
+                  }}>
+                    <h4 id={`sdc-${e.id}`} style={{ ...sectionTitle, color: 'var(--sk-amber)' }}>
+                      {t('sous_domaine.confirmer_titre', { name: detail.ecosystem.name })}
+                    </h4>
+                    <ul style={{ margin: '0 0 14px', paddingLeft: 20, fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
+                      <li>{t('sous_domaine.consequence_adresse', {
+                        nouvelle: adresseEcosysteme(sdDraft.trim().toLowerCase()) ?? sdDraft.trim().toLowerCase(),
+                        ancienne: adresseEcosysteme(detail.ecosystem.slug) ?? detail.ecosystem.slug,
+                      })}</li>
+                      <li>{t('sous_domaine.consequence_liens')}</li>
+                      <li>{t('sous_domaine.consequence_sessions')}</li>
+                      <li>{t('sous_domaine.consequence_reglages')}</li>
+                    </ul>
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button type="button" onClick={() => void changerSousDomaine()} disabled={sdSaving}
+                        style={{ ...btn('primary'), opacity: sdSaving ? 0.6 : 1 }}>
+                        {sdSaving ? t('sous_domaine.en_cours') : t('sous_domaine.confirmer')}
+                      </button>
+                      <button type="button" onClick={() => setSdConfirm(false)} disabled={sdSaving} style={btn('ghost')}>
+                        {t('sous_domaine.annuler')}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <h3 style={sectionTitle}>{t('sections.vocabulary')}</h3>
