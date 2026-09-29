@@ -103,7 +103,21 @@ ok(swapEcosystemHost('microsoft.staging.skilloria.io', 'sap') === 'sap.staging.s
     sansResolution.join(', ') || undefined)
   const tax = sansCom(read('app/api/taxonomy/route.ts'))
   const codes = ['ecosysteme_non_configure', 'ecosysteme_non_resolu', 'ecosysteme_inconnu', 'ecosysteme_indisponible']
-  const nonJournalises = codes.filter((c) => !new RegExp(`console\\.error\\([^;]*code:\\s*'?${c}|code = [^;]*'${c}'[\\s\\S]{0,200}console\\.error\\([^;]*\\bcode\\b`).test(tax))
+  // CHAQUE APPEL console.error(...) EST LU SEUL (parenthèses équilibrées) : un motif qui traverse le fichier
+  // associait une journalisation à un code lu ailleurs — mutation « panne muette » passée au travers (§E.8).
+  // Un appel qui journalise « { code, … } » en raccourci compte les codes de la ligne `const code = …` qui le précède.
+  const journalises = new Set()
+  for (let i = tax.indexOf('console.error('); i >= 0; i = tax.indexOf('console.error(', i + 1)) {
+    let prof = 0, j = i + 'console.error'.length
+    for (; j < tax.length; j++) { if (tax[j] === '(') prof++; else if (tax[j] === ')' && --prof === 0) break }
+    const appel = tax.slice(i, j + 1)
+    for (const m of appel.matchAll(/\bcode:\s*'([a-z_]+)'/g)) journalises.add(m[1])
+    if (/[{,]\s*code\s*[,}]/.test(appel)) {
+      const avant = tax.slice(0, i).split('\n').reverse().find((l) => /\bconst code = /.test(l)) ?? ''
+      for (const m of avant.matchAll(/'([a-z_]+)'/g)) journalises.add(m[1])
+    }
+  }
+  const nonJournalises = codes.filter((c) => !journalises.has(c))
   ok(!/x-subdomain/.test(tax) && !/missing_domain_id/.test(tax) && nonJournalises.length === 0,
     'E. /api/taxonomy nomme chaque panne de résolution ET la journalise au serveur, avec son code',
     nonJournalises.length ? `sans journal : ${nonJournalises.join(', ')}` : 'x-subdomain ou missing_domain_id encore présent')
