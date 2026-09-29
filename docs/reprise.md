@@ -102,7 +102,23 @@ garde quand la racine manque) · 13-14 (sortie actionnable, quatre langues) · 1
 **Migrations nouvelles : AUCUNE.** La requête de staging déclare le nouvel état (⓪ `sous_domaine_reglable`, listes
 vides ; ⑭ devient l'invariant « contrainte de forme présente et validée »).
 
-**Épreuve** : voir le commit suivant.
+**Épreuve** (lot commité en `1cdec5c` AVANT de muter) :
+- `tsc --noEmit` : aucune erreur hors `.next/` · `next build` : **exit 0** · lint : **65 / 24** — il a DESCENDU (un
+  avertissement de moins), la base est abaissée dans le même commit (§G.5 ter) · parité i18n : **4026 clés** · série
+  complète `diag.mjs` : **115 verts, 0 rouge, 5 muets** (les mêmes : trois écartés parce qu'ils écrivent en base, deux
+  qui plantent sur une assertion libuv de Windows).
+- Pendant le lot, **trois contrôles défendaient l'ancienne source** et ont rougi : `diag-cloisonnement-ecosysteme`
+  (« l'arbitrage est appelé avec l'en-tête `x-subdomain` »), `diag-controle-acces-ecosysteme` (« un `x-subdomain`
+  absent refuse »), `diag-selecteur-ecosysteme` (« la sortie échange l'hôte courant »). Portés sur l'adresse, chacun
+  avec sa raison — ce qu'ils défendent (aucun slug par défaut, résolution en base, aucune redirection ouverte) tient.
+- **12 mutations, 12 rouges** : **l'extracteur qui préfère la copie du navigateur (le défaut d'origine — il casse le
+  retour sur la nouvelle adresse)** ; `requireAuth` qui rejuge l'en-tête ; le navigateur qui renvoie une copie ;
+  l'adresse sans écosystème en `domain_mismatch` ; `getDomainConfig`, puis la garde du tableau de bord, qui relisent
+  l'en-tête ; le proxy qui le repose ; le refus qui porte le sous-domaine de l'adresse au lieu du compte ; l'écran sans
+  sortie pour `unknown_domain` ; un renvoi absolu vers l'adresse Vercel ; l'admin qui recharge après avoir renommé sa
+  propre adresse ; un texte allemand manquant. Arbre restauré, contrôles reverts sur les fichiers restaurés en CRLF.
+- **Ce qui n'a pas tourné** : un navigateur réel (la protection Vercel, la session par adresse) — c'est l'étape A.1 et
+  l'essai de Youssef ; les tests pgTAP (aucune migration dans ce lot).
 
 ### Les étapes de Youssef — dans cet ordre
 **A. Avant tout : mesurer, puis régler Vercel**
