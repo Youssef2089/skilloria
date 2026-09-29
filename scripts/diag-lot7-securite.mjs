@@ -361,9 +361,13 @@ for (const f of VERIFY) {
 
 // (vi) Le service-role manquant REFUSE côté route publique (pas d'auth pour le fournir).
 const pub = read(VERIFY[0])
+// ⚠️ 29/09/2026 (§E.86) : le refus reste FAIL-CLOSED, mais il ne se dit plus « trop d'essais » (`refus()`) —
+//    sans clé de service, le limiteur ne tourne pas : c'est une configuration absente, nommée
+//    `limiteur_indisponible`, pas un abus de la personne. Ce contrôle garde le refus ; `diag-otp-causes`, son nom.
 ok(
   'public/verify : service-role indisponible → refus (fail-closed)',
-  /if \(!admin\) \{[\s\S]{0,300}?return refus\(\)/.test(pub),
+  /if \(!admin\) \{[\s\S]{0,300}?return refus\(\)/.test(pub)
+    || /if \(!admin\) return reponseErreurOtp\([^)]*limiteurIndisponible\(\)\)/.test(pub),
   "l'absence de service-role laisse encore passer",
 )
 

@@ -1035,7 +1035,8 @@
       "generic": "Une erreur est survenue. Veuillez réessayer.",
       "phone_already_used": "Ce numéro est déjà utilisé par un autre compte.",
       "invalid_country_code": "Sélectionnez le pays du siège de votre entreprise.",
-      "ecosysteme_indisponible": "Nous n’avons pas pu vérifier l’écosystème de cette adresse. Ce n’est pas un refus : rien n’a été créé. Réessayez dans quelques instants."
+      "ecosysteme_indisponible": "Nous n’avons pas pu vérifier l’écosystème de cette adresse. Ce n’est pas un refus : rien n’a été créé. Réessayez dans quelques instants.",
+      "sms_non_configure": "L'envoi du SMS de vérification est indisponible sur ce site, pour une raison de notre côté : réessayer n'y changera rien pour l'instant. Écrivez-nous, nous finalisons votre inscription avec vous."
     },
     "callback": {
       "verifying_title": "Vérification en cours…",
@@ -1162,7 +1163,8 @@
       "speciality_other_required": "Veuillez préciser votre spécialité.",
       "taxonomy_invalid": "Branche ou spécialité invalide. Veuillez réessayer.",
       "taxonomy_unavailable": "Impossible de charger les branches et spécialités pour le moment. Rechargez la page ou réessayez plus tard.",
-      "taxonomy_adresse_sans_ecosysteme": "Cette adresse ne correspond à aucun espace Skilloria. Ouvrez le site depuis l’adresse de votre écosystème (par exemple celle reçue dans une invitation), puis recommencez l’inscription."
+      "taxonomy_adresse_sans_ecosysteme": "Cette adresse ne correspond à aucun espace Skilloria. Ouvrez le site depuis l’adresse de votre écosystème (par exemple celle reçue dans une invitation), puis recommencez l’inscription.",
+      "sms_non_configure": "L'envoi du SMS de vérification est indisponible sur ce site, pour une raison de notre côté : réessayer n'y changera rien pour l'instant. Écrivez-nous, nous finalisons votre inscription avec vous."
     },
     "otp": {
       "send_sms_button": "Envoyer SMS",
@@ -3150,7 +3152,8 @@
         "lecture_indisponible_depots": "Les dépôts de candidature n'ont pas pu être comptés. Ce n'est pas « aucun dépôt perdu » : c'est « on ne sait pas ». Ouvrez Dépôts en échec.",
         "organisations_au_plafond_ia": "{count} entreprise(s) ont atteint leur plafond de dépense : leurs annonces sortent, mais ne sont plus classées.",
         "experts_au_plafond_ia": "{count} expert(s) ont atteint leur plafond de dépense : leurs recherches automatiques sont arrêtées.",
-        "lecture_indisponible_acteurs_plafond": "Les comptes au plafond n’ont pas pu être comptés. Ce n’est pas « aucun » : on ne sait pas."
+        "lecture_indisponible_acteurs_plafond": "Les comptes au plafond n’ont pas pu être comptés. Ce n’est pas « aucun » : on ne sait pas.",
+        "variable_manquante": "La variable d'environnement {nom} manque sur ce déploiement : une fonction du produit est cassée. Posez-la dans Vercel (procédure de mise en production, étape 5), puis redéployez."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",
@@ -3685,7 +3688,8 @@
       "pas_recu": "Je ne reçois pas le code",
       "demande_transmise": "Demande transmise. Le code arrive en général sous une minute.",
       "resend_in": "Renvoyer dans {seconds}s",
-      "pays_label": "Pays du numéro"
+      "pays_label": "Pays du numéro",
+      "error_sms_non_configure": "La vérification par SMS est indisponible sur ce site, pour une raison de notre côté : réessayer n'y changera rien pour l'instant. Écrivez-nous, nous mettons votre numéro à jour avec vous."
     },
     "password": {
       "title": "Mot de passe",

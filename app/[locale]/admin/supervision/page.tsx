@@ -31,6 +31,8 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 
 type Probleme = {
   cle: string
+  /** La variable d'environnement nommée par le problème `variable_manquante`. */
+  nom?: string | null
   gravite: 'bloquant' | 'attention'
   compte: number | null
   depuis: string | null
@@ -218,7 +220,7 @@ export default function SupervisionPage() {
                   const bloquant = p.gravite === 'bloquant'
                   return (
                     <li
-                      key={`${p.cle}-${p.sujet ?? ''}`}
+                      key={`${p.cle}-${p.sujet ?? ''}-${p.nom ?? ''}`}
                       role={bloquant ? 'alert' : undefined}
                       style={{
                         display: 'flex',
@@ -243,7 +245,7 @@ export default function SupervisionPage() {
                         {bloquant ? t('gravity_blocking') : t('gravity_attention')}
                       </span>
                       <span style={{ fontSize: 13, color: 'var(--sk-text)', flex: '1 1 260px' }}>
-                        {t(`problem.${p.cle}` as 'problem.annonces_jamais_tentees', { count: p.compte ?? 0 })}
+                        {t(`problem.${p.cle}` as 'problem.annonces_jamais_tentees', { count: p.compte ?? 0, nom: p.nom ?? '' })}
                         {p.depuis && (
                           <span style={{ color: 'var(--sk-muted)' }}>
                             {' '}

@@ -1035,7 +1035,8 @@
       "generic": "An error occurred. Please try again.",
       "phone_already_used": "This phone number is already used by another account.",
       "invalid_country_code": "Select the country of your company registered office.",
-      "ecosysteme_indisponible": "We could not verify the ecosystem for this address. This is not a refusal: nothing was created. Please try again in a moment."
+      "ecosysteme_indisponible": "We could not verify the ecosystem for this address. This is not a refusal: nothing was created. Please try again in a moment.",
+      "sms_non_configure": "Sending the verification text message is unavailable on this site, for a reason on our side: trying again will not change anything for now. Write to us and we will complete your registration with you."
     },
     "callback": {
       "verifying_title": "Verifying…",
@@ -1162,7 +1163,8 @@
       "speciality_other_required": "Please specify your speciality.",
       "taxonomy_invalid": "Invalid branch or speciality. Please try again.",
       "taxonomy_unavailable": "Unable to load branches and specialities right now. Reload the page or try again later.",
-      "taxonomy_adresse_sans_ecosysteme": "This address does not match any Skilloria space. Open the site from your ecosystem’s address (for example the one in an invitation you received), then start signing up again."
+      "taxonomy_adresse_sans_ecosysteme": "This address does not match any Skilloria space. Open the site from your ecosystem’s address (for example the one in an invitation you received), then start signing up again.",
+      "sms_non_configure": "Sending the verification text message is unavailable on this site, for a reason on our side: trying again will not change anything for now. Write to us and we will complete your registration with you."
     },
     "otp": {
       "send_sms_button": "Send SMS",
@@ -3150,7 +3152,8 @@
         "lecture_indisponible_depots": "Application submissions could not be counted. This is not \"no lost submissions\": it is \"we do not know\". Open Failed submissions.",
         "organisations_au_plafond_ia": "{count} company/companies reached their spending cap: their postings go out, but are no longer ranked.",
         "experts_au_plafond_ia": "{count} expert(s) reached their spending cap: their automatic searches are stopped.",
-        "lecture_indisponible_acteurs_plafond": "Capped accounts could not be counted. This is not “none”: we do not know."
+        "lecture_indisponible_acteurs_plafond": "Capped accounts could not be counted. This is not “none”: we do not know.",
+        "variable_manquante": "The environment variable {nom} is missing on this deployment: a product feature is broken. Set it in Vercel (production procedure, step 5), then redeploy."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -3685,7 +3688,8 @@
       "pas_recu": "I'm not receiving the code",
       "demande_transmise": "Request sent. The code usually arrives within a minute.",
       "resend_in": "Resend in {seconds}s",
-      "pays_label": "Number country"
+      "pays_label": "Number country",
+      "error_sms_non_configure": "Text-message verification is unavailable on this site, for a reason on our side: trying again will not change anything for now. Write to us and we will update your number with you."
     },
     "password": {
       "title": "Password",

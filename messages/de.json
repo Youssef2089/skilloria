@@ -1035,7 +1035,8 @@
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "phone_already_used": "Diese Nummer wird bereits von einem anderen Konto verwendet.",
       "invalid_country_code": "Wählen Sie das Land des Firmensitzes.",
-      "ecosysteme_indisponible": "Das Ökosystem für diese Adresse konnte nicht geprüft werden. Das ist keine Ablehnung: es wurde nichts angelegt. Bitte versuchen Sie es gleich erneut."
+      "ecosysteme_indisponible": "Das Ökosystem für diese Adresse konnte nicht geprüft werden. Das ist keine Ablehnung: es wurde nichts angelegt. Bitte versuchen Sie es gleich erneut.",
+      "sms_non_configure": "Der Versand der Bestätigungs-SMS ist auf dieser Website derzeit aus einem Grund auf unserer Seite nicht möglich: Ein erneuter Versuch ändert vorerst nichts. Schreiben Sie uns, wir schließen Ihre Registrierung gemeinsam mit Ihnen ab."
     },
     "callback": {
       "verifying_title": "Überprüfung läuft…",
@@ -1162,7 +1163,8 @@
       "speciality_other_required": "Bitte geben Sie Ihr Fachgebiet an.",
       "taxonomy_invalid": "Ungültige Branche oder ungültiges Fachgebiet. Bitte versuchen Sie es erneut.",
       "taxonomy_unavailable": "Branchen und Fachgebiete können derzeit nicht geladen werden. Laden Sie die Seite neu oder versuchen Sie es später erneut.",
-      "taxonomy_adresse_sans_ecosysteme": "Diese Adresse gehört zu keinem Skilloria-Bereich. Öffnen Sie die Website über die Adresse Ihres Ökosystems (zum Beispiel die aus einer erhaltenen Einladung) und beginnen Sie die Registrierung erneut."
+      "taxonomy_adresse_sans_ecosysteme": "Diese Adresse gehört zu keinem Skilloria-Bereich. Öffnen Sie die Website über die Adresse Ihres Ökosystems (zum Beispiel die aus einer erhaltenen Einladung) und beginnen Sie die Registrierung erneut.",
+      "sms_non_configure": "Der Versand der Bestätigungs-SMS ist auf dieser Website derzeit aus einem Grund auf unserer Seite nicht möglich: Ein erneuter Versuch ändert vorerst nichts. Schreiben Sie uns, wir schließen Ihre Registrierung gemeinsam mit Ihnen ab."
     },
     "otp": {
       "send_sms_button": "SMS senden",
@@ -3150,7 +3152,8 @@
         "lecture_indisponible_depots": "Die Bewerbungseingänge konnten nicht gezählt werden. Das heißt nicht „keine verlorenen Einreichungen“, sondern „wir wissen es nicht“. Öffnen Sie Fehlgeschlagene Einreichungen.",
         "organisations_au_plafond_ia": "{count} Unternehmen haben ihre Ausgabengrenze erreicht: ihre Anzeigen erscheinen, werden aber nicht mehr eingestuft.",
         "experts_au_plafond_ia": "{count} Experte(n) haben ihre Ausgabengrenze erreicht: ihre automatischen Suchen sind gestoppt.",
-        "lecture_indisponible_acteurs_plafond": "Die Konten an der Obergrenze konnten nicht gezählt werden. Das ist nicht „keine“: wir wissen es nicht."
+        "lecture_indisponible_acteurs_plafond": "Die Konten an der Obergrenze konnten nicht gezählt werden. Das ist nicht „keine“: wir wissen es nicht.",
+        "variable_manquante": "Die Umgebungsvariable {nom} fehlt in dieser Bereitstellung: Eine Produktfunktion ist defekt. Setzen Sie sie in Vercel (Produktionsverfahren, Schritt 5) und stellen Sie erneut bereit."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -3685,7 +3688,8 @@
       "pas_recu": "Ich erhalte den Code nicht",
       "demande_transmise": "Anfrage übermittelt. Der Code kommt meist innerhalb einer Minute.",
       "resend_in": "Erneut in {seconds}s",
-      "pays_label": "Land der Nummer"
+      "pays_label": "Land der Nummer",
+      "error_sms_non_configure": "Die SMS-Bestätigung ist auf dieser Website derzeit aus einem Grund auf unserer Seite nicht möglich: Ein erneuter Versuch ändert vorerst nichts. Schreiben Sie uns, wir aktualisieren Ihre Nummer gemeinsam mit Ihnen."
     },
     "password": {
       "title": "Passwort",

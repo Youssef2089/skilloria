@@ -2,6 +2,14 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { signPhoneOtpToken } from '@/lib/phone-otp-token'
 import {
+  lireRefusVonage,
+  identifiantsVonageAbsents,
+  vonageInjoignable,
+  limiteurIndisponible,
+  jetonTelephoneNonSignable,
+  reponseErreurOtp,
+} from '@/lib/otp/vonage-refus'
+import {
   evaluerLimite,
   extractClientIp,
   OTP_VERIFY_FENETRE_S,
@@ -54,10 +62,7 @@ type Body = { request_id?: unknown; code?: unknown; phone?: unknown }
 export async function POST(request: NextRequest): Promise<Response> {
   const apiKey = process.env.VONAGE_API_KEY
   const apiSecret = process.env.VONAGE_API_SECRET
-  if (!apiKey || !apiSecret) {
-    console.error('[public/verify-phone-otp] VONAGE_API_KEY or VONAGE_API_SECRET missing')
-    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
-  }
+  if (!apiKey || !apiSecret) return reponseErreurOtp('public/verify-phone-otp', identifiantsVonageAbsents())
 
   let body: Body
   try {
@@ -102,10 +107,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     json({ error: 'Too many requests', code: 'rate_limited', retry_after_seconds: OTP_VERIFY_FENETRE_S }, 429)
 
   const admin = getSupabaseAdmin()
-  if (!admin) {
-    console.error('[public/verify-phone-otp] service-role indisponible — vérification REFUSÉE (fail-closed)')
-    return refus()
-  }
+  // FAIL-CLOSED, et il le reste — mais il ne se dit plus « trop d'essais » : sans clé de service, le limiteur
+  // ne tourne pas, et c'est une configuration absente, pas un abus de la personne (§E.86, §E.22).
+  if (!admin) return reponseErreurOtp('public/verify-phone-otp', limiteurIndisponible())
 
   const ip = extractClientIp(request)
   if (ip && (await evaluerLimite(admin, 'otp_verify_ip', ip, OTP_VERIFY_IP_FENETRE_S, OTP_VERIFY_IP_MAX)) !== 'autorise') {
@@ -136,8 +140,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     })
     clearTimeout(timeout)
   } catch (err) {
-    console.error('[public/verify-phone-otp] Vonage fetch threw', err)
-    return json({ error: 'OTP provider unreachable', code: 'vonage_error' }, 502)
+    return reponseErreurOtp('public/verify-phone-otp', vonageInjoignable(err))
   }
 
   if (res.status === 410 || res.status === 404) {
@@ -147,17 +150,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid OTP code', code: 'invalid_code' }, 400)
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    console.error('[public/verify-phone-otp] Vonage non-OK', { status: res.status, body: text.slice(0, 500) })
-    return json({ error: 'OTP provider error', code: 'vonage_error' }, 502)
+    // Le MÊME module que l'envoi : 401, crédit, compte suspendu ne sont pas une « panne passagère ».
+    const payload = (await res.json().catch(() => null)) as { type?: string; title?: string; detail?: string } | null
+    return reponseErreurOtp('public/verify-phone-otp', lireRefusVonage(res.status, payload))
   }
 
   let phone_otp_token: string
   try {
     phone_otp_token = signPhoneOtpToken({ phone, request_id })
   } catch (err) {
-    console.error('[public/verify-phone-otp] signPhoneOtpToken failed', err)
-    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
+    // Le code était JUSTE : c'est le secret du jeton (PHONE_OTP_HMAC_SECRET) qui manque au déploiement.
+    return reponseErreurOtp('public/verify-phone-otp', jetonTelephoneNonSignable(err))
   }
 
   return json({ phone_verified: true, phone_otp_token }, 200)

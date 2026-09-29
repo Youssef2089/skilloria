@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { classerProblemes, type SourcesSupervision } from '@/lib/supervision/problemes'
 import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
 import { capaciteActive } from '@/lib/interrupteurs'
+import { variablesExigeesManquantes } from '@/lib/configuration/variables'
 import { resolveCatalogueKey } from '@/lib/billing/config'
 import { lireToutesLesLiaisons, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
 import { vendabilite } from '@/lib/billing/vendabilite'
@@ -184,6 +185,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   })()
 
   const sources: SourcesSupervision = {
+    // La liste UNIQUE des variables (lib/configuration/variables.ts), lue ici par leurs NOMS — jamais une valeur.
+    variablesManquantes: variablesExigeesManquantes(process.env).map((m) => m.nom),
     // LE MOTEUR, LU ICI ET NULLE PART AILLEURS. `capaciteActive` est la SEULE
     // implémentation de la convention « exactement 'true' » (§E.9) : la
     // recopier ici ferait deux interrupteurs portant le même nom et

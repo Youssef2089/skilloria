@@ -4085,6 +4085,44 @@ navigateur réel — le stockage de session par adresse, la protection de Vercel
 
 ---
 
+<a id="e86"></a>
+### E.86 — LE PARCOURS DÉPENDAIT D'UNE VARIABLE QUE RIEN NE VÉRIFIAIT, ET LA PANNE SE DISAIT « TEMPORAIRE » : six causes, un seul message, aucune piste.
+
+**Le cas mesuré (29/09/2026, `skilloria365.staging.skilloria.io`, `2ace4ab`).** « Créer un profil Expert » : les
+branches s'affichent enfin ; au clic sur « Envoyer SMS » : « Service SMS temporairement indisponible. Veuillez
+réessayer ». Le téléphone est obligatoire : l'inscription expert s'arrête là.
+
+**Les causes possibles, lues dans le code (à `2ace4ab`).** L'écran (`components/PhoneOtpField.tsx`, `messagePour`)
+faisait retomber TOUT code non reconnu sur ce message. Y menaient : ① `missing_env` — `VONAGE_API_KEY` ou
+`VONAGE_API_SECRET` absente du déploiement (la route le savait, l'écran ne connaissait pas le code) ; ② un 401 de
+Vonage (identifiants refusés) ; ③ un 402, ou un 403 `out-of-credit` (crédit) ; ④ un 403 `forbidden` ou
+`account-suspended` ; ⑤ une panne 5xx ou un Vonage injoignable — la seule vraie « indisponibilité temporaire » ;
+⑥ une réponse sans `request_id`. À la vérification, pire : un secret de jeton absent (`PHONE_OTP_HMAC_SECRET`) rendait
+`missing_env` APRÈS un code juste, et l'écran disait « code invalide » ; une clé de service absente se disait « trop
+d'essais ». Le classificateur ne lisait pas le `type` que Vonage publie (`…/api-errors#low-balance`), le seul nom
+stable de l'erreur.
+
+**Pourquoi rien ne l'a vu.** ① La liste des variables vivait dans la DOCUMENTATION (mise-en-production, étape 5),
+que rien ne confrontait au code — ni à ce que Vercel porte. ② Aucun démarrage ne vérifiait rien : la seule variable
+qui s'arrêtait en se nommant était la racine des adresses, depuis §E.83. ③ Le lot qui avait séparé le PAYS de la
+PANNE (`lib/otp/vonage-refus.ts`) n'avait pas séparé la CONFIGURATION : « temporairement » restait le défaut. ④ Les
+tests pgTAP éprouvent la base ; le parcours s'arrêtait avant elle, chez un fournisseur.
+
+**La parade.** **Une liste, une définition** : `lib/configuration/variables.ts` — chaque variable lue, son rôle, ce
+qui casse sans elle, son exigence ; jamais une valeur. **Au démarrage** d'un environnement déployé,
+`instrumentation.ts` nomme chaque variable exigée absente, trop courte ou à la mauvaise valeur (`variable_manquante`) ;
+**`/admin/supervision`** l'affiche en BLOQUANT. **La panne dit sa cause** : chaque refus OTP porte une cause nommée
+(`CauseOtp`, 17 causes) journalisée `[otp] <route> — <cause>`, et un code d'écran qui dit ce que la personne peut
+faire — `sms_non_configure` (« de notre côté ») pour tout ce qui dépend de nous, `vonage_error` (« temporairement »)
+pour la seule panne. Les contrôles : [`diag-variables-environnement`](../scripts/diag-variables-environnement.mjs) (le
+code ne lit aucune variable inconnue de la liste, et réciproquement ; exécute la vérification) et
+[`diag-otp-causes`](../scripts/diag-otp-causes.mjs) (exécute le classificateur sur les réponses documentées par
+Vonage ; les quatre routes ; l'écran). **Ce qu'ils ne voient pas** : ce que Vercel porte vraiment et ce que Vonage
+répond sur le compte — le démarrage, la supervision et la ligne `[otp]` le disent. Relevé au passage : la route de
+changement de téléphone ne demandait pas un code à 6 chiffres, contrairement à sa jumelle (§E.20) — alignée.
+
+---
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

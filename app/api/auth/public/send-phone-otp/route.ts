@@ -2,7 +2,13 @@ import { NextRequest } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, extractClientIp } from '@/lib/rate-limit'
 import { normalizeE164 } from '@/lib/phone'
-import { lireRefusVonage } from '@/lib/otp/vonage-refus'
+import {
+  lireRefusVonage,
+  identifiantsVonageAbsents,
+  vonageInjoignable,
+  reponseVonageIllisible,
+  reponseErreurOtp,
+} from '@/lib/otp/vonage-refus'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -54,10 +60,9 @@ type Body = { phone?: unknown; previous_request_id?: unknown }
 export async function POST(request: NextRequest): Promise<Response> {
   const apiKey = process.env.VONAGE_API_KEY
   const apiSecret = process.env.VONAGE_API_SECRET
-  if (!apiKey || !apiSecret) {
-    console.error('[public/send-phone-otp] VONAGE_API_KEY or VONAGE_API_SECRET missing')
-    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
-  }
+  // Clé absente du DÉPLOIEMENT : ce n'est pas « temporairement indisponible » (§E.86). La cause est nommée
+  // dans les journaux, l'écran dit « de notre côté » — et le démarrage l'a déjà dite (instrumentation.ts).
+  if (!apiKey || !apiSecret) return reponseErreurOtp('public/send-phone-otp', identifiantsVonageAbsents())
 
   let body: Body
   try {
@@ -189,12 +194,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     })
     clearTimeout(timeout)
   } catch (err) {
-    console.error('[public/send-phone-otp] Vonage fetch threw', err)
-    return json({ error: 'OTP provider unreachable', code: 'vonage_error' }, 502)
+    // Délai dépassé ou réseau : le SEUL cas, avec une panne 5xx, où « réessayez » est honnête.
+    return reponseErreurOtp('public/send-phone-otp', vonageInjoignable(err))
   }
 
   const payload = (await res.json().catch(() => null)) as
-    | { request_id?: string; title?: string; detail?: string }
+    | { request_id?: string; type?: string; title?: string; detail?: string }
     | null
 
   // ── CE QUE VONAGE DIT VRAIMENT ──────────────────────────────────────────
@@ -211,15 +216,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  qui n'en a pas. Le texte brut de Vonage part dans les journaux serveur :
   //  il est en anglais et écrit pour un intégrateur, pas pour un candidat à
   //  l'inscription.
-  if (!res.ok || !payload?.request_id) {
-    const refus = lireRefusVonage(res.status, payload)
-    console.error('[public/send-phone-otp] Vonage refus', {
-      status: res.status,
-      code: refus.code,
-      detail: refus.detailFournisseur,
-    })
-    return json({ error: 'OTP provider refused', code: refus.code }, refus.status)
-  }
+  if (!res.ok) return reponseErreurOtp('public/send-phone-otp', lireRefusVonage(res.status, payload))
+  if (!payload?.request_id) return reponseErreurOtp('public/send-phone-otp', reponseVonageIllisible(res.status))
 
   // ── `request_id` N'EST PAS UNE LIVRAISON ────────────────────────────────
   //

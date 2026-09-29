@@ -57,6 +57,10 @@ export type Probleme = {
    *    Deux liens sur la même ligne obligeraient à choisir sans savoir.
    */
   lien?: string | null
+  /**
+   * Un NOM à dire dans la phrase — la variable d'environnement qui manque (§E.86). Jamais une valeur.
+   */
+  nom?: string | null
 }
 
 /**
@@ -89,6 +93,11 @@ export type EtatDuMoteur = {
 }
 
 export type SourcesSupervision = {
+  /**
+   * LES VARIABLES EXIGÉES QUI MANQUENT à ce déploiement (lib/configuration/variables.ts), par leur NOM.
+   * Chacune casse une fonction du produit ; le démarrage les journalise, l'écran les dit ici (§E.86).
+   */
+  variablesManquantes: string[]
   /** L'interrupteur et la clé du moteur — lus au serveur, jamais devinés. */
   moteur: EtatDuMoteur
   inacheves: Array<{ etat: string; publications: number; plus_ancien: string | null }> | null
@@ -215,6 +224,13 @@ const nombre = (v: unknown): number => {
 
 export function classerProblemes(s: SourcesSupervision): Probleme[] {
   const out: Probleme[] = []
+
+  // ── -1. LA CONFIGURATION DU DÉPLOIEMENT (§E.86) ────────────────────────
+  //  EN TÊTE : une variable exigée qui manque casse une fonction ENTIÈRE (l'inscription, sans les clés
+  //  Vonage), et la panne ne se voyait qu'à l'écran d'un candidat, sous un « temporairement » faux.
+  for (const nom of s.variablesManquantes) {
+    out.push({ cle: 'variable_manquante', gravite: 'bloquant', compte: null, depuis: null, sujet: null, nom })
+  }
 
   // ── 0. LE MOTEUR EST-IL ALLUMÉ ? ────────────────────────────────────────
   //

@@ -3,7 +3,13 @@ import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
 import { requireReauth } from '@/lib/reauth-token'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { normalizeE164 } from '@/lib/phone'
-import { lireRefusVonage } from '@/lib/otp/vonage-refus'
+import {
+  lireRefusVonage,
+  identifiantsVonageAbsents,
+  vonageInjoignable,
+  reponseVonageIllisible,
+  reponseErreurOtp,
+} from '@/lib/otp/vonage-refus'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,10 +45,8 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const apiKey = process.env.VONAGE_API_KEY
   const apiSecret = process.env.VONAGE_API_SECRET
-  if (!apiKey || !apiSecret) {
-    console.error('[send-phone-otp] VONAGE_API_KEY or VONAGE_API_SECRET missing')
-    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
-  }
+  // Clé absente du déploiement : une cause nommée, jamais « temporairement indisponible » (§E.86).
+  if (!apiKey || !apiSecret) return reponseErreurOtp('send-phone-otp', identifiantsVonageAbsents())
 
   let body: Body
   try {
@@ -97,33 +101,29 @@ export async function POST(request: NextRequest): Promise<Response> {
       },
       body: JSON.stringify({
         brand: BRAND_NAME,
+        // 6 chiffres, comme la route publique : l'écran commun (PhoneOtpField) a SIX cases. Sans ce
+        // réglage Vonage envoie son défaut (4, d'après la route publique) et le code ne se saisit pas —
+        // la dérive d'une route jumelle (§E.20), relevée au balayage du 29/09/2026 (§E.86).
+        code_length: 6,
         workflow: [{ channel: 'sms', to: phoneVonage }],
       }),
       signal: controller.signal,
     })
     clearTimeout(timeout)
   } catch (err) {
-    console.error('[send-phone-otp] Vonage fetch threw', err)
-    return json({ error: 'OTP provider unreachable', code: 'vonage_error' }, 502)
+    return reponseErreurOtp('send-phone-otp', vonageInjoignable(err))
   }
 
   const payload = (await res.json().catch(() => null)) as
-    | { request_id?: string; title?: string; detail?: string }
+    | { request_id?: string; type?: string; title?: string; detail?: string }
     | null
 
   // MÊME lecture des refus que la route publique, par le MÊME module. Deux
   // tables d'erreurs recopiées auraient divergé — c'est exactement ce que ce
   // lot ferme, et le dépôt en portait déjà la preuve : un correctif appliqué à
   // l'inscription expert et jamais rétroporté à l'inscription organisation.
-  if (!res.ok || !payload?.request_id) {
-    const refus = lireRefusVonage(res.status, payload)
-    console.error('[send-phone-otp] Vonage refus', {
-      status: res.status,
-      code: refus.code,
-      detail: refus.detailFournisseur,
-    })
-    return json({ error: 'OTP provider refused', code: refus.code }, refus.status)
-  }
+  if (!res.ok) return reponseErreurOtp('send-phone-otp', lireRefusVonage(res.status, payload))
+  if (!payload?.request_id) return reponseErreurOtp('send-phone-otp', reponseVonageIllisible(res.status))
 
   // `request_id` N'EST PAS UNE LIVRAISON — cf. la route publique. Verify v2 est
   // asynchrone : la demande est acceptée, le message peut être bloqué ensuite.

@@ -123,6 +123,8 @@ Routes live in `app/api/**/route.ts`. Typical header: `export const runtime = 'n
 ## Environment variables
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `ANTHROPIC_API_KEY`, `ENABLE_AI_CV_PARSING`, `ENABLE_AI_CANDIDATURE_ASSESSMENT` (jugement au dépôt d une candidature), `COHERE_API_KEY` / `ENABLE_RERANKING` (moteur de mise en relation — reranking, cf. [lib/matching/rerank.ts](lib/matching/rerank.ts)), `RESEND_API_KEY` / `RESEND_FROM_EMAIL` (transactional email via Resend, templates in [lib/emails/](lib/emails/)), `SIRENE_API_TOKEN`, `VONAGE_API_KEY` / `VONAGE_API_SECRET` (phone OTP), `PHONE_OTP_HMAC_SECRET`, `REAUTH_HMAC_SECRET`, `CRON_SECRET`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_DOMAINE_RACINE`, `DEV_DOMAIN_SLUG`. Secrets/`.env*` files are blocked from reads — do not attempt to open them.
 
+- **LA LISTE QUI FAIT FOI est [lib/configuration/variables.ts](lib/configuration/variables.ts)** (§E.86) : chaque variable lue par le code, son rôle, ce qui casse sans elle, son exigence (`deploye` = Production ET Preview). Toute variable nouvelle s'y ajoute DANS LE MÊME COMMIT — sinon [`diag-variables-environnement`](scripts/diag-variables-environnement.mjs) rougit. Au démarrage d'un déploiement, `instrumentation.ts` nomme chaque variable exigée qui manque ; `/admin/supervision` aussi.
+
 - **Manquantes dans la liste ci-dessus** (ajoutées ici, cf. §M0) : `STRIPE_SECRET_KEY` et `STRIPE_WEBHOOK_SECRET` (scopées **par environnement** Vercel — un secret de webhook par endpoint), `ENABLE_BILLING` (le second verrou du mur payant, cf. §D.1), `VONAGE_SMS_FROM`, `VERCEL_ENV` (lu par `isProduction()`, [lib/env.ts](lib/env.ts)), `INSCRIPTION_HMAC_SECRET` (la preuve d'inscription, §D.27 — ÉGAL au secret `inscription_hmac_secret` du Vault, 32 caractères au moins).
 - Les trois interrupteurs IA (`ENABLE_AI_CV_PARSING`, `ENABLE_AI_CANDIDATURE_ASSESSMENT`, `ENABLE_RERANKING`) passent tous par `capaciteActive()` ([lib/interrupteurs.ts](lib/interrupteurs.ts)) : la valeur doit être **exactement `'true'`**, tout le reste éteint la capacité (§E.9).
 
@@ -308,6 +310,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.83](docs/pieges.md#e83) | UNE PREVIEW VERCEL N'A PAS D'ÉCOSYSTÈME DANS SON HÔTE : le « premier label » était le nom du déploiement, l'inscription expert était bloquée — et 423 tests pgTAP ne voient pas un hôte. Le correctif par variable sur la Preview a été REFUSÉ : staging lit l'écosystème dans l'adresse, comme la production ; seule la racine diffère. |
 | [E.84](docs/pieges.md#e84) | UN VERROU D'ÉCRAN SURVIT À SA RAISON : le sous-domaine « non modifiable » parce qu'il fallait le déclarer chez l'hébergeur — l'adresse générique a supprimé la raison, pas le verrou. |
 | [E.85](docs/pieges.md#e85) | UNE COPIE DU SOUS-DOMAINE, PRISE PAR LE NAVIGATEUR AU RENDU, DÉCIDAIT À LA PLACE DE L'ADRESSE : `'default'` sur une page neutre, « inconnu » à la garde, l'admin éjecté en trois secondes — et aucun test n'exécutait la garde avec un hôte. |
+| [E.86](docs/pieges.md#e86) | LE PARCOURS DÉPENDAIT D'UNE VARIABLE QUE RIEN NE VÉRIFIAIT, ET LA PANNE SE DISAIT « TEMPORAIRE » : six causes du SMS, un message ; la liste des variables vivait dans la doc. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

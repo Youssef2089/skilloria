@@ -66,6 +66,7 @@ export default function InscriptionOrganisationPage() {
     invalid_phone: t('errors.invalid_phone'),
     rate_limited: t('errors.rate_limited'),
     vonage_error: t('errors.vonage_error'),
+    non_configure: t('errors.sms_non_configure'),
     pays_non_pris_en_charge: t('errors.sms_pays_non_pris_en_charge'),
     verification_en_cours: t('errors.verification_en_cours'),
     pas_recu: t('otp_pas_recu'),

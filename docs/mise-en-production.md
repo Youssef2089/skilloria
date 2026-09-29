@@ -215,6 +215,13 @@ Vercel → votre projet → **Settings** → **Environment Variables**.
 
 > **Chaque variable est posée pour un environnement précis** : *Production*, *Preview*, ou les deux. Une variable posée sur le mauvais environnement ne sert à rien — et, pour les clés Stripe, c'est dangereux.
 
+> **LA LISTE QUI FAIT FOI : [lib/configuration/variables.ts](../lib/configuration/variables.ts)** (§E.86). Chaque
+> variable que le code lit y est, avec son rôle et ce qui casse sans elle — un contrôle rougit si le code en lit une
+> autre. **Au démarrage d'un environnement déployé**, chaque variable EXIGÉE qui manque est nommée dans les journaux
+> Vercel (`[configuration] <NOM> — absente`, code `variable_manquante`), et `/admin/supervision` l'affiche en
+> **BLOQUANT**. Les tableaux ci-dessous en sont la lecture pour un humain. Une variable exigée va sur **Production ET
+> Preview** : staging se comporte comme la production (§E.83).
+
 ### Indispensables — sans elles, l'application ne fonctionne pas
 
 | Variable | Ce que c'est |
@@ -300,7 +307,20 @@ Tant que le lancement est gratuit, **aucune clé Stripe sur Production**. Quand 
 
 `STRIPE_WEBHOOK_SECRET` : il y en a **un par point de réception**, et celui du bac à sable est **différent** de celui du live. Voir [docs/stripe-premier-paiement.md](stripe-premier-paiement.md).
 
-**Comment savoir que c'est bon :** après avoir posé les variables, **relancez un déploiement** (les variables ne sont lues qu'au démarrage). Puis ouvrez le site : il doit s'afficher aux **couleurs de votre écosystème**, pas en gris neutre. Créez un compte de test : vous devez recevoir le SMS de confirmation, puis l'e-mail.
+### Chez Vonage — ce qu'aucune variable ne dit
+
+Le code SMS passe par **Vonage Verify v2**. Trois réglages vivent dans le compte Vonage, pas dans le dépôt :
+
+| Réglage | Ce qui arrive s'il manque | Ce que disent les journaux Vercel |
+|---|---|---|
+| **Les clés API** (`VONAGE_API_KEY`, `VONAGE_API_SECRET`) sont celles du tableau de bord Vonage, copiées sans espace | refus des identifiants | `[otp] … — vonage_identifiants_refuses` |
+| **Le solde du compte** est positif | plus aucun SMS | `[otp] … — vonage_credit_insuffisant` |
+| **Le pays du numéro** est desservi par Verify (la Tunisie, +216, ne l'est pas : liste propre à Verify, levée par un ticket au support — architecture §H) | le SMS ne part pas vers ce pays | `[otp] … — vonage_destination_refusee` ou `vonage_antifraude` |
+
+L'écran, lui, dit « de notre côté » pour les deux premiers, « pays non desservi » pour le troisième, et **« temporairement
+indisponible » seulement pour une vraie panne de Vonage** (`vonage_panne`, `vonage_injoignable`, `vonage_delai_depasse`).
+
+**Comment savoir que c'est bon :** après avoir posé les variables, **relancez un déploiement** (les variables ne sont lues qu'au démarrage). Ouvrez `/admin/supervision` : **aucune ligne « variable manquante »**. Puis ouvrez le site : il doit s'afficher aux **couleurs de votre écosystème**, pas en gris neutre. Créez un compte de test : vous devez recevoir le SMS de confirmation, puis l'e-mail.
 
 ---
 

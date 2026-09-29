@@ -264,6 +264,7 @@ function PhoneSection({ user, requestReauth, notify, reload }: {
     invalid_phone: t('error_invalid_phone'),
     rate_limited: t('error_rate_limited'),
     vonage_error: t('error_vonage_error'),
+    non_configure: t('error_sms_non_configure'),
     pays_non_pris_en_charge: t('error_sms_pays_non_pris_en_charge'),
     verification_en_cours: t('error_verification_en_cours'),
     pas_recu: t('pas_recu'),

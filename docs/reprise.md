@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 29/09/2026 (ARRÊT 16).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 29/09/2026 (ARRÊT 17).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -14,7 +14,7 @@ dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
 **Au prochain push** — AUCUNE migration en attente : staging est à jour jusqu'à `sous_domaine_reglable` (ARRÊT 15,
-déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 16 (la garde lit l'adresse). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
+déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 17 (le SMS dit sa cause ; les variables se disent au démarrage) — l'ARRÊT 16 est déployé (`2ace4ab`). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
 l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
 `NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
 (étapes de Youssef, ARRÊT 14). La requête de staging est écrite pour cet état (⓪ `sous_domaine_reglable`,
@@ -54,6 +54,86 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 17 — L'INSCRIPTION EXPERT S'ARRÊTAIT À L'ENVOI DU SMS : SIX CAUSES, UN SEUL MESSAGE « TEMPORAIRE » (29/09/2026)
+
+Constat de Youssef (`skilloria365.staging.skilloria.io`, `2ace4ab` déployé) : branches et spécialités s'affichent ;
+« Envoyer SMS » → « Service SMS temporairement indisponible. Veuillez réessayer ». Tag local `sauvegarde-avant-sms` sur
+`2ace4ab`, arbre propre (hormis `supabase/snippets/`). Détail : [pieges.md §E.86](pieges.md#e86).
+
+**LES CAUSES POSSIBLES, CLASSÉES (point 1), lues dans le code à `2ace4ab`.** L'écran (`components/PhoneOtpField.tsx`,
+`messagePour`) affiche ce message pour TOUT code non reconnu. Par ordre de vraisemblance sur un staging neuf :
+1. **`VONAGE_API_KEY` ou `VONAGE_API_SECRET` absente de l'environnement Preview** — la route rend `missing_env`
+   (`app/api/auth/public/send-phone-otp/route.ts`, l. 54-59), que l'écran ne connaissait pas.
+2. **Identifiants refusés par Vonage (401)** — clés d'un autre compte, espace en trop.
+3. **Crédit Vonage insuffisant** (402, ou 403 `out-of-credit`).
+4. **Compte suspendu, ou opération interdite** (403 `account-suspended` / `forbidden`).
+5. **Panne de Vonage (5xx), délai dépassé, réseau** — la seule vraie « indisponibilité temporaire ».
+6. **Réponse sans `request_id`.**
+Le code ne peut pas dire laquelle est vivante sur staging : **une ligne du journal Vercel le tranche** (étape A.1).
+
+**Contradictions signalées :** ① « au démarrage » veut dire, sur Vercel, à chaque nouvelle instance serveur, dans
+les journaux d'exécution — pas au build ; je journalise et j'affiche en supervision, je N'arrête PAS le serveur (une clé
+Stripe absente, voulue au lancement, ne doit pas couper le site). Faire échouer le BUILD sur une variable exigée est une
+décision à prendre. ② Les réglages qui ne sont pas des variables (SMTP de Supabase pour la confirmation et le mot de
+passe oublié, compte Vonage, Vault) ne peuvent pas être vus au démarrage : la liste et la procédure les nomment.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. La cause | **classée, prouvée par le code** | Ci-dessus. |
+| 2. La panne dit sa cause | **fait** | `lib/otp/vonage-refus.ts` lit le `type` publié par Vonage ; 17 causes nommées (`CauseOtp`), journalisées `[otp] <route> — <cause>` ; code d'écran `sms_non_configure` (« de notre côté », quatre langues, trois écrans) pour tout ce qui dépend de nous ; « temporairement » seulement pour `vonage_panne`, `vonage_injoignable`, `vonage_delai_depasse`, l'illisible. Les quatre routes OTP (inscription et paramètres, envoi et vérification). La vérification ne dit plus « code invalide » sur une panne, ni « trop d'essais » quand le limiteur n'a pas sa clé. La réponse publique ne porte que le code ; la cause reste au serveur. |
+| 3. Le balayage | **fait** | `lib/configuration/variables.ts` : les 27 variables lues par le code, rôle et conséquence, exigence (16 exigées sur Production ET Preview). `instrumentation.ts` les nomme au démarrage (`variable_manquante`), `/admin/supervision` en BLOQUANT. `diag-variables-environnement` rougit si le code lit une variable hors liste (et réciproquement). Parcours balayés : inscription expert, organisation, invitation (Supabase, preuve signée, Vonage, Resend), confirmation par e-mail et mot de passe oublié (SMTP réglé DANS Supabase — hors variables, nommé). Relevé au passage : la route de changement de téléphone ne demandait pas un code à 6 chiffres — alignée sur sa jumelle (§E.20). |
+| 4. Pour Youssef | **écrit** | Étapes ci-dessous ; procédure : mise-en-production, étape 5 (« Chez Vonage »). |
+| 5. Le piège | **écrit** | §E.86 : la liste vivait dans la documentation, aucun démarrage ne vérifiait rien, et « temporairement » était le défaut. |
+
+**Checklist** : 0 (aucune valeur dans le code, aucun nom) · 12 (codes stables : `vonage_error`, `sms_pays_non_pris_en_charge`,
+`verification_en_cours` gardent leur nom ; `sms_non_configure` s'ajoute ; les causes sont nouvelles) · 13-14 (messages
+actionnables, quatre langues, trois écrans) · 15 (V0 = la prod : la même liste, le même démarrage, partout).
+
+**Migrations nouvelles : AUCUNE.** La requête de staging reste écrite pour ⓪ `sous_domaine_reglable`, listes vides.
+
+**Épreuve** : voir le commit suivant.
+
+### Les étapes de Youssef — dans cet ordre
+**A. Les réglages Vercel et Vonage**
+1. **La lecture qui tranche** (avant tout, sur le code DÉJÀ en ligne) : Vercel → le projet → **Logs** → filtre
+   `send-phone-otp`, sur la période de ton essai. Tu liras UNE de ces lignes :
+   - `VONAGE_API_KEY or VONAGE_API_SECRET missing` → les deux clés manquent sur **Preview** (étape A.2) ;
+   - `Vonage refus` avec `status: 401` → les clés sont fausses (copiées d'un autre compte, espace en trop) ;
+   - `Vonage refus` avec `status: 402`, ou un détail `low balance` / `out of credit` → le compte Vonage n'a plus de crédit ;
+   - `Vonage refus` avec `status: 403` et un autre détail → droits ou compte suspendu : lis le détail, envoie-le-moi ;
+   - `Vonage fetch threw` → réseau ou délai : réessaie dans quelques minutes.
+2. **Vercel → Settings → Environment Variables → environnement Preview** : vérifie que chacune de ces variables est
+   posée (nom et rôle — jamais de valeur à m'envoyer) :
+   - `NEXT_PUBLIC_SUPABASE_URL` — adresse du projet Supabase de staging ;
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — clé publique de ce projet ;
+   - `SUPABASE_SERVICE_ROLE_KEY` — clé de service de ce projet ;
+   - `NEXT_PUBLIC_DOMAINE_RACINE` — `staging.skilloria.io` ;
+   - `NEXT_PUBLIC_SITE_URL` — l'origine du site de staging ;
+   - `CRON_SECRET` — égal au secret `cron_secret` du Vault de staging ;
+   - `INSCRIPTION_HMAC_SECRET` — égal au secret `inscription_hmac_secret` du Vault de staging, 32 caractères au moins ;
+   - `PHONE_OTP_HMAC_SECRET` — signature du jeton « téléphone vérifié », 16 caractères au moins ;
+   - `REAUTH_HMAC_SECRET` — ré-authentification et désabonnement, 16 caractères au moins ;
+   - `VONAGE_API_KEY` et `VONAGE_API_SECRET` — les clés API du compte Vonage ;
+   - `RESEND_API_KEY` et `RESEND_FROM_EMAIL` — e-mails du produit ;
+   - `ANTHROPIC_API_KEY` — vérifications, jugement des candidatures, analyse des CV ;
+   - `COHERE_API_KEY` et `ENABLE_RERANKING` (= `true`) — la mise en relation ;
+   - **absente sur Vercel** : `DEV_DOMAIN_SLUG` (poste local seulement).
+   Optionnelles, à ton choix : `ENABLE_AI_CV_PARSING` et `ENABLE_AI_CANDIDATURE_ASSESSMENT` (= `true` pour essayer
+   ces fonctions), `SIRENE_API_TOKEN` ; `ENABLE_BILLING` et les clés Stripe restent absentes (lancement gratuit).
+3. **Chez Vonage** (tableau de bord) : les clés API sont bien celles posées sur Vercel ; le **solde** est positif ; le
+   numéro d'essai est dans un pays desservi par Verify (pas la Tunisie, +216).
+
+**B. Le déploiement** — pas de migration, donc pas de `db push` :
+1. la requête de staging : ⓪ `sous_domaine_reglable`, aucun ÉCART ;
+2. `npm run build`, puis `git push`.
+3. Ouvre `https://skilloria365.staging.skilloria.io/fr/admin/supervision` : **aucune ligne « variable manquante »**. S'il y
+   en a une, pose-la sur Preview et redéploie. (Le même nom se lit dans les journaux Vercel : `[configuration] <NOM> — absente`.)
+
+**C. La reprise de l'essai de l'inscription expert** (fenêtre privée, `https://skilloria365.staging.skilloria.io/fr`) :
+« Créer un profil Expert » → « Envoyer SMS ». Si le SMS arrive : saisis le code, termine l'inscription, vérifie
+l'e-mail de confirmation et `/admin/journal`. Sinon, le message dit désormais la vraie nature du problème, et le
+journal Vercel porte la ligne `[otp] public/send-phone-otp — <cause>` : envoie-moi la cause.
 
 ## ⛔ ARRÊT 16 — L'ADMIN SE FERMAIT EN TROIS SECONDES : UNE COPIE DU SOUS-DOMAINE DÉCIDAIT À LA PLACE DE L'ADRESSE (29/09/2026)
 

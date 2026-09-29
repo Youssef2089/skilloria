@@ -59,7 +59,13 @@ export type PhoneOtpLabels = {
   demande_transmise: string
   invalid_phone: string
   rate_limited: string
+  /** Panne passagère du fournisseur : le SEUL cas où « réessayez » est vrai. */
   vonage_error: string
+  /**
+   * Indisponible pour une raison de NOTRE côté (configuration, compte, crédit) : réessayer n'y changera
+   * rien. Avant, ces cas s'affichaient « temporairement indisponible » (§E.86).
+   */
+  non_configure: string
   /** Les SMS ne partent pas vers ce pays : ce refus a une ISSUE. */
   pays_non_pris_en_charge: string
   /** Une vérification est déjà en cours sur ce numéro. */
@@ -163,6 +169,10 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
         return labels.pays_non_pris_en_charge
       case 'verification_en_cours':
         return labels.verification_en_cours
+      // `missing_env` : l'ancien nom de la même situation, s'il revenait d'une route non migrée.
+      case 'sms_non_configure':
+      case 'missing_env':
+        return labels.non_configure
       default:
         return labels.vonage_error
     }
@@ -239,6 +249,16 @@ export default function PhoneOtpField(props: PhoneOtpFieldProps) {
         if (json.code === 'rate_limited') {
           setPhoneError(labels.rate_limited)
           setOtpDigits(Array(OTP_LENGTH).fill(''))
+          return
+        }
+        // Une panne ou une configuration absente n'est pas un CODE FAUX : le dire serait faire retaper un code
+        // juste (§E.86). Le request_id est traité comme consommé — on repart d'un nouvel envoi.
+        if (json.code === 'sms_non_configure' || json.code === 'missing_env' || json.code === 'vonage_error') {
+          if (otpRequestId) setPreviousRequestId(otpRequestId)
+          setPhoneError(messagePour(json.code))
+          setOtpDigits(Array(OTP_LENGTH).fill(''))
+          setOtpRequestId(null)
+          setCooldownLeft(0)
           return
         }
         // P6 : request_id consommé (code faux/expiré) → reset propre + compteur 0.

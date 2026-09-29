@@ -11,6 +11,12 @@ import {
   OTP_VERIFY_IP_MAX,
 } from '@/lib/rate-limit'
 import { normalizeE164 } from '@/lib/phone'
+import {
+  lireRefusVonage,
+  identifiantsVonageAbsents,
+  vonageInjoignable,
+  reponseErreurOtp,
+} from '@/lib/otp/vonage-refus'
 import { isUniqueViolation } from '@/lib/auth-signup'
 
 export const runtime = 'nodejs'
@@ -41,10 +47,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const apiKey = process.env.VONAGE_API_KEY
   const apiSecret = process.env.VONAGE_API_SECRET
-  if (!apiKey || !apiSecret) {
-    console.error('[verify-phone-otp] VONAGE_API_KEY or VONAGE_API_SECRET missing')
-    return json({ error: 'Server misconfigured', code: 'missing_env' }, 500)
-  }
+  if (!apiKey || !apiSecret) return reponseErreurOtp('verify-phone-otp', identifiantsVonageAbsents())
 
   let body: Body
   try {
@@ -134,8 +137,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     })
     clearTimeout(timeout)
   } catch (err) {
-    console.error('[verify-phone-otp] Vonage fetch threw', err)
-    return json({ error: 'OTP provider unreachable', code: 'vonage_error' }, 502)
+    return reponseErreurOtp('verify-phone-otp', vonageInjoignable(err))
   }
 
   // Vonage Verify v2 : 200 = valid, 400 = invalid_code, 404/410 = expired/used
@@ -146,9 +148,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid OTP code', code: 'invalid_code' }, 400)
   }
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    console.error('[verify-phone-otp] Vonage non-OK', { status: res.status, body: text.slice(0, 500) })
-    return json({ error: 'OTP provider error', code: 'vonage_error' }, 502)
+    const payload = (await res.json().catch(() => null)) as { type?: string; title?: string; detail?: string } | null
+    return reponseErreurOtp('verify-phone-otp', lireRefusVonage(res.status, payload))
   }
 
   // ── LE DRAPEAU, LE NUMÉRO ET LA LIGNE, EN UN SEUL APPEL (§D.26) ─────────
