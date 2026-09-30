@@ -59,15 +59,22 @@ const BADGES = read('app/api/me/badges/route.ts')
 section('A. IMMÉDIAT À L APPROBATION')
 // ══════════════════════════════════════════════════════════════════════════
 
-ok(/runMatchingForExpert\(\{/.test(APPROB),
-  'l approbation lance le moteur elle-même',
+// ARRÊT 19 (§C.14, M5/M6) : la recherche immédiate a UN chemin, partagé par l'approbation humaine et par le
+// verdict automatique (lib/matching/mise-en-relation-immediate.ts) — tentative comptée, run, solde s'il a abouti.
+const IMMEDIATE = read('lib/matching/mise-en-relation-immediate.ts')
+const VERDICT = read('lib/travaux-ia/executer-verification.ts')
+ok(/lancerMiseEnRelationImmediate\(auth\.supabaseAdmin, profileId, journal\)/.test(APPROB) && /runMatchingForExpert\(\{/.test(IMMEDIATE),
+  'l approbation lance le moteur elle-même (par la recherche immédiate)',
   'reporter d une heure ferait du premier contact de l expert un ecran vide')
-ok(!/programmerRelance/.test(APPROB),
+ok(!/programmerRelance/.test(APPROB) && !/programmerRelance/.test(IMMEDIATE),
   'et elle ne PROGRAMME rien : elle exécute',
   'programmer a l approbation serait exactement le contraire de ce qui est voulu')
-ok(/solderRelance\(auth\.supabaseAdmin, profileId, debutRun\)/.test(APPROB),
+ok(/solderRelance\(admin, profileId, debutRun\)/.test(IMMEDIATE),
   'une relance en attente est soldée par ce run',
   'sinon le moteur tournerait une seconde fois dans l heure, pour rien')
+ok(/if \(r\.de !== 'approved'\) \{[\s\S]{0,600}?lancerMiseEnRelationImmediate\(admin, t\.profile_id, journal\)/.test(VERDICT),
+  'le verdict AUTOMATIQUE qui approuve lance lui aussi le moteur, tout de suite',
+  'le jumeau non corrigé de l approbation : l auto-approbation ne comptait ni ne rejouait rien (§E.20)')
 
 // ══════════════════════════════════════════════════════════════════════════
 section('B. REPORTÉ ENSUITE — ET RIEN N EST PERDU')
@@ -89,7 +96,9 @@ section('B. REPORTÉ ENSUITE — ET RIEN N EST PERDU')
   const iBranche = PROFIL.indexOf("const etaitApprouve = (cp.verification_status ?? null) === 'approved'")
   // Le geste porte aussi sa pièce de journal (`journal`, §D.26) : on s'ancre
   // sur le profil passé au moteur, pas sur la liste exacte des champs (§E.65).
-  const iRun = PROFIL.search(/runMatchingForExpert\(\{ supabaseAdmin, profileId: cp\.id(, journal)? \}\)/)
+  // ARRÊT 19 (§D.30) : la vérification est un TRAVAIL — l'approbation, et donc son run direct, arrive par le
+  // VERDICT (ci-dessus). Sous la branche « pas encore approuvé », l'enregistrement ne fait plus que SORTIR.
+  const iRun = PROFIL.search(/if \(!etaitApprouve\) \{\s*return\s*\}/)
   const iProg = PROFIL.indexOf("programmerRelance(supabaseAdmin, cp.id, 'profil_modifie')")
 
   ok(iBranche !== -1,
@@ -98,7 +107,7 @@ section('B. REPORTÉ ENSUITE — ET RIEN N EST PERDU')
   // §E.8 : on ancre sur l'ORDRE, pas sur deux présences séparées. Les deux
   // appels peuvent coexister ; ce qui compte est lequel est sous la branche.
   ok(iBranche !== -1 && iRun > iBranche && iProg > iRun,
-    'le run direct est SOUS la branche, et le report vient après',
+    'la branche d approbation SORT (le run vient du verdict), et le report vient après',
     'programmer sous la branche d approbation ferait exactement l inverse de ce qui est voulu')
   ok(iProg !== -1,
     'un enregistrement ORDINAIRE programme toujours, il n exécute pas',

@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { supabase } from '@/lib/supabase'
-import { setExpertListening, type ExpertSide } from '@/lib/availability-actions'
+import { emitAvailabilityChanged, type ExpertSide } from '@/lib/availability-actions'
+import { basculerDisponibilite } from '@/lib/profil/bascule-disponibilite'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -30,9 +30,9 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 type Props = {
   side: ExpertSide
   /**
-   * users.id de l'expert connecté. Optionnel : si absent, le composant le
-   * récupère lui-même via `supabase.auth.getSession()` au moment du clic.
-   * Pratique pour les pages qui ne fetchent pas déjà la session (page Offres).
+   * Ignoré depuis le 30/09/2026 : la bascule passe par la route serveur, qui lit le compte
+   * dans la session (jamais un identifiant fourni par l'écran). Gardé pour ne pas casser
+   * les appelants ; rien ne le lit.
    */
   userId?: string
   /**
@@ -53,7 +53,7 @@ type Props = {
   onReprise?: () => void
 }
 
-export default function DndEmptyState({ side, userId, onReprise }: Props) {
+export default function DndEmptyState({ side, onReprise }: Props) {
   const t = useTranslations('expert_dnd_empty')
   const secureFetch = useSecureFetch()
   const [busy, setBusy] = useState(false)
@@ -68,23 +68,21 @@ export default function DndEmptyState({ side, userId, onReprise }: Props) {
     // finally relâche ; le parent revalide et démonte ce composant au
     // prochain tick, et la garde `busy` couvre l’instant entre les deux.
     try {
-    let effectiveUserId = userId
-    if (!effectiveUserId) {
-      // Fallback : récupère la session si la page parente ne nous l'a pas
-      // passée (cas /dashboard/{freelance|cdi}/missions qui n'a pas
-      // d'état user local).
-      const { data: { session } } = await supabase.auth.getSession()
-      effectiveUserId = session?.user?.id
-      if (!effectiveUserId) {
-        setError(t('error_generic'))
-        return
-      }
-    }
-    const res = await setExpertListening(supabase, side, effectiveUserId, true)
+    // ⚠️ LA BASCULE PASSE PAR LE SERVEUR (audit du 30/09/2026, M8). Elle écrivait `profiles`
+    //    DEPUIS LE NAVIGATEUR — un droit retiré le 28/09/2026 (migration portes_laterales_fermees) :
+    //    le bouton échouait TOUJOURS, et l'expert restait « ne pas déranger » sans issue. La route
+    //    `POST /api/profile/disponibilite` écrit, vérifie la voie et laisse sa ligne au grand livre.
+    const res = await basculerDisponibilite(
+      secureFetch,
+      side === 'freelance' ? 'availability_status' : 'cdi_status',
+      side === 'freelance' ? 'available' : 'open_to_work',
+    )
     if (!res.ok) {
+      console.error('[DndEmptyState] bascule refusée', { code: res.code })
       setError(t('error_generic'))
       return
     }
+    emitAvailabilityChanged()
     // ── SORTIE DU « NE PAS DÉRANGER » : LA RECHERCHE PART POUR DE VRAI ─────
     //
     //  Ce bloc posait un jalon dans `sessionStorage` pour que la page d'accueil

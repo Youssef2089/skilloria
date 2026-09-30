@@ -226,7 +226,9 @@ const DEFINIT_LA_GARDE = (s) => /export async function budgetDisponible\s*\(/.te
 const APPELANTS = TOUS.filter(
   (f) => /budgetDisponible\s*\(/.test(CODE.get(f)) && !DEFINIT_LA_GARDE(CODE.get(f)),
 )
-ok(APPELANTS.length >= 7, `les appelants de la garde sont découverts (${APPELANTS.length})`)
+// SIX depuis l'ARRÊT 19 (§D.30) : les DEUX routes d'analyse de CV (freelance, CDI) appelaient chacune la
+// garde ; l'analyse est devenue un travail d'IA, et UN exécutant l'appelle pour les deux voies.
+ok(APPELANTS.length >= 6, `les appelants de la garde sont découverts (${APPELANTS.length})`)
 
 let desaccords = 0
 for (const f of APPELANTS) {

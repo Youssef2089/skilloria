@@ -561,7 +561,8 @@
     "parsing_overlay": {
       "title": "Analyse läuft...",
       "duration": "5 bis 30 Sekunden",
-      "success": "✅ Analyse abgeschlossen, Weiterleitung..."
+      "success": "✅ Analyse abgeschlossen, Weiterleitung...",
+      "reprise": "Ein Vorfall auf unserer Seite: neuer Versuch ({tentative} von {sur}). Nichts wird angerechnet, bitte warten."
     },
     "errors": {
       "consent_required": "Bitte stimmen Sie der Verarbeitung Ihrer Daten zu, um fortzufahren.",
@@ -587,7 +588,21 @@
       "ecriture": "Die Analyse Ihres Lebenslaufs konnte nicht gespeichert werden: Ihr Profil wurde nicht geändert. Versuchen Sie es gleich noch einmal.",
       "journal": "Ihr Lebenslauf wurde verarbeitet, aber sein Eintrag konnte nicht geschrieben werden. Laden Sie die Seite neu, um Ihr Profil zu sehen; falls es erneut auftritt, schreiben Sie uns.",
       "inattendu": "Der Upload ist nicht durchgegangen (Code: {code}). Es wurde nichts geändert; falls es erneut auftritt, teilen Sie uns diesen Code mit.",
-      "reseau": "Die Verbindung zum Server ist fehlgeschlagen: Ihre Datei wurde nicht gesendet. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+      "reseau": "Die Verbindung zum Server ist fehlgeschlagen: Ihre Datei wurde nicht gesendet. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "depots_trop_frequents": "Sie haben innerhalb einer Stunde viele Dokumente hochgeladen. Bitte warten Sie etwas, bevor Sie es erneut versuchen.",
+      "document_refuse": "Dieses Dokument konnte nicht gelesen werden (geschütztes PDF, gescanntes Bild oder zu groß). Exportieren Sie es erneut als Text-PDF oder importieren Sie den PDF-Export Ihres LinkedIn-Profils.",
+      "modele_indisponible": "Der Analysedienst antwortet derzeit nicht. Es wurde keine Analyse angerechnet: Versuchen Sie es in einigen Minuten erneut.",
+      "echec_technique": "Die Analyse konnte auf unserer Seite nicht abgeschlossen werden. Es wurde keine Analyse angerechnet: Importieren Sie Ihr Dokument erneut."
+    },
+    "etat_analyse": {
+      "fait_titre": "Ihr Dokument wurde bereits analysiert",
+      "fait_texte": "Setzen Sie die Validierung Ihres Profils dort fort, wo Sie aufgehört haben, oder importieren Sie unten ein neueres Dokument, um es zu aktualisieren.",
+      "reprendre": "Validierung fortsetzen",
+      "en_cours_titre": "Eine Analyse läuft",
+      "en_cours_texte": "Sie werden zur Validierung Ihres Profils weitergeleitet, sobald sie abgeschlossen ist.",
+      "echoue_titre": "Die letzte Analyse wurde nicht abgeschlossen",
+      "continue_titre": "Die Analyse läuft weiter",
+      "continue_texte": "Sie dauert länger als erwartet, geht aber nicht verloren: Sie können diese Seite verlassen. Ihr Dashboard zeigt das Ergebnis, und diese Seite führt Sie zur Validierung, sobald sie abgeschlossen ist."
     }
   },
   "profile_validation": {
@@ -608,7 +623,9 @@
       "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Sie werden beim Speichern nicht geändert — es geht nichts verloren. Laden Sie die Seite neu, um es erneut zu versuchen.",
       "list_read_failed_retry": "Neu laden",
       "erase_not_declared": "Das Speichern wurde abgelehnt, um Ihre Daten zu schützen: Ein Abschnitt konnte nicht gelesen werden. Es wurde nichts geändert. Laden Sie die Seite neu und versuchen Sie es erneut.",
-      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung Ihres Profils. Es wurde nichts geändert – bitte versuchen Sie es gleich erneut."
+      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung Ihres Profils. Es wurde nichts geändert – bitte versuchen Sie es gleich erneut.",
+      "profile_load_failed": "Ihr Profil konnte nicht gelesen werden (vorübergehender Ausfall). Nichts wurde geändert: Laden Sie die Seite neu.",
+      "taxonomy_unavailable": "Bereiche, Fachgebiete und Zonen konnten nicht geladen werden. Damit nichts gelöscht wird, ist das Speichern gesperrt: Laden Sie die Seite neu."
     },
     "success": {
       "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
@@ -732,7 +749,13 @@
         },
         "primary_label": "Hauptsprache",
         "language_remove_aria": "Sprache entfernen",
-        "language_add_button": "+ Sprache hinzufügen"
+        "language_add_button": "+ Sprache hinzufügen",
+        "status_label": "Sind Sie offen für Aufträge?",
+        "status_options": {
+          "available": "Ja, ich bin offen",
+          "do_not_disturb": "Im Moment nicht"
+        },
+        "status_hint": "Ihr Lebenslauf kann das nicht sagen: Sie entscheiden. Sie können es jederzeit in Ihrem Dashboard ändern."
       },
       "links": {
         "title": "Links",
@@ -829,7 +852,8 @@
       "saving": "Wird gespeichert...",
       "publishing": "Wird veröffentlicht...",
       "publish_disabled_tooltip": "Füllen Sie die unten markierten Pflichtfelder aus, um Ihr Profil zu veröffentlichen.",
-      "publish_blocked_title": "{count, plural, =1 {1 Pflichtfeld muss noch ausgefüllt werden} other {# Pflichtfelder müssen noch ausgefüllt werden}}"
+      "publish_blocked_title": "{count, plural, =1 {1 Pflichtfeld muss noch ausgefüllt werden} other {# Pflichtfelder müssen noch ausgefüllt werden}}",
+      "draft_unpublishes": "Ihr Profil ist online: Das Speichern als Entwurf nimmt es aus dem Schaufenster, bis Sie es erneut veröffentlichen, wodurch die Prüfung neu startet."
     }
   },
   "profile_view": {
@@ -1449,7 +1473,8 @@
     "parsing_overlay": {
       "title": "Analyse läuft...",
       "duration": "5 bis 30 Sekunden",
-      "success": "✅ Analyse abgeschlossen, Weiterleitung..."
+      "success": "✅ Analyse abgeschlossen, Weiterleitung...",
+      "reprise": "Ein Vorfall auf unserer Seite: neuer Versuch ({tentative} von {sur}). Nichts wird angerechnet, bitte warten."
     },
     "errors": {
       "consent_required": "Bitte stimmen Sie der Datenverarbeitung zu, um fortzufahren.",
@@ -1464,7 +1489,22 @@
       "unknown_reason": "unbekannter Fehler",
       "parsing_default": "Analyse fehlgeschlagen",
       "timeout": "Zeitüberschreitung, bitte erneut versuchen.",
-      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung, und Ihre Datei wurde nicht gesendet. Bitte versuchen Sie es gleich erneut."
+      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung, und Ihre Datei wurde nicht gesendet. Bitte versuchen Sie es gleich erneut.",
+      "fichier_absent": "Es wurde keine Datei empfangen. Wählen Sie Ihren Lebenslauf erneut als PDF aus.",
+      "compte_different": "In diesem Browser hat sich ein anderes Konto angemeldet, daher wurden Sie abgemeldet. Melden Sie sich erneut mit Ihrem Konto an und laden Sie dann Ihren Lebenslauf hoch.",
+      "mauvais_type": "Dieser Upload ist Freelance-Expertenkonten vorbehalten, und das in diesem Browser angemeldete Konto ist keines. Melden Sie sich ab und mit Ihrem Freelance-Konto wieder an.",
+      "compte_introuvable": "Ihr Konto oder Profil wurde nicht gefunden. Melden Sie sich ab und wieder an; falls es weiterhin auftritt, schreiben Sie uns.",
+      "budget": "Die automatische Lebenslauf-Analyse ist vorerst ausgesetzt. Ihr Lebenslauf wurde nicht analysiert: Vervollständigen Sie Ihr Profil manuell oder versuchen Sie es später erneut.",
+      "configuration": "Der Lebenslauf-Upload ist auf dieser Website falsch konfiguriert: Das liegt nicht an Ihnen, und ein erneuter Versuch hilft nicht. Schreiben Sie uns; vervollständigen Sie Ihr Profil bis dahin manuell.",
+      "stockage": "Ihr Lebenslauf konnte nicht gespeichert werden; Ihr Profil wurde nicht geändert. Versuchen Sie es gleich noch einmal.",
+      "ecriture": "Die Analyse Ihres Lebenslaufs konnte nicht gespeichert werden: Ihr Profil wurde nicht geändert. Versuchen Sie es gleich noch einmal.",
+      "journal": "Ihr Lebenslauf wurde verarbeitet, aber sein Eintrag konnte nicht geschrieben werden. Laden Sie die Seite neu, um Ihr Profil zu sehen; falls es erneut auftritt, schreiben Sie uns.",
+      "inattendu": "Der Upload ist nicht durchgegangen (Code: {code}). Es wurde nichts geändert; falls es erneut auftritt, teilen Sie uns diesen Code mit.",
+      "reseau": "Die Verbindung zum Server ist fehlgeschlagen: Ihre Datei wurde nicht gesendet. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "depots_trop_frequents": "Sie haben innerhalb einer Stunde viele Dokumente hochgeladen. Bitte warten Sie etwas, bevor Sie es erneut versuchen.",
+      "document_refuse": "Dieses Dokument konnte nicht gelesen werden (geschütztes PDF, gescanntes Bild oder zu groß). Exportieren Sie es erneut als Text-PDF oder importieren Sie den PDF-Export Ihres LinkedIn-Profils.",
+      "modele_indisponible": "Der Analysedienst antwortet derzeit nicht. Es wurde keine Analyse angerechnet: Versuchen Sie es in einigen Minuten erneut.",
+      "echec_technique": "Die Analyse konnte auf unserer Seite nicht abgeschlossen werden. Es wurde keine Analyse angerechnet: Importieren Sie Ihr Dokument erneut."
     },
     "acces": {
       "refuse_titre": "Diese Seite ist für Festangestellten-Expertinnen und -Experten",
@@ -1493,7 +1533,9 @@
       "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Sie werden beim Speichern nicht geändert — es geht nichts verloren. Laden Sie die Seite neu, um es erneut zu versuchen.",
       "list_read_failed_retry": "Neu laden",
       "erase_not_declared": "Das Speichern wurde abgelehnt, um Ihre Daten zu schützen: Ein Abschnitt konnte nicht gelesen werden. Es wurde nichts geändert. Laden Sie die Seite neu und versuchen Sie es erneut.",
-      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung Ihres Profils. Es wurde nichts geändert – bitte versuchen Sie es gleich erneut."
+      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung Ihres Profils. Es wurde nichts geändert – bitte versuchen Sie es gleich erneut.",
+      "profile_load_failed": "Ihr Profil konnte nicht gelesen werden (vorübergehender Ausfall). Nichts wurde geändert: Laden Sie die Seite neu.",
+      "taxonomy_unavailable": "Bereiche, Fachgebiete und Zonen konnten nicht geladen werden. Damit nichts gelöscht wird, ist das Speichern gesperrt: Laden Sie die Seite neu."
     },
     "success": {
       "draft_saved": "Entwurf gespeichert. Sie können weiter bearbeiten oder zum Dashboard zurückkehren.",
@@ -1755,7 +1797,8 @@
       "saving": "Speichern...",
       "publishing": "Veröffentlichen...",
       "publish_disabled_tooltip": "Füllen Sie die unten markierten Pflichtfelder aus, um Ihr Profil zu veröffentlichen.",
-      "publish_blocked_title": "{count, plural, =1 {1 Pflichtfeld muss noch ausgefüllt werden} other {# Pflichtfelder müssen noch ausgefüllt werden}}"
+      "publish_blocked_title": "{count, plural, =1 {1 Pflichtfeld muss noch ausgefüllt werden} other {# Pflichtfelder müssen noch ausgefüllt werden}}",
+      "draft_unpublishes": "Ihr Profil ist online: Das Speichern als Entwurf nimmt es aus dem Schaufenster, bis Sie es erneut veröffentlichen, wodurch die Prüfung neu startet."
     }
   },
   "dashboard_entreprise": {
@@ -2427,6 +2470,14 @@
         "plafond_atteint": "Die Suche pausiert bis zur nächsten Aufstockung. Sie wird automatisch fortgesetzt.",
         "reglages_absents": "Auf unserer Seite fehlt eine Einstellung. Eine neue Suche ist geplant.",
         "lecture_en_panne": "Wir konnten Ihre Daten nicht lesen. Eine neue Suche ist geplant."
+      },
+      "empty_subtitle_sans_notification": "Schauen Sie wieder auf dieser Seite vorbei: Neue Möglichkeiten erscheinen hier, sobald eine Ausschreibung zu Ihrem Profil passt.",
+      "hors_du_moteur_title": "Derzeit läuft keine Suche für Sie",
+      "hors_du_moteur": {
+        "profil_non_visible": "Ihr Profil ist nicht sichtbar: Importieren Sie Ihren Lebenslauf oder Ihr LinkedIn-Profil und veröffentlichen Sie es, um Vorschläge zu erhalten.",
+        "cv_non_analyse": "Die letzte Analyse Ihres Lebenslaufs wurde nicht abgeschlossen: Importieren Sie ihn erneut, um die Suche fortzusetzen.",
+        "consentement_absent": "Die KI-Analyse Ihres Profils ist nicht erlaubt: Importieren Sie Ihren Lebenslauf und setzen Sie das Häkchen bei der Erlaubnis.",
+        "autre": "Ihr Profil erfüllt nicht alle Suchbedingungen: Öffnen Sie „Mein Profil“, um zu sehen, was fehlt."
       }
     },
     "casting": {
@@ -2810,7 +2861,8 @@
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "error_already_processed": "Dieses Profil wurde bereits bearbeitet.",
       "error_reason_required": "Ein Grund ist zur Ablehnung erforderlich.",
-      "speciality_other_prefix": "{value} (nicht im Referenzkatalog)"
+      "speciality_other_prefix": "{value} (nicht im Referenzkatalog)",
+      "years": "{count, plural, one {# Jahr Erfahrung} other {# Jahre Erfahrung}}"
     },
     "users": {
       "title": "Benutzer",
@@ -3179,7 +3231,9 @@
         "organisations_au_plafond_ia": "{count} Unternehmen haben ihre Ausgabengrenze erreicht: ihre Anzeigen erscheinen, werden aber nicht mehr eingestuft.",
         "experts_au_plafond_ia": "{count} Experte(n) haben ihre Ausgabengrenze erreicht: ihre automatischen Suchen sind gestoppt.",
         "lecture_indisponible_acteurs_plafond": "Die Konten an der Obergrenze konnten nicht gezählt werden. Das ist nicht „keine“: wir wissen es nicht.",
-        "variable_manquante": "Die Umgebungsvariable {nom} fehlt in dieser Bereitstellung: Eine Produktfunktion ist defekt. Setzen Sie sie in Vercel (Produktionsverfahren, Schritt 5) und stellen Sie erneut bereit."
+        "variable_manquante": "Die Umgebungsvariable {nom} fehlt in dieser Bereitstellung: Eine Produktfunktion ist defekt. Setzen Sie sie in Vercel (Produktionsverfahren, Schritt 5) und stellen Sie erneut bereit.",
+        "travaux_ia_en_souffrance": "{count} KI-Auftrag/Aufträge brauchen einen Menschen: eine Lebenslaufanalyse oder Expertenprüfung, die abgebrochen wurde, überfällig ist oder deren Ausführung gestoppt hat. Hinter jeder Zeile wartet ein Experte. Öffnen Sie KI-Aufträge und starten Sie sie neu.",
+        "lecture_indisponible_travaux_ia": "Die KI-Aufträge konnten nicht gezählt werden. Das heißt nicht „nichts zu tun“, sondern „wir wissen es nicht“. Öffnen Sie KI-Aufträge."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -3475,6 +3529,63 @@
           "journal": "Spuren der Bereinigungen werden nie gelöscht."
         }
       }
+    },
+    "nav_travaux_ia": "KI-Aufträge",
+    "travaux_ia": {
+      "title": "KI-Aufträge mit Handlungsbedarf",
+      "subtitle": "Die Lebenslaufanalyse und die Expertenprüfung laufen außerhalb der Anfrage des Experten und wiederholen sich selbst, wenn der Fehler bei uns liegt. Hier: was sich nicht von selbst gelöst hat. Jede Zeile ist ein wartender Experte.",
+      "loading": "Wird geladen…",
+      "err_load": "Die Liste konnte nicht gelesen werden. Das heißt nicht „nichts zu tun“: Laden Sie die Seite neu.",
+      "empty": "Kein Auftrag braucht einen Menschen: Jede Analyse und Prüfung ist abgeschlossen oder wiederholt sich selbst.",
+      "col_expert": "Experte",
+      "col_nature": "Auftrag",
+      "col_etat": "Status",
+      "col_cause": "Ursache",
+      "col_tentatives": "Versuche",
+      "col_date": "Seit",
+      "col_action": "Aktion",
+      "expert_sans_nom": "Experte (Name nicht lesbar)",
+      "nature": {
+        "analyse_cv": "Lebenslaufanalyse",
+        "verification_expert": "Expertenprüfung"
+      },
+      "statut": {
+        "echoue": "Abgebrochen",
+        "en_attente": "Überfällig",
+        "en_cours": "Ausführung gestoppt"
+      },
+      "cause_aucune": "Überfällig: Die Ausführung hat ihn noch nicht übernommen.",
+      "cause_inconnue": "Nicht erfasste Ursache ({code}).",
+      "tentatives": "{n} von {sur}",
+      "relancer": "Neu starten",
+      "relance_en_cours": "Wird neu gestartet…",
+      "relance_ok": "Neu gestartet: Das Profil ist wieder „in Bearbeitung“ und die Ausführung wurde geweckt.",
+      "relance_erreur": "Der Neustart ist fehlgeschlagen. Nichts wurde geändert: Versuchen Sie es erneut.",
+      "relance_plus_en_echec": "Dieser Auftrag ist nicht mehr fehlgeschlagen (bereits neu gestartet oder durch einen neuen Upload ersetzt).",
+      "repris_par_le_pilote": "Wird vom Planer innerhalb einer Minute übernommen",
+      "causes": {
+        "profil_illisible": "Das Profil konnte mehrmals nicht gelesen werden (Datenbankausfall).",
+        "profil_introuvable": "Das Profil existiert nicht mehr.",
+        "compte_illisible": "Das Konto konnte nicht gelesen werden (Datenbankausfall).",
+        "voie_inconnue": "Das Konto ist kein Experte.",
+        "document_absent": "Das hochgeladene Dokument ist nicht auffindbar.",
+        "stockage_illisible": "Das Dokument konnte nicht aus dem Speicher gelesen werden.",
+        "referentiel_illisible": "Die Referenzdaten des Ökosystems konnten nicht gelesen werden.",
+        "quota_non_configure": "Das Analysekontingent ist nicht konfiguriert (Administration → KI-Kontingente).",
+        "quota_illisible": "Das Analysekontingent konnte nicht gelesen werden.",
+        "plafond_depense": "Die KI-Ausgabenobergrenze ist erreicht.",
+        "modele_indisponible": "Der KI-Anbieter hat bei keinem Versuch geantwortet.",
+        "configuration": "Der Schlüssel des KI-Anbieters fehlt oder wurde abgelehnt.",
+        "document_refuse": "Der Anbieter hat das Dokument abgelehnt (geschützt, Bild, zu groß).",
+        "reponse_illisible": "Die Antworten des Modells waren nicht lesbar.",
+        "ecriture_en_panne": "Das Ergebnis konnte nicht geschrieben werden (Datenbankausfall).",
+        "exception_interne": "Ein Fehler in unserem Code bei jedem Versuch (siehe Serverprotokolle).",
+        "delai_depasse": "Die Ausführung wurde beim letzten Versuch vor dem Ende abgebrochen.",
+        "non_execute": "Niemand hat den Auftrag seit 30 Minuten übernommen: Die Ausführung wird nicht geweckt (Vault-Geheimnisse cron_secret und purge_cron_base_url?).",
+        "configuration_illisible": "Die Prüfungskonfiguration konnte nicht gelesen werden.",
+        "specialites_illisibles": "Die Fachgebiete konnten nicht gelesen werden."
+      },
+      "liste_coupee": "Nur die {n} neuesten Aufträge werden angezeigt: Die vollständige Liste ist länger. Starten Sie diese neu und laden Sie dann neu."
     }
   },
   "expert_verification": {
@@ -4884,7 +4995,10 @@
       "refus_garde_eligibilite": "Abgelehnt: Bewerbungsbedingungen nicht erfüllt",
       "refus_quota_cv": "Abgelehnt: Kontingent für Lebenslaufanalysen erreicht",
       "refus_depot_sans_jugement": "Abgelehnt: Bewerbung nicht bewertet",
-      "refus_recherche_en_cours": "Abgelehnt: eine Suche läuft bereits"
+      "refus_recherche_en_cours": "Abgelehnt: eine Suche läuft bereits",
+      "verification_conclue": "Prüfung abgeschlossen",
+      "travail_ia_echoue": "KI-Auftrag abgebrochen",
+      "travail_ia_relance": "KI-Auftrag neu gestartet"
     },
     "familles": {
       "annonce": "Anzeigen",
@@ -4995,6 +5109,107 @@
       "domaine_invalide": "Das ist kein Domainname. Geben Sie ihn ohne „@“ oder „http“ ein (zum Beispiel: beispiel.de).",
       "dans_l_autre_liste": "Diese Domain ist in der anderen Liste aktiv. Entfernen Sie sie dort zuerst: Eine Domain kann nicht zugleich gesperrt und öffentlich sein.",
       "domaine_inconnu": "Diese Domain steht nicht in der Liste. Laden Sie die Seite neu."
+    }
+  },
+  "profil_refus": {
+    "inattendu": "Der Server antwortete „{code}“. Nichts von Ihren Eingaben ist verloren: Versuchen Sie es erneut, und wenn es sich wiederholt, schreiben Sie uns mit diesem Code.",
+    "cv_non_pret": "Ihr Lebenslauf muss vor der Veröffentlichung analysiert werden: Importieren Sie ihn auf Ihrer Profilseite.",
+    "effacement": "Damit nichts verloren geht, wurde nichts gespeichert: Eine Liste wäre ungelesen geleert worden. Laden Sie die Seite neu.",
+    "lecture_indisponible": "Eine Prüfung konnte nicht durchgeführt werden (vorübergehender Ausfall). Nichts wurde geändert: Versuchen Sie es gleich erneut.",
+    "ecriture": "Das Speichern wurde nicht abgeschlossen (vorübergehender Ausfall). Nichts wurde geändert: Versuchen Sie es gleich erneut.",
+    "journal": "Ihr Profil ist gespeichert. Nur der Nachweis des Vorgangs konnte nicht geschrieben werden: Es ist nichts zu wiederholen.",
+    "verification_non_deposee": "Ihr Profil ist veröffentlicht, aber seine Prüfung konnte nicht gestartet werden. Veröffentlichen Sie es gleich erneut, um sie neu zu starten.",
+    "branche_inconnue": "Der gewählte Bereich existiert in Ihrem Ökosystem nicht mehr: Wählen Sie einen aus der Liste.",
+    "specialite_inconnue": "Ein gewähltes Fachgebiet existiert in Ihrem Ökosystem nicht mehr: Entfernen Sie es und wählen Sie aus der Liste.",
+    "zone_inconnue": "Eine gewählte Arbeitszone existiert nicht mehr: Entfernen Sie sie und wählen Sie aus der Liste.",
+    "autre_trop_long": "Die Angabe „Andere“ darf 100 Zeichen nicht überschreiten.",
+    "liste_illisible": "Eine gesendete Liste enthält keinen verwendbaren Eintrag (leerer Titel, Schule oder Sprache): Ergänzen oder entfernen Sie ihn.",
+    "liste_refusee": "{liste} Nr. {rang}: {cause} Nichts wurde gespeichert – korrigieren Sie diesen Eintrag und versuchen Sie es erneut.",
+    "liste_refusee_sans_rang": "Ein Eintrag wurde abgelehnt: {cause} Nichts wurde gespeichert.",
+    "champ_refuse": "Das Feld „{champ}“ hat einen Wert, den die Plattform nicht akzeptiert. Korrigieren Sie ihn und versuchen Sie es erneut: Nichts wurde gespeichert.",
+    "texte_trop_long": "Ein Text überschreitet die zulässige Länge. Kürzen Sie ihn: Nichts wurde gespeichert.",
+    "profil_absent": "Ihr Expertenprofil ist nicht auffindbar. Schreiben Sie uns: Sie müssen es nicht neu erstellen.",
+    "rien_a_enregistrer": "Nichts zu speichern: Kein Feld wurde geändert.",
+    "session": "Ihre Sitzung hat sich geändert: Melden Sie sich erneut an und versuchen Sie es noch einmal. Nichts wurde gespeichert.",
+    "incomplet": "Es fehlt noch: {champs}. Setzen Sie die Validierung über den Import Ihres Lebenslaufs fort.",
+    "listes": {
+      "experiences": "Erfahrung",
+      "formations": "Ausbildung",
+      "langues": "Sprache"
+    },
+    "causes": {
+      "champ_obligatoire": "ein Pflichtfeld ist leer (Titel, Startdatum, Schule oder Abschluss).",
+      "doublon": "diese Sprache steht bereits in der Liste.",
+      "texte_trop_long": "ein Text überschreitet die zulässige Länge.",
+      "date_illisible": "ein Datum ist nicht lesbar.",
+      "nombre_illisible": "ein Jahr ist keine ganze Zahl.",
+      "fin_avant_debut": "das Enddatum liegt vor dem Startdatum.",
+      "annee_hors_bornes": "ein Jahr liegt außerhalb des zulässigen Bereichs.",
+      "valeur_hors_liste": "ein Wert steht nicht in der vorgeschlagenen Liste.",
+      "ligne_refusee": "der Eintrag wurde abgelehnt."
+    },
+    "champs": {
+      "birth_year": "Geburtsjahr",
+      "years_total_experience": "Jahre Erfahrung",
+      "cdi_salary_min": "Mindestgehalt",
+      "cdi_salary_max": "Höchstgehalt",
+      "cdi_variable_pct": "Variabler Anteil",
+      "availability": "Verfügbarkeit",
+      "work_modes": "Arbeitsformen",
+      "seniorities": "Senioritätsstufen",
+      "visibilite": "Veröffentlichungskriterien"
+    },
+    "champs_visibilite": {
+      "title": "der Titel",
+      "summary": "die Zusammenfassung (200 bis 800 Zeichen)",
+      "skills": "mindestens drei Kompetenzen",
+      "branch_id": "der Bereich",
+      "speciality_ids": "ein Fachgebiet",
+      "seniorities": "die akzeptierten Senioritätsstufen",
+      "work_zone_ids": "die Arbeitszonen",
+      "availability": "Ihre Verfügbarkeit",
+      "experiences": "mindestens eine Erfahrung",
+      "languages_structured": "mindestens eine Sprache",
+      "cv_ready": "ein analysierter Lebenslauf"
+    }
+  },
+  "profil_masque": {
+    "titre_masque": "Ihr Profil ist für Organisationen nicht mehr sichtbar",
+    "titre_incomplet": "Ihr Profil ist für Organisationen noch nicht sichtbar",
+    "texte": "{count, plural, one {Es fehlt noch ein Element} other {Es fehlen noch # Elemente}}, um es zu veröffentlichen. Ihr Profil wird aus Ihrem Lebenslauf oder dem PDF-Export Ihres LinkedIn-Profils befüllt: Importieren Sie ihn, und die Validierung fragt nach dem, was ein Lebenslauf nicht sagen kann.",
+    "cta": "Meinen Lebenslauf oder mein LinkedIn-Profil importieren"
+  },
+  "ecarts_analyse": {
+    "titre": "{count, plural, one {Ein Element Ihres Dokuments wurde angepasst oder ausgelassen} other {# Elemente Ihres Dokuments wurden angepasst oder ausgelassen}} – bitte prüfen Sie sie unten.",
+    "ligne": "{bloc}: {motif}",
+    "ligne_avec_rang": "{bloc} Nr. {rang}: {motif}",
+    "blocs": {
+      "profil": "Profil",
+      "experiences": "Erfahrung",
+      "formations": "Ausbildung",
+      "langues": "Sprache"
+    },
+    "codes": {
+      "date_completee": "Datum auf den Monatsersten ergänzt (der Lebenslauf nannte nur Monat oder Jahr)",
+      "nombre_arrondi": "Zahl auf eine ganze Zahl gerundet",
+      "type_ramene": "Typ (Karriere oder Auftrag) abgeleitet",
+      "niveau_ramene": "Sprachniveau auf die europäische Skala übertragen",
+      "resume_raccourci": "Zusammenfassung auf 800 Zeichen gekürzt",
+      "date_illisible": "Datum nicht lesbar: Eintrag oder Datum ausgelassen",
+      "code_pays_illisible": "Land nicht lesbar: ausgelassen",
+      "valeur_hors_liste": "Wert außerhalb der vorgeschlagenen Liste: ausgelassen",
+      "ligne_sans_intitule": "Eintrag ohne Titel: ausgelassen",
+      "doublon": "Duplikat: ausgelassen",
+      "adresse_web_illisible": "Webadresse nicht lesbar: ausgelassen",
+      "resume_trop_court": "Zusammenfassung unter 200 Zeichen: Ergänzen Sie sie zur Veröffentlichung",
+      "texte_tronque": "Text zu lang: gekürzt",
+      "valeur_refusee": "Wert von der Plattform abgelehnt: ausgelassen",
+      "fin_avant_debut": "Ende vor dem Beginn: Enddatum entfernt",
+      "annee_hors_bornes": "Jahr außerhalb des Bereichs: Jahre entfernt",
+      "champ_obligatoire": "Pflichtfeld leer: Eintrag ausgelassen",
+      "nombre_illisible": "Zahl nicht lesbar: Eintrag ausgelassen",
+      "ligne_refusee": "Eintrag von der Plattform abgelehnt: ausgelassen",
+      "liste_entierement_refusee": "kein lesbarer Eintrag: Die bisherige Liste bleibt erhalten"
     }
   }
 }

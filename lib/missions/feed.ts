@@ -35,7 +35,7 @@ import { activePublishedOrClause } from '@/lib/publications/expiry'
 // lecteur du même fait, et le plafond de tentatives existerait deux fois.
 import { etatDerniereRecherche } from '@/lib/matching/run-abouti'
 // LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS (§D.20).
-import { COLONNES_PROFIL, enIndisponibilite } from '@/lib/matching/eligibilite'
+import { COLONNES_PROFIL, CONDITIONS_ELIGIBILITE, enIndisponibilite, type RaisonIneligible } from '@/lib/matching/eligibilite'
 
 /**
  * Plafond du feed expert. Le badge s'y borne aussi : il ne doit jamais annoncer
@@ -79,6 +79,18 @@ export type ExpertFeedContext = {
    *    produirait un second lecteur, et les deux divergeraient (§E.20).
    */
   derniereRecherche: { etat: 'echec'; raison: string; abandonnee: boolean } | null
+  /**
+   * APPROUVÉ, MAIS HORS DU MOTEUR — la raison NOMMÉE (audit du 30/09/2026, m) : un profil masqué ou
+   * un CV dont la ré-analyse a échoué ne reçoit rien, et l'écran « missions » disait « aucune
+   * opportunité — vous serez notifié ». `null` quand rien ne l'écarte. La raison vient de la règle
+   * partagée (§D.20), jamais d'une expression locale.
+   */
+  horsDuMoteur: RaisonIneligible | null
+  /**
+   * UNE NOTIFICATION PARTIRA-T-ELLE ? — `matching_settings.notify_enabled` de SON écosystème (M12).
+   * « Vous serez notifié » n'est écrit que si c'est vrai ; `null` = pas pu lire (on ne promet rien).
+   */
+  notificationsActives: boolean | null
 }
 
 
@@ -104,7 +116,7 @@ export async function loadExpertFeedContext(
       // ⚠️ LES COLONNES D'ÉLIGIBILITÉ SONT DÉRIVÉES DE LA RÈGLE, pas listées :
       //    une condition ajoutée demain charge sa colonne ici toute seule. Un
       //    test sur une colonne non chargée lit `undefined` et conclut (§E.1).
-      `id, ${COLONNES_PROFIL.join(', ')}, ` +
+      `id, domain_id, ${COLONNES_PROFIL.join(', ')}, ` +
         // L'ÉTAT DE LA DERNIÈRE RECHERCHE. Sans lui, un flux vide se lit
         // « aucune mission » alors que rien n'a été cherché (§E.27).
         'matching_relance_echec_code, matching_relance_due_at, matching_relance_tentatives',
@@ -136,6 +148,8 @@ export async function loadExpertFeedContext(
         isDnd: false,
         isOpen: false,
         derniereRecherche: null,
+        horsDuMoteur: null,
+        notificationsActives: null,
       },
     }
   }
@@ -149,6 +163,29 @@ export async function loadExpertFeedContext(
   //    demain l'ajoute ici sans toucher à ce fichier.
   const isDnd = enIndisponibilite(row as unknown as Record<string, unknown>)
 
+  // Les conditions du PROFIL que la règle partagée juge pour tout public — la première qui manque.
+  // (L'approbation et la disponibilité ont déjà leur propre état : isApproved, isDnd.)
+  const ligne = row as unknown as Record<string, unknown>
+  const horsDuMoteur =
+    CONDITIONS_ELIGIBILITE.find(
+      (c) =>
+        c.portee === 'toujours' &&
+        c.filtre.cible === 'profil' &&
+        c.raison !== 'profil_non_approuve' &&
+        !(c.remplie as (l: Record<string, unknown>) => boolean)(ligne),
+    )?.raison ?? null
+
+  const domaine = (row as { domain_id?: string | null }).domain_id ?? null
+  let notificationsActives: boolean | null = null
+  if (domaine) {
+    const { data: reglage, error: reglageErr } = await supabaseAdmin
+      .from('matching_settings')
+      .select('notify_enabled')
+      .eq('domain_id', domaine)
+      .maybeSingle()
+    if (!reglageErr && reglage) notificationsActives = (reglage as { notify_enabled?: boolean }).notify_enabled === true
+  }
+
   return {
     ok: true,
     context: {
@@ -157,6 +194,8 @@ export async function loadExpertFeedContext(
       isDnd,
       isOpen: isApproved && !isDnd,
       derniereRecherche: etatDerniereRecherche(row),
+      horsDuMoteur: isApproved ? horsDuMoteur : null,
+      notificationsActives,
     },
   }
 }

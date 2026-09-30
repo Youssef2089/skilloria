@@ -6,14 +6,14 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { MARQUES_TIERCES } from '@/lib/palette'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { suivreAnalyse, type Reprise } from '@/lib/profil/suivi-analyse'
+import EtatAnalyseCv from '@/components/profile/EtatAnalyseCv'
 import { cleMessageDepotCv } from '@/lib/profil/refus-depot-cv'
 import { LEGAL_PATHS } from '@/lib/legal'
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
 
 const MAX_SIZE = 5 * 1024 * 1024
-const POLL_INTERVAL_MS = 2000
-const POLL_TIMEOUT_MS = 60_000
 
 const LOCALE_DATE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -24,6 +24,7 @@ const LOCALE_DATE_MAP: Record<string, string> = {
 
 export default function ProfilUploadPage() {
   const t = useTranslations('profile_upload')
+  const tSuivi = useTranslations('profile_upload')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -33,6 +34,10 @@ export default function ProfilUploadPage() {
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
+  // Une analyse REJOUÉE après un incident de notre côté (rien n'est décompté) — l'attente le dit.
+  const [reprise, setReprise] = useState<Reprise | null>(null)
+  // L'attente de l'écran s'est terminée avant l'analyse : elle continue, le tableau de bord dira l'issue.
+  const [analyseContinue, setAnalyseContinue] = useState(false)
 
   const cvInputRef = useRef<HTMLInputElement>(null)
   const liInputRef = useRef<HTMLInputElement>(null)
@@ -46,23 +51,6 @@ export default function ProfilUploadPage() {
       return
     }
     ref.current?.click()
-  }
-
-  const pollStatus = async (
-    jobId: string,
-  ): Promise<{ ok: true } | { ok: false; error: string }> => {
-    const start = Date.now()
-    while (Date.now() - start < POLL_TIMEOUT_MS) {
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-      const res = await secureFetch(`/api/profile/cv-status/${jobId}`, { method: 'GET' })
-      const payload = await res.json().catch(() => ({} as any))
-      if (payload?.status === 'done') return { ok: true }
-      if (payload?.status === 'failed') {
-        // Jamais le texte serveur brut (payload.error) : message i18n générique.
-        return { ok: false, error: t('errors.parsing_default') }
-      }
-    }
-    return { ok: false, error: t('errors.timeout') }
   }
 
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,6 +74,24 @@ export default function ProfilUploadPage() {
     setStatus('uploading')
     setErrorMsg(null)
     setStatusMsg(null)
+    setReprise(null)
+    setAnalyseContinue(false)
+
+    /** Le message d'un refus ou d'un échec — la MÊME table pour la route et pour le travail (§E.87). */
+    const direCode = (code: unknown, statutHttp: number | null, resetAt?: unknown) => {
+      const cle = cleMessageDepotCv(code)
+      if (cle === 'rate_limit') {
+        const reset = typeof resetAt === 'string'
+          ? new Date(resetAt).toLocaleString(LOCALE_DATE_MAP[locale] ?? locale)
+          : t('errors.rate_limit_later')
+        setErrorMsg(t('errors.rate_limit', { reset }))
+      } else if (cle === 'inattendu') {
+        console.error('[profil upload] code inconnu', { code, status: statutHttp })
+        setErrorMsg(t('errors.inattendu', { code: typeof code === 'string' ? code : `HTTP ${statutHttp ?? '?'}` }))
+      } else {
+        setErrorMsg(t(`errors.${cle}` as 'errors.consent_required'))
+      }
+    }
 
     try {
       const form = new FormData()
@@ -99,41 +105,27 @@ export default function ProfilUploadPage() {
       const payload = await res.json().catch(() => ({} as any))
 
       if (!res.ok) {
-        // CHAQUE CODE A SON MESSAGE (§E.87) : la table vit dans lib/profil/refus-depot-cv.ts, confrontée
-        // aux codes de la route par `diag-identite-cv`. Un code inconnu est CITÉ — plus jamais « une erreur est
-        // survenue », qui ne disait ni la cause ni quoi faire.
-        const code = payload?.code
-        const cle = cleMessageDepotCv(code)
-        if (cle === 'rate_limit') {
-          const reset = payload?.reset_at
-            ? new Date(payload.reset_at).toLocaleString(LOCALE_DATE_MAP[locale] ?? locale)
-            : t('errors.rate_limit_later')
-          setErrorMsg(t('errors.rate_limit', { reset }))
-        } else if (cle === 'inattendu') {
-          console.error('[profil upload] code de refus inconnu', { code, status: res.status })
-          setErrorMsg(t('errors.inattendu', { code: typeof code === 'string' ? code : `HTTP ${res.status}` }))
-        } else {
-          setErrorMsg(t(`errors.${cle}` as 'errors.consent_required'))
-        }
+        direCode(payload?.code, res.status, payload?.reset_at)
         setStatus('error')
         return
       }
 
-      if (payload?.status === 'failed') {
-        setErrorMsg(t('errors.parsing_default'))
-        setStatus('error')
-        return
-      }
-
+      // L'analyse est un TRAVAIL (§D.30) : on la suit jusqu'à son issue réelle.
       if (payload?.status === 'processing' && payload?.jobId) {
-        const poll = await pollStatus(payload.jobId)
-        if (!poll.ok) {
-          setErrorMsg(poll.error)
+        const issue = await suivreAnalyse(secureFetch, payload.jobId, setReprise)
+        if (issue.issue === 'echouee') {
+          direCode(issue.code, null)
           setStatus('error')
           return
         }
+        if (issue.issue === 'toujours_en_cours') {
+          // L'ATTENTE de l'écran est finie, pas le travail : il aboutira ou sera clos par la base,
+          // et le tableau de bord le dira. Ce n'est pas un échec — l'écran ne le présente pas comme tel.
+          setStatus('idle')
+          setAnalyseContinue(true)
+          return
+        }
       } else if (payload?.status !== 'done') {
-        // Une réponse 2xx sans statut lisible : on le DIT, avec ce qu'on a reçu.
         setErrorMsg(t('errors.inattendu', { code: String(payload?.status ?? 'sans_statut') }))
         setStatus('error')
         return
@@ -217,6 +209,16 @@ export default function ProfilUploadPage() {
         <p style={{ fontSize: 15, color: 'var(--sk-muted)', lineHeight: 1.6, marginBottom: 32, maxWidth: 640 }}>
           {t('page_subtitle')}
         </p>
+
+        {/* L'ÉTAT DE L'ANALYSE — toutes les entrées du tableau de bord mènent ici (décision du 30/09/2026) :
+            un document déjà analysé ne se recommence pas, on reprend sa validation. */}
+        <EtatAnalyseCv validerHref="/dashboard/freelance/profil/valider" />
+        {analyseContinue && (
+          <section role="status" style={{ border: '1px solid var(--sk-border)', background: 'var(--sk-surface)', borderRadius: 14, padding: '16px 18px', marginBottom: 18 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 4 }}>{tSuivi('etat_analyse.continue_titre')}</div>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0, lineHeight: 1.55 }}>{tSuivi('etat_analyse.continue_texte')}</p>
+          </section>
+        )}
 
         <div
           className="profil-grid"
@@ -552,6 +554,11 @@ export default function ProfilUploadPage() {
               {t('parsing_overlay.title')}
             </div>
             <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('parsing_overlay.duration')}</div>
+            {reprise && (
+              <div role="status" style={{ fontSize: 13, color: 'var(--sk-amber)', marginTop: 10, lineHeight: 1.5 }}>
+                {t('parsing_overlay.reprise', { tentative: reprise.tentative + 1, sur: reprise.sur })}
+              </div>
+            )}
           </div>
         </div>
       )}

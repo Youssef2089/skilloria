@@ -37,8 +37,13 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- Ce push (l'analyse du CV en une fois, 30/09/2026, §E.87) : UNE migration, `analyse_cv_atomique` — elle ne
-  -- retire aucune signature ; elle crée la fonction appliquer_analyse_cv.
+  -- Ce push (le parcours expert, 30/09/2026, ARRÊT 19, §D.30, §E.88) : HUIT migrations — types_experience,
+  -- analyse_cv_tolerante, verification_conclue, travaux_ia, premiere_recherche_rejouee, notifications_match,
+  -- specialite_autre_publiable, listes_profil_atomiques. Elles ne retirent AUCUNE signature (appliquer_analyse_cv
+  -- reste, plus appelée : elle partira au push SUIVANT, §E.72) ; elles remplacent À SIGNATURE IDENTIQUE
+  -- statuer_sur_expert, echouer_relance_expert, programmer_relance_expert, et deux contraintes existantes
+  -- (profile_experiences_experience_type_check, profiles_visible_requiert_criteres_check) — rien de tout cela n'est
+  -- « créé », c'est pourquoi ces noms ne figurent pas ci-dessous.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
@@ -46,7 +51,43 @@ with
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'appliquer_analyse_cv')
+      ('fonction', 'types_experience'),
+      ('fonction', 'longueur_max_colonne'),
+      ('fonction', 'borner_textes'),
+      ('fonction', 'ecrire_analyse_cv'),
+      ('fonction', 'poser_verdict_verification'),
+      ('fonction', 'journaliser_travail_ia'),
+      ('fonction', 'reveiller_travaux_ia'),
+      ('fonction', 'deposer_travail_ia'),
+      ('fonction', 'deposer_analyse_cv'),
+      ('fonction', 'deposer_verification_expert'),
+      ('fonction', 'prendre_travail_ia'),
+      ('fonction', 'clore_travail_ia_en_echec'),
+      ('fonction', 'echouer_travail_ia'),
+      ('fonction', 'terminer_analyse_cv'),
+      ('fonction', 'conclure_verification_expert'),
+      ('fonction', 'clore_travaux_ia_perdus'),
+      ('fonction', 'piloter_travaux_ia'),
+      ('fonction', 'relancer_travail_ia'),
+      ('fonction', 'travaux_ia_en_souffrance'),
+      ('fonction', 'poser_notifications_match'),
+      ('fonction', 'remplacer_listes_profil'),
+      ('table', 'travaux_ia'),
+      ('index', 'travaux_ia_un_actif'),
+      ('index', 'travaux_ia_dus'),
+      ('index', 'travaux_ia_baux'),
+      ('index', 'travaux_ia_profil'),
+      ('index', 'travaux_ia_echecs'),
+      ('contrainte', 'travaux_ia_nature_check'),
+      ('contrainte', 'travaux_ia_statut_check'),
+      ('contrainte', 'travaux_ia_tentatives_check'),
+      ('contrainte', 'travaux_ia_bail_si_en_cours'),
+      ('contrainte', 'travaux_ia_fin_si_clos'),
+      ('contrainte', 'travaux_ia_code_si_echec'),
+      ('contrainte', 'travaux_ia_code_forme'),
+      ('contrainte', 'travaux_ia_charge_objet'),
+      ('contrainte', 'travaux_ia_acteur_coherent'),
+      ('contrainte', 'travaux_ia_acteur_type_check')
     ) v(genre, nom)
   )
 
@@ -59,7 +100,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'sous_domaine_reglable',
+   'analyse_cv_atomique',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 
@@ -138,7 +179,7 @@ from (values
                            'grand_livre', 'grand_livre_actions', 'grand_livre_conservation', 'matches',
                            'matching_settings', 'messages', 'organization_invitations', 'organization_members',
                            'organizations', 'packages', 'profiles', 'public_email_domains', 'publications', 'session_logs', 'stripe_events',
-                           'transactions', 'users', 'verification_providers'))),
+                           'transactions', 'travaux_ia', 'users', 'verification_providers'))),
 
   -- ⑨ Le grand livre se lit par `lire_grand_livre()` et `lire_piece()` seulement : AUCUNE politique sur la
   --    table, lecture comprise (une politique de lecture l'ouvrirait au navigateur).

@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { consommationJetons, type ConsommationIA } from './ai-consommation.ts'
+import { TYPES_EXPERIENCE } from './profil/types-experience.ts'
+import { causeEchecModele, type CauseEchecModele } from './profil/cause-echec-modele.ts'
 
 export type DomainContext = {
   tags: string[]
@@ -70,7 +72,7 @@ export type ParsedCV = {
 
 export type ParseResult =
   | { success: true; data: ParsedCV; usage: ConsommationIA | null }
-  | { success: false; error: string; usage: ConsommationIA | null }
+  | { success: false; error: string; usage: ConsommationIA | null; cause: CauseEchecModele }
 
 const MODEL = 'claude-haiku-4-5-20251001'
 const TIMEOUT_MS = 30_000
@@ -86,7 +88,11 @@ function buildTool(ctx: DomainContext) {
       additionalProperties: false,
       properties: {
         title: { type: ['string', 'null'] },
-        summary: { type: ['string', 'null'] },
+        summary: {
+          type: ['string', 'null'],
+          description:
+            "Résumé professionnel RÉDIGÉ à partir du document, entre 300 et 700 caractères, à la troisième personne ou sans pronom : ce qu'est la personne, ce qu'elle fait, dans quel écosystème. Jamais son nom.",
+        },
         seniorities: {
           type: 'array',
           items: { type: 'string', enum: ['junior', 'confirmed', 'senior', 'expert'] },
@@ -154,7 +160,8 @@ function buildTool(ctx: DomainContext) {
             properties: {
               experience_type: {
                 type: 'string',
-                enum: ['career', 'project'],
+                // LA liste partagée avec la base (types_experience(), §E.88) — jamais recopiée.
+                enum: [...TYPES_EXPERIENCE],
                 description:
                   "'career' pour une entrée d'historique d'emploi (par employeur). 'project' pour une mission / projet concret par client.",
               },
@@ -237,6 +244,8 @@ function buildTool(ctx: DomainContext) {
 function buildSystemPrompt(ctx: DomainContext): string {
   return [
     "Tu es un analyste qui extrait des informations structurées d'un CV PDF pour la marketplace Skilloria.",
+    "Le document peut être un CV OU l'export PDF d'un profil LinkedIn (« Enregistrer au format PDF » : sections Expérience, Formation, Compétences principales, Languages) : lis-le de la même façon.",
+    'Le résumé (`summary`) : RÉDIGE-le toi-même à partir du document, entre 300 et 700 caractères — même si le document n\'en a pas, ou en a un plus court ou plus long.',
     'Langue cible : français.',
     'Tu DOIS appeler l\'outil `record_cv` avec un JSON strict. Ne renvoie jamais de texte libre.',
     `Normalise les compétences contre la liste suivante quand c'est possible : ${ctx.tags.join(', ')}.`,
@@ -348,10 +357,12 @@ export async function parseCV(
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     console.error('[cv-parser] ANTHROPIC_API_KEY manquante')
-    return { success: false, error: 'AI provider not configured', usage: null }
+    return { success: false, error: 'AI provider not configured', usage: null, cause: 'configuration' }
   }
 
-  const client = new Anthropic({ apiKey })
+  // AUCUN rejeu du SDK : l'exécutant des travaux d'IA rejoue lui-même, avec un délai croissant et un
+  // plafond (§D.30). Deux mécanismes de rejeu empilés multipliaient la durée d'un échec.
+  const client = new Anthropic({ apiKey, maxRetries: 0 })
   const pdfBase64 = pdfBuffer.toString('base64')
 
   const attempt = async (): Promise<{ data: ParsedCV; usage: ConsommationIA }> => {
@@ -372,7 +383,7 @@ export async function parseCV(
     const isNetwork = /network|fetch|timeout|abort|ECONN|EAI|socket/i.test(msg)
     if (!isNetwork) {
       console.error('[cv-parser] parse failed (no retry)', msg)
-      return { success: false, error: msg, usage: null }
+      return { success: false, error: msg, usage: null, cause: causeEchecModele(err) }
     }
     console.warn('[cv-parser] network error, retrying once:', msg)
     try {
@@ -381,7 +392,7 @@ export async function parseCV(
     } catch (err2) {
       const msg2 = err2 instanceof Error ? err2.message : String(err2)
       console.error('[cv-parser] parse failed after retry', msg2)
-      return { success: false, error: msg2, usage: null }
+      return { success: false, error: msg2, usage: null, cause: causeEchecModele(err2) }
     }
   }
 }

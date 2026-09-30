@@ -6,6 +6,11 @@ import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { sessionDuCompteAffiche } from '@/lib/identite/compte-affiche'
+import { messageRefusProfil } from '@/lib/profil/refus-profil'
+// Les bornes de la BASE, posées sur les champs (m6) — un miroir contrôlé par diag-parcours-expert.
+import { LONGUEURS_SAISIE, ANNEE_NAISSANCE_MIN, anneeNaissanceMax, ANNEE_FORMATION_MIN, anneeDebutFormationMax, anneeFinFormationMax } from '@/lib/profil/bornes-saisie'
+import EcartsAnalyse from '@/components/profile/EcartsAnalyse'
 import CountrySelect from '@/components/CountrySelect'
 import CompactListItem from '@/components/CompactListItem'
 import CdiStatusToggle, { type CdiStatus } from '@/components/cdi/CdiStatusToggle'
@@ -200,6 +205,7 @@ export default function CdiValiderProfilPage() {
   const secureFetch = useSecureFetch()
   const SPECIALITY_OTHER = '__other__'
   const tProfile = useTranslations('cdi_profile_validation')
+  const tRefus = useTranslations('profil_refus')
   // tView : on réutilise les options déjà i18n-isées dans le namespace
   // cdi_profile_view (notice_period_options, geo_mobility_options, etc.).
   // Évite la duplication des 30+ libellés d'options.
@@ -274,6 +280,11 @@ export default function CdiValiderProfilPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [missingFields, setMissingFields] = useState<string[] | null>(null)
   const [parsingFailed, setParsingFailed] = useState(false)
+  // Le profil est-il EN LIGNE ? « Enregistrer comme brouillon » le retire de la vitrine, et l'écran le DIT avant.
+  const [etaitVisible, setEtaitVisible] = useState(false)
+  // Le référentiel n'a pas pu être lu : on n'envoie PAS des listes vides à sa place (M11).
+  const [taxonomieIndisponible, setTaxonomieIndisponible] = useState(false)
+  const [profileId, setProfileId] = useState<string | null>(null)
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
@@ -453,9 +464,9 @@ export default function CdiValiderProfilPage() {
     let cancelled = false
 
     const load = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      // L'IDENTITÉ PAR LE COMPTE AFFICHÉ (§E.87), comme la voie freelance.
+      const session = await sessionDuCompteAffiche()
+      if (session === 'ejecte') return
       if (cancelled) return
       if (!session) {
         router.push('/connexion')
@@ -504,14 +515,22 @@ export default function CdiValiderProfilPage() {
         .eq('user_id', session.user.id)
         .single()
 
-      if (profErr || !profile) {
-        // Pas de profil → renvoyer vers la page d'upload
+      // UNE PANNE DE LECTURE N'EST PAS UNE ABSENCE (§E.42) : on le DIT, on ne renvoie pas au dépôt.
+      if (profErr) {
+        setErrorMsg(tProfile('errors.profile_load_failed'))
+        setLoading(false)
+        setAuthChecked(true)
+        return
+      }
+      if (!profile) {
         router.push('/dashboard/cdi/profil')
         return
       }
       if (cancelled) return
 
       const p = profile as any
+      setProfileId(p.id as string)
+      setEtaitVisible(p.visible === true)
       setParsingFailed(p.cv_parsing_status === 'failed')
       setCvParsingStatus(p.cv_parsing_status ?? null)
       setAiConsentAt(p.ai_consent_at ?? null)
@@ -575,7 +594,8 @@ export default function CdiValiderProfilPage() {
         `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}`,
         { cache: 'no-store' },
       )
-        .then(r => (r.ok ? r.json() : { branches: [], specialities: [], work_zones: [] }))
+        // LE RÉFÉRENTIEL ILLISIBLE N'EST PAS UN RÉFÉRENTIEL VIDE (M11) : il faisait effacer branche, spécialités, zones.
+        .then(r => (r.ok ? r.json() : { branches: [], specialities: [], work_zones: [], __illisible: true }))
         .catch(() => ({ branches: [], specialities: [], work_zones: [] }))
 
       const [taxonomy, expsRes, edusRes, langsRes] = await Promise.all([
@@ -599,6 +619,7 @@ export default function CdiValiderProfilPage() {
       ])
       if (cancelled) return
 
+      setTaxonomieIndisponible((taxonomy as { __illisible?: boolean }).__illisible === true)
       setBranches((taxonomy.branches ?? []) as Branch[])
       setSpecialities((taxonomy.specialities ?? []) as Speciality[])
       setWorkZones((taxonomy.work_zones ?? []) as WorkZone[])
@@ -839,7 +860,9 @@ export default function CdiValiderProfilPage() {
         summary,
         skills,
         branch_id: branchId || null,
-        speciality_ids: specialityIds,
+        // « Autre » n'est pas un identifiant : c'est sa PRÉCISION qui tient le critère (B4).
+        speciality_ids: specialityIds.filter(id => id !== SPECIALITY_OTHER),
+        speciality_other: specialityIds.includes(SPECIALITY_OTHER) ? specialityOther : null,
         seniorities,
         work_zone_ids: workZoneIds,
         availability_status: null,
@@ -869,6 +892,10 @@ export default function CdiValiderProfilPage() {
     setErrorMsg(null)
     setSuccessMsg(null)
     setMissingFields(null)
+    if (taxonomieIndisponible) {
+      setErrorMsg(tProfile('errors.taxonomy_unavailable'))
+      return
+    }
 
     // Garde inline cohérence salaires (bloque même en mode brouillon —
     // le CHECK constraint serveur rejetterait la ligne sinon).
@@ -950,7 +977,8 @@ export default function CdiValiderProfilPage() {
       work_zone_codes: workZoneIds
         .map(id => workZones.find(z => z.id === id)?.code)
         .filter((c): c is string => !!c),
-      languages: cleanedLanguages.map(l => l.language),
+      // La liste plate suit la liste STRUCTURÉE : pas lue, pas envoyée (sinon `[]` l'effacerait).
+      ...(listesLues.includes('languages_structured') ? { languages: cleanedLanguages.map(l => l.language) } : {}),
       location: location.trim() || null,
       linkedin_url: linkedinUrl.trim() || null,
       phone: phone.trim() || null,
@@ -1027,12 +1055,14 @@ export default function CdiValiderProfilPage() {
         ) {
           setErrorMsg(tProfile('errors.verification_indisponible'))
         } else {
-          setErrorMsg(tProfile('errors.save_failed'))
+          // CHAQUE AUTRE CODE A SON MESSAGE (lib/profil/refus-profil.ts), comme la voie freelance (§E.20).
+          setErrorMsg(messageRefusProfil(payload, res.status, (cle, v) => tRefus(cle as 'inattendu', v)))
         }
         return
       }
 
       if (visible) {
+        // La vérification est un TRAVAIL (§D.30) : le tableau de bord dit « en cours » tant que c'est vrai.
         router.push('/dashboard/cdi')
         return
       }
@@ -1189,6 +1219,7 @@ export default function CdiValiderProfilPage() {
               : tProfile('sections.missions.role_label')}
           </label>
           <input
+                    maxLength={LONGUEURS_SAISIE.role}
             type="text"
             value={exp.role}
             onChange={e => updateExperience(idx, { role: e.target.value })}
@@ -1205,6 +1236,7 @@ export default function CdiValiderProfilPage() {
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>{tProfile('sections.career.employer_label')}</label>
             <input
+                    maxLength={LONGUEURS_SAISIE.employer}
               type="text"
               value={exp.employer}
               onChange={e => updateExperience(idx, { employer: e.target.value })}
@@ -1225,6 +1257,7 @@ export default function CdiValiderProfilPage() {
             <div>
               <label style={labelStyle}>{tProfile('sections.missions.client_label')}</label>
               <input
+                    maxLength={LONGUEURS_SAISIE.client_name}
                 type="text"
                 value={exp.client_name}
                 onChange={e =>
@@ -1237,6 +1270,7 @@ export default function CdiValiderProfilPage() {
             <div>
               <label style={labelStyle}>{tProfile('sections.missions.sector_label')}</label>
               <input
+                    maxLength={LONGUEURS_SAISIE.sector}
                 type="text"
                 value={exp.sector}
                 onChange={e => updateExperience(idx, { sector: e.target.value })}
@@ -1683,6 +1717,8 @@ export default function CdiValiderProfilPage() {
               </div>
             )}
 
+            <EcartsAnalyse profileId={profileId} />
+
             {parsingFailed && !errorMsg && !successMsg && (
               <div
                 style={{
@@ -1757,10 +1793,10 @@ export default function CdiValiderProfilPage() {
                   {tProfile('sections.identity.title_label')}
                 </label>
                 <input
+                    maxLength={LONGUEURS_SAISIE.title}
                   ref={fieldRefs.title as RefObject<HTMLInputElement>}
                   className={focusClass('title')}
                   type="text"
-                  maxLength={200}
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder={tProfile('sections.identity.title_placeholder')}
@@ -2752,6 +2788,7 @@ export default function CdiValiderProfilPage() {
                           {tProfile('sections.education.school_label')}
                         </label>
                         <input
+                    maxLength={LONGUEURS_SAISIE.school}
                           type="text"
                           value={edu.school}
                           onChange={e => updateEducation(i, { school: e.target.value })}
@@ -2764,6 +2801,7 @@ export default function CdiValiderProfilPage() {
                           {tProfile('sections.education.degree_label')}
                         </label>
                         <input
+                    maxLength={LONGUEURS_SAISIE.degree}
                           type="text"
                           value={edu.degree}
                           onChange={e => updateEducation(i, { degree: e.target.value })}
@@ -2787,6 +2825,7 @@ export default function CdiValiderProfilPage() {
                           {tProfile('sections.education.field_label')}
                         </label>
                         <input
+                    maxLength={LONGUEURS_SAISIE.field}
                           type="text"
                           value={edu.field}
                           onChange={e => updateEducation(i, { field: e.target.value })}
@@ -2799,6 +2838,7 @@ export default function CdiValiderProfilPage() {
                           {tProfile('sections.education.location_label')}
                         </label>
                         <input
+                    maxLength={LONGUEURS_SAISIE.education_location}
                           type="text"
                           value={edu.location}
                           onChange={e => updateEducation(i, { location: e.target.value })}
@@ -2822,8 +2862,8 @@ export default function CdiValiderProfilPage() {
                         </label>
                         <input
                           type="number"
-                          min={1900}
-                          max={new Date().getFullYear() + 1}
+                          min={ANNEE_FORMATION_MIN}
+                          max={anneeDebutFormationMax()}
                           value={edu.start_year}
                           onChange={e => updateEducation(i, { start_year: e.target.value })}
                           style={inputStyle()}
@@ -2835,8 +2875,8 @@ export default function CdiValiderProfilPage() {
                         </label>
                         <input
                           type="number"
-                          min={1900}
-                          max={new Date().getFullYear() + 10}
+                          min={ANNEE_FORMATION_MIN}
+                          max={anneeFinFormationMax()}
                           value={edu.end_year}
                           onChange={e => updateEducation(i, { end_year: e.target.value })}
                           style={inputStyle()}
@@ -2930,6 +2970,7 @@ export default function CdiValiderProfilPage() {
                       }}
                     >
                       <input
+                    maxLength={LONGUEURS_SAISIE.language}
                         type="text"
                         value={l.language}
                         onChange={e => updateLanguage(i, { language: e.target.value })}
@@ -2992,8 +3033,8 @@ export default function CdiValiderProfilPage() {
               />
               <label style={labelStyle}>{tProfile('sections.links.linkedin_label')}</label>
               <input
+                    maxLength={LONGUEURS_SAISIE.linkedin_url}
                 type="url"
-                maxLength={500}
                 value={linkedinUrl}
                 onChange={e => setLinkedinUrl(e.target.value)}
                 placeholder={tProfile('sections.links.linkedin_placeholder')}
@@ -3023,6 +3064,7 @@ export default function CdiValiderProfilPage() {
                     {tProfile('sections.contact.phone_label')}
                   </label>
                   <input
+                    maxLength={LONGUEURS_SAISIE.phone}
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
@@ -3036,8 +3078,8 @@ export default function CdiValiderProfilPage() {
                   </label>
                   <input
                     type="number"
-                    min={1900}
-                    max={new Date().getFullYear()}
+                    min={ANNEE_NAISSANCE_MIN}
+                    max={anneeNaissanceMax()}
                     value={birthYear}
                     onChange={e => setBirthYear(e.target.value)}
                     placeholder={tProfile('sections.contact.birth_year_placeholder')}
@@ -3051,6 +3093,7 @@ export default function CdiValiderProfilPage() {
                   {tProfile('sections.contact.address_label')}
                 </label>
                 <input
+                    maxLength={LONGUEURS_SAISIE.address_line}
                   type="text"
                   value={addressLine}
                   onChange={e => setAddressLine(e.target.value)}
@@ -3073,6 +3116,7 @@ export default function CdiValiderProfilPage() {
                     {tProfile('sections.contact.postal_code_label')}
                   </label>
                   <input
+                    maxLength={LONGUEURS_SAISIE.postal_code}
                     type="text"
                     value={postalCode}
                     onChange={e => setPostalCode(e.target.value)}
@@ -3085,6 +3129,7 @@ export default function CdiValiderProfilPage() {
                     {tProfile('sections.contact.city_label')}
                   </label>
                   <input
+                    maxLength={LONGUEURS_SAISIE.city}
                     type="text"
                     value={city}
                     onChange={e => setCity(e.target.value)}
@@ -3128,6 +3173,11 @@ export default function CdiValiderProfilPage() {
                     padding: '16px 20px',
                   }}
                 >
+                  {etaitVisible && (
+                    <div role="note" style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
+                      {tProfile('actions.draft_unpublishes')}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button
                       type="button"

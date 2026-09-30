@@ -80,7 +80,8 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 **Moteur & exploitation** — `matching_settings`, `matching_notes_partielles`, `relance_overruns`,
 `ai_quotas`, `ai_spend_caps`, `ai_spend_seuils_acteur`, `ai_spend_events`, `ai_model_tarifs`,
 `duree_reglages`, `ai_redaction_failures`, `rate_limit_hits`, `features`,
-`cron_job_catalog`, `cron_run_log`, `cron_run_leases`, `plateforme`, `audit_logs`.
+`cron_job_catalog`, `cron_run_log`, `cron_run_leases`, `plateforme`, `audit_logs`, `travaux_ia` (la file des
+travaux d'IA longs — analyse d'un CV, vérification d'un expert — §D.30).
 
 **Journal des transactions (§D.26)** — `grand_livre` (le grand livre, en **ajout seul** : aucun rôle
 applicatif n'y écrit, seule `journaliser()` insère), `grand_livre_actions` (la **liste fermée** des
@@ -301,6 +302,42 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > les trois listes remplacées (`null` ou vide = inchangée : la liste réinsérée est testée avant la suppression),
 > le statut `done` EN DERNIER, dans UNE transaction, chaque écriture du profil exige son compte (EC001).
 > `security definer`, fermée au navigateur. ORDRE : AVANT le déploiement. Test : `profil/analyse_cv.test.sql`.
+> **Plus appelée depuis l'ARRÊT 19** (`ecrire_analyse_cv` la remplace) : elle part au push SUIVANT (§E.72, §H.5).
+>
+> **LES HUIT MIGRATIONS DE L'ARRÊT 19 (30/09/2026) — le parcours expert, du CV à la première mise en relation
+> (§D.30, §D.31, §E.88).** Toutes : ORDRE **AVANT** le déploiement (elles n'ajoutent que du nouveau, ou remplacent à
+> signature identique) ; aucune ne retire de signature.
+> - **`types_experience`** — `types_experience()` (immuable, `{career, project}`) : la SEULE liste ; la contrainte
+>   `profile_experiences_experience_type_check` la LIT. Test : `profil/types_experience.test.sql`.
+> - **`analyse_cv_tolerante`** — `longueur_max_colonne` (lue au catalogue), `borner_textes`, et
+>   `ecrire_analyse_cv(profil, champs, expériences, formations, langues, fenêtre du quota)` : liste FERMÉE de colonnes
+>   (ni identité, ni `photo_url`), chaque champ écrit à part (un champ refusé n'emporte pas les autres), chaque ligne
+>   à part (une ligne refusée est écartée), textes tronqués à la longueur de la colonne, une liste entièrement
+>   refusée n'efface rien (`AC001`) ; le quota compté ICI, sur la réussite ; le statut `done` en dernier ; rend les
+>   écarts. Test : `profil/analyse_cv_tolerante.test.sql`.
+> - **`verification_conclue`** — action `verification_conclue` (famille compte ; clés `approuve`, `motif`, `de`) ;
+>   `poser_verdict_verification` en est le seul écrivain (verdict automatique, origine système) ; elle et
+>   `statuer_sur_expert` passent aussi `users.status` de `in_review` à `active` à l'approbation. Test :
+>   `grand_livre/verification_conclue.test.sql`.
+> - **`travaux_ia`** — la table (un actif par profil et par nature : index unique partiel ; tentatives bornées ;
+>   bail ; pièce ; code d'échec de forme contrainte), les actions `travail_ia_echoue` (profil) et
+>   `travail_ia_relance` (administration), `ecarts` ajouté aux clés de `cv_televerse` ; déposer
+>   (`deposer_analyse_cv`, `deposer_verification_expert`), réveiller (`reveiller_travaux_ia`, pg_net), prendre
+>   (`prendre_travail_ia`, `skip locked`), terminer (`terminer_analyse_cv`, `conclure_verification_expert`),
+>   échouer (`echouer_travail_ia`, délai 1, 2, 4… min plafonné à 30), clore (`clore_travail_ia_en_echec`, le repli
+>   en base ; `clore_travaux_ia_perdus`), lire (`travaux_ia_en_souffrance`), relancer (`relancer_travail_ia`), et
+>   le pilote `piloter_travaux_ia` planifié `travaux_ia_pilote` chaque minute. Tests : `profil/travaux_ia.test.sql`,
+>   `grand_livre/travaux_ia.test.sql`.
+> - **`premiere_recherche_rejouee`** — `echouer_relance_expert` POSE une échéance quand il n'y en avait pas (la
+>   première recherche d'un expert échouée n'était jamais rejouée) ; `programmer_relance_expert` remet le compte des
+>   tentatives à zéro. Test : `matching/premiere_recherche.test.sql`.
+> - **`notifications_match`** — `poser_notifications_match(lignes)` : l'insertion avec le PRÉDICAT de l'index
+>   partiel (§E.69) ; rend le nombre posé. Test : `matching/notifications_match.test.sql`.
+> - **`specialite_autre_publiable`** — `profiles_visible_requiert_criteres_check` accepte une précision « Autre »
+>   non vide à la place des spécialités du référentiel. Test : `profil/specialite_autre.test.sql`.
+> - **`listes_profil_atomiques`** — `remplacer_listes_profil(profil, expériences, formations, langues)` : les trois
+>   listes en une transaction, `null` = inchangée ; une ligne refusée lève `LP001` avec la liste, le rang, la colonne
+>   et la cause. Test : `profil/listes_profil.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -1082,6 +1119,12 @@ champ, documenté comme inerte sur place.
 > En cas de divergence entre les deux, **§P1 fait foi** : c'est lui qui est écrit pour être relu.
 
 ### C.1 Dépôt de CV et visibilité (expert)
+> ⛔ **DEPUIS L'ARRÊT 19 (30/09/2026), le dépôt n'analyse plus : il DÉPOSE (§D.30).** Les deux routes sont des
+> portes vers `lib/profil/depot-cv.ts` (`maxDuration = 30`) : gardes, stockage, puis `deposer_analyse_cv` et 202 ;
+> l'analyse tourne dans l'exécutant des travaux d'IA, se normalise (§D.31) et s'écrit par `ecrire_analyse_cv`. Le
+> quota ne compte plus que l'analyse ABOUTIE ; les dépôts sont bornés à 10 par heure (anti-abus). La vérification
+> se dépose de même à la publication (`deposer_verification_expert`). Le paragraphe ci-dessous décrit l'état d'avant.
+
 `POST /api/profile/upload-cv` (freelance) · `POST /api/profile/cdi-upload-cv` (CDI) — routes
 **distinctes et gardées par `user_type`** (403 `wrong_user_type`), `maxDuration = 60`.
 Interrupteur `ENABLE_AI_CV_PARSING` → 503 `ai_disabled`. Quota lu en base (`ai_quotas`,
@@ -1710,6 +1753,15 @@ référence vaut **1,25** contre le fond de page, et exiger 3 pour 1 ferait roug
 l'accueil elle-même dès le premier jour (§E.14). On ne garde que ce qui a été nommé.
 
 ### C.14 — QUI DÉCLENCHE LE MOTEUR EXPERT, ET QUI ATTEND SA FIN
+
+> ⛔ **ARRÊT 19 (30/09/2026) : LES TROIS DÉCLENCHEURS « APPROBATION » ET « RÉ-ANALYSE » PASSENT PAR UNE SEULE
+> FONCTION** — `lancerMiseEnRelationImmediate` ([lib/matching/mise-en-relation-immediate.ts](../lib/matching/mise-en-relation-immediate.ts)) :
+> elle marque la tentative, lance le moteur, solde sur un run abouti et **enregistre l'échec** sinon — et l'échec pose
+> désormais une échéance (`premiere_recherche_rejouee`) : la première recherche d'un expert qui échoue est REJOUÉE par
+> `expert_relance_trigger`, et son accueil le dit. Elle est appelée par l'exécutant des travaux d'IA (vérification
+> approuvée, ré-analyse d'un profil approuvé) et par l'approbation d'un admin — AVANT l'e-mail de bienvenue, qu'un
+> `return` sautait. Les lignes « Approbation d'un profil » et « Ré-analyse d'un CV » du tableau ci-dessous se lisent
+> donc « l'exécutant des travaux d'IA », plus « `after()` d'une route ».
 
 > ⛔ **UN RUN QUI A ÉCHOUÉ NE SE SOLDE PLUS — 23/09/2026, SUR LES TROIS APPELANTS.**
 > `cron/expert-relance`, `me/sync-matching` et `admin/approve-expert` appelaient
@@ -3442,6 +3494,77 @@ mélange. Le menu montre toujours le compte qui agit réellement.
 **Ce que ça coûte, et c'est voulu** : deux comptes ne cohabitent plus dans un navigateur — le second se connecte en
 fenêtre privée. **Gardé** par `diag-identite-cv`.
 
+**Corrigé à l'ARRÊT 19 : une déconnexion n'est pas « un autre compte ».** Le verdict a quatre issues
+(`meme`, `different`, `inconnu`, `absent`) : plus AUCUNE session (déconnexion normale, session expirée) est
+`absent` — l'écran oublie le compte affiché et n'éjecte personne sous le motif `compte_different` ; une session
+remplacée garde `session_superseded`, un compte suspendu son propre motif.
+
+<a id="d30"></a>
+### D.30 — UN TRAVAIL D'IA LONG NE VIT JAMAIS DANS UNE REQUÊTE (30/09/2026)
+
+**Le cas** : l'audit du parcours expert (ARRÊT 19, sur `aac5f79`). La vérification d'un expert tournait DANS la
+requête de publication (trois appels au modèle avec recherche web, jusqu'à 45 s chacun) sous un plafond de 60 s ; tuée,
+elle laissait le profil « en cours de vérification » pour toujours. L'analyse du CV, de même, sous 60 s.
+
+**La décision (point 6 du mandat, proposée puis construite).**
+- **Une file en base**, `travaux_ia` : nature (`analyse_cv`, `verification_expert`), état (`en_attente` →
+  `en_cours` → `reussi` / `echoue` / `annule`), tentatives bornées (3), bail, pièce du geste, code d'échec.
+  **Au plus un travail actif par profil et par nature**, tenu par un index unique partiel (§E.31) ; redéposer annule
+  l'ancien.
+- **Déposer est une transaction** : l'état du profil (« analyse en cours », « vérification en cours ») ET le travail ;
+  la route répond 202. La base réveille l'exécutant par `pg_net` (`reveiller_travaux_ia`, comme les tâches existantes).
+- **L'exécutant** `POST /api/cron/travaux-ia` (`CRON_SECRET`, `maxDuration = 300`, bail de run) prend les travaux dus
+  (`skip locked`) tant qu'il lui reste de quoi en finir un (`lib/travaux-ia/executant.ts`). Un échec de NOTRE côté —
+  fournisseur surchargé, délai, réponse illisible — se REJOUE, délai 1, 2, 4… minutes plafonné à 30 ; un document
+  refusé ou une configuration absente, non (`lib/profil/cause-echec-modele.ts`).
+- **Le pilote pg_cron `travaux_ia_pilote`, chaque minute, en SQL** : il réveille s'il reste du travail dû, et il
+  CLÔT ce qui est perdu (un bail expiré, un travail que personne n'a pris depuis 30 minutes). **Clore applique le repli
+  EN BASE** : analyse → `failed` avec son code ; vérification → revue humaine (`manual_only`, motif `travail_echoue`).
+  Même si l'hébergeur ne répond plus, **aucun profil ne reste « en cours »**.
+- **Le verdict automatique s'écrit** : `verification_conclue` (seul écrivain `poser_verdict_verification`), comme le
+  verdict humain s'écrivait déjà.
+- **L'expert** attend l'issue réelle (sondage borné à 10 min, `lib/profil/suivi-analyse.ts`), et s'il part, l'import
+  dit « en cours » tant que c'est vrai, puis l'issue (`EtatAnalyseCv`). **L'admin** : `/admin/travaux-ia` (en
+  souffrance : échoués, perdus, en retard ; cause nommée ; Relancer, journalisé `travail_ia_relance`) ; la
+  supervision rougit en BLOQUANT sur la même liste (`travaux_ia_en_souffrance`, §E.36).
+
+**Ce que ça coûte.** La route de l'exécutant a `maxDuration = 300` : le plan Vercel doit l'accepter (déjà vrai pour
+`cron/expert-relance`). Sans les secrets du Vault, le réveil n'arrive pas : les travaux sont clos `non_execute` au
+bout de 30 minutes — visible, jamais silencieux. **Gardé** par `diag-parcours-expert` (D) et les tests
+`profil/travaux_ia.test.sql`, `grand_livre/travaux_ia.test.sql`, `grand_livre/verification_conclue.test.sql`.
+
+<a id="d31"></a>
+### D.31 — LE PROFIL SE REMPLIT PAR LE CV OU L'EXPORT LINKEDIN ; UNE VALEUR FAUTIVE NE REJETTE PLUS L'ANALYSE (30/09/2026)
+
+**La décision de Youssef.** Le profil se remplit uniquement par le CV ou le PDF LinkedIn. Le bandeau du tableau de
+bord ne liste plus les champs ; « Compléter mon profil » et les étapes de démarrage mènent à l'IMPORT, jamais au
+formulaire. L'écran de validation n'est atteint qu'après une analyse : il montre ce que le document a donné, l'expert
+peut corriger une lecture fausse, et il DEMANDE ce qu'un document ne peut pas donner.
+
+**Ce qu'un CV ne donne pas, et comment on le demande** (point 7, proposé avant d'écrire) : la **disponibilité**
+(question fermée, AUCUNE réponse cochée d'avance — l'écran supposait « à l'écoute » et ne l'envoyait pas : B1) ; les
+**zones de travail** (l'analyseur a l'interdiction de les déduire) ; les **séniorités acceptées** (pré-cochées, à
+confirmer) ; la **branche et les spécialités** (proposées, à confirmer ; « Autre » avec sa précision suffit à publier) ;
+modes de travail, tarif, salaire et préavis (champs existants). Le résumé de 200 à 800 caractères, l'analyseur l'ÉCRIT.
+
+**Une valeur fautive ne rejette plus l'analyse** (point 5). Ce qui vient du DOCUMENT est normalisé ou écarté, et DIT :
+`lib/profil/normaliser-analyse.ts` (pur : `2020-01` complété, `7,5` arrondi, type ramené à la liste, niveau
+« natif » ramené, pays illisible écarté, doublons écartés, résumé raccourci à une phrase entière), puis
+`ecrire_analyse_cv` en base (champ par champ, ligne par ligne, textes bornés à la colonne). Les écarts sont rendus,
+écrits dans la ligne `cv_televerse` et montrés à l'écran de validation (`EcartsAnalyse`), dans les quatre langues.
+Ce qui vient de NOUS reste atomique. **Le quota ne compte que l'analyse aboutie** ; une analyse que nous n'avons pas su
+écrire est dépensée `non_imputable`, jamais au compte de l'expert. Une ré-analyse remplace les FAITS du document
+(titre, expériences…) et garde les CHOIX de l'expert (disponibilité, zones, séniorités, classement).
+
+**Une seule liste des types d'expérience** : `types_experience()` en base, lue par la contrainte ; recopiée dans
+`lib/profil/types-experience.ts`, lue par les deux analyseurs ; `diag-parcours-expert` rougit si elles divergent
+(§E.88).
+
+**Deux points laissés à l'arbitrage, dits à l'écran** : « Enregistrer comme brouillon » sur un profil publié le
+dépublie (seul chemin qui refait passer une modification par la vérification — l'expert est prévenu avant le clic) ;
+republier un profil approuvé le laisse approuvé pendant sa re-vérification (quelques minutes), le verdict démote s'il
+le faut.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »
@@ -3541,6 +3664,13 @@ par la vérification humaine qu'exigent la mise en relation et le dépôt (§D.2
 invité n'est enregistré nulle part** (case vérifiée dans le navigateur seulement). Options, coûts et
 recommandation — une preuve signée par le serveur, vérifiée par `handle_new_user` — dans
 [reprise.md](reprise.md), ARRÊT 11.
+
+**H.5 — DEUX DETTES NOMMÉES PAR L'ARRÊT 19 (30/09/2026).**
+- `appliquer_analyse_cv` (migration `analyse_cv_atomique`) n'est plus appelée : `ecrire_analyse_cv` la remplace. Elle
+  ne se supprime qu'au push SUIVANT celui qui déploie l'ARRÊT 19 (§E.72 : le code en ligne l'appelle jusque-là).
+- La vérification d'un expert DÉJÀ approuvé qui republie tourne après la publication : pendant quelques minutes, le
+  profil modifié reste approuvé (arbitrage ④ de l'ARRÊT 19, docs/reprise.md) — à trancher par Youssef s'il veut
+  l'autre sens (repasser « en cours » tout de suite, et sortir des mises en relation à chaque republication).
 
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
@@ -3720,10 +3850,12 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   suppose la précédente ». Elle est désormais la dernière.
   **Gardé** par [scripts/diag-parametrage-manuel.mjs](../scripts/diag-parametrage-manuel.mjs)
   (§B.2 ⑦ bis) pour tout ce qui est mécaniquement vérifiable ; l'ordre, lui, ne l'est pas.
-- **Six** des onze tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
+- **Six** des douze tâches planifiées passent par `trigger_purge_cron` et **lèvent** sans les deux
   secrets du Vault : `purge_deletions_trigger`, `purge_inactive_trigger`, `matching_retry_trigger`,
   `expert_relance_trigger`, `stripe_reconcile_trigger`, `constats_trigger`. Les deux premières portent une **obligation légale** (RGPD art. 17 et
-  CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran.
+  CNIL). Elles ne se plaignent qu'au journal de la base : rien à l'écran. La douzième, `travaux_ia_pilote`, avale
+  l'échec du réveil (sans secrets, aucun travail d'IA ne s'exécute) et clôt les travaux `non_execute` après 30 min —
+  visible dans `/admin/travaux-ia` et en BLOQUANT dans la supervision (§D.30).
 - **`ensure_rls` est ÉPROUVÉ.** Sa branche `create` avait été sautée par un `if not exists` sur tous
   les environnements connus, donc **jamais exécutée nulle part** ; `CREATE EVENT TRIGGER` exige un
   privilège que le rôle `postgres` de Supabase ne possède pas toujours, et un refus aurait fait

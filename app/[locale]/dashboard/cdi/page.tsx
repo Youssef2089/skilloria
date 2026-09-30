@@ -97,6 +97,7 @@ function initialsOf(user: CdiUser | null): string {
 
 export default function DashboardCDI() {
   const t = useTranslations('dashboard_cdi')
+  const tFeed = useTranslations('missions.feed')
   const tc = useTranslations('missions.casting')
   const tProfile = useTranslations('cdi_profile_view')
   const router = useRouter()
@@ -165,7 +166,7 @@ export default function DashboardCDI() {
   const missionsLive = useLiveResource<
     {
       missions: MissionCardData[]
-      expert_status?: { is_dnd: boolean }
+      expert_status?: { is_dnd: boolean; derniere_recherche?: { etat: 'echec'; raison: string; abandonnee: boolean } }
     },
     MissionCardData
   >({
@@ -183,6 +184,8 @@ export default function DashboardCDI() {
     () => missionsLive.data?.missions ?? null,
     [missionsLive.data],
   )
+  // L'ÉTAT DE LA DERNIÈRE RECHERCHE — lu ici comme sur la page « missions » (M5).
+  const derniereRecherche = missionsLive.data?.expert_status?.derniere_recherche ?? null
 
   // LA RECHERCHE, LANCÉE PAR UN GESTE ET ATTENDUE JUSQU'AU BOUT.
   //
@@ -438,7 +441,7 @@ export default function DashboardCDI() {
               visible ou si le verdict serveur est indisponible. */}
           <ProfilMasqueBanner
             namespace="cdi_profile_validation"
-            href="/dashboard/cdi/profil/valider"
+            href="/dashboard/cdi/profil"
             accentColor={'var(--sk-accent)'}
           />
 
@@ -644,8 +647,9 @@ export default function DashboardCDI() {
                   ? t('profile_completion.title_complete')
                   : t('profile_completion.title', { percent: completionPercent })}
               </div>
+              {/* « Compléter mon profil » mène à l'IMPORT (décision du 30/09/2026) ; un profil complet se consulte. */}
               <Link
-                href="/dashboard/cdi/mon-profil"
+                href={completionPercent >= 100 ? '/dashboard/cdi/mon-profil' : '/dashboard/cdi/profil'}
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
@@ -752,6 +756,13 @@ export default function DashboardCDI() {
                   ecosystem={domain.ecosystemName}
                   onReessayer={lancerRecherche}
                 />
+              ) : derniereRecherche?.etat === 'echec' ? (
+                /* LA DERNIÈRE RECHERCHE A ÉCHOUÉ (audit du 30/09/2026, M5) : l'accueil disait « aucune mission
+                   ne correspond » alors que rien n'avait été cherché. Même texte que la page « missions ». */
+                <div role="status" style={{ background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 10, padding: 22, fontSize: 14, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{tFeed('echec_title')}</div>
+                  {derniereRecherche.abandonnee ? tFeed('echec_abandonnee') : tFeed(`echec_raison.${derniereRecherche.raison}` as 'echec_raison.moteur_indisponible')}
+                </div>
               ) : (
                 <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                   {t('suggestions_section.empty_verified')}

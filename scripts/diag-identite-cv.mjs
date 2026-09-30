@@ -56,7 +56,21 @@ ok(verdictCompte(null, MEHDI) === 'inconnu', '1. premier chargement : rien à co
 ok(verdictCompte(MEHDI, MEHDI) === 'meme', '2. le menu affiche Mehdi, la session est Mehdi : la requête part')
 // 3. L'admin se connecte dans le MÊME navigateur : la session de l'adresse devient la sienne, pour tous les onglets.
 ok(verdictCompte(MEHDI, ADMIN) === 'different', '3. le menu affiche Mehdi, la session est l’admin : REFUS (client et serveur)')
-ok(verdictCompte(MEHDI, null) === 'different', '4. le menu affiche Mehdi, plus aucune session : REFUS')
+// ⚠️ LE CAS 4 A CHANGÉ DE SENS (audit du 30/09/2026, M1) : il encodait « plus aucune session = un autre compte »,
+//    et la garde éjectait TOUTE déconnexion avec le motif « un autre compte s'est connecté » — la déconnexion
+//    volontaire, la session remplacée, le compte suspendu. C'est une DÉCONNEXION : chacun de ces chemins
+//    navigue avec SON motif. La garde oublie le compte affiché, elle n'éjecte pas.
+ok(verdictCompte(MEHDI, null) === 'absent', '4. le menu affiche Mehdi, plus aucune session : une DÉCONNEXION, pas un autre compte')
+{
+  const ca = sansCommentaires(read('lib/identite/compte-affiche.ts'))
+  const garde = ca.slice(ca.indexOf('export function useGardeCompteAffiche('))
+  ok(/if \(verdict === 'different'\) ejecterCompteDifferent\(\)\s*else if \(verdict === 'absent'\) fixerCompteAffiche\(null\)/.test(garde)
+     && !/verdict === 'absent'\) ejecterCompteDifferent/.test(ca),
+    '4. la garde n’éjecte QUE sur un autre compte ; une déconnexion garde son motif (volontaire, session remplacée, suspendu)')
+  const connexionPage = sansCommentaires(read('app/[locale]/connexion/page.tsx'))
+  ok(/fixerCompteAffiche\(null\)/.test(connexionPage.slice(connexionPage.indexOf('signInWithPassword'))),
+    '4. une connexion réussie oublie l’ancien compte affiché : le nouveau n’est pas éjecté')
+}
 
 const sf = sansCommentaires(read('lib/secure-fetch.ts'))
 const iVerdict = sf.indexOf("if (verdictCompte(affiche, session?.user?.id) === 'different')")
@@ -106,14 +120,16 @@ section('B. Le prénom et le nom viennent du compte, jamais d’un CV')
 const parseur = sansCommentaires(read('lib/cv-parser.ts'))
 ok(!/first_?name|last_?name|full_?name|prenom|nom_complet/i.test(parseur),
   'B. l’analyseur de CV n’extrait aucun nom de personne')
-const route = sansCommentaires(read('app/api/profile/upload-cv/route.ts'))
+// Depuis l'ARRÊT 19 (§D.30), le dépôt vit dans lib/profil/depot-cv.ts et l'analyse dans l'exécutant des travaux d'IA.
+const route = sansCommentaires(read('lib/profil/depot-cv.ts')) + '\n' + sansCommentaires(read('lib/travaux-ia/executer-analyse.ts'))
 ok(!/\.from\('users'\)\s*\.(update|upsert|insert)/.test(route) && !/first_name|last_name/.test(route),
-  'B. la route du CV n’écrit pas le compte (users)')
+  'B. ni le dépôt ni l’exécutant de l’analyse n’écrivent le compte (users)')
 const migrations = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
 let corpsSql = ''
 for (const f of migrations) {
   const sql = read(`supabase/migrations/${f}`)
-  const m = /create or replace function public\.appliquer_analyse_cv\([\s\S]*?\$fn\$([\s\S]*?)\$fn\$/.exec(sql)
+  // La fonction EN USAGE depuis l'ARRÊT 19 : ecrire_analyse_cv (tolérante, §E.88).
+  const m = /create or replace function public\.ecrire_analyse_cv\([\s\S]*?\$fn\$([\s\S]*?)\$fn\$/.exec(sql)
   if (m) corpsSql = m[1].split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
 }
 ok(corpsSql.length > 0 && !/public\.users\b|\busers\s+set\b/i.test(corpsSql),
@@ -124,17 +140,27 @@ section('C. Une analyse s’écrit en une fois, ou pas du tout')
 const ecritures = [...route.matchAll(/\.from\('(profile_experiences|profile_educations|profile_languages)'\)\s*\.(delete|insert|update|upsert)/g)].map((m) => `${m[1]}.${m[2]}`)
 ok(ecritures.length === 0, 'C. la route n’écrit plus les listes elle-même (plus de supprimer-puis-réinsérer en appels séparés)', ecritures.join(', ') || undefined)
 ok(!/cv_parsing_status: 'done'/.test(route), 'C. la route ne pose plus le statut done elle-même')
-ok(/await supabaseAdmin\.rpc\('appliquer_analyse_cv', \{/.test(route)
-   && /if \(analyseErr\) \{[\s\S]{0,1400}?code: 'analyse_non_ecrite' \}, 500\)/.test(route),
-  'C. une seule fonction écrit l’analyse ; son échec rend analyse_non_ecrite (rien n’a été modifié)')
+ok(/await admin\.rpc\('terminer_analyse_cv', \{/.test(route)
+   && /if \(ecErr\) \{[\s\S]{0,700}?return echouer\('ecriture_en_panne', true\)/.test(route)
+   && !/cv_parsing_status: 'done'/.test(route),
+  'C. une seule fonction écrit l’analyse, dans la transaction qui clôt le travail ; son échec se REJOUE (rien n’a été modifié)')
 const iListes = corpsSql.lastIndexOf('profile_languages')
-const iDone = corpsSql.indexOf("cv_parsing_status = 'done'")
+const iDone = corpsSql.search(/cv_parsing_status\s*=\s*'done'/)
 ok(iDone > iListes && iListes > 0, 'C. la fonction pose le statut done EN DERNIER, après les listes')
 
 // ── D. LES MESSAGES ──────────────────────────────────────────────────────────
 section('D. Chaque refus dit sa raison')
 const { MESSAGE_PAR_CODE, cleMessageDepotCv } = await import(pathToFileURL(join(ROOT, 'lib/profil/refus-depot-cv.ts')).href)
-const codesRoute = [...new Set([...route.matchAll(/code: '([a-z_]+)'/g)].map((m) => m[1]))]
+// Les codes que l'écran peut recevoir : ceux du DÉPÔT (`code: '…'`), ceux de l'ISSUE du travail (les motifs passés
+// à `echouer(…)` par l'exécutant, les causes du modèle), et ceux que la BASE pose au repli (délai, non exécuté).
+const sqlTravaux = read(`supabase/migrations/${migrations.find((f) => f.endsWith('_travaux_ia.sql'))}`)
+const causesModele = [...read('lib/profil/cause-echec-modele.ts').matchAll(/\| '([a-z_]+)'/g)].map((m) => m[1])
+const codesRoute = [...new Set([
+  ...[...route.matchAll(/code: '([a-z_]+)'/g)].map((m) => m[1]),
+  ...[...route.matchAll(/echouer\('([a-z_]+)'/g)].map((m) => m[1]),
+  ...causesModele,
+  ...[...sqlTravaux.matchAll(/clore_travail_ia_en_echec\(v_t\.id, '([a-z_]+)'\)/g)].map((m) => m[1]),
+])]
 const nonCouverts = codesRoute.filter((c) => !(c in MESSAGE_PAR_CODE))
 ok(codesRoute.length >= 18 && nonCouverts.length === 0,
   `D. chacun des ${codesRoute.length} codes rendus par la route du CV a son message`, nonCouverts.join(', ') || undefined)

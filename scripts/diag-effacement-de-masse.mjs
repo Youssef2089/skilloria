@@ -146,10 +146,12 @@ section('B. LA ROUTE refuse un effacement que rien n’appuie — la vraie barri
   //    lignes plus HAUT que la barrière — le contrôle rougissait donc sur du
   //    code correct. C'est §E.8 pris à mon propre piège : on ancre sur ce
   //    qu'on vise (la DESTRUCTION), pas sur un nom qui traîne ailleurs.
-  const iPremierDelete = r.indexOf('.delete()')
+  //  ARRÊT 19 (M4) : la destruction a déménagé en BASE — la route confie ses listes à
+  //  `remplacer_listes_profil` (tout ou rien). L'ancre suit ce qu'on vise : l'appel qui détruit.
+  const iPremierDelete = r.indexOf(".rpc('remplacer_listes_profil'")
   ok(
-    iBarriere > 0 && iPremierDelete > 0 && iBarriere < iPremierDelete,
-    'le refus est prononcé AVANT le premier `delete` de bloc',
+    iBarriere > 0 && iPremierDelete > 0 && iBarriere < iPremierDelete && !r.includes('.delete()'),
+    'le refus est prononcé AVANT l’appel qui remplace les listes (et la route ne détruit plus rien elle-même)',
     'une barrière posée après la destruction ne barre rien',
   )
 

@@ -221,11 +221,21 @@ if (migVerrou) {
     'une unicité large casserait new_message, qui porte l’identifiant de la CONVERSATION : le 2ᵉ message ne serait plus notifié',
   )
 }
-ok(
-  'l’insertion tolère le conflit au lieu de perdre le paquet',
-  /ignoreDuplicates: true/.test(sansCommentaires(read('lib/matching/shared.ts'))),
-  'un seul doublon ferait échouer 500 notifications — on aurait échangé un doublon contre des pertes',
-)
+// ⚠️ CE CONTRÔLE GARDAIT LE DÉFAUT (audit du 30/09/2026, M7). Il exigeait `ignoreDuplicates: true` — la
+//    forme même qui échouait : PostgREST l'écrit `ON CONFLICT (user_id, entity_id)` SANS prédicat, l'index
+//    est PARTIEL, Postgres ne l'infère pas, et CHAQUE paquet tombait en 42P10. Deux présences vérifiées
+//    (l'index existe, l'upsert existe), jamais leur ACCORD (§E.8, §E.69). On exige désormais l'accord :
+//    l'insertion passe par la RPC dont la clause porte le prédicat de l'index.
+{
+  const sqlNotif = read(`supabase/migrations/${readdirSync(join(ROOT, 'supabase/migrations')).find((f) => f.endsWith('_notifications_match.sql'))}`)
+  ok(
+    'l’insertion tolère le conflit au lieu de perdre le paquet — par une clause qui porte le PRÉDICAT de l’index',
+    /\.rpc\('poser_notifications_match', \{ p_lignes: tranche \}\)/.test(sansCommentaires(read('lib/matching/shared.ts')))
+      && !/onConflict: 'user_id,entity_id'/.test(sansCommentaires(read('lib/matching/shared.ts')))
+      && /on conflict \(user_id, entity_id\) where type = 'new_match_opportunity' and entity_id is not null\s*do nothing/.test(sqlNotif),
+    'un seul doublon ferait échouer 500 notifications ; une clause sans prédicat les fait TOUTES échouer (42P10)',
+  )
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 titre('(B) M2 — le couperet : notation par vagues, et run reprenable')

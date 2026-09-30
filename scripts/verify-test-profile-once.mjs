@@ -9,12 +9,13 @@ for (const line of env.split(/\r?\n/)) {
 
 // ⚠️ CE SCRIPT ECRIT EN BASE — SANS AUCUN `.update(` VISIBLE DANS CE FICHIER.
 //    C'est tout l'interet de le dire ici : il ecrit en APPELANT du code
-//    applicatif. `runExpertVerification()` repose `profiles.verification_status`,
-//    `verification_score`, `verified_at`, `verification_data` et
-//    `users.is_verified`. Un lecteur qui cherche un verbe d'ecriture dans ce
-//    fichier n'en trouve pas et le croit inoffensif.
+//    applicatif. Depuis le 30/09/2026 (§D.30), il DEPOSE un travail de verification
+//    (`deposer_verification_expert`) : l'executant `/api/cron/travaux-ia` appelle
+//    l'IA Claude et ecrit le verdict (`conclure_verification_expert`) — le statut du
+//    profil, `users.is_verified`, une ligne au grand livre. Un lecteur qui cherche un
+//    verbe d'ecriture dans ce fichier n'en trouve pas et le croit inoffensif.
 //
-//    Il appelle AUSSI l'IA Claude pour de vrai : chaque execution coute.
+//    L'IA Claude est appelee pour de vrai par l'executant : chaque execution coute.
 const { exigerAutorisationEcriture } = await import('./garde-ecriture.mjs')
 exigerAutorisationEcriture({
   script: 'verify-test-profile-once.mjs',
@@ -34,13 +35,19 @@ const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process
 const PROFILE_ID = 'ce6b8369-1993-4236-9a1f-a2566280aa3c'
 const USER_ID = '0e28543e-d91d-4b0a-8e0c-64fa33eec3a3'
 
-const { runExpertVerification } = await import('../lib/verification/expert-verification.ts')
-
-console.log('Lancement runExpertVerification (vraie IA Claude) sur profil', PROFILE_ID, '…')
-const t0 = Date.now()
-const verdict = await runExpertVerification({ supabaseAdmin, profile_id: PROFILE_ID })
-console.log('durée :', Date.now() - t0, 'ms')
-console.log('verdict :', JSON.stringify(verdict, null, 2))
+// Le travail est DÉPOSÉ, comme une publication le fait : l'exécutant le prend dans la minute.
+console.log('Dépôt d un travail de vérification (vraie IA Claude, par l exécutant) sur profil', PROFILE_ID, '…')
+const { data: travail, error: depotErr } = await supabaseAdmin.rpc('deposer_verification_expert', {
+  p_profile_id: PROFILE_ID,
+  p_piece: crypto.randomUUID(),
+  p_acteur_id: null,
+  p_acteur_type: null,
+})
+if (depotErr) {
+  console.error('dépôt refusé :', depotErr.message)
+  process.exit(1)
+}
+console.log('travail déposé :', travail, '— relancez ce script dans quelques minutes pour lire le verdict.')
 console.log()
 
 const { data: prof } = await supabaseAdmin.from('profiles').select('verification_status, verification_score, verified_at, verification_data').eq('id', PROFILE_ID).maybeSingle()

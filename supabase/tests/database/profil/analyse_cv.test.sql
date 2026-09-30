@@ -22,7 +22,7 @@ declare
   v_visible  boolean;
   v_verif    text;
   v_exp      jsonb := jsonb_build_array(
-                jsonb_build_object('experience_type', 'mission', 'role', 'Architecte', 'employer', 'Sonde', 'client_name', null,
+                jsonb_build_object('experience_type', 'project', 'role', 'Architecte', 'employer', 'Sonde', 'client_name', null,
                                    'sector', null, 'start_date', '2020-01-01', 'end_date', null, 'is_current', true, 'description', null));
   v_form     jsonb := jsonb_build_array(jsonb_build_object('school', 'Sonde', 'degree', 'Master', 'field', null,
                                                            'start_year', 2010, 'end_year', 2012, 'location', null));
@@ -56,7 +56,7 @@ begin
     format($q$select public.appliquer_analyse_cv(%L, %L::jsonb, %L::jsonb, null, %L::jsonb)$q$,
            v_profil,
            jsonb_build_object('title', 'Titre qui ne doit PAS rester', 'summary', 'Résumé qui ne doit PAS rester'),
-           jsonb_build_array(jsonb_build_object('experience_type', 'mission', 'role', null, 'start_date', '2021-01-01')),
+           jsonb_build_array(jsonb_build_object('experience_type', 'project', 'role', null, 'start_date', '2021-01-01')),
            jsonb_build_array(jsonb_build_object('language', 'Anglais', 'level', 'B2', 'is_primary', false))),
     '23502', null, 'C. une expérience sans intitulé : la table la refuse, l''appel échoue');
   return next ok((select p.title = 'Architecte Sonde' and p.summary = 'Résumé sonde' from public.profiles p where p.id = v_profil),

@@ -1,6 +1,5 @@
 'use client'
 
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
  * Helper côté client pour basculer le statut d'écoute d'un expert (Lot A —
@@ -32,29 +31,9 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 export type ExpertSide = 'freelance' | 'cdi'
 
-export type SetExpertListeningResult = { ok: true } | { ok: false; error: string }
-
-export async function setExpertListening(
-  supabase: SupabaseClient,
-  side: ExpertSide,
-  userId: string,
-  listening: boolean,
-): Promise<SetExpertListeningResult> {
-  const patch =
-    side === 'freelance'
-      ? { availability_status: listening ? 'available' : 'do_not_disturb' }
-      : { cdi_status: listening ? 'open_to_work' : 'employed' }
-
-  const { error } = await supabase
-    .from('profiles')
-    .update(patch)
-    .eq('user_id', userId)
-
-  if (error) return { ok: false, error: error.message }
-
-  emitAvailabilityChanged()
-  return { ok: true }
-}
+// `setExpertListening` n'existe plus (audit du 30/09/2026, M8) : elle écrivait `profiles` depuis le
+// navigateur, un droit retiré le 28/09/2026. Toute bascule passe par `basculerDisponibilite`
+// (lib/profil/bascule-disponibilite.ts → POST /api/profile/disponibilite).
 
 /**
  * Dispatch des deux events nécessaires pour propager l'instantané :

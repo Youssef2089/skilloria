@@ -175,10 +175,12 @@ export const ROUTES_VIA_MOTEUR = {
   // Relance d'un expert arrivee a echeance : meme absence de contexte d'appel,
   // donc meme cloisonnement par la ligne (le domain_id du profil).
   'cron/expert-relance/route.ts': 'moteur',
+  // L'executant des travaux d'IA (§D.30) : une tache, sans contexte d'appel. Il lance le moteur apres une
+  // analyse ou un verdict, par l'identifiant du profil — cloisonnement par la ligne. Il REMPLACE les deux
+  // routes de depot de CV, qui ne lancent plus rien elles-memes (ARRET 19).
+  'cron/travaux-ia/route.ts': 'moteur',
   // Declencheurs cote expert : l'expert est mono-ecosysteme a vie.
   'me/sync-matching/route.ts': 'moteur',
-  'profile/cdi-upload-cv/route.ts': 'moteur',
-  'profile/upload-cv/route.ts': 'moteur',
   // Enregistrement du profil : il ne cite aucune table cloisonnee, et pourtant
   // il declenche le moteur dans un after(). C'est precisement la route que le
   // balayage textuel ne pouvait pas voir.

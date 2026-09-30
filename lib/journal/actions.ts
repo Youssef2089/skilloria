@@ -35,6 +35,8 @@ export const ACTIONS_JOURNAL = [
   'cv_televerse', 'profil_publie', 'profil_modifie', 'disponibilite_basculee',
   // la remise à zéro complète du CV — lib/profil/journal-profil.ts
   'cv_reinitialise',
+  // un travail d'IA (analyse, vérification) abandonné — écrit par journaliser_travail_ia() (migration travaux_ia)
+  'travail_ia_echoue',
   // recherche — une ligne par ÉTAPE de run, jamais par lot ni par profil (§D.26)
   'recherche_lancee', 'recherche_filtree', 'recherche_classee', 'recherche_correspondances',
   'recherche_notifiee', 'recherche_terminee', 'recherche_echouee', 'recherche_abandonnee',
@@ -51,7 +53,10 @@ export const ACTIONS_JOURNAL = [
   'compte_cree',
   // ce que la voie crée, dans la transaction du compte — écrites par handle_new_user sous la pièce de compte_cree (§D.27)
   'expert_inscrit', 'organisation_preinscrite',
-  'compte_valide', 'compte_refuse', 'compte_suspendu', 'compte_reactive', 'session_revoquee',
+  'compte_valide', 'compte_refuse',
+  // le verdict automatique d'une vérification — écrit par poser_verdict_verification() (migration verification_conclue)
+  'verification_conclue',
+  'compte_suspendu', 'compte_reactive', 'session_revoquee',
   'suppression_programmee', 'suppression_annulee', 'email_change', 'mot_de_passe_change', 'telephone_verifie',
   // prénom et nom, par le titulaire — lib/comptes/journal-compte.ts
   'identite_modifiee',
@@ -76,6 +81,8 @@ export const ACTIONS_JOURNAL = [
   'administrateur_cree',
   // une tâche planifiée rejouée hors de son horaire — écrite par admin_cron_run_now()
   'tache_lancee_a_la_main',
+  // un travail d'IA échoué, relancé par un administrateur — écrit par journaliser_travail_ia() (migration travaux_ia)
+  'travail_ia_relance',
   // rgpd — les trois purges sont SÉPARÉES : elles ne se relisent pas de la même façon
   'inactivite_avertie', 'compte_purge_inactivite', 'compte_purge_demande', 'compte_purge_admin', 'ip_effacees',
   // journal — méta, à part : visible même quand on filtre l'administration
@@ -106,11 +113,13 @@ export const CLES_DETAIL = {
   sous_traitance_creee: ['organization_id', 'organisation_personnelle_creee'],
   // Les faces « sous-traitance » de publier_annonce() et inserer_candidature_jugee() : même détail que leur jumelle.
   sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
-  cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues'],
+  cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues', 'ecarts'],
   profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: ['champs', 'champs[]', 'blocs', 'blocs[]'],
   disponibilite_basculee: ['champ', 'de', 'vers'],
   cv_reinitialise: ['retire_de_la_vitrine', 'avait_un_fichier'],
+  // Un travail d'IA abandonné (analyse, vérification), son code — écrit par journaliser_travail_ia() (migration travaux_ia).
+  travail_ia_echoue: ['nature', 'code', 'tentatives', 'travail_origine', 'code_origine'],
   recherche_lancee: ['tentative', 'tache'],
   recherche_filtree: ['eligibles', 'sans_matiere', 'a_noter', 'ecartes_deja_decline', 'ecartes_deja_postule', 'chargees'],
   recherche_classee: ['model', 'notes', 'reprises', 'lots_en_echec', 'arret', 'recherches', 'unites_source'],
@@ -132,6 +141,8 @@ export const CLES_DETAIL = {
   expert_inscrit: ['type_de_compte', 'cgu_version'],
   organisation_preinscrite: ['org_type', 'domaine_public'],
   compte_valide: ['has_reason', 'de'],
+  // Le verdict de la MACHINE (approuvé, ou déféré à un humain), son motif nommé — migration verification_conclue.
+  verification_conclue: ['approuve', 'motif', 'de'],
   compte_refuse: ['has_reason', 'de'],
   compte_suspendu: ['de', 'vers', 'type_de_compte'],
   compte_reactive: ['de', 'vers', 'type_de_compte'],
@@ -211,6 +222,9 @@ export const CLES_DETAIL = {
   ecosysteme_modifie: ['operation', 'champs', 'champs[]', 'traductions', 'traductions[]', 'visuel',
     'sous_domaine', 'sous_domaine.avant', 'sous_domaine.apres'],
   tache_lancee_a_la_main: ['tache', 'etait_active', 'cause'],
+  // Un administrateur relance un travail d'IA échoué — écrit par journaliser_travail_ia() (migration travaux_ia).
+  // UNE forme pour les deux faces de journaliser_travail_ia() — comme les trois codes de maj_membre_organisation().
+  travail_ia_relance: ['nature', 'code', 'tentatives', 'travail_origine', 'code_origine'],
   inactivite_avertie: ['echeance_purge', 'demande_email_id', 'cause'],
   // Les trois purges : UN écrivain (`anonymiser_compte()`), le code dérivé du motif, la même forme.
   compte_purge_inactivite: ['profil_anonymise', 'cv_supprime', 'avatar_supprime', 'audit_lignes_nettoyees'],

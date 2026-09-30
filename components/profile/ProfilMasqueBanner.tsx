@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { RESUME_MAX, RESUME_MIN } from '@/lib/profile-visibility'
 
 /**
  * Bannière « votre profil n'est pas visible — voici exactement ce qui manque ».
@@ -50,13 +49,14 @@ type Props = {
    * même, et une clé cherchée dans le mauvais s'affiche en clair à l'écran.
    */
   namespace: 'profile_validation' | 'cdi_profile_validation'
-  /** Où mène « Compléter mon profil ». */
+  /** Où mène « Compléter mon profil » : la page d'IMPORT de la voie (décision du 30/09/2026). */
   href: string
   accentColor: string
 }
 
-export default function ProfilMasqueBanner({ namespace, href, accentColor }: Props) {
-  const t = useTranslations(namespace)
+export default function ProfilMasqueBanner({ href, accentColor }: Props) {
+  // `namespace` n'est plus lu : le bandeau a UN texte, le même pour les deux voies (§E.20).
+  const tMasque = useTranslations('profil_masque')
   const secureFetch = useSecureFetch()
   const [verdict, setVerdict] = useState<Verdict | null>(null)
 
@@ -90,6 +90,10 @@ export default function ProfilMasqueBanner({ namespace, href, accentColor }: Pro
 
   const etaitApprouve = verdict.verification_approved === true
 
+  // ⚠️ PLUS DE LISTE DE CHAMPS (décision de Youssef, 30/09/2026) : le profil se remplit par le CV ou
+  //    l'export LinkedIn, pas champ par champ. Le bandeau dit que le profil n'est pas visible et mène à
+  //    l'IMPORT ; la page d'import dit ensuite où en est l'analyse et reprend la validation, qui demande
+  //    ce qu'un document ne peut pas donner (disponibilité, zones de travail).
   return (
     <section
       role="status"
@@ -102,31 +106,11 @@ export default function ProfilMasqueBanner({ namespace, href, accentColor }: Pro
       }}
     >
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-amber)', marginBottom: 6 }}>
-        {etaitApprouve
-          ? t('sections.summary_matching.hidden_title')
-          : t('sections.summary_matching.incomplete_title')}
+        {etaitApprouve ? tMasque('titre_masque') : tMasque('titre_incomplet')}
       </div>
-      <p style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.55, margin: '0 0 10px' }}>
-        {etaitApprouve
-          ? t('sections.summary_matching.hidden_intro')
-          : t('sections.summary_matching.incomplete_intro')}
+      <p style={{ fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.55, margin: '0 0 12px' }}>
+        {tMasque('texte', { count: manquants.length })}
       </p>
-      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-amber)', marginBottom: 6 }}>
-        {t('sections.summary_matching.hidden_list_intro')}
-      </div>
-      <ul style={{ margin: '0 0 14px', paddingLeft: 18, fontSize: 13, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
-        {manquants.map((champ) => (
-          <li key={champ}>
-            {/* Les bornes du résumé sont passées en paramètres : écrites en dur
-                dans la traduction, elles annonçaient encore « 20 caractères »
-                bien après que le serveur en eut exigé 200. */}
-            {t(
-              `field_labels_short.${champ}` as 'field_labels_short.title',
-              { min: RESUME_MIN, max: RESUME_MAX },
-            )}
-          </li>
-        ))}
-      </ul>
       <Link
         href={href}
         style={{
@@ -140,7 +124,7 @@ export default function ProfilMasqueBanner({ namespace, href, accentColor }: Pro
           textDecoration: 'none',
         }}
       >
-        {t('sections.summary_matching.hidden_cta')}
+        {tMasque('cta')}
       </Link>
     </section>
   )

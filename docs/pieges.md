@@ -306,7 +306,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **161** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
+Sur les **169** migrations : **74 insertions vues, 61 analysées, 2280 valeurs confrontées** (mesuré le
+30/09/2026 — les huit migrations de l'ARRÊT 19 sèment deux actions nouvelles ; sur 161 : 72, 59, 2268, mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
@@ -4165,6 +4166,42 @@ fois** (`appliquer_analyse_cv`, migration `analyse_cv_atomique`), le statut `don
 cité), « Mon profil » nomme le type du compte connecté. [`diag-identite-cv`](../scripts/diag-identite-cv.mjs) et
 `supabase/tests/database/profil/analyse_cv.test.sql`. **Ce qu'ils ne voient pas** : un navigateur réel — la diffusion
 de session entre onglets de supabase-js n'est pas mesurée ; la garde s'appuie aussi sur le retour sur l'onglet.
+
+---
+
+<a id="e88"></a>
+### E.88 — UN TEST ÉCRIT DE MÉMOIRE ÉPROUVE SON AUTEUR, PAS LA TABLE — et un contrôle vert peut garder le défaut qu'il devait fermer.
+
+**Le cas mesuré (30/09/2026, ARRÊT 19).** `supabase/tests/database/profil/analyse_cv.test.sql` (ARRÊT 18) posait
+`experience_type = 'mission'`. La table le refuse : `profile_experiences_experience_type_check` n'admet que
+`career` et `project`. Le test échouait donc sur sa propre fabrique — et **l'analyseur du CV produisait la même
+valeur** : son schéma d'outil proposait `mission`, et chaque CV qui la contenait faisait échouer TOUTE l'analyse,
+puisque l'écriture était tout ou rien (§E.87). Deux auteurs, la même mémoire fausse, et la base seule avait raison.
+
+**Trois leçons, chacune avec son cas.**
+① **La contrainte se lit avant d'écrire** (règle §G.10) : une fonction, une route ou un test qui écrit une table
+  commence par lire, dans les migrations, ses CHECK, FK, NOT NULL, longueurs et déclencheurs. Ici, trois copies de la
+  liste vivaient séparément (analyseur, test, contrainte) ; il n'en reste qu'une : `types_experience()`, lue par la
+  contrainte ; `lib/profil/types-experience.ts` la recopie et `diag-parcours-expert` rougit si elles divergent.
+② **« Tout ou rien » protège une écriture, pas un document.** L'atomicité de l'ARRÊT 18 était juste pour un échec de
+  NOTRE côté ; appliquée à une valeur fautive DANS le CV (`2020-01`, une fin avant le début, 7,5 ans, un titre trop
+  long), elle rejetait l'analyse entière pour un détail. La parade sépare les deux : ce qui vient du document est
+  **normalisé ou écarté, et dit** (`lib/profil/normaliser-analyse.ts`, puis `ecrire_analyse_cv` champ par champ) ;
+  ce qui vient de nous reste atomique (une liste entièrement refusée n'efface rien, `AC001`).
+③ **Un contrôle peut garder le défaut.** `diag-moteur-echelle` exigeait l'`upsert … onConflict: 'user_id,entity_id'`
+  des notifications — précisément la forme que §E.69 démontre fausse (42P10 : l'index est PARTIEL). Il était vert,
+  et c'est son vert qui gardait la panne : aucune notification de mise en relation ne s'écrivait. Réécrit pour exiger
+  la RPC `poser_notifications_match`, qui porte le prédicat.
+
+**Et deux pièges de banc, trouvés en écrivant les tests pgTAP.** `now()` est FIGÉ pour toute la transaction de test :
+une échéance posée à `now()` n'est jamais « passée » — les tests reculent l'horloge de la ligne, pas le temps.
+Et un code d'action écrit en littéral dans un test compte pour `diag-tests-grand-livre` comme « testé » : un test qui
+cite une action sans l'exécuter trompe le recensement.
+
+**Gardé par** [`diag-parcours-expert`](../scripts/diag-parcours-expert.mjs) (la liste unique, la normalisation
+exécutée sur des cas fabriqués) et `profil/types_experience.test.sql`, `profil/analyse_cv_tolerante.test.sql`.
+**Ce qu'ils ne voient pas** : un CV réel — la tolérance est éprouvée sur des valeurs fabriquées, pas sur la variété
+des documents que le modèle rencontrera.
 
 ---
 

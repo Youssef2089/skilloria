@@ -20,7 +20,7 @@ type ExpertFull = {
   expert_type: string | null
   title: string | null
   summary: string | null
-  seniority: string | null
+  seniorities: string[] | null
   years_experience: number | null
   years_total_experience: number | null
   skills: string[] | null
@@ -51,7 +51,7 @@ type ExpertFull = {
   verified_by: string | null
   review_reason: string | null
   branches: { id: string; name: string } | null
-  specialities: { id: string; name: string } | null
+  specialities: Array<{ id: string; name: string }> | null
   /** D6 : spécialité hors référentiel (« Autre »). */
   speciality_other: string | null
   /** D1 : écosystème (domaine) de l'expert, pour l'admin plateforme. */
@@ -205,7 +205,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
             )}
           </div>
           <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
-            {[e.title, e.seniority, e.years_experience != null ? `${e.years_experience} an(s)` : null].filter(Boolean).join(' · ')}
+            {[e.title, (e.seniorities ?? []).join(', ') || null, e.years_experience != null ? t('years', { count: e.years_experience }) : null].filter(Boolean).join(' · ')}
           </div>
         </div>
         <span style={{
@@ -271,7 +271,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
         <div style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.6, marginBottom: 10, whiteSpace: 'pre-wrap' }}>{e.summary ?? '—'}</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, fontSize: 13 }}>
           <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('branch')}</div><div>{(pickRel(e.branches) as { name: string } | null)?.name ?? '—'}</div></div>
-          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('speciality')}</div><div>{(pickRel(e.specialities) as { name: string } | null)?.name ?? (e.speciality_other ? t('speciality_other_prefix', { value: e.speciality_other }) : '—')}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('speciality')}</div><div>{[...(e.specialities ?? []).map((s) => s.name), ...(e.speciality_other ? [t('speciality_other_prefix', { value: e.speciality_other })] : [])].join(', ') || '—'}</div></div>
         </div>
         {e.skills && e.skills.length > 0 && (
           <div style={{ marginTop: 12 }}>

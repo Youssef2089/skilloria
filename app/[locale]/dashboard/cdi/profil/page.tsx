@@ -7,6 +7,9 @@ import { useDomain } from '@/context/DomainContext'
 import { MARQUES_TIERCES } from '@/lib/palette'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { suivreAnalyse, type Reprise } from '@/lib/profil/suivi-analyse'
+import { cleMessageDepotCv } from '@/lib/profil/refus-depot-cv'
+import EtatAnalyseCv from '@/components/profile/EtatAnalyseCv'
 import { LEGAL_PATHS } from '@/lib/legal'
 
 // =============================================================================
@@ -25,8 +28,6 @@ import { LEGAL_PATHS } from '@/lib/legal'
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
 
 const MAX_SIZE = 5 * 1024 * 1024
-const POLL_INTERVAL_MS = 2000
-const POLL_TIMEOUT_MS = 60_000
 
 const LOCALE_DATE_MAP: Record<string, string> = {
   fr: 'fr-FR',
@@ -37,6 +38,7 @@ const LOCALE_DATE_MAP: Record<string, string> = {
 
 export default function CdiProfilUploadPage() {
   const t = useTranslations('cdi_profile_upload')
+  const tSuivi = useTranslations('profile_upload')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -55,6 +57,10 @@ export default function CdiProfilUploadPage() {
   const [status, setStatus] = useState<UploadStatus>('idle')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [statusMsg, setStatusMsg] = useState<string | null>(null)
+  // Une analyse REJOUÉE après un incident de notre côté (rien n'est décompté) — l'attente le dit.
+  const [reprise, setReprise] = useState<Reprise | null>(null)
+  // L'attente de l'écran s'est terminée avant l'analyse : elle continue, le tableau de bord dira l'issue.
+  const [analyseContinue, setAnalyseContinue] = useState(false)
 
   const cvInputRef = useRef<HTMLInputElement>(null)
   const liInputRef = useRef<HTMLInputElement>(null)
@@ -107,23 +113,6 @@ export default function CdiProfilUploadPage() {
     ref.current?.click()
   }
 
-  const pollStatus = async (
-    jobId: string,
-  ): Promise<{ ok: true } | { ok: false; error: string }> => {
-    const start = Date.now()
-    while (Date.now() - start < POLL_TIMEOUT_MS) {
-      await new Promise(r => setTimeout(r, POLL_INTERVAL_MS))
-      const res = await secureFetch(`/api/profile/cv-status/${jobId}`, { method: 'GET' })
-      const payload = await res.json().catch(() => ({} as any))
-      if (payload?.status === 'done') return { ok: true }
-      if (payload?.status === 'failed') {
-        // Jamais le texte serveur brut (payload.error) : message i18n générique.
-        return { ok: false, error: t('errors.parsing_default') }
-      }
-    }
-    return { ok: false, error: t('errors.timeout') }
-  }
-
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -145,6 +134,24 @@ export default function CdiProfilUploadPage() {
     setStatus('uploading')
     setErrorMsg(null)
     setStatusMsg(null)
+    setReprise(null)
+    setAnalyseContinue(false)
+
+    /** Le message d'un refus ou d'un échec — la MÊME table pour la route et pour le travail (§E.87). */
+    const direCode = (code: unknown, statutHttp: number | null, resetAt?: unknown) => {
+      const cle = cleMessageDepotCv(code)
+      if (cle === 'rate_limit') {
+        const reset = typeof resetAt === 'string'
+          ? new Date(resetAt).toLocaleString(LOCALE_DATE_MAP[locale] ?? locale)
+          : t('errors.rate_limit_later')
+        setErrorMsg(t('errors.rate_limit', { reset }))
+      } else if (cle === 'inattendu') {
+        console.error('[cdi-profil upload] code inconnu', { code, status: statutHttp })
+        setErrorMsg(t('errors.inattendu', { code: typeof code === 'string' ? code : `HTTP ${statutHttp ?? '?'}` }))
+      } else {
+        setErrorMsg(t(`errors.${cle}` as 'errors.consent_required'))
+      }
+    }
 
     try {
       const form = new FormData()
@@ -158,50 +165,28 @@ export default function CdiProfilUploadPage() {
       const payload = await res.json().catch(() => ({} as any))
 
       if (!res.ok) {
-        const code = payload?.code
-        if (res.status === 503 && code === 'ai_disabled') {
-          setErrorMsg(t('errors.ai_disabled'))
-        } else if (res.status === 429) {
-          const reset = payload?.reset_at
-            ? new Date(payload.reset_at).toLocaleString(LOCALE_DATE_MAP[locale] ?? locale)
-            : t('errors.rate_limit_later')
-          setErrorMsg(t('errors.rate_limit', { reset }))
-        } else if (code === 'file_too_large') {
-          setErrorMsg(t('errors.file_too_large'))
-        } else if (code === 'bad_mime') {
-          setErrorMsg(t('errors.invalid_format'))
-        } else if (code === 'consent_missing') {
-          setErrorMsg(t('errors.consent_required'))
-        } else if (
-          code === 'compte_verification_indisponible' ||
-          code === 'profil_verification_indisponible'
-        ) {
-          // Une LECTURE qui n'a pas abouti : ni un refus, ni un problème du
-          // fichier. Le message le dit, et il dit que rien n'a été envoyé.
-          setErrorMsg(t('errors.verification_indisponible'))
-        } else {
-          // Jamais payload.error (anglais brut) : générique i18n.
-          setErrorMsg(t('errors.generic'))
-        }
+        direCode(payload?.code, res.status, payload?.reset_at)
         setStatus('error')
         return
       }
 
-      if (payload?.status === 'failed') {
-        setErrorMsg(t('errors.parsing_default'))
-        setStatus('error')
-        return
-      }
-
+      // L'analyse est un TRAVAIL (§D.30) : on la suit jusqu'à son issue réelle.
       if (payload?.status === 'processing' && payload?.jobId) {
-        const poll = await pollStatus(payload.jobId)
-        if (!poll.ok) {
-          setErrorMsg(poll.error)
+        const issue = await suivreAnalyse(secureFetch, payload.jobId, setReprise)
+        if (issue.issue === 'echouee') {
+          direCode(issue.code, null)
           setStatus('error')
           return
         }
+        if (issue.issue === 'toujours_en_cours') {
+          // L'ATTENTE de l'écran est finie, pas le travail : il aboutira ou sera clos par la base,
+          // et le tableau de bord le dira. Ce n'est pas un échec — l'écran ne le présente pas comme tel.
+          setStatus('idle')
+          setAnalyseContinue(true)
+          return
+        }
       } else if (payload?.status !== 'done') {
-        setErrorMsg(t('errors.generic'))
+        setErrorMsg(t('errors.inattendu', { code: String(payload?.status ?? 'sans_statut') }))
         setStatus('error')
         return
       }
@@ -210,8 +195,9 @@ export default function CdiProfilUploadPage() {
       setStatusMsg(t('parsing_overlay.success'))
       router.push('/dashboard/cdi/profil/valider')
     } catch (err) {
-      console.error('[cdi-profil upload] unexpected error', err)
-      setErrorMsg(t('errors.generic'))
+      // La requête n'a pas abouti (réseau, réponse illisible) : le fichier n'est pas parti.
+      console.error('[cdi-profil upload] requête en échec', { code: 'reseau', err })
+      setErrorMsg(t('errors.reseau'))
       setStatus('error')
     }
   }
@@ -401,6 +387,16 @@ export default function CdiProfilUploadPage() {
         >
           {t('page_subtitle')}
         </p>
+
+        {/* L'ÉTAT DE L'ANALYSE — toutes les entrées du tableau de bord mènent ici (décision du 30/09/2026) :
+            un document déjà analysé ne se recommence pas, on reprend sa validation. */}
+        <EtatAnalyseCv validerHref="/dashboard/cdi/profil/valider" />
+        {analyseContinue && (
+          <section role="status" style={{ border: '1px solid var(--sk-border)', background: 'var(--sk-surface)', borderRadius: 14, padding: '16px 18px', marginBottom: 18 }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 4 }}>{tSuivi('etat_analyse.continue_titre')}</div>
+            <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0, lineHeight: 1.55 }}>{tSuivi('etat_analyse.continue_texte')}</p>
+          </section>
+        )}
 
         <div
           className="profil-grid"
@@ -740,6 +736,11 @@ export default function CdiProfilUploadPage() {
               {t('parsing_overlay.title')}
             </div>
             <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>{t('parsing_overlay.duration')}</div>
+            {reprise && (
+              <div role="status" style={{ fontSize: 13, color: 'var(--sk-amber)', marginTop: 10, lineHeight: 1.5 }}>
+                {t('parsing_overlay.reprise', { tentative: reprise.tentative + 1, sur: reprise.sur })}
+              </div>
+            )}
           </div>
         </div>
       )}

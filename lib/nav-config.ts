@@ -321,6 +321,16 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         iconKey: 'alert',
       },
       {
+        // LES TRAVAUX D'IA QUI ATTENDENT UN HUMAIN (§D.30) : l'analyse d'un CV ou la
+        // vérification d'un expert qui ne s'est pas réglée seule. Même rangement que les
+        // dépôts en échec — on n'y tranche aucun dossier, on relance une chaîne arrêtée.
+        // BLOQUANT en supervision tant que la liste n'est pas vide.
+        key: 'travaux-ia',
+        href: '/admin/travaux-ia',
+        labelKey: 'nav_travaux_ia',
+        iconKey: 'gauge',
+      },
+      {
         // CE QUE CHAQUE COMPTE A COÛTÉ, rangé dans « Exploitation » : on n'y
         // règle rien — les plafonds se posent dans /admin/matching — on y
         // REGARDE qui a dépensé quoi.

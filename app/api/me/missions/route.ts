@@ -130,7 +130,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     console.error('[me/missions:GET] profile lookup failed', feedCtx.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
-  const { profile, isApproved, isDnd, derniereRecherche } = feedCtx.context
+  const { profile, isApproved, isDnd, derniereRecherche, horsDuMoteur, notificationsActives } = feedCtx.context
   /**
    * ⚠️ IL PART AVEC CHAQUE RÉPONSE, Y COMPRIS QUAND LE FLUX N'EST PAS VIDE.
    *    Une recherche a pu échouer alors que des rapprochements plus anciens
@@ -141,6 +141,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   const statutExpert = {
     is_dnd: isDnd,
     ...(derniereRecherche ? { derniere_recherche: derniereRecherche } : {}),
+    // APPROUVÉ MAIS HORS DU MOTEUR, et pourquoi (m) ; UNE NOTIFICATION PARTIRA-T-ELLE (M12).
+    ...(horsDuMoteur ? { hors_du_moteur: horsDuMoteur } : {}),
+    notifications_actives: notificationsActives,
   }
   if (!profile) {
     // L'utilisateur n'a pas de profile (expert pas encore inscrit). Feed vide.

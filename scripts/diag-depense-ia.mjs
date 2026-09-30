@@ -320,27 +320,37 @@ section('F. Toute depense NOMME son acteur declencheur')
     let k = code.indexOf('enregistrerDepenseIA(')
     while (k >= 0) {
       const bloc = code.slice(k, k + 700)
-      appels.push({ fichier: f, aActeur: /\bacteur:/.test(bloc) })
+      // `acteur:` ou la forme abrégée `acteur,` — les deux passent un acteur.
+      appels.push({ fichier: f, aActeur: /\bacteur\s*[:,]/.test(bloc) })
       k = code.indexOf('enregistrerDepenseIA(', k + 1)
     }
   }
   const muets = appels.filter((a) => !a.aActeur)
-  ok(appels.length >= 7,
+  // SIX depuis l'ARRÊT 19 (§D.30) : les DEUX routes d'analyse de CV (freelance, CDI) comptaient chacune leur
+  // dépense ; l'analyse est devenue un travail d'IA, et UN exécutant la compte pour les deux voies.
+  ok(appels.length >= 6,
     `les ${appels.length} enregistrement(s) de depense sont vus par le controle`,
-    'moins de sept : un point de depense a disparu ou n’est plus detecte')
+    'moins de six : un point de depense a disparu ou n’est plus detecte')
   ok(muets.length === 0,
     'aucun enregistrement ne se passe d’acteur',
     muets.map((m) => m.fichier).join(', '))
 
   // L'ECHAPPATOIRE EST VISIBLE. `non_imputable` est legitime, mais il doit
-  // rester RARE et MOTIVE : on compte ses usages pour qu'il ne se repande pas
-  // en silence. Aucun aujourd'hui.
+  // rester RARE et MOTIVE : chaque usage est ADMIS ici, NOMMEMENT, avec sa raison et
+  // la phrase-motif que la ligne de depense porte. Un usage de plus fait rougir.
+  const EVASIONS_ADMISES = {
+    'lib/travaux-ia/executer-analyse.ts': {
+      raison: 'LEGITIME (point 5 du mandat du 30/09/2026) : une analyse que NOUS n’avons pas su ecrire a ete payee au fournisseur — la depense est comptee (§D.24), mais jamais au plafond du compte de l’expert',
+      motif: /type: 'non_imputable', pourquoi: `analyse non écrite/,
+    },
+  }
   const evasions = fichiers.filter(
     (f) => f !== 'lib/ai-budget.ts' && /type: 'non_imputable'/.test(sansCommentaires(read(f))),
   )
-  ok(evasions.length === 0,
-    `l’echappatoire non_imputable n’est utilisee nulle part (${evasions.length})`,
-    'usage(s) : ' + evasions.join(', ') + ' — legitime, mais il doit etre motive et rester rare')
+  const nonAdmises = evasions.filter((f) => !(f in EVASIONS_ADMISES) || !EVASIONS_ADMISES[f].motif.test(read(f)))
+  ok(nonAdmises.length === 0 && Object.values(EVASIONS_ADMISES).every((e) => /^LEGITIME/.test(e.raison)),
+    `l’echappatoire non_imputable n’est utilisee qu’aux endroits admis, avec leur motif (${evasions.length})`,
+    'usage(s) non admis : ' + nonAdmises.join(', ') + ' — legitime peut-etre, mais il doit etre motive, ecrit ici, et rester rare')
 }
 
 section('G. L’alerte par acteur ALERTE — elle ne bloque rien')

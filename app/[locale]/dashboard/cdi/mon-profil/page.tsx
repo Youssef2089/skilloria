@@ -6,6 +6,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { messageRefusProfil } from '@/lib/profil/refus-profil'
 import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
@@ -159,6 +160,7 @@ const NOM_DE_SECTION: Record<ListeDeProfil, string> = {
 
 export default function CdiMonProfilPage() {
   const t = useTranslations('cdi_profile_view')
+  const tRefus = useTranslations('profil_refus')
   const tRejected = useTranslations('expert_verification.rejected_details')
   const locale = useLocale()
   const router = useRouter()
@@ -226,16 +228,26 @@ export default function CdiMonProfilPage() {
         //    être comptée, un référentiel n’a pas répondu, le type de compte
         //    n’a pas pu être lu. Les laisser tomber sur « la publication a
         //    échoué » enverrait corriger un profil qui n’a rien à corriger.
+        // CHAQUE REFUS DIT SA RAISON (audit du 30/09/2026) : « incomplet » NOMME ce qui manque — le bouton
+        // envoyait `{ visible: true }` seul, et le message ne disait pas quoi compléter ; tout autre code
+        // passe par la table partagée des refus (lib/profil/refus-profil.ts).
+        const manquants = Array.isArray((payload as { missing?: unknown }).missing)
+          ? ((payload as { missing: unknown[] }).missing.filter((m): m is string => typeof m === 'string'))
+          : []
         const text =
           code === 'cv_not_ready'
             ? t('publish.error_cv')
             : code === 'incomplete'
-              ? t('publish.error_incomplete')
+              ? tRefus('incomplet', {
+                  champs: manquants
+                    .map((m) => (tRefus.has(`champs_visibilite.${m}` as 'champs_visibilite.title') ? tRefus(`champs_visibilite.${m}` as 'champs_visibilite.title') : m))
+                    .join(', '),
+                })
               : code === 'completude_indisponible' ||
                   code === 'referentiel_indisponible' ||
                   code === 'profil_verification_indisponible'
                 ? t('publish.error_verification_indisponible')
-                : t('publish.error_generic') /* jamais payload.error brut */
+                : messageRefusProfil(payload, res.status, (cle, v) => tRefus(cle as 'inattendu', v))
         setPublishMsg({ kind: 'error', text })
         return
       }

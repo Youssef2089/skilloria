@@ -53,6 +53,29 @@ export const MESSAGE_PAR_CODE: Readonly<Record<string, string>> = {
   ecosysteme_non_configure: 'configuration',
   unknown_user_type: 'configuration',
   auth_error: 'configuration',
+  // Le dépôt lui-même (§D.30) : l'analyse est un TRAVAIL, déposé après le stockage
+  depots_trop_frequents: 'depots_trop_frequents',
+  depot_non_enregistre: 'ecriture',
+  // L'ISSUE du travail d'analyse, lue par `cv-status` (lib/travaux-ia/executer-analyse.ts, et le repli en base).
+  // Une erreur de NOTRE côté ne coûte aucune analyse à l'expert : le message le dit.
+  plafond_depense: 'budget',
+  quota_non_configure: 'configuration',
+  configuration: 'configuration',
+  document_refuse: 'document_refuse',
+  reponse_illisible: 'parsing_default',
+  modele_indisponible: 'modele_indisponible',
+  document_absent: 'fichier_absent',
+  profil_introuvable: 'compte_introuvable',
+  voie_inconnue: 'mauvais_type',
+  profil_illisible: 'echec_technique',
+  compte_illisible: 'echec_technique',
+  stockage_illisible: 'echec_technique',
+  referentiel_illisible: 'echec_technique',
+  quota_illisible: 'echec_technique',
+  ecriture_en_panne: 'echec_technique',
+  exception_interne: 'echec_technique',
+  delai_depasse: 'echec_technique',
+  non_execute: 'echec_technique',
 }
 
 /**

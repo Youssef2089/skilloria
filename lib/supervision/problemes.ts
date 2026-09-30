@@ -178,6 +178,8 @@ export type SourcesSupervision = {
    * rassurant, « je n'ai pas pu compter » ne l'est pas (§E.22).
    */
   depotsEnSouffrance: number | null
+  /** Les travaux d'IA qui attendent un humain (`travaux_ia_en_souffrance()`, §D.30) ; `null` = pas pu compter. */
+  travauxIaEnSouffrance: number | null
 }
 
 /**
@@ -298,6 +300,30 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
       depuis: null,
       sujet: null,
       lien: '/admin/depots-en-echec',
+    })
+  }
+
+  // ── 0 quater. LES TRAVAUX D'IA QUI NE SE SONT PAS RÉGLÉS SEULS (§D.30) ──
+  //  Une analyse de CV ou une vérification d'expert abandonnée, en retard, ou
+  //  dont l'exécutant est mort. BLOQUANT : derrière chaque ligne, un expert qui
+  //  attend. EXTINGUIBLE : le bouton « Relancer » de l'écran fait descendre le compte.
+  if (s.travauxIaEnSouffrance === null) {
+    out.push({
+      cle: 'lecture_indisponible_travaux_ia',
+      gravite: 'attention',
+      compte: null,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/travaux-ia',
+    })
+  } else if (s.travauxIaEnSouffrance > 0) {
+    out.push({
+      cle: 'travaux_ia_en_souffrance',
+      gravite: 'bloquant',
+      compte: s.travauxIaEnSouffrance,
+      depuis: null,
+      sujet: null,
+      lien: '/admin/travaux-ia',
     })
   }
 

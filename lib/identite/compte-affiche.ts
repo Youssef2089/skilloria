@@ -55,10 +55,14 @@ export async function sessionDuCompteAffiche(): Promise<Session | null | 'ejecte
   const {
     data: { session },
   } = await supabase.auth.getSession()
-  if (verdictCompte(compteAffiche, session?.user?.id) === 'different') {
+  const verdict = verdictCompte(compteAffiche, session?.user?.id)
+  if (verdict === 'different') {
     ejecterCompteDifferent()
     return 'ejecte'
   }
+  // Plus personne n'agit : on OUBLIE le compte affiché (une connexion suivante, sans rechargement,
+  // ne doit pas être comparée à lui). La page, elle, dit « session expirée » comme avant.
+  if (verdict === 'absent') fixerCompteAffiche(null)
   return session
 }
 
@@ -72,7 +76,14 @@ export function useGardeCompteAffiche(idAffiche: string | null): void {
     if (!idAffiche) return
     fixerCompteAffiche(idAffiche)
     const verifier = (idSession: string | null | undefined) => {
-      if (verdictCompte(idAffiche, idSession) === 'different') ejecterCompteDifferent()
+      const verdict = verdictCompte(idAffiche, idSession)
+      // UN AUTRE COMPTE agit : on éjecte, avec le motif `compte_different`.
+      if (verdict === 'different') ejecterCompteDifferent()
+      // PLUS AUCUN compte : c'est une déconnexion. On ne l'annonce PAS comme un autre compte — la
+      // déconnexion volontaire, la session remplacée et le compte suspendu naviguent eux-mêmes, avec
+      // LEUR motif (audit du 30/09/2026, M1 : ma garde de l'ARRÊT 18 les écrasait tous). On oublie
+      // seulement le compte affiché, pour qu'une connexion suivante ne lui soit pas comparée.
+      else if (verdict === 'absent') fixerCompteAffiche(null)
     }
     const { data: abonnement } = supabase.auth.onAuthStateChange((_evenement, session) => {
       verifier(session?.user?.id)

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useDomain } from '@/context/DomainContext'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { initSession } from '@/lib/secure-fetch'
+import { fixerCompteAffiche } from '@/lib/identite/compte-affiche'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
 
 export default function ConnexionPage() {
@@ -82,6 +83,9 @@ export default function ConnexionPage() {
         setError(t('errors.invalid_credentials'))
         return
       }
+      // Une connexion RÉUSSIE ouvre un nouveau compte affiché : l'ancien, s'il restait en mémoire
+      // (session expirée, pas de rechargement), ne doit pas faire éjecter celui-ci (§E.87, M1).
+      fixerCompteAffiche(null)
 
       // Routage via la fonction SECURITY DEFINER my_account_routing() (C4) plutôt
       // qu'un SELECT direct sur `users` : ce dernier est désormais verrouillé par

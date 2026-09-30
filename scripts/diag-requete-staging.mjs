@@ -122,7 +122,11 @@ const MOTIFS = {
   fonction: /create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\.)?"?(\w+)"?\s*\(/gi,
   table: /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?(\w+)"?/gi,
   index: /create\s+(?:unique\s+)?index\s+(?:concurrently\s+)?(?:if\s+not\s+exists\s+)?"?(\w+)"?\s+on\b/gi,
-  contrainte: /add\s+constraint\s+"?(\w+)"?/gi,
+  // ⚠️ LES DEUX FORMES (ARRÊT 19) : `add constraint X` ET la contrainte DÉCLARÉE dans un `create table`
+  //    (`constraint "X" check (…)`). La seconde manquait : une contrainte de la baseline recréée par une migration
+  //    passait pour NOUVELLE (et la ligne ② aurait dit ÉCART sur un état normal), et les contraintes d'une table
+  //    neuve échappaient au contrôle.
+  contrainte: /(?:add\s+)?constraint\s+"?(\w+)"?\s+(?:check|unique|primary\s+key|foreign\s+key|exclude)\b/gi,
 }
 for (const f of appliquees) for (const [g, re] of Object.entries(MOTIFS)) for (const m of sqlDe(f).matchAll(re)) connus[g].add(m[1].toLowerCase())
 const nouveaux = new Set()
@@ -139,7 +143,11 @@ ok(creeManquants.length === 0,
 // ── F. LES INVARIANTS NE DÉPENDENT PAS DU PUSH ──
 const invariants = lignes.filter((l) => l.label.startsWith('invariant : '))
 const nomsDuPush = new Set([...[...retire].map((s) => s.split('(')[0]), ...[...cree].map((c) => c.split(':')[1])])
-const citeLePush = invariants.flatMap((l) => [...l.bloc.matchAll(/'(?:public\.)?(\w+)(?:\([^)]*\))?'/g)]
+// Une liste d'APPARTENANCE (`tablename in (…)`, ligne ⑧) n'est pas une dépendance : une table absente avant le push
+// y compte zéro ligne, l'invariant est vrai des deux côtés. `diag-portes-laterales` EXIGE d'ailleurs qu'une table
+// journalisée neuve (travaux_ia, ARRÊT 19) y figure dès son push. On retire donc ces listes avant de chercher.
+const sansListesDAppartenance = (bloc) => bloc.replace(/\btablename\s+in\s*\(([^)]*)\)/gi, 'tablename in ()')
+const citeLePush = invariants.flatMap((l) => [...sansListesDAppartenance(l.bloc).matchAll(/'(?:public\.)?(\w+)(?:\([^)]*\))?'/g)]
   .filter((m) => nomsDuPush.has(m[1].toLowerCase())).map((m) => `ligne ${l.n} : ${m[1]}`))
 ok(citeLePush.length === 0, `F. aucune ligne invariante ne cite un objet que le push retire ou crée (${invariants.length} invariants)`,
   citeLePush.join(' · ') || undefined)

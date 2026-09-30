@@ -346,8 +346,10 @@ async function executerRunExpert(args: {
   if ((p.work_zone_countries ?? []).length > 0) {
     q = q.overlaps('work_zone_countries', p.work_zone_countries as string[])
   }
-  // Un expert ne se voit pas proposer son propre besoin de sous-traitance.
-  q = q.neq('created_by', p.user_id)
+  // Un expert ne se voit pas proposer son propre besoin de sous-traitance — filtré EN MÉMOIRE
+  // ci-dessous : `neq('created_by', …)` s'écrit `created_by <> …` en SQL, qui écarte aussi les
+  // annonces SANS auteur (`created_by` nul après la suppression d'un compte, ou semées) — le sens
+  // annonce → experts, lui, les traite (audit du 30/09/2026, m8).
 
   const { data: pubsData, error: pubsErr } = await q
   if (pubsErr) {
@@ -355,7 +357,7 @@ async function executerRunExpert(args: {
     await recherche.echouee({ etape: 'vivier', cause: 'vivier_en_panne', tentative: p.matching_relance_tentatives })
     return { status: 'error', proposals: [], notes: `Chargement des annonces : ${pubsErr.message}`, model: s.rerank_model }
   }
-  const annonces = (pubsData ?? []) as unknown as LigneAnnonce[]
+  const annonces = ((pubsData ?? []) as unknown as LigneAnnonce[]).filter((a) => a.created_by !== p.user_id)
 
   // ── 4. Ce que l'expert a DÉJÀ DÉCIDÉ ─────────────────────────────────────
   //  Décliné, ou déjà postulé : on ne paie pas pour renoter ce qui est tranché,

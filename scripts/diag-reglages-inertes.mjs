@@ -317,33 +317,30 @@ section('C. Le quota d’analyses de CV se règle sans déploiement')
 
 // Plus AUCUNE valeur en dur dans les deux routes — ni le nombre, ni la fenêtre,
 // ni le chiffre réécrit dans le texte du refus.
+// ⚠️ DEPUIS L'ARRÊT 19 (§D.30), le dépôt des DEUX voies vit dans lib/profil/depot-cv.ts (les routes n'en sont
+//    que les portes), et le quota ne compte plus que les analyses ABOUTIES — compté par la base, dans la
+//    transaction qui écrit l'analyse (`ecrire_analyse_cv`, fenêtre passée par l'exécutant). Les deux réglages
+//    (nombre, fenêtre) restent LUS et APPLIQUÉS ; ils le sont à deux endroits, et ce contrôle suit les deux.
+const depotCv = sansCommentaires(read('lib/profil/depot-cv.ts'))
+const executantCv = sansCommentaires(read('lib/travaux-ia/executer-analyse.ts'))
+const sqlAnalyse = read(`supabase/migrations/${readdirSync(join(ROOT, 'supabase/migrations')).find((f) => f.endsWith('_analyse_cv_tolerante.sql'))}`)
 for (const [nom, src] of [['upload-cv', routeCv], ['cdi-upload-cv', routeCvCdi]]) {
-  ok(!/RATE_LIMIT/.test(src), `${nom} n’a plus de constante RATE_LIMIT`)
-  ok(
-    !/24 \* 60 \* 60 \* 1000/.test(src),
-    `${nom} ne recalcule plus la fenêtre de 24 h à la main`,
-    'La fenêtre est le second réglage : la laisser en dur, c’est n’en externaliser que la moitié.',
-  )
-  ok(
-    !/\d+\s*parsings\s*\/\s*\d+h/.test(src),
-    `${nom} ne réécrit plus le quota dans le texte du refus`,
-    'Le message resterait faux le jour où le réglage change.',
-  )
+  ok(/return deposerCv\(request, 'expert_(freelance|cdi)'\)/.test(src), `${nom} passe par le dépôt partagé (lib/profil/depot-cv.ts)`)
+}
+{
+  const nom = 'le dépôt (les deux voies)'
+  const src = depotCv
+  ok(!/RATE_LIMIT/.test(src), `${nom} n’a pas de constante RATE_LIMIT`)
+  ok(!/24 \* 60 \* 60 \* 1000/.test(src), `${nom} ne recalcule pas la fenêtre de 24 h à la main`)
+  ok(!/\d+\s*parsings\s*\/\s*\d+h/.test(src), `${nom} ne réécrit pas le quota dans le texte du refus`)
   ok(/loadCvParsingQuota\(/.test(src), `${nom} LIT le quota en base`)
-  // La MENTION de `quota.maxPerWindow` ne prouve rien : elle survit dans le
-  // texte du refus alors que la COMPARAISON est repassée à un littéral
-  // (mutation M9). C'est la comparaison elle-même qu'on exige.
+  // C'est la COMPARAISON au quota lu qu'on exige, pas sa mention (mutation M9).
+  ok(/count\s*>=\s*quota\.maxPerWindow/.test(src), `${nom} COMPARE au quota lu, pas à un nombre écrit là`)
+  ok(/quota_config_missing|err\.code/.test(src) && /503/.test(src), `${nom} REFUSE en 503 si le réglage manque, au lieu de deviner`)
   ok(
-    /count24h\s*>=\s*quota\.maxPerWindow/.test(src),
-    `${nom} COMPARE au quota lu, pas à un nombre écrit là`,
-  )
-  ok(
-    /windowEndsAt\(quota/.test(src),
-    `${nom} applique aussi la FENÊTRE lue (le second réglage)`,
-  )
-  ok(
-    /quota_config_missing|err\.code/.test(src) && /503/.test(src),
-    `${nom} REFUSE en 503 si le réglage manque, au lieu de deviner`,
+    /loadCvParsingQuota\(admin\)\)\.windowHours/.test(executantCv) && /p_fenetre_quota: `\$\{fenetreHeures\} hours`/.test(executantCv)
+      && /now\(\) \+ p_fenetre_quota/.test(sqlAnalyse),
+    'l’exécutant applique la FENÊTRE lue (le second réglage), et la base la pose à l’analyse aboutie',
   )
 }
 

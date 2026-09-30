@@ -169,30 +169,29 @@ export async function notifyAndFlip(args: {
     })
   }
 
+  // Les paires dont la notification EXISTE — déjà là, ou posée par ce run. Seules
+  // celles-là passent à « notifiées » : un paquet refusé ne ment plus (audit du
+  // 30/09/2026, M7 — les correspondances basculaient même quand rien n'était posé).
+  const enPlace = new Set(dejaNotifie)
   if (rows.length > 0) {
     // Insertion par paquets : un INSERT de 12 000 lignes d'un coup est une
     // requête que rien ne borne.
     for (let i = 0; i < rows.length; i += PAQUET_DESTINATAIRES) {
       const tranche = rows.slice(i, i + PAQUET_DESTINATAIRES)
-      // ── LE DOUBLON EST REFUSÉ PAR LA BASE, ET IGNORÉ ICI ─────────────────
-      //  Un index unique partiel garde désormais la paire (destinataire,
-      //  annonce) pour ce type (cf. migration verrou_run_et_unicite_...).
-      //  Sans `ignoreDuplicates`, un seul doublon — celui qu'un run concurrent
-      //  vient d'insérer entre notre lecture et notre écriture — ferait échouer
-      //  TOUT LE PAQUET : on aurait échangé une notification en double contre
-      //  cinq cents notifications perdues.
-      //
-      //  La lecture d'idempotence au-dessus reste utile : elle évite d'écrire
-      //  ce qu'on sait déjà présent. L'index, lui, tranche le cas qu'aucun
-      //  lire-puis-écrire ne peut couvrir — deux runs au même instant.
-      const { error: insErr } = await supabaseAdmin
-        .from('notifications')
-        .upsert(tranche, { onConflict: 'user_id,entity_id', ignoreDuplicates: true })
+      // ── LE DOUBLON EST IGNORÉ PAR LA BASE — ET LA CLAUSE PORTE LE PRÉDICAT ──
+      //  L'index unique de la paire (destinataire, annonce) est PARTIEL. L'ancien
+      //  `upsert(…, { onConflict: 'user_id,entity_id' })` s'écrivait `ON CONFLICT
+      //  (user_id, entity_id)` SANS prédicat : Postgres n'infère pas un index
+      //  partiel ainsi, et CHAQUE paquet échouait en 42P10 — aucune notification,
+      //  aucun e-mail, depuis la pose de l'index (§E.69, recopié). La RPC écrit la
+      //  clause avec le prédicat (migration notifications_match) et rend ce qu'elle a posé.
+      const { data: posees, error: insErr } = await supabaseAdmin.rpc('poser_notifications_match', { p_lignes: tranche })
       if (insErr) {
         bilan.paquets_en_echec++
         console.error('[matching] insertion de notifications en échec', insErr.message)
       } else {
-        bilan.posees += tranche.length
+        bilan.posees += typeof posees === 'number' ? posees : 0
+        for (const r of tranche) enPlace.add(`${r.user_id as string}:::${r.entity_id as string}`)
       }
     }
 
@@ -219,6 +218,7 @@ export async function notifyAndFlip(args: {
   //  annonce : le genre de boucle qui ne se voit qu'en production.
   const parPublication = new Map<string, string[]>()
   for (const s of aBasculer) {
+    if (!enPlace.has(`${s.user_id}:::${s.publication_id}`)) continue
     const liste = parPublication.get(s.publication_id) ?? []
     liste.push(s.profile_id)
     parPublication.set(s.publication_id, liste)

@@ -237,16 +237,10 @@ for (const r of RACINES) marche(join(ROOT, r))
  * exister. Si la protection en amont disparait, l'exemption tombe et le
  * controle rougit — une exemption qui survit a sa raison est un defaut endormi.
  */
-const EXEMPTIONS = {
-  'app/api/profile/route.ts': {
-    raison:
-      'Les trois blocs suppriment AVANT de tester, mais la requete ne les atteint ' +
-      'jamais dans ce cas : une barriere en amont compte les entrees ECRIVABLES ' +
-      'avec le meme predicat que les `.filter()`, et refuse 400 `liste_illisible`. ' +
-      'La propriete est tenue, pas par la forme locale mais par un refus anterieur.',
-    sentinelle: /liste_illisible[\s\S]{0,200}400/,
-  },
-}
+// VIDE depuis l'ARRÊT 19 (M4) : la seule exemption (`app/api/profile/route.ts`) est sortie — la route ne
+// supprime plus rien elle-même, elle confie ses listes à `remplacer_listes_profil` (tout ou rien, section C).
+// Le gel ne fait que descendre ; une exemption qui ne sert plus serait un tampon qu'on ne relit pas.
+const EXEMPTIONS = {}
 
 const prisesParFichier = new Map()
 for (const f of fichiers) {
@@ -300,17 +294,14 @@ section('C. L INVENTAIRE DES ECRIVAINS DE `profile_languages`')
  *    Un QUATRIEME ecrivain fait rougir : il doit etre lu, pas devine.
  */
 /*
- * La voie FREELANCE a quitte cet inventaire le 30/09/2026 (§E.87) : la route
- * n ecrit plus l analyse elle-meme, elle la confie a `appliquer_analyse_cv`
- * (une transaction). Sa suppression est donc SQL — invisible au balayage B —
- * et la propriete se verifie plus bas, sur ses deux moities : la route ne
- * passe une liste que si elle est non vide APRES normalisation, et la
- * fonction ne supprime que si la liste recue est non vide.
+ * ⚠️ DEPUIS L'ARRÊT 19 (§E.88, M4), AUCUN ÉCRIVAIN TYPESCRIPT NE SUPPRIME PLUS CETTE LISTE.
+ *    Les trois écrivains — l'analyse d'un CV (freelance ET CDI, un exécutant), l'enregistrement du
+ *    profil (PATCH) — ont confié la suppression à la BASE : `ecrire_analyse_cv` (tolérante) et
+ *    `remplacer_listes_profil` (tout ou rien). La suppression est donc SQL, invisible au balayage B,
+ *    et la PROPRIÉTÉ — « la liste réinsérée est testée avant la suppression » — se vérifie là où elle
+ *    vit désormais, sur ses deux moitiés. Un écrivain TypeScript qui réapparaîtrait fait rougir.
  */
-const ECRIVAINS_ATTENDUS = [
-  ['app/api/profile/cdi-upload-cv/route.ts', 'analyse de CV — CDI'],
-  ['app/api/profile/route.ts', 'PATCH du profil'],
-]
+const ECRIVAINS_ATTENDUS = []
 
 const ecrivainsTrouves = []
 for (const f of fichiers) {
@@ -320,59 +311,45 @@ for (const f of fichiers) {
   }
 }
 
-for (const [rel, label] of ECRIVAINS_ATTENDUS) {
-  ok(
-    ecrivainsTrouves.includes(rel),
-    `${label} — supprime puis reinsere \`profile_languages\``,
-    `${rel} ne porte plus cette suppression : l inventaire a bouge, relisez-le`,
-  )
-  ok(
-    !prisesParFichier.has(rel) || rel in EXEMPTIONS,
-    `${label} — la propriete est tenue (garde locale, ou barriere declaree)`,
-    'la liste reinseree n est testee nulle part avant la suppression',
-  )
-}
-
-// ── La voie freelance, deleguee a la base (§E.87) ──
 {
-  const routeFreelance = sansCommentaires(lire(join(ROOT, 'app/api/profile/upload-cv/route.ts')))
-  // Moitie 1 — la route : la liste des langues passee a la fonction est NON VIDE APRES normalisation.
-  // Ancre sur la propriete (§E.34) : la variable passee en `p_langues` n est affectee a une liste que
-  // derriere un test de longueur de la liste dont elle derive — quel que soit son nom.
-  const passee = routeFreelance.match(/rpc\(\s*'appliquer_analyse_cv'[\s\S]{0,400}?p_langues:\s*([A-Za-z_]\w*)/)?.[1]
-  const affectations = passee
-    ? [...routeFreelance.matchAll(new RegExp(`\\b${passee}\\s*=\\s*([A-Za-z_]\\w*)\\.map\\(`, 'g'))]
-    : []
-  const testees = affectations.filter((m) => {
-    const avant = routeFreelance.slice(Math.max(0, m.index - 400), m.index)
-    return new RegExp(`\\b${m[1]}\\.length\\s*(===\\s*0|>\\s*0)`).test(avant)
-  })
-  ok(
-    !!passee && affectations.length > 0 && testees.length === affectations.length,
-    'analyse de CV — freelance — la route ne confie a la base qu une liste de langues testee NON VIDE apres normalisation',
-    passee ? `\`${passee}\` recoit une liste qu aucun test de longueur ne precede` : 'l appel a appliquer_analyse_cv ne passe plus p_langues',
-  )
-  // Moitie 2 — la fonction : la derniere definition ne supprime une liste que si celle qu elle recoit est non vide.
   const dossier = join(ROOT, 'supabase', 'migrations')
-  const definitions = readdirSync(dossier).filter((f) => f.endsWith('.sql')).sort()
-    .map((f) => lire(join(dossier, f)))
-    .map((s) => s.match(/create\s+(?:or\s+replace\s+)?function\s+public\.appliquer_analyse_cv\s*\([\s\S]*?\$fn\$([\s\S]*?)\$fn\$/i)?.[1])
-    .filter(Boolean)
-  const corps = definitions.at(-1) ?? ''
+  const corpsDe = (nom) => {
+    const defs = readdirSync(dossier).filter((f) => f.endsWith('.sql')).sort()
+      .map((f) => lire(join(dossier, f)))
+      .map((s) => s.match(new RegExp(`create\\s+(?:or\\s+replace\\s+)?function\\s+public\\.${nom}\\s*\\([\\s\\S]*?\\$fn\\$([\\s\\S]*?)\\$fn\\$`, 'i'))?.[1])
+      .filter(Boolean)
+    return defs.at(-1) ?? ''
+  }
+  // ── L'analyse d'un CV (les deux voies) : ecrire_analyse_cv ──
+  const analyse = corpsDe('ecrire_analyse_cv')
   const listes = [['p_experiences', 'profile_experiences'], ['p_formations', 'profile_educations'], ['p_langues', 'profile_languages']]
   const nonGardees = listes.filter(([param, table]) =>
-    !new RegExp(`if\\s+coalesce\\(\\s*jsonb_array_length\\(\\s*${param}\\s*\\)\\s*,\\s*0\\s*\\)\\s*>\\s*0\\s+then\\s+delete\\s+from\\s+public\\.${table}\\b`, 'i').test(corps))
-  ok(
-    definitions.length > 0 && nonGardees.length === 0,
-    'analyse de CV — freelance — appliquer_analyse_cv ne supprime une liste que si celle qu elle recoit est non vide',
-    definitions.length === 0 ? 'appliquer_analyse_cv introuvable dans les migrations' : `suppression non gardee : ${nonGardees.map(([, t]) => t).join(', ')}`,
-  )
+    !new RegExp(`if\\s+coalesce\\(\\s*jsonb_array_length\\(\\s*${param}\\s*\\)\\s*,\\s*0\\s*\\)\\s*>\\s*0\\s+then\\s+begin\\s+delete\\s+from\\s+public\\.${table}\\b`, 'i').test(analyse))
+  ok(analyse.length > 0 && nonGardees.length === 0,
+    'analyse de CV — ecrire_analyse_cv ne supprime une liste que si celle qu elle recoit est non vide',
+    analyse.length === 0 ? 'ecrire_analyse_cv introuvable' : `suppression non gardee : ${nonGardees.map(([, t]) => t).join(', ')}`)
+  ok((analyse.match(/if v_inseres = 0 then\s+raise exception '[^']*' using errcode = 'AC001';/g) ?? []).length === 3
+     && (analyse.match(/exception when sqlstate 'AC001' then/g) ?? []).length === 3,
+    'analyse de CV — une liste dont TOUTES les lignes sont refusees annule sa suppression (la liste d avant reste)',
+    'sans cette annulation, une liste non vide qui se filtre a rien effacerait tout — §E.36 a l interieur d une fonction')
+  // La moitié TypeScript : l'exécutant ne confie qu'une liste NON VIDE après normalisation (sinon null).
+  const normaliser = sansCommentaires(lire(join(ROOT, 'lib/profil/normaliser-analyse.ts')))
+  ok(/if \(langues\.length === 0\) langues = null/.test(normaliser) && /if \(experiences\.length === 0\) experiences = null/.test(normaliser)
+     && /p_langues: n\.langues,/.test(sansCommentaires(lire(join(ROOT, 'lib/travaux-ia/executer-analyse.ts')))),
+    'analyse de CV — l executant ne confie a la base qu une liste NON VIDE apres normalisation')
+  // ── L'enregistrement du profil : remplacer_listes_profil, tout ou rien ──
+  const patch = corpsDe('remplacer_listes_profil')
+  ok(patch.length > 0 && /exception[\s\S]*?when others then[\s\S]*?raise exception using\s+errcode = 'LP001'/.test(patch),
+    'PATCH du profil — une ligne refusee annule TOUT le bloc (aucune liste touchee), et le refus est nomme (LP001)')
+  const route = sansCommentaires(lire(join(ROOT, 'app/api/profile/route.ts')))
+  ok(route.indexOf("code: 'effacement_non_declare'") > 0 && route.indexOf("code: 'effacement_non_declare'") < route.indexOf(".rpc('remplacer_listes_profil'"),
+    'PATCH du profil — vider une liste non vide exige d avoir DECLARE l avoir lue, AVANT l appel qui remplace')
 }
 
 const inconnus = ecrivainsTrouves.filter((r) => !ECRIVAINS_ATTENDUS.some(([x]) => x === r))
 ok(
   inconnus.length === 0,
-  'aucun ecrivain nouveau n est apparu sans avoir ete lu',
+  'aucun ecrivain TypeScript de profile_languages n est apparu sans avoir ete lu',
   inconnus.join(', '),
 )
 

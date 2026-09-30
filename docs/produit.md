@@ -85,6 +85,15 @@ utilisent le **même** composant (§E.14).
 > ce que l'en-tête de la route promettait déjà (« tous les champs PARSÉS ») et qu'elle ne faisait
 > pas. Le cliquet dérivé qui l'a trouvé : §E.61.
 
+> ⛔ **ARRÊT 19 (30/09/2026) — CE QUI A CHANGÉ AUX ÉTAPES 3 À 5.** Le profil se remplit par le CV **ou l'export PDF
+> LinkedIn** (§D.31) : toutes les entrées du tableau de bord mènent à l'import. Le dépôt ne fait plus attendre
+> l'analyse dans la requête : il la DÉPOSE (202) et l'écran la suit jusqu'à son issue, même si l'expert revient plus
+> tard (§D.30). Une valeur fautive du CV est normalisée ou écartée, et dite à l'écran de validation ; le quota ne
+> compte que les analyses abouties. L'écran de validation DEMANDE la disponibilité (aucune réponse cochée d'avance).
+> La vérification se dépose à la publication et tourne hors de la requête ; si elle échoue, le profil part en revue
+> humaine — jamais « en cours » pour toujours. « Autre » avec sa précision suffit à publier. La première recherche
+> d'un expert approuvé qui échoue est rejouée, et son accueil dit qu'elle a échoué au lieu d'« aucune mission ».
+
 **3. Il dépose son CV.** `/dashboard/{freelance,cdi}/profil` → `POST /api/profile/upload-cv`
 (freelance) ou `/api/profile/cdi-upload-cv` (CDI). **Deux routes distinctes, gardées par
 `user_type`** : un `expert_cdi` sur la route freelance reçoit **403 `wrong_user_type`**.
@@ -739,6 +748,7 @@ deux produits.
 | `durees` | Les **deux durées du contrat de la place** — vie d'une annonce (**rétroactive**) et fenêtre d'échange (**non rétroactive**), §P3.7 — plus la validité d'une invitation, et la **conservation des adresses IP** (mois, **agit sur l'existant**), §P3.4. |
 | `taches-planifiees` · `taches-planifiees/[job_name]` | Supervision pg_cron : activer/désactiver, reprogrammer, déclencher, historique. |
 | `depots-en-echec` | **Les candidatures qui n'ont pas pu être écrites**, et le bouton qui les rejoue. Depuis §D.19 une candidature n'existe que complète : si son analyse n'aboutit pas, **rien n'est écrit** et l'expert **n'en est pas informé**. Cet écran est la contrepartie exacte de ce silence — sans lui, personne ne se plaindrait. Deux états : **échec** (on sait pourquoi, rouge) et **interrompu** (la fonction a été tuée pendant l'appel, ambre — on ne sait pas où). Filtres : cause, écosystème, période. **RELANCER** rejoue *la même fonction* que le dépôt d'un expert, jamais une copie. Il remonte en **BLOQUANT** dans la supervision tant qu'il n'est pas vide. |
+| `travaux-ia` | **Les travaux d'IA en souffrance** (§D.30) : analyses de CV et vérifications d'experts échouées, perdues ou en retard, avec leur cause nommée et le nombre de tentatives. **Relancer** redépose le travail (journalisé `travail_ia_relance`) ; un travail qui n'est plus en échec rend 409. Il remonte en **BLOQUANT** dans la supervision tant qu'il n'est pas vide. Liste bornée, la coupure est dite. |
 | `consommation` | **Ce que chaque compte a coûté ce mois-ci**, et lequel a atteint son plafond. Depuis §D.25 un compte peut être **arrêté par son propre plafond** : ses annonces sortent mais ne sont plus classées, ou ses recherches automatiques s'arrêtent. Rien ne casse et rien n'échoue — il ne se passe simplement plus rien. La supervision dit **combien** de comptes sont dans cet état ; c'est ici, et seulement ici, qu'on voit **lesquels**, à combien et sur quoi. Trois états par compte : **au plafond** (rouge, ce qui est automatique s'est arrêté), **à surveiller** (ambre, rien n'est arrêté), **normal**. Chaque ligne se **déplie** sur la ventilation **par type d'opération** — analyse de CV, classement, jugement, pitch, vérifications, qualité d'annonce — parce qu'un total ne permet de décider de rien : un compte à 24 $ sur un plafond de 25 $ appelle une décision qu'on ne prend pas sans savoir si ce sont cent classements légitimes ou une boucle d'analyses de CV. **Replié par défaut** (§E.26). Les deux états viennent de la **base**, jamais recalculés à l'écran. Ce qui n'est pas détaillé est **dit** — le reste agrégé et compté, le non-imputable — et la somme boucle avec la dépense du mois. On n'y **règle rien** : les plafonds se posent dans `matching`. |
 | `journal` · `journal/[piece]` | **Le grand livre** (§D.26) : chaque action qui change un état, avec sa **pièce** — le numéro qui relie toutes les écritures d'un même geste. Filtres par famille, action, statut, origine, écosystème, compte et période ; le **nettoyage du journal reste visible sous tout filtre** (la base le garantit, l'écran le dit). Pagination **réelle** par curseur, la suite **annoncée** ; le numéro de ligne n'est **jamais** montré (il a des trous normaux). Le nom de l'acteur est **rejoint à la lecture**, ou « compte supprimé ». Une écriture ouvre sa **pièce** (page de détail, avec son Retour) : toutes ses écritures, la pièce qu'elle reprend et celles qui la reprennent, et ce que les cinq journaux détaillés portent sous la même pièce ; le lien vers l'objet quand un écran le montre ; les montants avec leur devise ($ pour l'IA, la devise du paiement pour le commerce). Lecture **en base** (`lire_grand_livre`, `lire_piece` : réservées à l'administrateur, bornées). En bas, **Conservation et nettoyage** : par famille, le **plancher légal** et la **conservation**, deux champs **vides** que l'administrateur saisit (chaque changement s'écrit au grand livre), avec sous le nom de la famille, **en aide**, la référence légale proposée (du texte, rien de pré-rempli) ; et ce qu'un nettoyage effacerait — **annoncé avant tout bouton**. Le nettoyage se confirme puis se ré-authentifie, n'efface que ce qui a été annoncé, et laisse sa propre écriture. **Tant qu'une des deux valeurs d'une famille est vide, elle ne s'efface pas.** |
 | `collaboration` | Les organisations personnelles d'experts. |
@@ -878,7 +888,8 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 ### P3.3 — IA et contenus
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
-| Analyses de CV | **3 / 24 h** | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
+| Analyses de CV | **3 / 24 h**, comptées sur les analyses **ABOUTIES** seulement (ARRÊT 19) | `ai_quotas` | **Back-office** `/admin/quotas-ia` |
+| Dépôts de CV (anti-abus) | **10 / heure** | **Code** `DEPOTS_CV_MAX_PAR_HEURE` | Déploiement |
 | Taille de CV | 5 Mo, PDF | **Code** | Déploiement |
 | Taille de logo (organisation **et** écosystème) | **2 Mo**, `image/jpeg` · `png` · `webp` — **SVG refusé** | **Code** [lib/org-logo.ts](../lib/org-logo.ts) | Déploiement |
 | Vérification d'un logo | **signature binaire** lue dans les octets, type déclaré confronté au type reniflé, et c'est le **reniflé** qui est servi | **Code** `verifierFichierLogo` | Déploiement |
@@ -950,7 +961,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 > `storage.objects`.
 
 
-### P3.6 — Les onze tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
+### P3.6 — Les douze tâches planifiées (pg_cron, plus aucun cron d'hébergeur)
 | Tâche | Horaire | Ce qu'elle fait |
 |---|---|---|
 | `purge_deletions_trigger` | 03:00 | Efface les comptes dont la grâce de 90 j est échue (RGPD art. 17). |
@@ -961,6 +972,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | `rate_limit_hits_purge` | 04:00 | Purge les compteurs de débit. |
 | `matching_retry_trigger` | toutes les 5 min | Reprend les runs de matching inachevés. |
 | `expert_relance_trigger` | toutes les 5 min | Exécute les relances arrivées à échéance. |
+| `travaux_ia_pilote` | chaque minute | **Réveille l'exécutant des travaux d'IA** (analyse d'un CV, vérification d'un expert) s'il reste du travail dû, et **clôt ce qui est perdu** — bail expiré, travail non pris depuis 30 min — en appliquant le repli EN BASE : analyse « échouée, nommée », vérification en revue humaine (§D.30). SQL ; sans les secrets du Vault, le réveil échoue en silence et les travaux sont clos `non_execute`. |
 | `matching_notes_partielles_purge` | 04:30 | Purge les brouillons de notation soldés. |
 | `constats_trigger` | 04:50 | **Constate**, une fois et une seule, ce qui est arrivé sans geste — les annonces dont la durée de vie est écoulée (`annonce_expiree`), les échanges refermés (`devoilement_ferme`, décidé par la source unique de l'état de vie) — et l'écrit au grand livre sous une pièce par passage, tenu par une colonne-marqueur. Passages bornés à 200 ; rien d'autre n'est modifié (§D.26, §C.21 architecture). |
 | `stripe_reconcile_trigger` | 02:40 | Compare les événements produits par Stripe aux dernières 24 h avec ceux que le journal a reçus. **Elle signale, elle ne retraite rien.** L'horaire n'est pas esthétique : il est **contraint** par `cron_run_reconcile` (03:15) et le TTL d'environ 6 h de pg_net — posée après 03:45, sa réponse HTTP aurait expiré avant d'être recopiée, et l'écran l'afficherait éternellement « aucune réponse observée ». |

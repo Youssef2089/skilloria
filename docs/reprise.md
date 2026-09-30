@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 30/09/2026 (ARRÊT 18).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 30/09/2026 (ARRÊT 19).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,7 +13,9 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — UNE migration en attente, `analyse_cv_atomique` (ARRÊT 18) : staging est à jour jusqu'à
+**Au prochain push** — HUIT migrations de l'ARRÊT 19 (le parcours expert, ci-dessous), à pousser APRÈS
+`analyse_cv_atomique` (ARRÊT 18) : la requête de staging suppose `analyse_cv_atomique` appliquée (⓪) ; si elle ne
+l'est pas, ⓪ sort en ÉCART — on s'arrête et on me le dit. Avant l'ARRÊT 18, staging était à jour jusqu'à
 `sous_domaine_reglable` (ARRÊT 15, déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 17 (le SMS dit sa cause ; les variables se disent au démarrage) — l'ARRÊT 16 est déployé (`2ace4ab`). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
 l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
 `NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
@@ -54,6 +56,163 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 19 — LE PARCOURS EXPERT, DU CV À LA PREMIÈRE MISE EN RELATION, SANS UN MUR (30/09/2026)
+
+Mandat : corriger TOUT l'audit rendu sur `aac5f79` (4 bloquants, 12 majeurs, les mineurs) dans un seul lot. Tag local
+`sauvegarde-avant-parcours-expert` sur `aac5f79`, arbre propre (hormis `supabase/snippets/`, à Youssef).
+
+**ÉCRIT AVANT LE CODE, comme demandé : les contradictions, puis les propositions des points 6 et 7.**
+
+**Contradictions signalées.**
+① **« Le profil se remplit uniquement par le CV » ↔ « B1, B4, M4, M11 à la source »** : ces quatre défauts vivent dans le
+  FORMULAIRE de validation. Lecture retenue : les entrées du tableau de bord (bandeau, « Compléter mon profil », étapes de
+  démarrage) mènent à l'IMPORT ; l'écran de validation n'est atteint qu'APRÈS une analyse, il montre ce que le document a
+  donné et DEMANDE ce qu'un document ne peut pas donner. L'expert peut encore corriger une lecture fausse — sinon un CV
+  mal lu le bloquerait sans issue. Réversible en retirant l'édition.
+② **« Une erreur de notre côté ne consomme ni quota ni dépense » ↔ §D.24 « le compteur compte ce qu'on paie »** : l'argent
+  réellement payé au fournisseur reste compté (c'est un fait), mais IMPUTÉ `non_imputable` avec sa raison — ni au quota ni
+  au plafond du compte de l'expert. Le quota ne compte plus que les analyses ABOUTIES ; un plafond anti-abus par heure borne
+  les dépôts (constante nommée, comme la relance, §D.7).
+③ **« Sans cron Vercel »** : l'ordonnanceur est `pg_cron` ; il appelle une route (comme les cinq tâches existantes). La
+  route a `maxDuration = 300`, comme `cron/expert-relance` : le plan Vercel doit l'accepter — À VÉRIFIER (ci-dessous).
+④ **Republier un profil DÉJÀ approuvé** : la vérification tournait dans la requête et démotait à la seconde. Asynchrone,
+  le profil reste approuvé pendant la vérification (quelques minutes au plus), puis le verdict démote s'il le faut. L'autre
+  choix — repasser à « en cours » tout de suite — retire l'expert des mises en relation à chaque republication.
+⑤ **« Enregistrer comme brouillon » sur un profil publié le dépublie** (audit, « à arbitrer ») : c'est le SEUL chemin qui
+  fait repasser une modification par la vérification. Le retirer laisserait un profil vérifié changer sans contrôle. Il
+  reste, mais il est DIT avant le clic (quatre langues). À trancher par Youssef s'il en veut un autre.
+⑥ **`analyse_cv_atomique` est peut-être déjà appliquée** (Youssef déployait pendant l'audit) : la fonction nouvelle porte
+  un AUTRE nom (`ecrire_analyse_cv`) — l'ancienne ne se supprime qu'au déploiement suivant (§E.72), dette nommée.
+⑦ **« Chaque bloquant et majeur a son test qui échoue sans le correctif »** : ce qui est en base se prouve par pgTAP ; ce
+  qui est dans un écran (bandeau, attente, bascule) se prouve par un CONTRÔLE statique ou par l'exécution d'un module pur —
+  le dépôt n'a pas de navigateur de test. Dit ligne par ligne dans l'épreuve.
+
+**PROPOSITION DU POINT 6 — les travaux d'IA longs ne dépendent plus d'une requête.**
+- **Une file en base** : `travaux_ia` (nature `analyse_cv` ou `verification_expert`, profil, état `en_attente` →
+  `en_cours` → `reussi` / `echoue` / `annule`, tentatives bornées, échéance de la prochaine, bail, pièce du geste,
+  code d'échec nommé). Au plus UN travail actif par profil et par nature (index unique partiel) ; déposer à nouveau
+  annule l'ancien.
+- **Déposer est une transaction** : la route écrit l'état du profil (« analyse en cours », « vérification en cours ») ET
+  le travail, puis répond tout de suite (202). La base réveille l'exécutant aussitôt par `pg_net`.
+- **L'exécutant** : `POST /api/cron/travaux-ia` (secret de tâche, `maxDuration = 300`), prend les travaux dus sous bail
+  (`for update skip locked`), les exécute, les termine. Un échec de NOTRE côté (panne, fournisseur, délai) est REJOUÉ avec
+  un délai croissant, jusqu'au plafond.
+- **Le pilote `pg_cron`, chaque minute, en SQL** : il réveille l'exécutant s'il y a du travail dû, et il CLÔT ce qui est
+  perdu — un bail expiré après la dernière tentative, un travail que personne n'a pris depuis 30 minutes. Clore applique
+  l'issue de repli EN BASE : analyse → « échouée, nommée » ; vérification → « à revoir par un humain ». **Aucun profil ne
+  reste « en cours » pour toujours, même si l'hébergeur ne répond plus.**
+- **L'expert** : l'écran attend l'issue réelle (sondage), et s'il part, le tableau de bord dit « en cours » tant que c'est
+  vrai, puis l'issue. **L'admin** : un écran « Travaux d'IA » (en cours, en attente, échoués, avec le motif) et un bouton
+  « Relancer » (journalisé) ; la supervision rougit sur un travail échoué ou en retard.
+
+**PROPOSITION DU POINT 7 — ce qu'un CV ne peut pas donner, et comment le demander.**
+Le prédicat de visibilité exige douze choses. Un CV (ou l'export PDF LinkedIn) donne : titre, résumé, compétences,
+expériences, langues. Il ne donne PAS, ou pas avec certitude :
+| Ce qui manque | Pourquoi un CV ne le dit pas | Comment le demander |
+|---|---|---|
+| **Disponibilité** (freelance : à l'écoute / pas à l'écoute ; CDI : en poste / ouvert) | un CV dit ce qu'on a fait, pas ce qu'on accepte | une question fermée, sans valeur cochée d'avance, en tête de l'écran de validation |
+| **Zones de travail** | un CV dit où l'on a travaillé, pas où l'on accepte d'aller — l'analyseur a l'interdiction de les déduire | le sélecteur existant, même endroit |
+| **Séniorités acceptées** | le CV établit un niveau ATTEINT ; accepter un niveau inférieur est un choix | pré-cochées depuis le CV, à confirmer |
+| **Branche et spécialités** | un classement dans NOTRE référentiel, que le modèle propose sans certitude — et « Autre » ne s'y range pas | proposées depuis le CV, à confirmer ; « Autre » seul devient publiable |
+| **Modes de travail, tarif / salaire, préavis** | rarement écrits | les champs existants (le salaire et le préavis restent exigés du CDI) |
+| **Le résumé de 200 à 800 caractères** | un CV n'en a souvent pas, ou un trop court | l'analyseur l'ÉCRIT, dans ces bornes ; un résumé hors bornes est ramené ou signalé |
+Le bandeau du tableau de bord ne liste plus de champs : il dit que le profil n'est pas visible et mène à l'import ; la page
+d'import, si un CV est déjà analysé, propose « Reprendre la validation » à côté de « Importer un nouveau document ».
+
+### Ce qui a été fait, item par item de l'audit (sur `aac5f79`)
+
+« Contrôle » = `scripts/diag-parcours-expert.mjs` (nouveau, 99 vérifications, section entre crochets), sauf mention.
+« Test » = pgTAP, `supabase/tests/database/…` — **écrits, JAMAIS exécutés ici** (ni Docker ni base) : c'est l'étape 3
+de Youssef qui dit s'ils passent.
+
+| Item | État | Ce qui a été fait | Prouvé par |
+|---|---|---|---|
+| **B1** Disponibilité exigée, jamais demandée | **corrigé** | L'écran freelance DEMANDE la disponibilité (deux réponses, aucune cochée d'avance), le surlignage a sa cible, le corps envoie `availability_status` ; le CDI envoyait déjà `cdi_status`. | Contrôle [B] |
+| **B2** Fiche admin d'un expert en 500 | **corrigé** | `get-expert` : plus d'embed `specialities(…)` ; les spécialités se résolvent depuis `speciality_ids` ; une lecture en panne rend 503 `fiche_incomplete` au lieu d'une fiche amputée ; l'écran affiche les séniorités et les spécialités. | Contrôle [C] (aucun embed `specialities(` dans `app/`, `lib/`, `components/`) |
+| **B3** Vérification coupée à 60 s, « en cours » pour toujours | **corrigé** | La vérification se DÉPOSE (`travaux_ia`) ; l'exécutant tourne sous 300 s ; le pilote pg_cron clôt ce qui est perdu avec un repli en base (revue humaine). | Contrôle [D] ; tests `profil/travaux_ia` (26), `grand_livre/travaux_ia` (4) |
+| **B4** « Autre » seul impubliable | **corrigé** | Le prédicat (TS), la route et la contrainte (`specialite_autre_publiable`) acceptent une précision « Autre » non vide. | Contrôle [E] (prédicat exécuté) ; test `profil/specialite_autre` (3) |
+| **M1** Toute déconnexion dit « un autre compte » (ma régression) | **corrigé** | Verdict `absent` quand il n'y a plus de session : l'écran oublie le compte affiché, n'éjecte pas ; `session_superseded` et la suspension gardent leur motif ; l'écran de connexion réinitialise le compte affiché. | Contrôle [G] (verdict exécuté) ; `diag-identite-cv` (cas 4 réécrit) |
+| **M2** Une valeur fautive rejette toute l'analyse | **corrigé** | Normalisation pure (`normaliser-analyse.ts`) + `ecrire_analyse_cv` champ par champ, ligne par ligne, textes bornés ; écarts rendus, écrits dans `cv_televerse`, montrés à l'écran ; quota compté sur la réussite seulement ; une erreur de notre côté est `non_imputable`. | Contrôle [F] (normalisation exécutée sur 2020-01, 7,5, « mission », « natif », « France », résumé trop long, doublons) ; test `profil/analyse_cv_tolerante` (18) |
+| **M3** Analyse du CV > 60 s | **corrigé** | Le dépôt dépose (202, `maxDuration = 30`) ; l'analyse tourne dans l'exécutant ; l'écran suit l'issue (`suivreAnalyse`, 10 min) et l'import dit l'état (`EtatAnalyseCv`). | Contrôle [D], [O] |
+| **M4** Listes effacées en silence | **corrigé** | `remplacer_listes_profil` : tout ou rien, AVANT les champs simples ; une ligne refusée rend 400 `liste_refusee` avec la liste, le rang, la cause ; les longueurs et années de saisie sont celles des colonnes. | Contrôle [H], [N] ; test `profil/listes_profil` (7) |
+| **M5** Première recherche ratée jamais rejouée | **corrigé** | `echouer_relance_expert` pose une échéance ; une fonction unique `lancerMiseEnRelationImmediate` (tentative, run, solde ou échec) pour l'approbation admin, la vérification approuvée et la ré-analyse ; les deux accueils disent l'échec. | Contrôle [I] ; test `matching/premiere_recherche` (5) |
+| **M6** L'e-mail de l'approbation saute la recherche | **corrigé** | La recherche passe AVANT l'e-mail, qui vit dans sa propre fonction : ses `return` ne sautent plus rien. | Contrôle [I] |
+| **M7** Notifications en 42P10 | **corrigé** | `poser_notifications_match` porte le prédicat de l'index partiel ; une correspondance ne passe « notifiée » que si sa notification existe ; le dispatcher n'attend que les canaux ouverts. `diag-moteur-echelle` gardait la forme fautive : réécrit (§E.88). | Contrôle [J], [N] ; test `matching/notifications_match` (5) |
+| **M8** « Repasser à l'écoute » écrit `profiles` depuis le navigateur | **corrigé** | La bascule passe par `POST /api/profile/disponibilite` ; l'écriture navigateur est supprimée. | Contrôle [K] |
+| **M9** `journal_error` affiché « échec » | **corrigé** | `lib/profil/refus-profil.ts` : chaque code de la route a son message (quatre langues), `journal_error` dit que la publication a abouti, un code inconnu est cité ; les deux écrans de validation et « Mon profil » l'utilisent. | Contrôle [L] (exécuté ; codes de la route relus un par un) |
+| **M10** Auto-approbation absente du grand livre | **corrigé** | Action `verification_conclue`, seul écrivain `poser_verdict_verification` ; `users.status` passe de `in_review` à `active` à l'approbation. | Contrôle [M] ; test `grand_livre/verification_conclue` (8) ; `diag-grand-livre` |
+| **M11** Panne du référentiel efface branche, spécialités, zones | **corrigé** | Un référentiel illisible BLOQUE l'enregistrement, avec son message ; rien n'est envoyé vide. | Contrôle [N] |
+| **M12** « Vous serez notifié » faux | **corrigé** | Le flux porte `notificationsActives` et `horsDuMoteur` ; la phrase n'est dite que si c'est vrai. | Contrôle [N] |
+| **m1** Refus au dépôt : statut `processing`, quota consommé | **corrigé** | Le quota se compte à l'écriture réussie, en base ; un refus clôt le travail avec son code. | Contrôle [F], [N] |
+| **m2** `verification_attempts` échoue en silence | **corrigé** | Écriture supprimée (la table exige une organisation ; le grand livre porte le verdict). | Contrôle [N] |
+| **m3** Motifs mensongers à l'admin | **corrigé** | Une panne de lecture se rejoue (plus « domaine introuvable ») ; un échec du modèle est déféré avec SA cause (configuration, document refusé, réponse illisible). | Contrôle [N] ; `cause-echec-modele` exécuté [F] |
+| **m4** Dépense de la vérification sous-comptée | **corrigé** | Chaque tentative payée est comptée ; tour mis en pause repris ; plus de rejeu caché du SDK (`maxRetries: 0`). | Contrôle [N] ; `diag-depense-ia` |
+| **m5** Résumé : un emoji compte 2 | **corrigé** | Longueur en points de code, comme `char_length`. | Contrôle [E] (exécuté) |
+| **m6** Codes de refus non traduits | **corrigé** | Voir M9. | Contrôle [L] |
+| **m7** Validation lit `getSession()` | **corrigé** | `sessionDuCompteAffiche()` sur les deux écrans. | Contrôle [N] |
+| **m8** Annonces sans auteur écartées | **corrigé** | Filtre `created_by` fait en mémoire, une annonce sans auteur reste. | Contrôle [N] |
+| **m9** Deux recherches sur une paire font échouer le lot | **corrigé** | `ignoreDuplicates` sur l'insertion des correspondances. | Contrôle [N] |
+| **Point 4** Le test `analyse_cv` | **corrigé** | Valeur admise (`project`) ; une liste unique `types_experience()` lue par la contrainte, recopiée en TS, lue par les deux analyseurs. | Contrôle [A] ; test `profil/types_experience` (4) |
+| **Point 7** Le profil par le CV ou LinkedIn | **fait** | Bandeau sans liste de champs, vers l'import ; « Compléter mon profil » et les étapes de démarrage vers l'import ; les analyseurs lisent l'export PDF LinkedIn ; l'import reprend une validation en cours. | Contrôle [O] |
+| **Règle §G.10** | **écrite** | Une ligne dans CLAUDE.md (lire les contraintes avant d'écrire), et §E.88. | — |
+
+**Les huit migrations nouvelles** (plage `0xxxxx`, §G.2 ; toutes AVANT le déploiement ; aucune ne retire de signature) :
+`20260930000010_types_experience`, `…020_analyse_cv_tolerante`, `…030_verification_conclue`, `…040_travaux_ia`,
+`…050_premiere_recherche_rejouee`, `…060_notifications_match`, `…070_specialite_autre_publiable`,
+`…080_listes_profil_atomiques`. Détail : [architecture.md §B.2](architecture.md). Tests nouveaux : 80 assertions dans
+9 fichiers (+ `profil/analyse_cv`, 13, corrigé).
+
+**Les écrans nouveaux** : `/admin/travaux-ia` (menu Administration) ; sur l'import, l'état de l'analyse ; sur la
+validation, les écarts de l'analyse et la question de disponibilité.
+
+### Pour Youssef — dans l'ordre, chaque étape verte avant la suivante
+
+1. **Le poste** : Docker lancé. Dans le dossier du projet : `npx supabase link --project-ref wnayuerhakekxccgimeg`,
+   puis `node scripts/verifier-version-postgres.mjs` (il doit dire 17.6.1.121 ou plus).
+2. **La base jetable** : `npx supabase db reset --local`. Si ça s'arrête sur une migration, copiez-moi le message.
+3. `npx supabase db lint -s public --level error` — la sortie doit être **vide**.
+4. `npx supabase test db --local` — **tous les tests doivent passer**. C'est la première fois que les 9 fichiers
+   nouveaux tournent : s'il y a un rouge, copiez-moi le nom du fichier et le numéro du test, je corrige avant tout push.
+5. **La requête de staging** : ouvrez `supabase/verifications/staging-avant-push.sql`, collez-la dans l'éditeur SQL de
+   staging, exécutez. **Un seul `ÉCART`, on s'arrête.** Si c'est la ligne ⓪, c'est que l'ARRÊT 18
+   (`analyse_cv_atomique`) n'est pas encore poussé : dites-le-moi.
+6. `npx supabase db push`, puis **aussitôt** `git push`.
+
+**Ce que le code ne peut pas trancher — à vérifier sur staging :**
+- **Vercel** : la fonction `/api/cron/travaux-ia` demande 300 secondes. Dans Vercel → le projet → Settings →
+  Functions, la durée maximale doit l'autoriser (c'est déjà le cas si `cron/expert-relance` tourne sans être coupée).
+- **Le coffre-fort de la base** (Supabase → Project Settings → Vault) : `cron_secret` et `purge_cron_base_url` posés.
+  Sans eux, aucun CV n'est analysé : les analyses partent en échec au bout de 30 minutes, et
+  **/admin/travaux-ia** les liste.
+- **Les tâches planifiées** : **/admin/taches-planifiees** doit montrer **douze** tâches, dont `travaux_ia_pilote`.
+- **Le moteur** : `ENABLE_RERANKING` vaut exactement `true` et `COHERE_API_KEY` est posée (Preview comme Production) ;
+  `ENABLE_AI_CV_PARSING` vaut `true`. **/admin/supervision** ne doit rien montrer en BLOQUANT.
+- **La recherche web** du vérificateur : autorisée sur l'organisation Anthropic (sinon chaque vérification part en
+  revue humaine, avec la cause « configuration » ou « document refusé » — visible dans /admin/travaux-ia ou sur la fiche).
+- **Les notifications** : dans **/admin/matching**, « notifier » activé pour l'écosystème d'essai si vous voulez voir
+  l'e-mail ; sinon l'écran « Missions » ne promet plus de notification, et c'est normal.
+
+**Les données d'essai pour une première mise en relation :**
+- Une **organisation d'essai approuvée**, dans l'écosystème d'essai, avec **au moins deux annonces publiées, actives et
+  non expirées** (au 23/09, les six annonces de la recette étaient expirées : il faut en publier de nouvelles, ou
+  prolonger leur durée de vie dans **/admin/durees**).
+- Ces annonces dans **la même branche** que l'expert d'essai, et un **pays commun** avec ses zones de travail ; une
+  annonce freelance pour l'expert freelance, une annonce CDI pour l'expert CDI.
+- Un **expert d'essai** : inscription, téléphone vérifié, dépôt d'un CV (ou de l'export PDF LinkedIn) — attendre
+  « analyse terminée » — valider en répondant à la disponibilité — attendre la vérification (quelques minutes). S'il
+  part en revue humaine, l'approuver depuis **/admin/experts**. La première recherche part alors d'elle-même ; l'accueil
+  de l'expert dit ce qu'elle a trouvé, ou pourquoi elle a échoué.
+
+### Les arbitrages laissés à Youssef (rien n'est bloqué)
+- ④ Republier un profil approuvé le laisse approuvé pendant sa re-vérification (§H.5).
+- ⑤ « Enregistrer comme brouillon » dépublie un profil publié — c'est dit avant le clic.
+- Une ré-analyse remplace les faits du document (titre, expériences, formations, langues) et garde les choix de
+  l'expert (disponibilité, zones, séniorités acceptées, classement).
+- `appliquer_analyse_cv` (ARRÊT 18) n'est plus appelée : elle partira au push suivant (§E.72).
+
+### L'épreuve
+(ci-dessous, au commit de l'épreuve)
 
 ## ⛔ ARRÊT 18 — DEUX COMPTES DANS LE MÊME NAVIGATEUR : LE MENU DE L'UN, LES REQUÊTES DE L'AUTRE (30/09/2026)
 

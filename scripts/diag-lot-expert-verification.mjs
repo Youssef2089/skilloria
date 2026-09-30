@@ -44,7 +44,7 @@
 // lui-même : ce fichier ne peut plus écrire, et ne peut plus le redevenir en
 // silence.
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 // La RÈGLE d’éligibilité, interrogée à la source plutôt que cherchée dans le
@@ -129,64 +129,58 @@ const vivier = sansCommentaires(read(VIVIER))
 // ───────────────────────────────────────────────────────────────────────────
 // (A) L'approbation est une CONJONCTION, jamais un défaut
 // ───────────────────────────────────────────────────────────────────────────
-console.log('=== (A) approbation = conjonction des trois termes ===')
+// ⚠️ DEPUIS L'ARRÊT 19 (§D.30), l'évaluation (`evaluerVerificationExpert`) REND une intention, et la
+//    base CONCLUT (`poser_verdict_verification`). Les trois règles de ce contrôle n'ont pas changé ; leur
+//    forme, si : un verdict IA en échec SORT avant l'expression (rejoué ou déféré), il ne la traverse plus.
+console.log('=== (A) approbation = conjonction des termes ===')
 
+const SQL_VERDICT = (() => {
+  const dir = join(ROOT, 'supabase', 'migrations')
+  const f = readdirSync(dir).filter((x) => x.endsWith('_verification_conclue.sql'))
+  return f.length === 1 ? read(`supabase/migrations/${f[0]}`) : ''
+})()
 const debutA = dispatcher.indexOf('const isApproved')
-const finA = dispatcher.indexOf('const finalStatus', debutA)
-const expression = debutA >= 0 && finA > debutA ? dispatcher.slice(debutA, finA) : ''
-
-ok("l'expression d'approbation existe", expression.length > 0, 'const isApproved / const finalStatus introuvables')
-
+const expression = debutA >= 0 ? dispatcher.slice(debutA, dispatcher.indexOf('\n', debutA)) : ''
+ok("l'expression d'approbation existe", expression.length > 0, 'const isApproved introuvable')
 const TERMES = [
-  ["le verdict IA doit valoir 'ok'", "result === 'ok'"],
   ['le score doit atteindre le seuil configuré', 'confidence_score >= config.auto_approve_threshold'],
-  ['aucun flag disqualifiant ne doit être présent', '!hasDisqualifyingFlag'],
+  ['aucun drapeau bloquant ne doit être présent', 'blockingFlagsHit.length === 0'],
 ]
 for (const [libelle, aiguille] of TERMES) {
   ok(libelle, expression.includes(aiguille), `« ${aiguille} » absent de l'expression`)
 }
-
-// Les trois termes doivent être liés par ET. Un seul OU, et la porte s'ouvre.
 const nbEt = expression.split('&&').length - 1
-ok('les termes sont liés par ET (&&), pas par OU', nbEt >= 2 && !expression.includes('||'), `&& compté ${nbEt}× / || présent : ${expression.includes('||')}`)
+ok('les termes sont liés par ET (&&), pas par OU', nbEt >= 1 && !expression.includes('||'), `&& compté ${nbEt}× / || présent : ${expression.includes('||')}`)
+const iSortieErreur = dispatcher.indexOf("if (aiOut.result === 'error') {")
+ok("un verdict IA en ÉCHEC sort AVANT l'expression : il ne peut pas l'atteindre",
+  iSortieErreur > 0 && debutA > iSortieErreur, 'la sortie sur result === error doit précéder const isApproved')
 
 // ───────────────────────────────────────────────────────────────────────────
 // (B) Une panne de l'IA ne vaut pas une approbation
 // ───────────────────────────────────────────────────────────────────────────
-console.log('\n=== (B) panne IA → score 0, jamais une approbation ===')
-
-const debutB = dispatcher.indexOf('catch (err)')
-const finB = debutB >= 0 ? dispatcher.indexOf('const blockingFlagsHit', debutB) : -1
-const blocCatch = debutB >= 0 && finB > debutB ? dispatcher.slice(debutB, finB) : ''
-
-ok('le bloc de rattrapage autour de l\'appel IA existe', blocCatch.length > 0)
-ok("il produit result: 'error'", blocCatch.includes("result: 'error'"))
-ok('il remet le score à 0 — pas à la valeur précédente', blocCatch.includes('confidence_score: 0'))
-ok("il ne relance pas l'erreur (sinon le profil resterait sans verdict)", !blocCatch.includes('throw '))
-
-// Et le terme (A) fait le reste : result 'error' ne peut pas satisfaire === 'ok'.
-ok("un verdict 'error' ne peut pas franchir la conjonction (A)", expression.includes("result === 'ok'"))
+console.log('\n=== (B) panne IA → rejouée, ou revue humaine ; jamais une approbation ===')
+const debutB = dispatcher.indexOf('aiOut = await runExpertCoherenceCheck(')
+const blocCatch = debutB >= 0 ? dispatcher.slice(debutB, dispatcher.indexOf('const blockingFlagsHit', debutB)) : ''
+ok("le rattrapage autour de l'appel IA existe", /catch \(err\) \{[\s\S]{0,200}?return \{ issue: 'rejouer'/.test(blocCatch))
+ok("la sortie en échec REJOUE une panne de passage ou DÉFÈRE — jamais « approuve: true »",
+  /if \(aiOut\.result === 'error'\) \{[\s\S]{0,300}?issue: 'rejouer'[\s\S]{0,800}?return deferer\(/.test(blocCatch) && !/approuve: true/.test(blocCatch))
+const failSafe = ia.slice(ia.indexOf("result: 'error'"), ia.indexOf("result: 'error'") + 300)
+ok("l'analyseur, toutes tentatives épuisées, rend result 'error' et un score 0", failSafe.includes('confidence_score: 0'))
+ok("il ne relance pas l'erreur (sinon le profil resterait sans verdict)", !/throw /.test(blocCatch))
 
 // ───────────────────────────────────────────────────────────────────────────
 // (C) Pas d'auto-reject : rejeter est une décision d'humain
 // ───────────────────────────────────────────────────────────────────────────
 console.log('\n=== (C) aucun auto-reject (règle métier V1) ===')
-
-ok(
-  "le statut final est typé sur deux valeurs seulement",
-  dispatcher.includes("const finalStatus: 'approved' | 'pending_admin_review'"),
-  'annotation de finalStatus modifiée ou absente',
-)
-
-// Le dispatcher n'écrit jamais 'rejected' sur un profil de lui-même.
-const ecritRejected = dispatcher.includes("verification_status: 'rejected'")
-ok("le dispatcher n'écrit jamais verification_status: 'rejected'", !ecritRejected)
-
-// Le repli sans provider / sans domaine remonte en revue humaine, pas en refus.
-ok(
-  'les sorties anticipées remontent en pending_admin_review',
-  dispatcher.includes("verification_status: 'pending_admin_review'"),
-)
+ok("le verdict automatique n'a que deux issues en base : approuvé, ou revue humaine",
+  /verification_status = case when p_approuve then 'approved' else 'pending_admin_review' end/.test(SQL_VERDICT),
+  'poser_verdict_verification ne pose plus exactement ces deux valeurs')
+// Ce qui est interdit est d'ÉCRIRE le statut 'rejected' : la clé 'rejected' d'un texte de notification n'en est pas.
+const corpsVerdict = (/create or replace function public\.poser_verdict_verification\([\s\S]*?\$fn\$([\s\S]*?)\$fn\$/.exec(SQL_VERDICT) ?? [])[1] ?? ''
+const ecritRejected = dispatcher.includes("verification_status: 'rejected'") || corpsVerdict.length === 0 || corpsVerdict.includes("'rejected'")
+ok("ni l'évaluation ni le verdict automatique n'écrivent 'rejected'", !ecritRejected)
+ok('les sorties anticipées remontent en revue humaine (deferer : approuve false, manual_only)',
+  /const deferer = [\s\S]{0,200}?approuve: false,[\s\S]{0,40}?methode: 'manual_only'/.test(dispatcher))
 
 // ───────────────────────────────────────────────────────────────────────────
 // (D) Le cap DOMAIN_MISMATCH est appliqué par le CODE

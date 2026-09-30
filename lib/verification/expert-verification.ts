@@ -11,25 +11,23 @@ import { dashboardUrlForUserType } from '@/lib/auth-routing'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 /**
- * Dispatcher VÉRIFICATION EXPERT — fonction AUTONOME + IDEMPOTENTE.
+ * LA VÉRIFICATION D'UN EXPERT — ÉVALUER, sans rien écrire du verdict (§D.30).
  *
- * Pattern aligné sur lib/matching/runMatching :
- *   - Charge la config provider en BDD (verification_providers / 'profile_verification')
- *   - Charge profile + jointures + tables liées (experiences/educations/languages)
- *   - Garde RGPD : ai_consent_at IS NOT NULL (sinon status reste 'pending')
- *   - Pose verification_status='pending' AVANT l'appel (transparence UX)
- *   - Appelle ai-expert-verification (3 axes, web_search natif)
- *   - Décision :
- *       • score ≥ auto_approve_threshold ET aucun flag disqualifiant → approved
- *         + verified_at=now() + verified_by=NULL (auto) + flip users.is_verified
- *       • sinon → pending_admin_review  (admin tranche approve/reject + motif)
- *       • result='error' (timeout / rate-limit / JSON invalide) → pending_admin_review
- *         (fail-safe, JAMAIS auto-approve)
- *   - Notification expert (best-effort) : type='verification_result'
+ * ═══ CE QUI A CHANGÉ LE 30/09/2026 ═════════════════════════════════════════
+ *   Elle tournait DANS la requête de publication (plafond 60 s) et écrivait son
+ *   verdict en deux appels. Coupée, elle laissait « vérification en cours » pour
+ *   toujours. Désormais :
+ *     · `evaluerVerificationExpert` LIT et JUGE, et rend une INTENTION —
+ *       conclure (approuvé, ou déféré à un humain avec un motif NOMMÉ), rejouer
+ *       (une panne de notre côté ou du fournisseur), abandonner ;
+ *     · l'exécutant des travaux d'IA (lib/travaux-ia/executer-verification.ts)
+ *       CONCLUT par `conclure_verification_expert` : le profil, le drapeau du
+ *       compte, son état et la ligne `verification_conclue`, en UNE transaction ;
+ *     · le pilote pg_cron clôt un travail perdu en revue humaine. Jamais
+ *       d'approbation sur une panne ; jamais de profil « en cours » pour toujours.
  *
- * Idempotent : appelable plusieurs fois sur le même profile_id. Re-jouer
- * écrase la dernière décision avec un nouveau verdict. Useful pour le diag
- * (a/b/e) et pour les re-runs manuels.
+ *   La décision est inchangée : note ≥ `auto_approve_threshold` ET aucun drapeau
+ *   bloquant → approuvé ; sinon revue humaine. PAS d'auto-refus.
  */
 
 const PROVIDER_TYPE = 'profile_verification'
@@ -283,12 +281,16 @@ async function loadProfileForVerification(
   //    cette fois et non de la configuration. Et on PAYAIT l'appel.
   //
   //    Une règle écrite à côté d'une ligne ne couvre pas ses voisines.
-  if (expRes.error || eduRes.error || langRes.error) {
+  // ⚠️ LE DOMAINE AUSSI (audit du 30/09/2026, m3) : son erreur n'était pas lue, et
+  //    une panne de lecture se disait « domaine introuvable ou sans nom — anomalie de
+  //    données ». Une panne se REJOUE ; une anomalie se défère. Deux motifs.
+  if (expRes.error || eduRes.error || langRes.error || domRes.error) {
     console.error('[expert-verification] tables structurées en échec — aucun jugement', {
       profileId,
       experiences: expRes.error?.message ?? null,
       educations: eduRes.error?.message ?? null,
       langues: langRes.error?.message ?? null,
+      domaine: domRes.error?.message ?? null,
     })
     return 'indisponible'
   }
@@ -313,7 +315,7 @@ function countCerts(certifications: unknown): number {
   return 0
 }
 
-async function notifyExpertResult(args: {
+export async function notifyExpertResult(args: {
   supabaseAdmin: SupabaseClient
   user_id: string
   domain_id: string
@@ -372,168 +374,110 @@ async function notifyExpertResult(args: {
   // Lien notif conditionné user_type (parité freelance/CDI). Source de
   // vérité partagée : dashboardUrlForUserType (lib/auth-routing.ts).
   const linkUrl = dashboardUrlForUserType(user_type)
-  try {
-    await supabaseAdmin.from('notifications').insert({
-      user_id, domain_id, piece,
-      type: 'verification_result',
-      channel: 'inapp',
-      title: titles[locale][verification_status] ?? titles.fr[verification_status],
-      body: bodies[locale][verification_status] ?? bodies.fr[verification_status],
-      link_url: linkUrl,
-      status: 'pending',
-      entity_id: null,
-    })
-  } catch (err) {
-    console.error('[expert-verification] notif insert threw', err)
-  }
+  // supabase-js ne LÈVE pas : l'erreur se lit dans la réponse, ou elle se perd.
+  const { error } = await supabaseAdmin.from('notifications').insert({
+    user_id, domain_id, piece,
+    type: 'verification_result',
+    channel: 'inapp',
+    title: titles[locale][verification_status] ?? titles.fr[verification_status],
+    body: bodies[locale][verification_status] ?? bodies.fr[verification_status],
+    link_url: linkUrl,
+    status: 'pending',
+    entity_id: null,
+  })
+  if (error) console.error('[expert-verification] notification du verdict NON posée', { user_id, message: error.message })
 }
 
-export async function runExpertVerification(args: {
+/**
+ * L'INTENTION que l'évaluation rend à l'exécutant — jamais un verdict déjà écrit.
+ *   · `conclure` : le verdict (approuvé, ou déféré à un humain) et son MOTIF, un code ;
+ *   · `rejouer` : une panne de notre côté ou du fournisseur — le travail reprendra ;
+ *   · `abandonner` : rien à vérifier (profil disparu) — le travail est clos.
+ */
+export type IntentionVerification =
+  | {
+      issue: 'conclure'
+      approuve: boolean
+      methode: 'ai_web_search' | 'manual_only'
+      score: number | null
+      donnees: Record<string, unknown>
+      motif: string
+    }
+  | { issue: 'rejouer'; code: string }
+  | { issue: 'abandonner'; code: string }
+
+/** Un renvoi en revue humaine, avec la note lue par l'administrateur sur /admin/experts/[id]. */
+const deferer = (motif: string, notes: string, score: number | null = null): IntentionVerification => ({
+  issue: 'conclure',
+  approuve: false,
+  methode: 'manual_only',
+  score,
+  donnees: { notes, code: motif },
+  motif,
+})
+
+export async function evaluerVerificationExpert(args: {
   supabaseAdmin: SupabaseClient
   profile_id: string
-  /** Le geste qui déclenche la vérification (§D.26). */
+  /** Le geste qui a déposé la vérification (§D.26) — la dépense s'écrit sous sa pièce. */
   journal: ContexteJournal
-}): Promise<ExpertVerificationVerdict> {
+}): Promise<IntentionVerification> {
   const { supabaseAdmin, profile_id, journal } = args
 
-  // 1. Config
+  // 1. La configuration du fournisseur — une panne de LECTURE se rejoue ; les trois défauts se défèrent.
   const config = await loadConfig(supabaseAdmin)
+  if (config === 'lecture_impossible') return { issue: 'rejouer', code: 'configuration_illisible' }
   if (typeof config === 'string') {
-    // L'ISSUE EST LA MÊME POUR LES QUATRE — revue manuelle, jamais d'auto —
-    // mais la NOTE écrite en base dit laquelle des quatre, parce que c'est elle
-    // que l'administrateur lit sur /admin/experts/[id] et c'est elle qui décide
-    // de ce qu'il va aller regarder.
-    const NOTE: Record<typeof config, string> = {
-      lecture_impossible:
-        'La configuration du fournisseur n’a pas pu être LUE (panne de base). Ce n’est pas un défaut de configuration — vérif manuelle requise, puis relancez.',
-      non_configure:
-        'Provider profile_verification non configuré — vérif manuelle requise.',
+    const NOTE: Record<Exclude<MotifConfigAbsente, 'lecture_impossible'>, string> = {
+      non_configure: 'Provider profile_verification non configuré — vérif manuelle requise.',
       ambigu:
         'PLUSIEURS lignes actives pour profile_verification : la configuration est ambiguë et n’a pas été tranchée au hasard. Vérif manuelle requise, puis corrigez /admin/seuils.',
       incomplet:
         'La configuration de profile_verification est INCOMPLÈTE (un champ requis manque) — vérif manuelle requise, puis corrigez /admin/seuils.',
     }
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        verification_status: 'pending_admin_review',
-        verification_method: 'manual_only',
-        verification_data: { notes: NOTE[config] },
-      })
-      .eq('id', profile_id)
-    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: `config_${config}` }
+    return deferer(`config_${config}`, NOTE[config])
   }
 
-  // 2. Profile + tables liées
+  // 2. Le profil et ses tables — une panne se REJOUE, elle ne se juge pas.
   const loaded = await loadProfileForVerification(supabaseAdmin, profile_id)
-  if (loaded === 'indisponible') {
-    // ON ÉCRIT. Ne rien écrire laissait le profil en `pending` — « vérification
-    // en cours » à l'écran, pour toujours, et aucun humain saisi.
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        verification_status: 'pending_admin_review',
-        verification_method: 'manual_only',
-        verification_data: { notes: 'Le profil n’a pas pu être LU pendant la vérification (panne de base). Le profil existe — vérif manuelle requise, puis relancez.' },
-      })
-      .eq('id', profile_id)
-    return { status: 'error', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'profile_read_failed' }
-  }
-  if (!loaded) {
-    return { status: 'skipped', verification_status: null, score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'profile_not_found' }
-  }
+  if (loaded === 'indisponible') return { issue: 'rejouer', code: 'profil_illisible' }
+  if (!loaded) return { issue: 'abandonner', code: 'profil_introuvable' }
   const { row, experiences, educations, languages, domain_name, domain_tags } = loaded
 
-  // 2bis. Anomalie : domaine sans nom (données incohérentes). On NE masque plus
-  // par un défaut 'Microsoft' (1b) : sans domaine fiable, la vérif d'écosystème
-  // n'a aucun sens → on défère la décision à l'admin plutôt que d'auto-statuer.
+  // 2bis. Un domaine sans nom, LU SANS ERREUR, est une anomalie de données : on défère.
   if (!domain_name) {
-    console.error('[expert-verification] domaine introuvable/sans nom', { profile_id, domain_id: row.domain_id })
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        verification_status: 'pending_admin_review',
-        verification_method: 'manual_only',
-        verification_data: { notes: 'Domaine introuvable ou sans nom — vérification déférée à l\'admin (anomalie de données).' },
-      })
-      .eq('id', profile_id)
-    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'domain_not_found' }
+    console.error('[expert-verification] domaine sans nom', { profile_id, domain_id: row.domain_id })
+    return deferer('domaine_sans_nom', 'Domaine sans nom — vérification déférée à l’admin (anomalie de données).')
   }
 
-  // 3. Pré-conditions (RGPD + CV parsé)
-  if (!row.ai_consent_at) {
-    await supabaseAdmin
-      .from('profiles')
-      .update({ verification_status: 'pending', verification_data: { notes: 'ai_consent manquant — vérif IA en attente.' } })
-      .eq('id', profile_id)
-    return { status: 'skipped', verification_status: 'pending', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'ai_consent_missing' }
-  }
-  if (row.cv_parsing_status !== 'done') {
-    await supabaseAdmin
-      .from('profiles')
-      .update({ verification_status: 'pending', verification_data: { notes: 'CV non parsé — vérif IA en attente.' } })
-      .eq('id', profile_id)
-    return { status: 'skipped', verification_status: 'pending', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'cv_not_parsed' }
-  }
+  // 3. Les pré-conditions. La publication les exige déjà ; les voir manquer ici est une
+  //    incohérence, qui part en revue humaine NOMMÉE — plus jamais un « en cours » sans fin.
+  if (!row.ai_consent_at) return deferer('consentement_absent', 'Consentement à l’analyse IA absent — vérification manuelle requise.')
+  if (row.cv_parsing_status !== 'done') return deferer('cv_non_analyse', 'CV non analysé au moment de la vérification — vérification manuelle requise.')
 
-  // 4. Pose status='pending' AVANT l'appel IA (transparence UX)
-  await supabaseAdmin
-    .from('profiles')
-    .update({ verification_status: 'pending' })
-    .eq('id', profile_id)
-
-  // 5. Préparer l'input IA
+  // 4. Les libellés des spécialités — une panne se rejoue (on ne juge pas un dossier amputé).
   const user = pickRel(row.users)
   const branch = pickRel(row.branches)
-  // Les spécialités sont multiples : l'embed PostgREST n'existe plus (la clé
-  // étrangère a disparu), on résout les libellés en une requête.
-  // Même classe que ci-dessus : un expert privé de ses spécialités est jugé
-  // sur un dossier amputé, et la note part en base. `null` = « je n'ai pas su
-  // lire », distinct de « cet expert n'en a déclaré aucune » (tableau vide).
-  const specialityNames = await (async () => {
-    const ids = row.speciality_ids ?? []
-    if (ids.length === 0) return [] as string[]
-    const { data: sps, error: spsErr } = await supabaseAdmin
-      .from('specialities')
-      .select('name')
-      .in('id', ids)
-    if (spsErr) {
-      console.error('[expert-verification] libellés de spécialité en échec', {
-        profileId: profile_id,
-        message: spsErr.message,
-      })
-      return null
-    }
-    return ((sps ?? []) as Array<{ name: string }>).map((x) => x.name)
-  })()
-  if (specialityNames === null) {
-    // On ne dépense pas pour un verdict qu'on sait bâti sur un dossier amputé.
-    // Revue humaine, motif NOMMÉ — le repli CONÇU du produit (§E.21).
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        verification_status: 'pending_admin_review',
-        verification_data: {
-          notes: 'Lecture des spécialités en échec — aucun jugement IA n’a été fait.',
-        },
-      })
-      .eq('id', profile_id)
-    return {
-      status: 'error',
-      verification_status: 'pending_admin_review',
-      score: null,
-      notes: '',
-      flags: [],
-      discrepancies: [],
-      model: null,
-      reason: 'speciality_read_failed',
-    }
+  let specialityNames: string[] = []
+  const ids = row.speciality_ids ?? []
+  if (ids.length > 0) {
+    const { data: sps, error: spsErr } = await supabaseAdmin.from('specialities').select('name').in('id', ids)
+    if (spsErr) return { issue: 'rejouer', code: 'specialites_illisibles' }
+    specialityNames = ((sps ?? []) as Array<{ name: string }>).map((x) => x.name)
   }
   const locale = normalizeLocale(user?.locale)
+  // La voie, dans le vocabulaire du prompt (`expert_freelance` / `expert_cdi`) : la colonne
+  // `expert_type` dit `freelance` / `cdi` (audit du 30/09/2026 : les deux se mélangeaient).
+  const expertType: ExpertVerificationInput['expert_type'] =
+    user?.user_type === 'expert_cdi' || row.expert_type === 'cdi'
+      ? 'expert_cdi'
+      : user?.user_type === 'expert_freelance' || row.expert_type === 'freelance'
+        ? 'expert_freelance'
+        : null
   const input: ExpertVerificationInput = {
     domain_name,
     domain_tags,
-    expert_type: (row.expert_type as ExpertVerificationInput['expert_type']) ?? null,
+    expert_type: expertType,
     title: row.title,
     summary: row.summary,
     seniorities: row.seniorities ?? [],
@@ -550,167 +494,69 @@ export async function runExpertVerification(args: {
     locale,
   }
 
-  // 6. Appel IA
-  // ── LE PLAFOND EST CONSULTÉ AVANT D'APPELER ──────────────────────────────
-  //  Un point qui enregistre mais ne regarde jamais le plafond dépense au-delà.
-  //  FAIL-CLOSED assumé (lib/ai-budget.ts) : sur panne de lecture on REFUSE.
-  //  Ne pas savoir combien on a dépensé n'autorise pas à dépenser plus — c'est
-  //  l'exception au fail-open du reste du projet, et elle protège de l'argent.
-  //  Au plafond : le profil part en revue manuelle, jamais approuvé sans examen.
-  //  Le MÊME acteur qu'à l'enregistrement plus bas (§E.39).
-  const budget = await budgetDisponible(supabaseAdmin, 'claude', {
-    acteur: { type: 'profile', id: profile_id },
-    action: 'expert_verification',
-  }, journal)
-  if (!budget.ok) {
-    console.error('[expert-verification] vérification refusée — budget', budget.raison)
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        verification_status: 'pending_admin_review',
-        verification_method: 'manual_only',
-        verification_data: { notes: 'Plafond de dépense IA atteint — vérification manuelle requise. ' + budget.raison },
-      })
-      .eq('id', profile_id)
-    return { status: 'skipped', verification_status: 'pending_admin_review', score: null, notes: '', flags: [], discrepancies: [], model: null, reason: 'ai_budget_exhausted' }
-  }
+  // 5. Le plafond, AVANT d'appeler (fail-closed). Au plafond : revue humaine, jamais une approbation sans examen.
+  const budget = await budgetDisponible(supabaseAdmin, 'claude', { acteur: { type: 'profile', id: profile_id }, action: 'expert_verification' }, journal)
+  if (!budget.ok) return deferer('plafond_ia', 'Plafond de dépense IA atteint — vérification manuelle requise. ' + budget.raison)
 
+  // 6. Le modèle.
   let aiOut: ExpertVerificationOutput
   try {
     aiOut = await runExpertCoherenceCheck(input, config)
   } catch (err) {
-    console.error('[expert-verification] AI call threw', err)
-    aiOut = {
-      result: 'error',
-      provider_name: 'claude_expert_coherence_check',
-      model_used: config.fallback_model,
-      confidence_score: 0,
-      notes: 'Erreur SDK Anthropic',
-      // Le SDK a levé : rien de mesurable n'a été consommé.
-      usage: null,
-      discrepancies: [],
-      flags: [],
-      web_search_used: false,
-      raw_response: null,
-    }
+    console.error('[expert-verification] appel IA en exception', err)
+    return { issue: 'rejouer', code: 'modele_indisponible' }
   }
 
-  // ── LA DÉPENSE, ENREGISTRÉE QUE L'APPEL AIT ABOUTI OU NON ─────────────────
-  //  Une réponse illisible ou un JSON invalide se paient autant qu'une réponse
-  //  exploitable. Ne compter que les succès ferait dériver le plafond vers le
-  //  bas — c'est la pire des deux erreurs, on croit avoir de la marge.
-  //  N'interrompt jamais la vérification : lib/ai-budget.ts ne lève sur aucun
-  //  chemin, et un profil ne doit pas rester bloqué parce qu'on n'a pas su
-  //  compter une dépense.
-  if (aiOut.usage) {
+  // 7. LA DÉPENSE DE CHAQUE TENTATIVE — une réponse illisible se paie autant qu'une bonne
+  //    (audit du 30/09/2026, m4 : seule la tentative retenue était comptée).
+  for (const usage of aiOut.usages) {
     await enregistrerDepenseIA(supabaseAdmin, {
       provider: 'claude',
       action: 'expert_verification',
       journal,
-      // L'expert demande SA vérification : c'est lui qui déclenche la dépense.
       acteur: { type: 'profile', id: profile_id },
-      consommation: aiOut.usage,
+      consommation: usage,
       domain_id: row.domain_id,
       context: {},
     })
   }
 
-  // 7. Décision (PAS d'auto-reject V1)
-  //   Un flag BLOQUANT (liste config.blocking_flags) interdit l'auto-approbation
-  //   QUEL QUE SOIT le score → pending_admin_review. C'est le vrai filet de
-  //   sécurité : un profil incohérent (CV_PROFILE_INCOHERENT) ne passe plus
-  //   "vérifié" même s'il atteint le seuil. DOMAIN_MISMATCH garde EN PLUS son
-  //   cap de score spécifique appliqué côté ai-expert-verification (shapeOutput).
-  const blockingFlagsHit = aiOut.flags.filter((f) => config.blocking_flags.includes(f))
-  const hasDisqualifyingFlag = blockingFlagsHit.length > 0
-  const isApproved =
-    aiOut.result === 'ok' &&
-    aiOut.confidence_score >= config.auto_approve_threshold &&
-    !hasDisqualifyingFlag
-
-  const finalStatus: 'approved' | 'pending_admin_review' = isApproved ? 'approved' : 'pending_admin_review'
-
-  // 8. Trace verification_attempts (best-effort, mirror pattern 11G)
-  try {
-    await supabaseAdmin.from('verification_attempts').insert({
-      // Pas de FK organization_id pour les experts — laisser NULL si schéma permet,
-      // sinon on saute. La table verification_attempts existe pour les orgs avec
-      // organization_id NOT NULL : on tente, on log l'erreur sans bloquer.
-      organization_id: null as never,
-      provider_used: aiOut.provider_name,
-      result: aiOut.result,
-      confidence_score: aiOut.confidence_score,
-      raw_response: aiOut.raw_response as never,
-      triggered_admin_review: !isApproved,
-    } as never)
-  } catch {
-    // best-effort — la table peut exiger organization_id NOT NULL ; on n'échoue pas dessus.
+  // 8. Un échec du modèle : rejoué s'il est de passage, déféré sinon — avec SA cause (m3).
+  if (aiOut.result === 'error') {
+    if (aiOut.echec === 'modele_indisponible') return { issue: 'rejouer', code: 'modele_indisponible' }
+    const NOTE_ECHEC: Record<string, string> = {
+      configuration: 'La clé du fournisseur d’IA est absente ou refusée — vérification manuelle requise, puis corrigez la configuration.',
+      document_refuse: 'Le fournisseur d’IA a refusé la demande — vérification manuelle requise.',
+      reponse_illisible: 'Les réponses du modèle étaient illisibles (trois tentatives) — vérification manuelle requise.',
+    }
+    const cause = aiOut.echec ?? 'reponse_illisible'
+    return deferer(cause, NOTE_ECHEC[cause] ?? NOTE_ECHEC.reponse_illisible)
   }
 
-  // 9. Écrire le verdict sur profiles
-  const verifData = {
+  // 9. La décision (PAS d'auto-refus). Un drapeau BLOQUANT interdit l'approbation, quelle que soit la note.
+  const blockingFlagsHit = aiOut.flags.filter((f) => config.blocking_flags.includes(f))
+  const isApproved = aiOut.confidence_score >= config.auto_approve_threshold && blockingFlagsHit.length === 0
+  const donnees = {
     score: aiOut.confidence_score,
     notes: aiOut.notes,
     discrepancies: aiOut.discrepancies,
     flags: aiOut.flags,
-    blocking_flags_hit: blockingFlagsHit,   // flags qui ont forcé pending_admin_review (si non vide)
+    blocking_flags_hit: blockingFlagsHit,
     web_search_used: aiOut.web_search_used,
     model_used: aiOut.model_used,
     provider_name: aiOut.provider_name,
     ai_result: aiOut.result,
     decided_at: new Date().toISOString(),
   }
-  const updatePayload: Record<string, unknown> = {
-    verification_status: finalStatus,
-    verification_method: 'ai_web_search',
-    verification_score: aiOut.confidence_score,
-    verification_data: verifData,
-  }
-  if (isApproved) {
-    updatePayload.verified_at = new Date().toISOString()
-    updatePayload.verified_by = null         // auto-approve : pas d'admin
-    updatePayload.review_reason = null
-  }
-  const { error: updErr } = await supabaseAdmin
-    .from('profiles')
-    .update(updatePayload)
-    .eq('id', profile_id)
-  if (updErr) {
-    console.error('[expert-verification] profile update failed', updErr.message)
-    return { status: 'error', verification_status: null, score: aiOut.confidence_score, notes: aiOut.notes, flags: aiOut.flags, discrepancies: aiOut.discrepancies, model: aiOut.model_used, reason: 'profile_update_failed' }
-  }
-
-  // 10. Si approved → flip users.is_verified=true (drapeau agrégé UI)
-  if (isApproved && user?.id) {
-    const { error: uErr } = await supabaseAdmin
-      .from('users')
-      .update({ is_verified: true })
-      .eq('id', user.id)
-    if (uErr) console.error('[expert-verification] users.is_verified flip failed', uErr.message)
-  }
-
-  // 11. Notif expert (best-effort) — user_type passé pour router le lien
-  //     vers /dashboard/cdi vs /dashboard/freelance.
-  if (user?.id) {
-    await notifyExpertResult({
-      piece: journal.piece,
-      supabaseAdmin,
-      user_id: user.id,
-      domain_id: row.domain_id,
-      user_type: user.user_type ?? null,
-      locale,
-      verification_status: finalStatus,
-      reason: null,
-    })
-  }
-
   return {
-    status: aiOut.result === 'ok' ? 'ok' : 'error',
-    verification_status: finalStatus,
+    issue: 'conclure',
+    approuve: isApproved,
+    methode: 'ai_web_search',
     score: aiOut.confidence_score,
-    notes: aiOut.notes,
-    flags: aiOut.flags,
-    discrepancies: aiOut.discrepancies,
-    model: aiOut.model_used,
+    donnees,
+    motif: isApproved ? 'note_suffisante' : blockingFlagsHit.length > 0 ? 'drapeau_bloquant' : 'note_insuffisante',
   }
 }
+
+/** La langue de l'expert, pour la notification du verdict. */
+export { normalizeLocale as langueDeNotification }

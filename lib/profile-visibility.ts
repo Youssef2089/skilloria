@@ -39,6 +39,12 @@ export type ProfileVisibilityInput = {
   skills: readonly string[] | null | undefined
   branch_id: string | null | undefined
   speciality_ids: readonly string[] | null | undefined
+  /**
+   * La précision « Autre » — quand la spécialité n'est pas au référentiel (D6). Elle TIENT le
+   * critère « spécialité », comme la contrainte en base depuis la migration
+   * specialite_autre_publiable (audit du 30/09/2026, B4 : un expert « Autre » n'était jamais publiable).
+   */
+  speciality_other?: string | null | undefined
   seniorities: readonly string[] | null | undefined
   work_zone_ids: readonly string[] | null | undefined
   availability_status: string | null | undefined
@@ -101,13 +107,16 @@ export function missingForVisibility(
   expertKind: ExpertKind,
 ): ProfileVisibilityField[] {
   const manquants: ProfileVisibilityField[] = []
-  const resume = (input.summary ?? '').trim()
+  // En CARACTÈRES, comme la base (`char_length`), pas en unités UTF-16 : un emoji comptait 2 ici et 1
+  // là-bas, et un résumé de 200 à 205 unités passait ce prédicat puis violait la contrainte (m8).
+  const resume = Array.from((input.summary ?? '').trim()).join('')
+  const longueurResume = Array.from(resume).length
 
   if (!(input.title ?? '').trim()) manquants.push('title')
-  if (resume.length < RESUME_MIN || resume.length > RESUME_MAX) manquants.push('summary')
+  if (longueurResume < RESUME_MIN || longueurResume > RESUME_MAX) manquants.push('summary')
   if ((input.skills?.length ?? 0) < 3) manquants.push('skills')
   if (!input.branch_id) manquants.push('branch_id')
-  if (!nonVide(input.speciality_ids)) manquants.push('speciality_ids')
+  if (!nonVide(input.speciality_ids) && !(input.speciality_other ?? '').trim()) manquants.push('speciality_ids')
   if (!nonVide(input.seniorities)) manquants.push('seniorities')
   if (!nonVide(input.work_zone_ids)) manquants.push('work_zone_ids')
 

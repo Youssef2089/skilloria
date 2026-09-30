@@ -40,7 +40,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .from('profiles')
     .select(
       'id, user_id, domain_id, expert_type, title, summary, seniorities, ' +
-        'speciality_other, ' +
+        'speciality_ids, speciality_other, ' +
         'years_experience, years_total_experience, languages, skills, certifications, ' +
         'location, mobility, tjm_min, tjm_max, salary_min, salary_max, ' +
         'availability_status, availability_date, work_modes, ' +
@@ -49,7 +49,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         'verification_data, verified_at, verified_by, review_reason, ' +
         'photo_url, country, city, ' +
         'created_at, updated_at, ' +
-        'branches(id, name, slug), specialities(id, name, slug), ' +
+        // ⚠️ PLUS D'EMBED `specialities(…)` (audit du 30/09/2026, B2) : la clé étrangère
+        //    `profiles_speciality_id_fkey` est partie avec la colonne `speciality_id`
+        //    (migration profil_annonce_multivalues). PostgREST refusait TOUTE la requête — la fiche
+        //    ne s'ouvrait pas, et aucun administrateur ne pouvait approuver ni refuser un expert.
+        //    Les libellés se résolvent depuis `speciality_ids`, ci-dessous.
+        'branches(id, name, slug), ' +
         'users!profiles_user_id_fkey(id, email, first_name, last_name, locale, user_type, civility, phone, linkedin_url, job_title), ' +
         // D1 : écosystème de l'expert (admin plateforme multi-écosystème).
         'domains(id, name, slug)',
@@ -70,11 +75,27 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   //    SANS expérience, SANS formation et SANS langue — et la décision se
   //    prenait là-dessus. Même famille que la vérification par IA, avec un
   //    humain à la place du modèle (§E.22 ⑦).
-  const [expRes, eduRes, langRes] = await Promise.all([
+  const idsSpecialites = ((profile as unknown as { speciality_ids?: string[] | null }).speciality_ids ?? []) as string[]
+  const [expRes, eduRes, langRes, spsRes] = await Promise.all([
     auth.supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.experiences)),
     auth.supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year, location').eq('profile_id', id).order('start_year', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.educations)),
     auth.supabaseAdmin.from('profile_languages').select('language, level, is_primary').eq('profile_id', id).order('is_primary', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.languages)),
+    idsSpecialites.length > 0
+      ? auth.supabaseAdmin.from('specialities').select('id, name, slug').in('id', idsSpecialites)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; slug: string }>, error: null }),
   ])
+  // Le commentaire ci-dessus le disait, le code ne le faisait pas : les erreurs sont LUES.
+  // Une fiche amputée n'est pas une fiche : 503, jamais une décision sur un dossier incomplet.
+  if (expRes.error || eduRes.error || langRes.error || spsRes.error) {
+    console.error('[admin:get-expert] tables liées ILLISIBLES — fiche non servie', {
+      id,
+      experiences: expRes.error?.message ?? null,
+      formations: eduRes.error?.message ?? null,
+      langues: langRes.error?.message ?? null,
+      specialites: spsRes.error?.message ?? null,
+    })
+    return json({ error: 'Related data unavailable', code: 'fiche_incomplete' }, 503)
+  }
 
   // M3 : photo_url est un chemin storage. Admin voit tout -> URL signée (300s)
   // systématique quand une photo est présente. Seule la VALEUR change.
@@ -85,6 +106,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     photo_url: prof.photo_url ? await signAvatarUrl(auth.supabaseAdmin, prof.user_id) : null,
     // D1 : écosystème exposé à la fiche admin.
     ecosystem: (profDom as { name?: string | null } | null)?.name ?? null,
+    // Les spécialités, TOUTES (elles sont multiples depuis profil_annonce_multivalues).
+    specialities: (spsRes.data ?? []) as Array<{ id: string; name: string; slug: string }>,
   }
 
   // L'ÉCRAN OÙ UN ADMINISTRATEUR APPROUVE : trois listes coupées en silence à

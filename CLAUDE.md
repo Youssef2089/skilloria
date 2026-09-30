@@ -209,6 +209,8 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 - **D.27** — **LA PORTE D'INSCRIPTION SE FERME EN BASE** : toute création de compte porte une PREUVE HMAC signée par le serveur (`lib/inscription/preuve.mjs`), vérifiée par `handle_new_user` AVANT toute écriture (IN007 absente · IN008 altérée ou autre adresse · IN009 expirée · IN011 secret absent) ; secret en deux copies (Vault `inscription_hmac_secret`, Vercel `INSCRIPTION_HMAC_SECRET`), rotation par `_precedent`. **Une règle, une définition** : `inscription_refus()` en base, que la route DEMANDE avant de créer (§E.81) ; les listes de domaines (bloqués, publics) se règlent dans `/admin/domaines-adresse` (8ᵉ famille de réglages) ; codes stables `CODES_REFUS`, messages en quatre langues. Le compte naît complet dans UNE transaction : téléphone vérifié, CGU (expert, organisation, invité — pas l'administrateur), l'organisation, l'invitation acceptée (invité confirmé d'office, route serveur), l'administrateur promu, et la ligne sœur sous la pièce de `compte_cree` ; `atomicCleanup` retiré. **Exception nommée** : l'échéance de la preuve, 5 min, dans le signataire (comme le TTL OTP, §D.7, §D.11). → [détail](docs/architecture.md#d27)
 - **D.28** — **Le sous-domaine d'un écosystème est un RÉGLAGE, l'identifiant technique (`domains.id`) ne change jamais** : `domains.slug` se modifie dans `/admin/ecosystemes`, SEUL dans sa requête, forme DNS et unicité tenues EN BASE (`domains_sous_domaine_forme`, `domains_slug_key`), écrit à la condition que la valeur lue n'ait pas bougé, tracé sous `ecosysteme_modifie` (opération `sous_domaine`, avant/après), confirmé après lecture de ce qu'il déplace (ancienne adresse sans redirection, liens déjà envoyés, sessions). Toute lecture passe par la valeur réglée, à chaque requête ; **aucun nom d'écosystème dans le code** (`diag-sous-domaine`). → [détail](docs/architecture.md#d28)
 - **D.29** — **Une requête n'agit que sous le compte que l'écran affiche ; un navigateur, un compte** : l'écran déclare le compte affiché (`x-compte-affiche`, `lib/identite/compte-affiche.ts`), `requireAuth` refuse un jeton d'un autre compte (403 `compte_different`), l'onglet dont la session change se déconnecte proprement et le dit. **L'analyse d'un CV s'écrit en une fois, ou pas du tout** (`appliquer_analyse_cv`), et n'écrit jamais l'identité du compte. → [détail](docs/architecture.md#d29)
+- **D.30** — **Un travail d'IA long ne vit jamais dans une requête** : l'analyse d'un CV et la vérification d'un expert se DÉPOSENT (`travaux_ia`, un actif par profil et par nature, tenu par un index) et la route répond 202 ; l'exécutant `POST /api/cron/travaux-ia` (300 s, sous bail) les prend, un échec de NOTRE côté se rejoue (3 tentatives, délai croissant) ; le pilote pg_cron `travaux_ia_pilote` (chaque minute, SQL) réveille et CLÔT ce qui est perdu avec un repli EN BASE (analyse « échouée, nommée », vérification en revue humaine) — **aucun profil « en cours » pour toujours** ; `/admin/travaux-ia` montre et relance, la supervision rougit. Le verdict automatique s'écrit (`verification_conclue`). Aucun cron d'hébergeur. → [détail](docs/architecture.md#d30)
+- **D.31** — **Le profil se remplit par le CV ou l'export PDF LinkedIn** (décision de Youssef) : bandeau, « Compléter mon profil » et étapes de démarrage mènent à l'IMPORT, jamais au formulaire ; l'écran de validation montre ce que le document a donné et DEMANDE ce qu'il ne peut pas donner (disponibilité, zones, séniorités acceptées, classement). **Une valeur fautive ne rejette plus l'analyse** : normalisée ou écartée, et DITE (`ecrire_analyse_cv`, codes d'écart partagés) ; le quota ne compte que l'analyse aboutie, une erreur de notre côté est `non_imputable`. « Autre » seul est publiable. Une liste des types d'expérience (`types_experience()`, lue par la contrainte). → [détail](docs/architecture.md#d31)
 
 ---
 
@@ -313,6 +315,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.85](docs/pieges.md#e85) | UNE COPIE DU SOUS-DOMAINE, PRISE PAR LE NAVIGATEUR AU RENDU, DÉCIDAIT À LA PLACE DE L'ADRESSE : `'default'` sur une page neutre, « inconnu » à la garde, l'admin éjecté en trois secondes — et aucun test n'exécutait la garde avec un hôte. |
 | [E.86](docs/pieges.md#e86) | LE PARCOURS DÉPENDAIT D'UNE VARIABLE QUE RIEN NE VÉRIFIAIT, ET LA PANNE SE DISAIT « TEMPORAIRE » : six causes du SMS, un message ; la liste des variables vivait dans la doc. |
 | [E.87](docs/pieges.md#e87) | DEUX COMPTES DANS LE MÊME NAVIGATEUR : le menu montrait l'un, les requêtes partaient sous l'autre (« Bonjour Youssef » sous le menu de Mehdi) — et chaque écran disait une chose vraie d'un compte qu'on ne voyait pas. |
+| [E.88](docs/pieges.md#e88) | UN TEST ÉCRIT DE MÉMOIRE ÉPROUVE SON AUTEUR : `experience_type = 'mission'`, refusé par la table, que l'analyseur produisait aussi — et un contrôle vert gardait le défaut (`on conflict` sans prédicat, §E.69). |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -379,7 +382,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 161 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 169 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé
@@ -471,7 +474,7 @@ fichiers a cassé **55 liens** relatifs, et il les a tous nommés avant le commi
 > moitié des phrases, et aucune machine ne les aurait trouvées. Ce qui les a trouvées, c'est une
 > relecture contre le code — il n'y a pas de raccourci.
 
-**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (65 erreurs / 24 avertissements au 29/09/2026)
+**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (50 erreurs / 24 avertissements au 30/09/2026)
 vit dans [`diag-lint-cliquet`](scripts/diag-lint-cliquet.mjs), pas dans une consigne : rouge dès qu'un des
 deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commit**.
 
@@ -557,6 +560,8 @@ pas reçu.
 > section). Vu par `diag-memoire-exacte` (numéro de section en double, budget crevé), pas à l’œil.
 > **Un remplacement textuel passe par une fonction** — `s.replace(a, () => b)` — jamais par une
 > chaîne : la fonction n’a pas de grammaire.
+
+**G.10 — AVANT d'écrire une fonction, une route ou un test, on lit dans les migrations les contraintes RÉELLES des tables touchées (CHECK, FK, NOT NULL, longueurs, déclencheurs)** — un test écrit de mémoire a posé `experience_type = 'mission'`, que la table refuse (§E.88).
 
 ---
 

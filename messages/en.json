@@ -561,7 +561,8 @@
     "parsing_overlay": {
       "title": "Analysing...",
       "duration": "5 to 30 seconds",
-      "success": "✅ Analysis complete, redirecting..."
+      "success": "✅ Analysis complete, redirecting...",
+      "reprise": "An incident on our side: retrying ({tentative} of {sur}). Nothing is counted, please wait."
     },
     "errors": {
       "consent_required": "Please accept the processing of your data to continue.",
@@ -587,7 +588,21 @@
       "ecriture": "The analysis of your CV could not be saved: your profile was not changed. Try again in a moment.",
       "journal": "Your CV was processed, but its record could not be written. Reload the page to see your profile; if it happens again, write to us.",
       "inattendu": "The upload did not go through (code: {code}). Nothing was changed; if it happens again, send us this code.",
-      "reseau": "The connection to the server failed: your file was not sent. Check your connection, then try again."
+      "reseau": "The connection to the server failed: your file was not sent. Check your connection, then try again.",
+      "depots_trop_frequents": "You have uploaded many documents within an hour. Please wait a little before trying again.",
+      "document_refuse": "This document could not be read (protected PDF, scanned image or too large). Export it again as a text PDF, or import the PDF export of your LinkedIn profile.",
+      "modele_indisponible": "The analysis service is not responding right now. No analysis was counted: try again in a few minutes.",
+      "echec_technique": "The analysis could not be completed on our side. No analysis was counted: please import your document again."
+    },
+    "etat_analyse": {
+      "fait_titre": "Your document has already been analysed",
+      "fait_texte": "Resume validating your profile where you left off, or import a more recent document below to update it.",
+      "reprendre": "Resume validation",
+      "en_cours_titre": "An analysis is in progress",
+      "en_cours_texte": "You will be taken to your profile validation as soon as it completes.",
+      "echoue_titre": "The last analysis did not complete",
+      "continue_titre": "The analysis is still running",
+      "continue_texte": "It is taking longer than expected, but it is not lost: you can leave this page. Your dashboard will show the outcome, and this page will take you to validation as soon as it completes."
     }
   },
   "profile_validation": {
@@ -608,7 +623,9 @@
       "list_read_failed_body": "These sections could not be read: {sections}. They will not be changed when you save — nothing is lost. Reload the page to try again.",
       "list_read_failed_retry": "Reload",
       "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again.",
-      "verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment."
+      "verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment.",
+      "profile_load_failed": "Your profile could not be read (temporary outage). Nothing was changed: reload the page.",
+      "taxonomy_unavailable": "Branches, specialities and zones could not be loaded. To avoid erasing anything, saving is blocked: reload the page."
     },
     "success": {
       "draft_saved": "Draft saved. You can keep editing or go back to your dashboard.",
@@ -732,7 +749,13 @@
         },
         "primary_label": "Primary",
         "language_remove_aria": "Remove language",
-        "language_add_button": "+ Add a language"
+        "language_add_button": "+ Add a language",
+        "status_label": "Are you open to assignments?",
+        "status_options": {
+          "available": "Yes, I'm open",
+          "do_not_disturb": "Not right now"
+        },
+        "status_hint": "Your CV cannot say this: it is up to you. You can change it at any time from your dashboard."
       },
       "links": {
         "title": "Links",
@@ -829,7 +852,8 @@
       "saving": "Saving...",
       "publishing": "Publishing...",
       "publish_disabled_tooltip": "Complete the required fields below to publish your profile.",
-      "publish_blocked_title": "{count, plural, =1 {1 required field still to fill in} other {# required fields still to fill in}}"
+      "publish_blocked_title": "{count, plural, =1 {1 required field still to fill in} other {# required fields still to fill in}}",
+      "draft_unpublishes": "Your profile is live: saving it as a draft removes it from the showcase until you publish again, which will restart its verification."
     }
   },
   "profile_view": {
@@ -1449,7 +1473,8 @@
     "parsing_overlay": {
       "title": "Analysing...",
       "duration": "5 to 30 seconds",
-      "success": "✅ Analysis complete, redirecting..."
+      "success": "✅ Analysis complete, redirecting...",
+      "reprise": "An incident on our side: retrying ({tentative} of {sur}). Nothing is counted, please wait."
     },
     "errors": {
       "consent_required": "Please consent to data processing to continue.",
@@ -1464,7 +1489,22 @@
       "unknown_reason": "unknown error",
       "parsing_default": "Analysis failed",
       "timeout": "Timeout reached, please retry.",
-      "verification_indisponible": "A check could not be completed: this is not a refusal, and your file was not sent. Please try again in a moment."
+      "verification_indisponible": "A check could not be completed: this is not a refusal, and your file was not sent. Please try again in a moment.",
+      "fichier_absent": "No file was received. Select your CV again, as a PDF.",
+      "compte_different": "Another account signed in on this browser, so you were signed out. Sign in again with your account, then upload your CV.",
+      "mauvais_type": "This upload is reserved for freelance expert accounts, and the account signed in on this browser is not one. Sign out, then sign in with your freelance account.",
+      "compte_introuvable": "Your account or profile cannot be found. Sign out and sign in again; if it persists, write to us.",
+      "budget": "Automatic CV analysis is paused for now. Your CV was not analysed: complete your profile by hand, or try again later.",
+      "configuration": "CV upload is misconfigured on this site: it is not your doing, and trying again will not help. Write to us; meanwhile, complete your profile by hand.",
+      "stockage": "Your CV could not be saved; your profile was not changed. Try again in a moment.",
+      "ecriture": "The analysis of your CV could not be saved: your profile was not changed. Try again in a moment.",
+      "journal": "Your CV was processed, but its record could not be written. Reload the page to see your profile; if it happens again, write to us.",
+      "inattendu": "The upload did not go through (code: {code}). Nothing was changed; if it happens again, send us this code.",
+      "reseau": "The connection to the server failed: your file was not sent. Check your connection, then try again.",
+      "depots_trop_frequents": "You have uploaded many documents within an hour. Please wait a little before trying again.",
+      "document_refuse": "This document could not be read (protected PDF, scanned image or too large). Export it again as a text PDF, or import the PDF export of your LinkedIn profile.",
+      "modele_indisponible": "The analysis service is not responding right now. No analysis was counted: try again in a few minutes.",
+      "echec_technique": "The analysis could not be completed on our side. No analysis was counted: please import your document again."
     },
     "acces": {
       "refuse_titre": "This page is for permanent-contract experts",
@@ -1493,7 +1533,9 @@
       "list_read_failed_body": "These sections could not be read: {sections}. They will not be changed when you save — nothing is lost. Reload the page to try again.",
       "list_read_failed_retry": "Reload",
       "erase_not_declared": "Saving was refused to protect your data: a section could not be read. Nothing was changed. Reload the page, then try again.",
-      "verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment."
+      "verification_indisponible": "A check could not be completed: this is not a rejection of your profile. Nothing was changed — please try again in a moment.",
+      "profile_load_failed": "Your profile could not be read (temporary outage). Nothing was changed: reload the page.",
+      "taxonomy_unavailable": "Branches, specialities and zones could not be loaded. To avoid erasing anything, saving is blocked: reload the page."
     },
     "success": {
       "draft_saved": "Draft saved. You can keep editing or return to the dashboard.",
@@ -1755,7 +1797,8 @@
       "saving": "Saving...",
       "publishing": "Publishing...",
       "publish_disabled_tooltip": "Complete the required fields below to publish your profile.",
-      "publish_blocked_title": "{count, plural, =1 {1 required field still to fill in} other {# required fields still to fill in}}"
+      "publish_blocked_title": "{count, plural, =1 {1 required field still to fill in} other {# required fields still to fill in}}",
+      "draft_unpublishes": "Your profile is live: saving it as a draft removes it from the showcase until you publish again, which will restart its verification."
     }
   },
   "dashboard_entreprise": {
@@ -2427,6 +2470,14 @@
         "plafond_atteint": "The search is paused pending a top-up. It will resume automatically.",
         "reglages_absents": "A setting is missing on our side. Another search is scheduled.",
         "lecture_en_panne": "We couldn’t read your data. Another search is scheduled."
+      },
+      "empty_subtitle_sans_notification": "Check back on this page: new opportunities appear here as soon as a posting matches your profile.",
+      "hors_du_moteur_title": "No search is running for you right now",
+      "hors_du_moteur": {
+        "profil_non_visible": "Your profile is not visible: import your CV or LinkedIn profile and publish it to receive proposals.",
+        "cv_non_analyse": "The last analysis of your CV did not complete: import it again to resume searches.",
+        "consentement_absent": "AI analysis of your profile is not authorised: import your CV and tick the authorisation.",
+        "autre": "Your profile does not meet all the search conditions: open \"My profile\" to see what is missing."
       }
     },
     "casting": {
@@ -2810,7 +2861,8 @@
       "error_generic": "An error occurred. Please try again.",
       "error_already_processed": "This profile has already been processed.",
       "error_reason_required": "A reason is required to reject.",
-      "speciality_other_prefix": "{value} (not in the reference list)"
+      "speciality_other_prefix": "{value} (not in the reference list)",
+      "years": "{count, plural, one {# year of experience} other {# years of experience}}"
     },
     "users": {
       "title": "Users",
@@ -3179,7 +3231,9 @@
         "organisations_au_plafond_ia": "{count} company/companies reached their spending cap: their postings go out, but are no longer ranked.",
         "experts_au_plafond_ia": "{count} expert(s) reached their spending cap: their automatic searches are stopped.",
         "lecture_indisponible_acteurs_plafond": "Capped accounts could not be counted. This is not “none”: we do not know.",
-        "variable_manquante": "The environment variable {nom} is missing on this deployment: a product feature is broken. Set it in Vercel (production procedure, step 5), then redeploy."
+        "variable_manquante": "The environment variable {nom} is missing on this deployment: a product feature is broken. Set it in Vercel (production procedure, step 5), then redeploy.",
+        "travaux_ia_en_souffrance": "{count} AI job(s) need a human: a CV analysis or expert verification that was abandoned, is overdue, or whose worker stopped. Behind each line, an expert is waiting. Open AI jobs and restart them.",
+        "lecture_indisponible_travaux_ia": "The AI jobs could not be counted. This is not \"nothing to do\": it is \"we do not know\". Open AI jobs."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -3475,6 +3529,63 @@
           "journal": "Traces of clean-ups are never erased."
         }
       }
+    },
+    "nav_travaux_ia": "AI jobs",
+    "travaux_ia": {
+      "title": "AI jobs needing attention",
+      "subtitle": "CV analysis and expert verification run outside the expert's request, and retry on their own when the incident is on our side. Listed here: what did not resolve by itself. Each line is an expert who is waiting.",
+      "loading": "Loading…",
+      "err_load": "The list could not be read. This is not \"nothing to do\": reload the page.",
+      "empty": "No job needs a human: every analysis and verification has completed, or is retrying on its own.",
+      "col_expert": "Expert",
+      "col_nature": "Job",
+      "col_etat": "State",
+      "col_cause": "Cause",
+      "col_tentatives": "Attempts",
+      "col_date": "Since",
+      "col_action": "Action",
+      "expert_sans_nom": "Expert (name unreadable)",
+      "nature": {
+        "analyse_cv": "CV analysis",
+        "verification_expert": "Expert verification"
+      },
+      "statut": {
+        "echoue": "Abandoned",
+        "en_attente": "Overdue",
+        "en_cours": "Worker stopped"
+      },
+      "cause_aucune": "Overdue: the worker has not picked it up yet.",
+      "cause_inconnue": "Unlisted cause ({code}).",
+      "tentatives": "{n} of {sur}",
+      "relancer": "Restart",
+      "relance_en_cours": "Restarting…",
+      "relance_ok": "Restarted: the profile is back to \"in progress\" and the worker has been woken up.",
+      "relance_erreur": "The restart failed. Nothing changed: try again.",
+      "relance_plus_en_echec": "This job is no longer failed (already restarted, or replaced by a new upload).",
+      "repris_par_le_pilote": "Picked up by the scheduler within a minute",
+      "causes": {
+        "profil_illisible": "The profile could not be read (database outage), several times.",
+        "profil_introuvable": "The profile no longer exists.",
+        "compte_illisible": "The account could not be read (database outage).",
+        "voie_inconnue": "The account is not an expert.",
+        "document_absent": "The uploaded document cannot be found.",
+        "stockage_illisible": "The document could not be read from storage.",
+        "referentiel_illisible": "The ecosystem's reference data could not be read.",
+        "quota_non_configure": "The analysis quota is not configured (Administration → AI quotas).",
+        "quota_illisible": "The analysis quota could not be read.",
+        "plafond_depense": "The AI spending cap has been reached.",
+        "modele_indisponible": "The AI provider did not respond, on every attempt.",
+        "configuration": "The AI provider's key is missing or rejected.",
+        "document_refuse": "The provider rejected the document (protected, image, too large).",
+        "reponse_illisible": "The model's responses were unreadable.",
+        "ecriture_en_panne": "The result could not be written (database outage).",
+        "exception_interne": "An error in our code, on every attempt (see the server logs).",
+        "delai_depasse": "The worker was stopped before finishing, on the last attempt.",
+        "non_execute": "Nobody picked up the job for 30 minutes: the worker is not being woken up (Vault secrets cron_secret and purge_cron_base_url?).",
+        "configuration_illisible": "The verification configuration could not be read.",
+        "specialites_illisibles": "The specialities could not be read."
+      },
+      "liste_coupee": "Only the {n} most recent jobs are shown: the full list is longer. Retry these, then reload."
     }
   },
   "expert_verification": {
@@ -4884,7 +4995,10 @@
       "refus_garde_eligibilite": "Refused: application conditions not met",
       "refus_quota_cv": "Refused: CV analysis quota reached",
       "refus_depot_sans_jugement": "Refused: application not assessed",
-      "refus_recherche_en_cours": "Refused: a search is already running"
+      "refus_recherche_en_cours": "Refused: a search is already running",
+      "verification_conclue": "Verification concluded",
+      "travail_ia_echoue": "AI job abandoned",
+      "travail_ia_relance": "AI job restarted"
     },
     "familles": {
       "annonce": "Listings",
@@ -4995,6 +5109,107 @@
       "domaine_invalide": "This is not a domain name. Enter it without “@” or “http” (for example: example.com).",
       "dans_l_autre_liste": "This domain is active in the other list. Remove it there first: a domain cannot be both blocked and public.",
       "domaine_inconnu": "This domain is not in the list. Reload the page."
+    }
+  },
+  "profil_refus": {
+    "inattendu": "The server replied \"{code}\". Nothing you entered is lost: try again, and if it happens again, contact us quoting this code.",
+    "cv_non_pret": "Your CV must be analysed before publishing: import it from your profile page.",
+    "effacement": "To avoid losing anything, nothing was saved: a list would have been emptied without having been read. Reload the page.",
+    "lecture_indisponible": "A check could not be performed (temporary outage). Nothing was changed: try again in a moment.",
+    "ecriture": "Saving did not complete (temporary outage). Nothing was changed: try again in a moment.",
+    "journal": "Your profile is saved. Only the record of the operation could not be written: there is nothing to redo.",
+    "verification_non_deposee": "Your profile is published, but its verification could not be started. Publish again in a moment to restart it.",
+    "branche_inconnue": "The selected branch no longer exists in your ecosystem: choose one from the list.",
+    "specialite_inconnue": "A selected speciality no longer exists in your ecosystem: remove it and choose from the list.",
+    "zone_inconnue": "A selected work zone no longer exists: remove it and choose from the list.",
+    "autre_trop_long": "The \"Other\" detail cannot exceed 100 characters.",
+    "liste_illisible": "A list you sent contains no usable entry (empty title, school or language): complete it or remove it.",
+    "liste_refusee": "{liste} no. {rang}: {cause} Nothing was saved — fix this entry and try again.",
+    "liste_refusee_sans_rang": "An entry was refused: {cause} Nothing was saved.",
+    "champ_refuse": "The field \"{champ}\" has a value the platform does not accept. Fix it and try again: nothing was saved.",
+    "texte_trop_long": "A text exceeds the allowed length. Shorten it: nothing was saved.",
+    "profil_absent": "Your expert profile cannot be found. Contact us: you do not need to recreate it.",
+    "rien_a_enregistrer": "Nothing to save: no field has changed.",
+    "session": "Your session has changed: sign in again, then try again. Nothing was saved.",
+    "incomplet": "Still missing: {champs}. Resume validation from your CV import.",
+    "listes": {
+      "experiences": "Experience",
+      "formations": "Education",
+      "langues": "Language"
+    },
+    "causes": {
+      "champ_obligatoire": "a required field is empty (title, start date, school or degree).",
+      "doublon": "this language is already in the list.",
+      "texte_trop_long": "a text exceeds the allowed length.",
+      "date_illisible": "a date cannot be read.",
+      "nombre_illisible": "a year is not a whole number.",
+      "fin_avant_debut": "the end date is before the start date.",
+      "annee_hors_bornes": "a year is outside the allowed range.",
+      "valeur_hors_liste": "a value is not in the proposed list.",
+      "ligne_refusee": "the entry was refused."
+    },
+    "champs": {
+      "birth_year": "Year of birth",
+      "years_total_experience": "Years of experience",
+      "cdi_salary_min": "Minimum salary",
+      "cdi_salary_max": "Maximum salary",
+      "cdi_variable_pct": "Variable share",
+      "availability": "Availability",
+      "work_modes": "Work modes",
+      "seniorities": "Seniority levels",
+      "visibilite": "Publication criteria"
+    },
+    "champs_visibilite": {
+      "title": "the title",
+      "summary": "the summary (200 to 800 characters)",
+      "skills": "at least three skills",
+      "branch_id": "the branch",
+      "speciality_ids": "a speciality",
+      "seniorities": "the accepted seniority levels",
+      "work_zone_ids": "the work zones",
+      "availability": "your availability",
+      "experiences": "at least one experience",
+      "languages_structured": "at least one language",
+      "cv_ready": "an analysed CV"
+    }
+  },
+  "profil_masque": {
+    "titre_masque": "Your profile is no longer visible to organisations",
+    "titre_incomplet": "Your profile is not yet visible to organisations",
+    "texte": "{count, plural, one {One item is still missing} other {# items are still missing}} to publish it. Your profile is filled from your CV or the PDF export of your LinkedIn profile: import it, and validation will ask you for what a CV cannot say.",
+    "cta": "Import my CV or LinkedIn profile"
+  },
+  "ecarts_analyse": {
+    "titre": "{count, plural, one {One item from your document was adjusted or set aside} other {# items from your document were adjusted or set aside}} — please review them below.",
+    "ligne": "{bloc}: {motif}",
+    "ligne_avec_rang": "{bloc} no. {rang}: {motif}",
+    "blocs": {
+      "profil": "Profile",
+      "experiences": "Experience",
+      "formations": "Education",
+      "langues": "Language"
+    },
+    "codes": {
+      "date_completee": "date completed to the first day of the month (the CV only gave the month or year)",
+      "nombre_arrondi": "number rounded to a whole number",
+      "type_ramene": "type (career or assignment) inferred",
+      "niveau_ramene": "language level mapped to the European scale",
+      "resume_raccourci": "summary shortened to 800 characters",
+      "date_illisible": "unreadable date: entry or date set aside",
+      "code_pays_illisible": "unreadable country: set aside",
+      "valeur_hors_liste": "value outside the proposed list: set aside",
+      "ligne_sans_intitule": "entry without a title: set aside",
+      "doublon": "duplicate: set aside",
+      "adresse_web_illisible": "unreadable web address: set aside",
+      "resume_trop_court": "summary under 200 characters: complete it to publish",
+      "texte_tronque": "text too long: shortened",
+      "valeur_refusee": "value refused by the platform: set aside",
+      "fin_avant_debut": "end before start: end date removed",
+      "annee_hors_bornes": "year out of range: years removed",
+      "champ_obligatoire": "required field empty: entry set aside",
+      "nombre_illisible": "unreadable number: entry set aside",
+      "ligne_refusee": "entry refused by the platform: set aside",
+      "liste_entierement_refusee": "no readable entry: the previous list is kept"
     }
   }
 }

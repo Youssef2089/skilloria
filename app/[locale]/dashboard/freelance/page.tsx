@@ -89,6 +89,7 @@ function computeCompletionPct(profile: ProfileData | null): number {
 
 export default function DashboardFreelance() {
   const t = useTranslations('dashboard_freelance')
+  const tFeed = useTranslations('missions.feed')
   const tCommon = useTranslations('common')
   const tc = useTranslations('missions.casting')
   const locale = useLocale()
@@ -167,7 +168,7 @@ export default function DashboardFreelance() {
   const missionsLive = useLiveResource<
     {
       missions: RecommendedMission[]
-      expert_status?: { is_dnd: boolean }
+      expert_status?: { is_dnd: boolean; derniere_recherche?: { etat: 'echec'; raison: string; abandonnee: boolean } }
     },
     RecommendedMission
   >({
@@ -185,6 +186,8 @@ export default function DashboardFreelance() {
 
   // Dérivation memo : recommendedMissions.
   const missions = missionsLive.data?.missions ?? null
+  // L'ÉTAT DE LA DERNIÈRE RECHERCHE — lu ici comme sur la page « missions » (M5).
+  const derniereRecherche = missionsLive.data?.expert_status?.derniere_recherche ?? null
 
   // Casting home : on parcourt TOUTES les recommandations / candidatures
   // (carrousel sous projecteur → ne rallonge pas le home). Plus de slice top-N.
@@ -592,7 +595,7 @@ export default function DashboardFreelance() {
               visible ou si le verdict serveur est indisponible. */}
           <ProfilMasqueBanner
             namespace="profile_validation"
-            href="/dashboard/freelance/profil/valider"
+            href="/dashboard/freelance/profil"
             accentColor={'var(--sk-accent)'}
           />
 
@@ -717,7 +720,8 @@ export default function DashboardFreelance() {
                   ? t('completion.title_complete')
                   : t('completion.title', { percent: completionPct })}
               </div>
-              <Link href="/dashboard/freelance/profil/valider" className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{completionPct >= 100 ? t('completion.cta_complete') : t('completion.cta')}</Link>
+              {/* « Compléter mon profil » mène à l'IMPORT (décision du 30/09/2026) ; un profil complet se consulte. */}
+              <Link href={completionPct >= 100 ? '/dashboard/freelance/mon-profil' : '/dashboard/freelance/profil'} className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{completionPct >= 100 ? t('completion.cta_complete') : t('completion.cta')}</Link>
             </div>
             <div className="progress-bar">
               <div className="progress-fill" style={{ background: `linear-gradient(90deg, var(--sk-accent), ${'var(--sk-accent)'})`, width: `${completionPct}%` }}></div>
@@ -792,6 +796,13 @@ export default function DashboardFreelance() {
                   ecosystem={domain.ecosystemName}
                   onReessayer={lancerRecherche}
                 />
+              ) : derniereRecherche?.etat === 'echec' ? (
+                /* LA DERNIÈRE RECHERCHE A ÉCHOUÉ (audit du 30/09/2026, M5) : l'accueil disait « aucune mission
+                   ne correspond » alors que rien n'avait été cherché. Même texte que la page « missions ». */
+                <div role="status" style={{ background: 'var(--sk-amber-soft)', border: '1px solid var(--sk-amber-soft)', borderRadius: 10, padding: 22, fontSize: 14, color: 'var(--sk-amber)', lineHeight: 1.7 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 4 }}>{tFeed('echec_title')}</div>
+                  {derniereRecherche.abandonnee ? tFeed('echec_abandonnee') : tFeed(`echec_raison.${derniereRecherche.raison}` as 'echec_raison.moteur_indisponible')}
+                </div>
               ) : (
                 <div style={{ background: 'var(--sk-surface-2)', border: '1px solid var(--sk-border)', borderRadius: 10, padding: 22, textAlign: 'center', fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.8 }}>
                   {t('cards.recommended_missions.empty_verified', { ecosystem: domain.ecosystemName })}

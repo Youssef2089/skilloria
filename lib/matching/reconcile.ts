@@ -255,12 +255,24 @@ export async function reconcileMatches(args: {
 
   // ── 5. Appliquer (INSERT puis UPDATE puis DELETE) ─────────────────────────
   if (toInsert.length > 0) {
-    const { error: insErr } = await supabaseAdmin.from('matches').insert(toInsert)
+    // ⚠️ DEUX RUNS SUR LA MÊME PAIRE (le sens annonce et le sens expert, au même instant) :
+    //    le second insérait une paire que le premier venait d'écrire, la contrainte
+    //    `matches_publication_profile_unique` refusait, et TOUT le lot de l'expert échouait
+    //    (audit du 30/09/2026, m9). La paire déjà écrite est IGNORÉE — la contrainte est
+    //    complète, la clause s'y adosse — et seules les lignes RÉELLEMENT insérées comptent
+    //    comme fraîches (elles seules seront notifiées).
+    const { data: inserees, error: insErr } = await supabaseAdmin
+      .from('matches')
+      .upsert(toInsert, { onConflict: 'publication_id,profile_id', ignoreDuplicates: true })
+      .select('profile_id, publication_id')
     if (insErr) {
       console.error('[reconcile] insert failed', insErr.message)
       throw new Error(`[reconcile] insert failed: ${insErr.message}`)
     }
-    stats.inserted = toInsert.map((r) => ({ profile_id: r.profile_id, publication_id: r.publication_id }))
+    stats.inserted = ((inserees ?? []) as Array<{ profile_id: string; publication_id: string }>).map((r) => ({
+      profile_id: r.profile_id,
+      publication_id: r.publication_id,
+    }))
   }
 
   // ── LES MISES À JOUR PARTENT EN UNE SEULE ÉCRITURE ───────────────────────

@@ -29,8 +29,15 @@ export const CODE_COMPTE_DIFFERENT = 'compte_different'
 export type VerdictCompte =
   /** L'écran affiche le compte qui agit. */
   | 'meme'
-  /** L'écran affiche un compte, un AUTRE agit (ou plus aucun) : refus. */
+  /** L'écran affiche un compte, un AUTRE agit : refus. */
   | 'different'
+  /**
+   * L'écran affiche un compte, et PLUS AUCUN n'agit : une déconnexion — volontaire, une session
+   * remplacée, un compte suspendu, ou un autre onglet. Ce n'est PAS « un autre compte » (audit du
+   * 30/09/2026, M1) : chacun de ces chemins navigue lui-même avec SON motif, et les confondre faisait
+   * dire « un autre compte s'est connecté » à toute déconnexion.
+   */
+  | 'absent'
   /** L'écran n'a encore rien affiché (premier chargement) : rien à comparer. */
   | 'inconnu'
 
@@ -42,6 +49,6 @@ export function verdictCompte(affiche: string | null | undefined, agissant: stri
   const a = (affiche ?? '').trim()
   if (!a) return 'inconnu'
   const b = (agissant ?? '').trim()
-  if (!b) return 'different'
+  if (!b) return 'absent'
   return a === b ? 'meme' : 'different'
 }

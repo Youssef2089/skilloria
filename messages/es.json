@@ -561,7 +561,8 @@
     "parsing_overlay": {
       "title": "Analizando...",
       "duration": "5 a 30 segundos",
-      "success": "✅ Análisis completado, redirigiendo..."
+      "success": "✅ Análisis completado, redirigiendo...",
+      "reprise": "Un incidente por nuestra parte: nuevo intento ({tentative} de {sur}). No se descuenta nada, espere."
     },
     "errors": {
       "consent_required": "Acepta el tratamiento de tus datos para continuar.",
@@ -587,7 +588,21 @@
       "ecriture": "No se ha podido guardar el análisis de su CV: su perfil no se ha modificado. Inténtelo de nuevo en unos instantes.",
       "journal": "Su CV se ha procesado, pero no se ha podido escribir su registro. Recargue la página para ver su perfil; si vuelve a ocurrir, escríbanos.",
       "inattendu": "El envío no se ha completado (código: {code}). No se ha modificado nada; si vuelve a ocurrir, comuníquenos este código.",
-      "reseau": "La conexión con el servidor ha fallado: su archivo no se ha enviado. Compruebe su conexión y vuelva a intentarlo."
+      "reseau": "La conexión con el servidor ha fallado: su archivo no se ha enviado. Compruebe su conexión y vuelva a intentarlo.",
+      "depots_trop_frequents": "Ha subido muchos documentos en una hora. Espere un poco antes de volver a intentarlo.",
+      "document_refuse": "No se pudo leer este documento (PDF protegido, escaneado como imagen o demasiado pesado). Expórtelo de nuevo como PDF de texto o importe la exportación PDF de su perfil de LinkedIn.",
+      "modele_indisponible": "El servicio de análisis no responde en este momento. No se ha descontado ningún análisis: vuelva a intentarlo en unos minutos.",
+      "echec_technique": "El análisis no pudo completarse por nuestra parte. No se ha descontado ningún análisis: vuelva a importar su documento."
+    },
+    "etat_analyse": {
+      "fait_titre": "Su documento ya ha sido analizado",
+      "fait_texte": "Retome la validación de su perfil donde la dejó, o importe a continuación un documento más reciente para actualizarlo.",
+      "reprendre": "Retomar la validación",
+      "en_cours_titre": "Hay un análisis en curso",
+      "en_cours_texte": "Se le llevará a la validación de su perfil en cuanto termine.",
+      "echoue_titre": "El último análisis no se completó",
+      "continue_titre": "El análisis continúa",
+      "continue_texte": "Está tardando más de lo previsto, pero no se ha perdido: puede salir de esta página. Su panel mostrará el resultado y esta página le llevará a la validación en cuanto termine."
     }
   },
   "profile_validation": {
@@ -608,7 +623,9 @@
       "list_read_failed_body": "No se han podido leer estas secciones: {sections}. No se modificarán al guardar — no se pierde nada. Vuelve a cargar la página para reintentarlo.",
       "list_read_failed_retry": "Recargar",
       "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo.",
-      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes."
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes.",
+      "profile_load_failed": "No se pudo leer su perfil (fallo temporal). No se ha modificado nada: recargue la página.",
+      "taxonomy_unavailable": "No se pudieron cargar las ramas, especialidades y zonas. Para no borrar nada, el guardado está bloqueado: recargue la página."
     },
     "success": {
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
@@ -732,7 +749,13 @@
         },
         "primary_label": "Principal",
         "language_remove_aria": "Eliminar idioma",
-        "language_add_button": "+ Añadir un idioma"
+        "language_add_button": "+ Añadir un idioma",
+        "status_label": "¿Está disponible para misiones?",
+        "status_options": {
+          "available": "Sí, estoy disponible",
+          "do_not_disturb": "Por ahora no"
+        },
+        "status_hint": "Su CV no puede decirlo: usted elige. Podrá cambiarlo en cualquier momento desde su panel."
       },
       "links": {
         "title": "Enlaces",
@@ -829,7 +852,8 @@
       "saving": "Guardando...",
       "publishing": "Publicando...",
       "publish_disabled_tooltip": "Completa los campos requeridos a continuación para publicar tu perfil.",
-      "publish_blocked_title": "{count, plural, =1 {Queda 1 campo requerido por completar} other {Quedan # campos requeridos por completar}}"
+      "publish_blocked_title": "{count, plural, =1 {Queda 1 campo requerido por completar} other {Quedan # campos requeridos por completar}}",
+      "draft_unpublishes": "Su perfil está publicado: guardarlo como borrador lo retira del escaparate hasta su próxima publicación, que volverá a lanzar su verificación."
     }
   },
   "profile_view": {
@@ -1449,7 +1473,8 @@
     "parsing_overlay": {
       "title": "Analizando...",
       "duration": "5 a 30 segundos",
-      "success": "✅ Análisis completado, redirigiendo..."
+      "success": "✅ Análisis completado, redirigiendo...",
+      "reprise": "Un incidente por nuestra parte: nuevo intento ({tentative} de {sur}). No se descuenta nada, espere."
     },
     "errors": {
       "consent_required": "Acepta el tratamiento de tus datos para continuar.",
@@ -1464,7 +1489,22 @@
       "unknown_reason": "error desconocido",
       "parsing_default": "Análisis fallido",
       "timeout": "Tiempo agotado, vuelve a intentarlo.",
-      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo y su archivo no se ha enviado. Inténtelo de nuevo en unos instantes."
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo y su archivo no se ha enviado. Inténtelo de nuevo en unos instantes.",
+      "fichier_absent": "No se ha recibido ningún archivo. Seleccione de nuevo su CV en formato PDF.",
+      "compte_different": "Otra cuenta ha iniciado sesión en este navegador, por lo que se ha cerrado su sesión. Vuelva a iniciar sesión con su cuenta y suba su CV.",
+      "mauvais_type": "Este envío está reservado a las cuentas de expertos freelance, y la cuenta conectada en este navegador no lo es. Cierre la sesión y vuelva a iniciarla con su cuenta freelance.",
+      "compte_introuvable": "No se encuentra su cuenta o su perfil. Cierre la sesión y vuelva a iniciarla; si persiste, escríbanos.",
+      "budget": "El análisis automático de CV está suspendido por ahora. Su CV no se ha analizado: complete su perfil manualmente o inténtelo más tarde.",
+      "configuration": "El envío de CV está mal configurado en este sitio: no es culpa suya y volver a intentarlo no servirá. Escríbanos; mientras tanto, complete su perfil manualmente.",
+      "stockage": "No se ha podido guardar su CV; su perfil no se ha modificado. Inténtelo de nuevo en unos instantes.",
+      "ecriture": "No se ha podido guardar el análisis de su CV: su perfil no se ha modificado. Inténtelo de nuevo en unos instantes.",
+      "journal": "Su CV se ha procesado, pero no se ha podido escribir su registro. Recargue la página para ver su perfil; si vuelve a ocurrir, escríbanos.",
+      "inattendu": "El envío no se ha completado (código: {code}). No se ha modificado nada; si vuelve a ocurrir, comuníquenos este código.",
+      "reseau": "La conexión con el servidor ha fallado: su archivo no se ha enviado. Compruebe su conexión y vuelva a intentarlo.",
+      "depots_trop_frequents": "Ha subido muchos documentos en una hora. Espere un poco antes de volver a intentarlo.",
+      "document_refuse": "No se pudo leer este documento (PDF protegido, escaneado como imagen o demasiado pesado). Expórtelo de nuevo como PDF de texto o importe la exportación PDF de su perfil de LinkedIn.",
+      "modele_indisponible": "El servicio de análisis no responde en este momento. No se ha descontado ningún análisis: vuelva a intentarlo en unos minutos.",
+      "echec_technique": "El análisis no pudo completarse por nuestra parte. No se ha descontado ningún análisis: vuelva a importar su documento."
     },
     "acces": {
       "refuse_titre": "Esta página es para expertos con contrato indefinido",
@@ -1493,7 +1533,9 @@
       "list_read_failed_body": "No se han podido leer estas secciones: {sections}. No se modificarán al guardar — no se pierde nada. Vuelve a cargar la página para reintentarlo.",
       "list_read_failed_retry": "Recargar",
       "erase_not_declared": "Se ha rechazado el guardado para proteger tus datos: no se ha podido leer una sección. No se ha modificado nada. Vuelve a cargar la página e inténtalo de nuevo.",
-      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes."
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo de su perfil. No se ha modificado nada; inténtelo de nuevo en unos instantes.",
+      "profile_load_failed": "No se pudo leer su perfil (fallo temporal). No se ha modificado nada: recargue la página.",
+      "taxonomy_unavailable": "No se pudieron cargar las ramas, especialidades y zonas. Para no borrar nada, el guardado está bloqueado: recargue la página."
     },
     "success": {
       "draft_saved": "Borrador guardado. Puedes seguir editando o volver al panel.",
@@ -1755,7 +1797,8 @@
       "saving": "Guardando...",
       "publishing": "Publicando...",
       "publish_disabled_tooltip": "Completa los campos requeridos a continuación para publicar tu perfil.",
-      "publish_blocked_title": "{count, plural, =1 {Queda 1 campo requerido por completar} other {Quedan # campos requeridos por completar}}"
+      "publish_blocked_title": "{count, plural, =1 {Queda 1 campo requerido por completar} other {Quedan # campos requeridos por completar}}",
+      "draft_unpublishes": "Su perfil está publicado: guardarlo como borrador lo retira del escaparate hasta su próxima publicación, que volverá a lanzar su verificación."
     }
   },
   "dashboard_entreprise": {
@@ -2427,6 +2470,14 @@
         "plafond_atteint": "La búsqueda está en pausa a la espera de una recarga. Se reanudará automáticamente.",
         "reglages_absents": "Falta una configuración de nuestro lado. Hay otra búsqueda programada.",
         "lecture_en_panne": "No pudimos leer tus datos. Hay otra búsqueda programada."
+      },
+      "empty_subtitle_sans_notification": "Vuelva a consultar esta página: las nuevas oportunidades aparecen aquí en cuanto una publicación corresponde a su perfil.",
+      "hors_du_moteur_title": "No hay ninguna búsqueda activa para usted en este momento",
+      "hors_du_moteur": {
+        "profil_non_visible": "Su perfil no es visible: importe su CV o su perfil de LinkedIn y publíquelo para recibir propuestas.",
+        "cv_non_analyse": "El último análisis de su CV no se completó: vuelva a importarlo para reanudar las búsquedas.",
+        "consentement_absent": "El análisis de su perfil por la IA no está autorizado: importe su CV marcando la autorización.",
+        "autre": "Su perfil no cumple todas las condiciones de la búsqueda: abra «Mi perfil» para ver lo que falta."
       }
     },
     "casting": {
@@ -2810,7 +2861,8 @@
       "error_generic": "Se produjo un error. Inténtalo de nuevo.",
       "error_already_processed": "Este perfil ya ha sido procesado.",
       "error_reason_required": "Se requiere un motivo para rechazar.",
-      "speciality_other_prefix": "{value} (fuera del catálogo)"
+      "speciality_other_prefix": "{value} (fuera del catálogo)",
+      "years": "{count, plural, one {# año de experiencia} other {# años de experiencia}}"
     },
     "users": {
       "title": "Usuarios",
@@ -3179,7 +3231,9 @@
         "organisations_au_plafond_ia": "{count} empresa(s) alcanzaron su límite de gasto: sus anuncios salen, pero ya no se clasifican.",
         "experts_au_plafond_ia": "{count} experto(s) alcanzaron su límite de gasto: sus búsquedas automáticas están detenidas.",
         "lecture_indisponible_acteurs_plafond": "No se pudieron contar las cuentas al límite. No es «ninguna»: no lo sabemos.",
-        "variable_manquante": "Falta la variable de entorno {nom} en este despliegue: una función del producto no funciona. Configúrela en Vercel (procedimiento de puesta en producción, paso 5) y vuelva a desplegar."
+        "variable_manquante": "Falta la variable de entorno {nom} en este despliegue: una función del producto no funciona. Configúrela en Vercel (procedimiento de puesta en producción, paso 5) y vuelva a desplegar.",
+        "travaux_ia_en_souffrance": "{count} tarea(s) de IA necesitan a una persona: un análisis de CV o una verificación de experto abandonada, retrasada o cuyo ejecutor se detuvo. Detrás de cada línea, un experto espera. Abra Tareas de IA y relánzelas.",
+        "lecture_indisponible_travaux_ia": "No se pudieron contar las tareas de IA. No significa «nada pendiente»: significa «no lo sabemos». Abra Tareas de IA."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",
@@ -3475,6 +3529,63 @@
           "journal": "Las huellas de las depuraciones nunca se borran."
         }
       }
+    },
+    "nav_travaux_ia": "Tareas de IA",
+    "travaux_ia": {
+      "title": "Tareas de IA pendientes",
+      "subtitle": "El análisis del CV y la verificación del experto se ejecutan fuera de la solicitud del experto y se reintentan solos cuando el incidente es nuestro. Aquí: lo que no se resolvió solo. Cada línea es un experto que espera.",
+      "loading": "Cargando…",
+      "err_load": "No se pudo leer la lista. No significa «nada pendiente»: recargue la página.",
+      "empty": "Ninguna tarea necesita a una persona: cada análisis y verificación ha terminado o se reintenta solo.",
+      "col_expert": "Experto",
+      "col_nature": "Tarea",
+      "col_etat": "Estado",
+      "col_cause": "Causa",
+      "col_tentatives": "Intentos",
+      "col_date": "Desde",
+      "col_action": "Acción",
+      "expert_sans_nom": "Experto (nombre ilegible)",
+      "nature": {
+        "analyse_cv": "Análisis del CV",
+        "verification_expert": "Verificación del experto"
+      },
+      "statut": {
+        "echoue": "Abandonada",
+        "en_attente": "Retrasada",
+        "en_cours": "Ejecutor detenido"
+      },
+      "cause_aucune": "Retrasada: el ejecutor aún no la ha tomado.",
+      "cause_inconnue": "Causa no catalogada ({code}).",
+      "tentatives": "{n} de {sur}",
+      "relancer": "Relanzar",
+      "relance_en_cours": "Relanzando…",
+      "relance_ok": "Relanzada: el perfil vuelve a «en curso» y el ejecutor se ha activado.",
+      "relance_erreur": "El relanzamiento no se completó. Nada ha cambiado: vuelva a intentarlo.",
+      "relance_plus_en_echec": "Esta tarea ya no está en error (ya relanzada o sustituida por una nueva carga).",
+      "repris_par_le_pilote": "El planificador la retoma en un minuto",
+      "causes": {
+        "profil_illisible": "No se pudo leer el perfil (fallo de base de datos), varias veces.",
+        "profil_introuvable": "El perfil ya no existe.",
+        "compte_illisible": "No se pudo leer la cuenta (fallo de base de datos).",
+        "voie_inconnue": "La cuenta no es de experto.",
+        "document_absent": "No se encuentra el documento subido.",
+        "stockage_illisible": "No se pudo leer el documento en el almacenamiento.",
+        "referentiel_illisible": "No se pudo leer el referencial del ecosistema.",
+        "quota_non_configure": "La cuota de análisis no está configurada (Administración → Cuotas de IA).",
+        "quota_illisible": "No se pudo leer la cuota de análisis.",
+        "plafond_depense": "Se ha alcanzado el tope de gasto de IA.",
+        "modele_indisponible": "El proveedor de IA no respondió en ningún intento.",
+        "configuration": "La clave del proveedor de IA falta o fue rechazada.",
+        "document_refuse": "El proveedor rechazó el documento (protegido, imagen, demasiado pesado).",
+        "reponse_illisible": "Las respuestas del modelo eran ilegibles.",
+        "ecriture_en_panne": "No se pudo escribir el resultado (fallo de base de datos).",
+        "exception_interne": "Un error de nuestro código en cada intento (ver los registros del servidor).",
+        "delai_depasse": "El ejecutor se detuvo antes de terminar, en el último intento.",
+        "non_execute": "Nadie tomó la tarea en 30 minutos: el ejecutor no se activa (¿secretos de Vault cron_secret y purge_cron_base_url?).",
+        "configuration_illisible": "No se pudo leer la configuración de la verificación.",
+        "specialites_illisibles": "No se pudieron leer las especialidades."
+      },
+      "liste_coupee": "Solo se muestran los {n} trabajos más recientes: la lista completa es más larga. Relance estos y vuelva a cargar."
     }
   },
   "expert_verification": {
@@ -4884,7 +4995,10 @@
       "refus_garde_eligibilite": "Rechazado: condiciones de candidatura no cumplidas",
       "refus_quota_cv": "Rechazado: cuota de análisis de CV alcanzada",
       "refus_depot_sans_jugement": "Rechazado: candidatura no evaluada",
-      "refus_recherche_en_cours": "Rechazado: ya hay una búsqueda en curso"
+      "refus_recherche_en_cours": "Rechazado: ya hay una búsqueda en curso",
+      "verification_conclue": "Verificación concluida",
+      "travail_ia_echoue": "Tarea de IA abandonada",
+      "travail_ia_relance": "Tarea de IA relanzada"
     },
     "familles": {
       "annonce": "Anuncios",
@@ -4995,6 +5109,107 @@
       "domaine_invalide": "No es un nombre de dominio. Escríbalo sin «@» ni «http» (por ejemplo: ejemplo.com).",
       "dans_l_autre_liste": "Este dominio está activo en la otra lista. Retírelo primero: un dominio no puede estar bloqueado y ser público a la vez.",
       "domaine_inconnu": "Este dominio no está en la lista. Recargue la página."
+    }
+  },
+  "profil_refus": {
+    "inattendu": "El servidor respondió «{code}». No se ha perdido nada de lo que introdujo: vuelva a intentarlo y, si se repite, escríbanos citando este código.",
+    "cv_non_pret": "Su CV debe analizarse antes de publicar: impórtelo desde la página de su perfil.",
+    "effacement": "Para no perder nada, no se ha guardado nada: una lista se habría vaciado sin haberse leído. Recargue la página.",
+    "lecture_indisponible": "No se pudo realizar una comprobación (fallo temporal). No se ha modificado nada: vuelva a intentarlo en un momento.",
+    "ecriture": "El guardado no se completó (fallo temporal). No se ha modificado nada: vuelva a intentarlo en un momento.",
+    "journal": "Su perfil está guardado. Solo no se pudo escribir el registro de la operación: no hay nada que rehacer.",
+    "verification_non_deposee": "Su perfil está publicado, pero no se pudo iniciar su verificación. Vuelva a publicar en un momento para relanzarla.",
+    "branche_inconnue": "La rama elegida ya no existe en su ecosistema: elija una de la lista.",
+    "specialite_inconnue": "Una especialidad elegida ya no existe en su ecosistema: quítela y elija de la lista.",
+    "zone_inconnue": "Una zona de trabajo elegida ya no existe: quítela y elija de la lista.",
+    "autre_trop_long": "La precisión «Otra» no puede superar los 100 caracteres.",
+    "liste_illisible": "Una lista enviada no contiene ninguna línea utilizable (título, escuela o idioma vacíos): complétela o elimínela.",
+    "liste_refusee": "{liste} n.º {rang}: {cause} No se ha guardado nada: corrija esta línea y vuelva a intentarlo.",
+    "liste_refusee_sans_rang": "Se rechazó una línea: {cause} No se ha guardado nada.",
+    "champ_refuse": "El campo «{champ}» tiene un valor que la plataforma no acepta. Corríjalo y vuelva a intentarlo: no se ha guardado nada.",
+    "texte_trop_long": "Un texto supera la longitud permitida. Acórtelo: no se ha guardado nada.",
+    "profil_absent": "No se encuentra su perfil de experto. Escríbanos: no tiene que volver a crearlo.",
+    "rien_a_enregistrer": "Nada que guardar: ningún campo ha cambiado.",
+    "session": "Su sesión ha cambiado: vuelva a iniciar sesión y vuelva a intentarlo. No se ha guardado nada.",
+    "incomplet": "Aún falta: {champs}. Retome la validación desde la importación de su CV.",
+    "listes": {
+      "experiences": "Experiencia",
+      "formations": "Formación",
+      "langues": "Idioma"
+    },
+    "causes": {
+      "champ_obligatoire": "un campo obligatorio está vacío (título, fecha de inicio, escuela o título).",
+      "doublon": "este idioma ya está en la lista.",
+      "texte_trop_long": "un texto supera la longitud permitida.",
+      "date_illisible": "una fecha no es legible.",
+      "nombre_illisible": "un año no es un número entero.",
+      "fin_avant_debut": "la fecha de fin es anterior a la de inicio.",
+      "annee_hors_bornes": "un año está fuera del rango permitido.",
+      "valeur_hors_liste": "un valor no está en la lista propuesta.",
+      "ligne_refusee": "la línea fue rechazada."
+    },
+    "champs": {
+      "birth_year": "Año de nacimiento",
+      "years_total_experience": "Años de experiencia",
+      "cdi_salary_min": "Salario mínimo",
+      "cdi_salary_max": "Salario máximo",
+      "cdi_variable_pct": "Parte variable",
+      "availability": "Disponibilidad",
+      "work_modes": "Modalidades de trabajo",
+      "seniorities": "Niveles de experiencia",
+      "visibilite": "Criterios de publicación"
+    },
+    "champs_visibilite": {
+      "title": "el título",
+      "summary": "el resumen (200 a 800 caracteres)",
+      "skills": "al menos tres competencias",
+      "branch_id": "la rama",
+      "speciality_ids": "una especialidad",
+      "seniorities": "los niveles de experiencia aceptados",
+      "work_zone_ids": "las zonas de trabajo",
+      "availability": "su disponibilidad",
+      "experiences": "al menos una experiencia",
+      "languages_structured": "al menos un idioma",
+      "cv_ready": "un CV analizado"
+    }
+  },
+  "profil_masque": {
+    "titre_masque": "Su perfil ya no es visible para las organizaciones",
+    "titre_incomplet": "Su perfil aún no es visible para las organizaciones",
+    "texte": "{count, plural, one {Aún falta un elemento} other {Aún faltan # elementos}} para publicarlo. Su perfil se completa con su CV o la exportación PDF de su perfil de LinkedIn: impórtelo, y la validación le pedirá lo que un CV no puede decir.",
+    "cta": "Importar mi CV o mi perfil de LinkedIn"
+  },
+  "ecarts_analyse": {
+    "titre": "{count, plural, one {Un elemento de su documento se ajustó o se descartó} other {# elementos de su documento se ajustaron o se descartaron}}: revíselos a continuación.",
+    "ligne": "{bloc}: {motif}",
+    "ligne_avec_rang": "{bloc} n.º {rang}: {motif}",
+    "blocs": {
+      "profil": "Perfil",
+      "experiences": "Experiencia",
+      "formations": "Formación",
+      "langues": "Idioma"
+    },
+    "codes": {
+      "date_completee": "fecha completada al primer día del mes (el CV solo indicaba el mes o el año)",
+      "nombre_arrondi": "número redondeado al entero",
+      "type_ramene": "tipo (carrera o misión) deducido",
+      "niveau_ramene": "nivel de idioma ajustado a la escala europea",
+      "resume_raccourci": "resumen acortado a 800 caracteres",
+      "date_illisible": "fecha ilegible: línea o fecha descartada",
+      "code_pays_illisible": "país ilegible: descartado",
+      "valeur_hors_liste": "valor fuera de la lista propuesta: descartado",
+      "ligne_sans_intitule": "línea sin título: descartada",
+      "doublon": "duplicado: descartado",
+      "adresse_web_illisible": "dirección web ilegible: descartada",
+      "resume_trop_court": "resumen de menos de 200 caracteres: complételo para publicar",
+      "texte_tronque": "texto demasiado largo: acortado",
+      "valeur_refusee": "valor rechazado por la plataforma: descartado",
+      "fin_avant_debut": "fin anterior al inicio: fecha de fin retirada",
+      "annee_hors_bornes": "año fuera de rango: años retirados",
+      "champ_obligatoire": "campo obligatorio vacío: línea descartada",
+      "nombre_illisible": "número ilegible: línea descartada",
+      "ligne_refusee": "línea rechazada por la plataforma: descartada",
+      "liste_entierement_refusee": "ninguna línea legible: se conserva la lista anterior"
     }
   }
 }

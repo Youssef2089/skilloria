@@ -1,4 +1,4 @@
-import { canauxOuvertsDe } from '@/lib/notifications/canaux'
+import { canauxOuvertsDe, CANAUX_OUVERTS } from '@/lib/notifications/canaux'
 import { type SupabaseClient } from '@supabase/supabase-js'
 import { sendEmail } from '@/lib/emails/resend'
 import {
@@ -122,13 +122,19 @@ export async function dispatchNotificationsForUsers(
   }
   const nowIso = new Date().toISOString()
 
-  // 1. Notifications EN ATTENTE (au moins un canal) pour ces utilisateurs.
+  // 1. Notifications EN ATTENTE sur un canal OUVERT, pour ces utilisateurs.
+  //  ⚠️ LE FILTRE NE REGARDE QUE LES CANAUX OUVERTS (audit du 30/09/2026, m10). Il lisait
+  //     « e-mail OU SMS non envoyé » ; le SMS étant fermé (§D.2), `sms_dispatch_at` ne se
+  //     pose jamais : TOUTES les notifications restaient « en attente » pour toujours, et
+  //     l'historique, trié du plus ancien, finissait par évincer les nouvelles de la fenêtre
+  //     de 2 000 lignes.
+  const filtreEnAttente = CANAUX_OUVERTS.map((c) => `${c}_dispatch_at.is.null`).join(',')
   const { data: pendingRaw, error: pendErr } = await admin
     .from('notifications')
     .select('id, user_id, domain_id, type, entity_id, created_at, email_dispatch_at, sms_dispatch_at')
     .in('type', types as string[])
     .in('user_id', uniqueUserIds)
-    .or('email_dispatch_at.is.null,sms_dispatch_at.is.null')
+    .or(filtreEnAttente)
     .order('created_at', { ascending: true })
     .limit(SCAN_LIMIT)
   if (pendErr) {

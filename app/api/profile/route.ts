@@ -5,16 +5,16 @@ import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { missingForVisibility } from '@/lib/profile-visibility'
+import { deposerVerificationExpert } from '@/lib/travaux-ia/travail'
 import { LISTES_DE_PROFIL, estListeDeProfil, type ListeDeProfil } from '@/lib/lecture/liste'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-// Vercel function timeout : la vérification expert (Lot vérif expert) appelle
-// Claude inline avec web_search natif, qui peut prendre 20-30s. On lève
-// maxDuration au max compatible Hobby (60s) ; Pro/Enterprise peuvent monter
-// plus haut sans risque (cf. https://vercel.com/docs/functions/runtimes#max-duration).
-export const maxDuration = 60
+// La vérification d'expert ne tourne PLUS ici (§D.30) : la publication DÉPOSE un travail
+// d'IA, que l'exécutant `/api/cron/travaux-ia` exécute hors de cette requête. Coupée à
+// 60 s, elle laissait « vérification en cours » pour toujours (audit du 30/09/2026, B3).
+export const maxDuration = 30
 
 function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -203,7 +203,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // currentProfile : on étend le select avec les colonnes nécessaires à la
   // validation CDI uniquement si isCdi (pas de surcoût pour le freelance).
   // `visible` est LU pour dire si une publication est la première ou une republication (§D.26) — une colonne absente se lit undefined (§E.1).
-  const baseSelect = 'id, title, summary, skills, branch_id, speciality_ids, seniorities, work_zone_ids, work_modes, availability_status, cdi_status, verification_status, cv_parsing_status, ai_consent_at, visible'
+  const baseSelect = 'id, title, summary, skills, branch_id, speciality_ids, speciality_other, seniorities, work_zone_ids, work_modes, availability_status, cdi_status, verification_status, cv_parsing_status, ai_consent_at, visible'
   // `cdi_status` est désormais dans le socle : la garde de visibilité en a
   // besoin pour TOUS les experts (elle teste « au moins l'une des deux
   // disponibilités »). Ne pas le redemander ici.
@@ -247,6 +247,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   for (const k of directFields) {
     if (k in body) patch[k] = body[k] as unknown
   }
+  // LE RÉSUMÉ EST ROGNÉ AVANT D'ÊTRE ÉCRIT : la base mesure `btrim(summary)` (espaces seulement), le
+  // code mesurait `trim()` (tous les blancs). Un retour à la ligne en bordure faisait passer l'un et
+  // refuser l'autre (audit du 30/09/2026, m8). Rogné ici, les deux mesurent la même chose.
+  if (typeof patch.summary === 'string') patch.summary = (patch.summary as string).trim()
 
   // ── Whitelist additionnelle pour les expert_cdi : 14 colonnes cdi_* ──
   // Si l'utilisateur n'est PAS expert_cdi, ces champs sont ignorés
@@ -377,7 +381,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     // ── Barrière CV obligatoire (Lot CV) — SÉCURITÉ SERVEUR ────────────────
     //  Règle métier non contournable : impossible de publier sans un CV
     //  déposé ET parsé, et sans avoir accepté la vérification IA. Mêmes
-    //  critères que ceux exigés en interne par runExpertVerification et par
+    //  critères que ceux exigés en interne par evaluerVerificationExpert et par
     //  le déclencheur de matching (cf. after() plus bas).
     //  S'applique aux DEUX flows (freelance + CDI) — la condition est commune.
     const cvReady =
@@ -443,6 +447,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         skills: (patch.skills ?? cur.skills) as string[] | null,
         branch_id: (patch.branch_id ?? cur.branch_id) as string | null,
         speciality_ids: (patch.speciality_ids ?? cur.speciality_ids) as string[] | null,
+        speciality_other: ('speciality_other' in patch ? patch.speciality_other : cur.speciality_other) as string | null,
         seniorities: (patch.seniorities ?? cur.seniorities) as string[] | null,
         work_zone_ids: (patch.work_zone_ids ?? cur.work_zone_ids) as string[] | null,
         availability_status: (patch.availability_status ?? cur.availability_status) as string | null,
@@ -582,6 +587,64 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   }
 
+  // ── LES LISTES D'ABORD, EN UNE FOIS, OU PAS DU TOUT (audit du 30/09/2026, M4) ──────────
+  //  La route supprimait puis réinsérait chaque liste, et une réinsertion refusée n'était que
+  //  JOURNALISÉE : « Brouillon enregistré » s'affichait pendant que la liste disparaissait.
+  //  `remplacer_listes_profil` remplace les listes envoyées DANS UNE TRANSACTION : la première
+  //  ligne refusée annule tout, et la base dit laquelle et pourquoi (LP001) — l'écran nomme le champ.
+  //  Elles passent AVANT les champs simples : un refus ici n'a rien écrit du tout.
+  const listeEnvoyee = (cle: ListeDeProfil): unknown[] | null => {
+    if (!(cle in body)) return null
+    const v = (body as Record<string, unknown>)[cle]
+    return Array.isArray(v) ? v : []
+  }
+  if (hasAnyBlock) {
+    const experiences = listeEnvoyee('experiences')
+    const formations = listeEnvoyee('educations')
+    // Les langues : dédoublonnées sur le nom, une seule principale — la forme que la table accepte.
+    const languesBrutes = listeEnvoyee('languages_structured')
+    let langues: Array<{ language: string; level: unknown; is_primary: boolean }> | null = null
+    if (languesBrutes) {
+      const vues = new Set<string>()
+      let principale = false
+      langues = []
+      for (const l of languesBrutes as LanguageInput[]) {
+        const nom = typeof l?.language === 'string' ? l.language.trim() : ''
+        const cleLangue = nom.toLowerCase()
+        if (!nom || vues.has(cleLangue)) continue
+        vues.add(cleLangue)
+        const estPrincipale = !!l.is_primary && !principale
+        if (estPrincipale) principale = true
+        langues.push({ language: nom, level: l.level, is_primary: estPrincipale })
+      }
+    }
+    const { error: listesErr } = await supabaseAdmin.rpc('remplacer_listes_profil', {
+      p_profile_id: cp.id,
+      p_experiences: experiences
+        ? (experiences as ExperienceInput[]).filter((e) => typeof e?.role === 'string' && e.role.trim())
+        : null,
+      p_formations: formations
+        ? (formations as EducationInput[]).filter((e) => typeof e?.school === 'string' && e.school.trim() && typeof e?.degree === 'string' && e.degree.trim())
+        : null,
+      p_langues: langues,
+    })
+    if (listesErr) {
+      if (listesErr.code === 'LP001') {
+        // La cause, NOMMÉE par la base : la liste, le rang (à partir de 1), la colonne.
+        let cause: Record<string, unknown> = {}
+        try {
+          cause = JSON.parse(listesErr.message) as Record<string, unknown>
+        } catch {
+          cause = { cause: 'ligne_refusee' }
+        }
+        return json({ error: 'A list entry was refused', code: 'liste_refusee', ...cause }, 400)
+      }
+      console.error('[profile PATCH] listes NON écrites — rien n a été modifié', { message: listesErr.message })
+      return json({ error: 'Lists could not be saved', code: 'listes_non_ecrites' }, 503)
+    }
+    for (const cle of LISTES_DE_PROFIL) if (cle in body) touchedBlocks.push(cle)
+  }
+
   let updatedProfile: unknown = null
   if (shouldUpdateScalars) {
     const { data: updated, error: updateErr } = await supabaseAdmin
@@ -592,123 +655,39 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       .single()
 
     if (updateErr) {
+      // UNE VALEUR QUE LA BASE REFUSE NOMME SON CHAMP (audit du 30/09/2026, m6) : la contrainte
+      // porte le nom de la colonne ; « Erreur lors de la sauvegarde » ne disait ni lequel ni pourquoi.
+      const contrainte = /constraint "([a-z0-9_]+)"/.exec(updateErr.message ?? '')?.[1] ?? null
+      const CHAMP_DE_LA_CONTRAINTE: Record<string, string> = {
+        profiles_birth_year_check: 'birth_year',
+        profiles_years_total_experience_check: 'years_total_experience',
+        profiles_cdi_salary_min_check: 'cdi_salary_min',
+        profiles_cdi_salary_max_check: 'cdi_salary_max',
+        profiles_cdi_salary_range_check: 'cdi_salary_max',
+        profiles_cdi_variable_pct_check: 'cdi_variable_pct',
+        profiles_availability_status_check: 'availability',
+        profiles_work_modes_valid: 'work_modes',
+        profiles_seniorities_check: 'seniorities',
+        profiles_visible_requiert_criteres_check: 'visibilite',
+      }
+      if (updateErr.code === '23514' && contrainte && CHAMP_DE_LA_CONTRAINTE[contrainte]) {
+        return json({ error: 'A field was refused', code: 'champ_refuse', champ: CHAMP_DE_LA_CONTRAINTE[contrainte] }, 400)
+      }
+      if (updateErr.code === '22001') {
+        return json({ error: 'A text is too long', code: 'texte_trop_long' }, 400)
+      }
       console.error('[profile PATCH] update failed', updateErr)
       return json({ error: 'Update failed', code: 'db_error' }, 500)
     }
     updatedProfile = updated
   }
 
-  // --- Block: experiences ---
-  if ('experiences' in body) {
-    const list = Array.isArray(body.experiences) ? body.experiences : []
-    const { error: delErr } = await supabaseAdmin
-      .from('profile_experiences')
-      .delete()
-      .eq('profile_id', cp.id)
-    if (delErr) {
-      console.error('[profile PATCH] experiences delete failed', delErr)
-    } else if (list.length > 0) {
-      const rows = list
-        .filter(e => e.role?.trim())
-        .map((e, i) => ({
-          profile_id: cp.id,
-          domain_id: user.domain_id,
-          sort_order: i,
-          experience_type: e.experience_type,
-          role: e.role.trim(),
-          employer: e.employer?.toString().trim() || null,
-          client_name: e.client_name?.toString().trim() || null,
-          sector: e.sector?.toString().trim() || null,
-          start_date: e.start_date,
-          end_date: e.is_current ? null : e.end_date ?? null,
-          is_current: !!e.is_current,
-          description: e.description?.toString().trim() || null,
-        }))
-      if (rows.length > 0) {
-        const { error: insErr } = await supabaseAdmin
-          .from('profile_experiences')
-          .insert(rows)
-        if (insErr) console.error('[profile PATCH] experiences insert failed', insErr)
-      }
-    }
-    touchedBlocks.push('experiences')
-  }
-
-  // --- Block: educations ---
-  if ('educations' in body) {
-    const list = Array.isArray(body.educations) ? body.educations : []
-    const { error: delErr } = await supabaseAdmin
-      .from('profile_educations')
-      .delete()
-      .eq('profile_id', cp.id)
-    if (delErr) {
-      console.error('[profile PATCH] educations delete failed', delErr)
-    } else if (list.length > 0) {
-      const rows = list
-        .filter(e => e.school?.trim() && e.degree?.trim())
-        .map(e => ({
-          profile_id: cp.id,
-          domain_id: user.domain_id,
-          school: e.school.trim(),
-          degree: e.degree.trim(),
-          field: e.field?.toString().trim() || null,
-          start_year: e.start_year ?? null,
-          end_year: e.end_year ?? null,
-          location: e.location?.toString().trim() || null,
-        }))
-      if (rows.length > 0) {
-        const { error: insErr } = await supabaseAdmin
-          .from('profile_educations')
-          .insert(rows)
-        if (insErr) console.error('[profile PATCH] educations insert failed', insErr)
-      }
-    }
-    touchedBlocks.push('educations')
-  }
-
-  // --- Block: languages_structured ---
-  if ('languages_structured' in body) {
-    const list = Array.isArray(body.languages_structured) ? body.languages_structured : []
-    const seen = new Set<string>()
-    const deduped = list.filter(l => {
-      const key = l.language?.trim().toLowerCase()
-      if (!key || seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
-    // une seule langue principale maximum
-    let primaryKept = false
-    const normalised = deduped.map(l => {
-      const keepPrimary = !!l.is_primary && !primaryKept
-      if (keepPrimary) primaryKept = true
-      return { ...l, is_primary: keepPrimary }
-    })
-
-    const { error: delErr } = await supabaseAdmin
-      .from('profile_languages')
-      .delete()
-      .eq('profile_id', cp.id)
-    if (delErr) {
-      console.error('[profile PATCH] languages delete failed', delErr)
-    } else if (normalised.length > 0) {
-      const rows = normalised.map(l => ({
-        profile_id: cp.id,
-        language: l.language.trim(),
-        level: l.level,
-        is_primary: l.is_primary,
-      }))
-      const { error: insErr } = await supabaseAdmin
-        .from('profile_languages')
-        .insert(rows)
-      if (insErr) console.error('[profile PATCH] languages insert failed', insErr)
-    }
-    touchedBlocks.push('languages_structured')
-  }
-
   // Un refus du grand livre est GARDÉ et rendu à la fin : le profil est
   // enregistré, la vérification et la mise en relation partent quand même,
   // seule la trace manque — et la réponse le dit (§D.26, §C.21).
   let journalRefuse: JournalError | null = null
+  // La vérification n'a pas pu être DÉPOSÉE : le profil est enregistré, la réponse le dit.
+  let verificationNonDeposee = false
 
   // LA LIGNE DE LA MODIFICATION — les NOMS des champs et des blocs touchés, hors
   // `visible` (la publication a sa ligne) et hors le champ de disponibilité (la
@@ -759,28 +738,20 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       console.error('[profile PATCH] grand livre en échec après écriture', { profileId: cp.id, message: err.message })
     }
 
-    // ── Vérification expert (Lot vérif expert / Lot CV) ───────────────────
-    //  Déclencheur : TOUTE (re)publication (visible=true) relance la vérif IA,
-    //  quel que soit verification_status actuel. Le moteur est idempotent : il
-    //  réécrit la décision. Conséquence voulue : un profil déjà 'approved',
-    //  republié après modif, repasse par la vérif et peut redevenir
-    //  'pending_admin_review' si une incohérence apparaît.
-    //  Inline : web_search rend l'appel lent (30-60s) ; l'UI affiche un loading
-    //  pendant ce temps. Cf. lib/verification/expert-verification.ts.
-    try {
-      const { runExpertVerification } = await import('@/lib/verification/expert-verification')
-      await runExpertVerification({ supabaseAdmin, profile_id: cp.id, journal })
-    } catch (err) {
-      console.error('[profile PATCH] expert verification threw', err)
-      // Fail-safe : marquer pending_admin_review explicitement si rien n'a été écrit
-      await supabaseAdmin
-        .from('profiles')
-        .update({
-          verification_status: 'pending_admin_review',
-          verification_method: 'manual_only',
-          verification_data: { notes: 'Erreur technique pendant la vérif IA — décision déférée à l\'admin.' },
-        })
-        .eq('id', cp.id)
+    // ── LA VÉRIFICATION EST DÉPOSÉE, PAS EXÉCUTÉE ICI (§D.30, audit du 30/09/2026 : B3) ──
+    //  Toute (re)publication relance la vérification, comme avant. Mais elle tournait DANS
+    //  cette requête (jusqu'à trois appels de 45 s) sous un plafond de 60 s : coupée, le
+    //  profil restait « vérification en cours » pour toujours, et l'expert lisait « Erreur
+    //  lors de la sauvegarde » alors que son profil était publié. Désormais un TRAVAIL est
+    //  déposé — le profil passe « en cours » (sauf s'il est déjà approuvé) dans la même
+    //  transaction — et l'exécutant `/api/cron/travaux-ia` conclut hors de la requête.
+    const depot = await deposerVerificationExpert(supabaseAdmin, journal, { profileId: cp.id })
+    if (!depot.ok) {
+      console.error('[profile PATCH] vérification NON déposée — le profil est publié, sa vérification ne part pas', {
+        profileId: cp.id,
+        message: depot.message,
+      })
+      verificationNonDeposee = true
     }
   }
 
@@ -917,16 +888,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       //     note UNE fois, sur son état final. Rien n'est perdu, et rien n'est
       //     payé dix fois. C'est ici, et seulement ici, que la rafale existe.
       // ══════════════════════════════════════════════════════════════════
+      // UN PROFIL QUI N'ÉTAIT PAS APPROUVÉ n'a rien à lancer ici : sa première mise en relation
+      // part du VERDICT de sa vérification (lib/travaux-ia/executer-verification.ts), immédiate
+      // et rejouée si elle échoue. Ce qui reste ici est la rafale d'un profil DÉJÀ approuvé.
       const etaitApprouve = (cp.verification_status ?? null) === 'approved'
       if (!etaitApprouve) {
-        const { runMatchingForExpert } = await import('@/lib/matching')
-        const v = await runMatchingForExpert({ supabaseAdmin, profileId: cp.id, journal })
-        console.log('[profile:PATCH] approbation — mise en relation IMMÉDIATE', {
-          profileId: cp.id,
-          status: v.status,
-          retenues: v.proposals.length,
-          notes: v.notes,
-        })
         return
       }
 
@@ -952,6 +918,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   })
 
+  // Le profil est ENREGISTRÉ dans les deux cas : la réponse dit ce qui manque, avec un code que l'écran traduit.
+  if (verificationNonDeposee) {
+    return json({ error: 'Profile saved, verification not started', code: 'verification_non_deposee', profile_id: cp.id }, 503)
+  }
   if (journalRefuse) return json({ error: 'Journal failed', code: 'journal_error', profile_id: cp.id }, 500)
-  return json({ profile: updatedProfile })
+  return json({ profile: updatedProfile, verification: body.visible === true ? 'deposee' : null })
 }

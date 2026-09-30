@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { consommationJetons, type ConsommationIA } from '../ai-consommation.ts'
+import { causeEchecModele, type CauseEchecModele } from '../profil/cause-echec-modele.ts'
 
 /**
  * Analyseur de cohérence IA — VÉRIFICATION EXPERT (3 axes).
@@ -100,12 +101,15 @@ export type ExpertVerificationOutput = {
   web_search_used: boolean
   raw_response: unknown
   /**
-   * Ce que l'appel a consommé — RENDU, jamais enregistré ici.
+   * Ce que CHAQUE tentative a consommé — RENDU, jamais enregistré ici.
    * Ce module est PUR : pas de client Supabase, pas d'écriture. C'est
    * l'appelant, qui a le client et les identifiants, qui enregistre.
-   * `null` quand aucun appel n'a eu lieu (clé absente, refus amont).
+   * Une tentative dont la réponse était illisible a été PAYÉE : elle y est
+   * (audit du 30/09/2026, m4 — seule la tentative retenue était comptée).
    */
-  usage: ConsommationIA | null
+  usages: ConsommationIA[]
+  /** Quand `result === 'error'` : POURQUOI — rejouable ou non (lib/profil/cause-echec-modele.ts). */
+  echec?: CauseEchecModele
 }
 
 export type ExpertVerificationConfig = {
@@ -376,22 +380,33 @@ function safeParseJson(text: string): ClaudeJson | null {
   }
 }
 
-async function callClaude(model: string, prompt: string, cfg: ExpertVerificationConfig, withWebSearch: boolean): Promise<{ json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean; usage: ConsommationIA }> {
+/** Au plus deux reprises d'un tour mis en pause par le fournisseur (recherche web longue). */
+const REPRISES_PAUSE_MAX = 2
+
+async function callClaude(model: string, prompt: string, cfg: ExpertVerificationConfig, withWebSearch: boolean, usages: ConsommationIA[]): Promise<{ json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean }> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY missing')
 
-  const client = new Anthropic({ apiKey, timeout: cfg.request_timeout_ms })
+  // AUCUN rejeu du SDK (maxRetries: 0) : les tentatives sont celles d'ici, et le travail
+  // d'IA est rejoué par son exécutant avec un délai croissant (§D.30). Le SDK en ajoutait
+  // deux de plus par tentative, et un délai de 45 s devenait 135 s.
+  const client = new Anthropic({ apiKey, timeout: cfg.request_timeout_ms, maxRetries: 0 })
 
   const tools = withWebSearch
     ? [{ type: 'web_search_20250305' as const, name: 'web_search' as const, max_uses: cfg.web_search_max_uses }]
     : []
 
-  const message = await client.messages.create({
-    model,
-    max_tokens: cfg.max_tokens,
-    tools,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: prompt }]
+  let message = await client.messages.create({ model, max_tokens: cfg.max_tokens, tools, messages })
+  usages.push(consommationJetons(model, message.usage))
+  // UN TOUR MIS EN PAUSE SE REPREND, il ne se repaie pas : le fournisseur arrête une boucle
+  // de recherche longue avec `pause_turn` ; on lui renvoie sa réponse pour qu'il continue.
+  // Sans cela, la réponse partielle n'était pas du JSON, et une tentative de plus était payée.
+  for (let i = 0; i < REPRISES_PAUSE_MAX && message.stop_reason === 'pause_turn'; i++) {
+    messages.push({ role: 'assistant', content: message.content })
+    message = await client.messages.create({ model, max_tokens: cfg.max_tokens, tools, messages })
+    usages.push(consommationJetons(model, message.usage))
+  }
 
   const text = extractText(message.content as unknown)
   const json = safeParseJson(text)
@@ -400,22 +415,16 @@ async function callClaude(model: string, prompt: string, cfg: ExpertVerification
   const blocks = message.content as unknown[]
   const hasToolUse = Array.isArray(blocks) && blocks.some((b) => b && typeof b === 'object' && ['tool_use', 'web_search_tool_result', 'server_tool_use'].includes((b as { type?: string }).type ?? ''))
 
+  // ⚠️ CE VÉRIFICATEUR CHERCHE SUR LE WEB, ET ÇA SE PAIE EN PLUS DES JETONS : l'outil
+  //    natif `web_search_20250305` est facturé À LA RECHERCHE (§D.24). Le fournisseur
+  //    les renvoie dans `usage.server_tool_use` ; `consommationJetons` les lit, au tarif
+  //    de `model` — le repli n'a pas le même prix. Chaque appel est poussé dans `usages`
+  //    AU MOMENT où il est payé, avant même qu'on sache si sa réponse est lisible.
   return {
     json,
     raw: message,
     model_used: model,
     web_search_used: hasToolUse,
-    // ⚠️ CE VÉRIFICATEUR CHERCHE SUR LE WEB, ET ÇA SE PAIE EN PLUS DES
-    //    JETONS. Ces lignes ne comptaient que les jetons : l'outil natif
-    //    `web_search_20250305` est facturé À LA RECHERCHE, et ces
-    //    recherches-là n'étaient comptées NULLE PART (§D.24). Le fournisseur
-    //    les renvoie dans `usage.server_tool_use` ; `consommationJetons` les
-    //    lit — on ne les estime pas, et on ne les déduit pas de `max_uses`,
-    //    qui est un PLAFOND, pas une mesure.
-    //
-    //    Le tarif est celui de `model` — pas d'un modèle par défaut : le repli
-    //    n'a pas le même prix.
-    usage: consommationJetons(model, message.usage),
   }
 }
 
@@ -424,57 +433,51 @@ export async function runExpertCoherenceCheck(
   cfg: ExpertVerificationConfig,
 ): Promise<ExpertVerificationOutput> {
   const prompt = buildPrompt(input)
+  const usages: ConsommationIA[] = []
+  // LA CAUSE du dernier échec, NOMMÉE : l'exécutant rejoue une panne de passage, il défère le reste.
+  let echec: CauseEchecModele = 'reponse_illisible'
 
-  // Tentative 1 : Haiku + web_search
-  try {
-    const out = await callClaude(cfg.model, prompt, cfg, true)
-    if (out.json) return shapeOutput(out, cfg)
-    console.warn('[ai-expert-verification] Haiku JSON parse failed, retry Sonnet')
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.warn('[ai-expert-verification] Haiku call failed', msg)
+  const tentatives: Array<{ model: string; web: boolean; etiquette: string }> = [
+    { model: cfg.model, web: true, etiquette: 'principal + recherche web' },
+    { model: cfg.fallback_model, web: true, etiquette: 'repli + recherche web' },
+    // Sans outil : le cas où la recherche web est refusée ou saturée.
+    { model: cfg.fallback_model, web: false, etiquette: 'repli sans outil' },
+  ]
+  for (const t of tentatives) {
+    try {
+      const out = await callClaude(t.model, prompt, cfg, t.web, usages)
+      if (out.json) return shapeOutput(out, cfg, usages)
+      echec = 'reponse_illisible'
+      console.warn('[ai-expert-verification] réponse illisible', { tentative: t.etiquette })
+    } catch (err) {
+      echec = causeEchecModele(err)
+      console.warn('[ai-expert-verification] appel en échec', { tentative: t.etiquette, cause: echec, message: err instanceof Error ? err.message : String(err) })
+      // Une clé absente ou refusée ne se répare pas en changeant de modèle.
+      if (echec === 'configuration') break
+    }
   }
 
-  // Tentative 2 : Sonnet + web_search
-  try {
-    const out = await callClaude(cfg.fallback_model, prompt, cfg, true)
-    if (out.json) return shapeOutput(out, cfg)
-    console.warn('[ai-expert-verification] Sonnet JSON parse failed, retry without tools')
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.warn('[ai-expert-verification] Sonnet call failed', msg)
-  }
-
-  // Tentative 3 : Sonnet sans tools (cas où web_search rate-limit / indispo)
-  try {
-    const out = await callClaude(cfg.fallback_model, prompt, cfg, false)
-    if (out.json) return shapeOutput(out, cfg)
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    console.error('[ai-expert-verification] all attempts failed', msg)
-  }
-
-  // Fail-safe : on retourne un result='error' → le dispatcher promeut en pending_admin_review.
+  // Aucune tentative n'a rendu de verdict lisible : result='error', AVEC sa cause. L'exécutant
+  // rejoue une panne de passage (plus tard, sans rien coûter à l'expert) et défère le reste à un humain.
   return {
     result: 'error',
     provider_name: PROVIDER_NAME,
     model_used: cfg.fallback_model,
     confidence_score: 0,
-    notes: 'Verification IA indisponible (timeout / rate-limit / JSON invalide) — décision déférée à l\'admin.',
+    notes: '',
     discrepancies: [],
     flags: [],
     web_search_used: false,
     raw_response: null,
-    // Aucun appel n'a abouti : rien n'a été consommé DE MESURABLE. On rend
-    // null plutôt que zéro — zéro affirmerait « un appel gratuit », null dit
-    // « je ne sais pas », ce qui est la vérité. L'appelant n'enregistre rien.
-    usage: null,
+    usages,
+    echec,
   }
 }
 
 function shapeOutput(
-  parsed: { json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean; usage: ConsommationIA },
+  parsed: { json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean },
   cfg: ExpertVerificationConfig,
+  usages: ConsommationIA[],
 ): ExpertVerificationOutput {
   const j = parsed.json ?? {}
   let score = typeof j.score === 'number' && Number.isFinite(j.score) ? Math.max(0, Math.min(10, j.score)) : 5
@@ -485,7 +488,7 @@ function shapeOutput(
     score = cfg.domain_mismatch_cap
   }
   return {
-    usage: parsed.usage,
+    usages,
     result: 'ok',
     provider_name: PROVIDER_NAME,
     model_used: parsed.model_used,

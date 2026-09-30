@@ -610,10 +610,12 @@ ok(
   // Les quatre NOTES doivent être distinctes : c'est la note qui est écrite en
   // base et lue par l'administrateur, pas le motif interne.
   const bloc = blocApres(verif, verif.indexOf('const NOTE')) ?? ''
+  // ARRÊT 19 (§D.30) : la LECTURE impossible ne se défère plus, elle se REJOUE (code nommé) — trois notes
+  // restent, une par défaut de configuration, et elles restent distinctes.
   const notes = [...bloc.matchAll(/'((?:[^'\\]|\\.)*)'/g)].map((m) => m[1]).filter((t) => t.length > 30)
   ok(
-    notes.length >= 4 && new Set(notes).size === notes.length,
-    'expert-verification : les quatre notes écrites en base sont DISTINCTES',
+    notes.length >= 3 && new Set(notes).size === notes.length && /config === 'lecture_impossible'\) return \{ issue: 'rejouer'/.test(verif),
+    'expert-verification : les trois notes écrites en base sont DISTINCTES, et la lecture impossible se REJOUE',
     "c'est la note que l'administrateur lit, et elle décide de ce qu'il va regarder",
   )
 }
@@ -623,10 +625,14 @@ ok(
   'expert-verification : la lecture de profil en échec est distinguée de « profil absent »',
 )
 {
-  const bloc = blocApres(verif, verif.indexOf("if (loaded === 'indisponible')")) ?? ''
+  // ARRÊT 19 (§D.30) : une lecture en panne REJOUE le travail ; au plafond, la BASE le clôt et saisit un
+  // humain (`clore_travail_ia_en_echec` → revue humaine, `verification_conclue`). Rien ne reste « en cours ».
+  const ligne = verif.slice(verif.indexOf("if (loaded === 'indisponible')"), verif.indexOf('\n', verif.indexOf("if (loaded === 'indisponible')")))
+  const sqlTravaux = read(`supabase/migrations/${readdirSync(join(ROOT, 'supabase/migrations')).find((f) => f.endsWith('_travaux_ia.sql'))}`)
   ok(
-    /verification_status: 'pending_admin_review'/.test(bloc) && /\.update\(/.test(bloc),
-    'expert-verification : elle ÉCRIT, et saisit un humain — elle ne se tait plus',
+    /return \{ issue: 'rejouer', code: 'profil_illisible' \}/.test(ligne)
+      && /poser_verdict_verification\(v_t\.piece, v_t\.profile_id, false, 'manual_only', null, 'travail_echoue'\)/.test(sqlTravaux),
+    'expert-verification : elle REJOUE, puis la base saisit un humain — elle ne se tait plus',
     "ne rien écrire laissait le profil en `pending` : « en cours », pour toujours",
   )
 }

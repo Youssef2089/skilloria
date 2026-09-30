@@ -236,10 +236,14 @@ const corps = (nom) => {
 {
   const echouer = corps('echouer_relance_expert')
   ok(!!echouer, '`echouer_relance_expert()` existe')
+  // ARRÊT 19 (M5) : elle ne l'EFFACE jamais — et elle la POSE s'il n'y en a pas : une recherche lancée
+  // directement (approbation, auto-approbation, bascule) n'en avait pas, et son échec n'était ni rejoué ni
+  // affiché. Toute affectation doit GARDER l'échéance existante (`coalesce(matching_relance_due_at, …)`).
+  const affectations = echouer ? [...echouer.matchAll(/matching_relance_due_at\s*=\s*([^\n]+)/g)].map((m) => m[1]) : []
   ok(
-    !!echouer && !/matching_relance_due_at\s*=/.test(echouer),
-    '… et elle NE TOUCHE PAS `matching_relance_due_at`',
-    'elle efface l’échéance : la relance ne repartira jamais — le défaut, déplacé en base',
+    !!echouer && affectations.length > 0 && affectations.every((v) => /^coalesce\(\s*matching_relance_due_at\s*,/.test(v.trim())),
+    '… et elle n’EFFACE jamais `matching_relance_due_at` — elle la pose seulement s’il n’y en a pas',
+    'une affectation qui ne garde pas l’échéance existante l’efface ou l’avance : la relance ne repartirait pas, ou trop tôt',
   )
   ok(
     !!echouer && /matching_relance_echec_code\s*=/.test(echouer),

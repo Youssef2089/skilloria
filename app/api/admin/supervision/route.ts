@@ -77,6 +77,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     nuitStripeRes,
     coincesRes,
     depotsRes,
+    travauxRes,
   ] = await Promise.all([
     admin.rpc('matching_threshold_health'),
     admin.rpc('matching_coverage_health'),
@@ -132,6 +133,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       .from('candidature_depots')
       .select('id', { count: 'exact', head: true })
       .or(filtreDepotsEnSouffrance(Date.now())),
+    //  LES TRAVAUX D'IA EN SOUFFRANCE — la MÊME fonction que l'écran /admin/travaux-ia (§E.36).
+    admin.rpc('travaux_ia_en_souffrance', {}, { count: 'exact', head: true }),
   ])
 
   /** `null` = « je n'ai pas pu regarder ». Jamais `[]`, qui dit « rien à voir ». */
@@ -230,6 +233,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     // `null` sur erreur, JAMAIS `0` : « aucun dépôt perdu » est le message
     // rassurant, et c'est celui qu'on ne veut surtout pas donner à l'aveugle.
     depotsEnSouffrance: depotsRes.error ? null : (depotsRes.count ?? 0),
+    travauxIaEnSouffrance: travauxRes.error ? null : (travauxRes.count ?? 0),
   }
 
   return json(

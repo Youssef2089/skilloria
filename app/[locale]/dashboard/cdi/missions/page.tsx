@@ -31,6 +31,8 @@ type MissionsPayload = {
      * signaler », et c'est la seule lecture correcte de son absence (§E.27).
      */
     derniere_recherche?: { etat: 'echec'; raison: string; abandonnee: boolean }
+    hors_du_moteur?: string
+    notifications_actives?: boolean | null
   }
 }
 
@@ -53,6 +55,8 @@ export default function CdiMissionsFeedPage() {
   const missions = live.data?.missions ?? []
   const isDnd = !!live.data?.expert_status?.is_dnd
   const recherche = live.data?.expert_status?.derniere_recherche
+  const horsDuMoteur = live.data?.expert_status?.hors_du_moteur ?? null
+  const notificationsActives = live.data?.expert_status?.notifications_actives === true
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>
@@ -80,6 +84,14 @@ export default function CdiMissionsFeedPage() {
         <div style={{ marginTop: 14 }}>
           {isDnd ? (
             <DndEmptyState side="cdi" />
+          ) : horsDuMoteur ? (
+            /* APPROUVÉ, MAIS HORS DU MOTEUR (m) : « aucune opportunité » serait faux — rien n'est cherché
+               pour lui. La raison NOMMÉE, et le chemin : l'import (décision du 30/09/2026). */
+            <EmptyState
+              icon="🔎"
+              title={t('hors_du_moteur_title')}
+              body={t.has(`hors_du_moteur.${horsDuMoteur}` as 'hors_du_moteur.profil_non_visible') ? t(`hors_du_moteur.${horsDuMoteur}` as 'hors_du_moteur.profil_non_visible') : t('hors_du_moteur.autre')}
+            />
           ) : recherche?.etat === 'echec' ? (
             /* ⚠️ « AUCUNE MISSION » EST UNE AFFIRMATION, ET ELLE SERAIT FAUSSE.
                   Le dernier run a échoué : rien n'a été cherché. Le dire est la
@@ -99,7 +111,8 @@ export default function CdiMissionsFeedPage() {
             <EmptyState
               icon="🎯"
               title={t('empty_title')}
-              body={t('empty_subtitle')}
+              // « Vous serez notifié » n'est écrit que si une notification PARTIRA (M12).
+              body={notificationsActives ? t('empty_subtitle') : t('empty_subtitle_sans_notification')}
             />
           )}
         </div>

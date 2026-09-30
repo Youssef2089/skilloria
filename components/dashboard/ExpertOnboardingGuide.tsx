@@ -53,10 +53,13 @@ export default function ExpertOnboardingGuide({
 
   // D4 — cible PAR ÉTAPE (et non plus une cible unique) : l'étape « CV » mène à
   // la vraie zone d'import (${basePath}/profil), les autres à la validation.
+  // TOUTES LES ÉTAPES MÈNENT À L'IMPORT (décision de Youssef, 30/09/2026 : le profil se remplit par le CV
+  // ou l'export LinkedIn). La page d'import dit où en est l'analyse et reprend la validation — jamais un
+  // formulaire vide ouvert directement depuis le tableau de bord.
   const STEP_HREF: Record<'cv' | 'profile' | 'publish' | 'receive', string | null> = {
     cv: `${basePath}/profil`,
-    profile: `${basePath}/profil/valider`,
-    publish: `${basePath}/profil/valider`,
+    profile: `${basePath}/profil`,
+    publish: `${basePath}/profil`,
     receive: null,
   }
 

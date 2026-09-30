@@ -91,7 +91,9 @@ const CHEMINS = [
     //   distingue desormais (CLAUDE.md §E.22, cas ⑦) : le refus se lit sur le
     //   type du motif, pas sur la faussete de `config`.
     refus: /if\s*\(\s*typeof\s+config\s*===\s*'string'\s*\)/,
-    statut: /verification_status:\s*'pending_admin_review'/,
+    // ARRÊT 19 (§D.30) : l'évaluation REND l'état — un renvoi en revue manuelle (`deferer` : approuve false,
+    // manual_only) que la base pose (`poser_verdict_verification` → 'pending_admin_review').
+    statut: /return deferer\(/,
     appelIA: /runExpertCoherenceCheck\s*\(/,
   },
   {

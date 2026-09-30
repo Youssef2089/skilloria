@@ -240,8 +240,8 @@ const GEL_D4 = {
   'lib/hooks/useCdiProfile.ts': 'LÉGITIME — hook CLIENT qui lit le compte de l’utilisateur connecté (son propre e-mail) ; pas une projection vers une organisation',
   'lib/admin/user-actions-guard.ts': 'LÉGITIME — garde des actions du BACK-OFFICE : l’e-mail identifie la cible pour l’audit, et ses appelants sont des routes requireAdmin',
   'lib/billing/purchase.ts': 'LÉGITIME — l’e-mail de l’ACHETEUR lui-même, transmis à Stripe comme e-mail client ; rien ne part vers une organisation tierce',
-  'app/api/profile/upload-cv/route.ts': 'LÉGITIME — dépôt de CV : le profil de l’appelant (rendu à lui-même)',
-  'app/api/profile/cv-status/[jobId]/route.ts': 'LÉGITIME — suivi d’analyse du CV de l’appelant',
+  // `profile/upload-cv` et `profile/cv-status/[jobId]` SONT SORTIS le 30/09/2026 (ARRÊT 19, §D.30) : le dépôt ne
+  // rend plus le profil (l'analyse est un travail), et le suivi ne rend plus que l'état, le motif et les écarts.
   'app/api/me/organisation/members/route.ts': 'LÉGITIME — les e-mails des MEMBRES de sa propre organisation, pas un profil expert',
 }
 // (account-purge, profile/route.ts, cdi-upload-cv, cv/reset lisent aussi l’identité de

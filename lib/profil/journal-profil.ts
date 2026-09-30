@@ -20,10 +20,14 @@ import { journaliserDans } from '@/lib/journal/journaliser'
  */
 
 /**
- * LE CV TÉLÉVERSÉ — une ligne pour le geste ENTIER : stocké, analysé (ou non),
- * et le consentement à l'analyse posé pour la première fois s'il l'a été.
- * Écrite à la fin du geste, quand l'issue est connue ; statut de l'ÉTAPE :
- * `echoue` si l'analyse a échoué (le fichier, lui, est stocké).
+ * LE CV TÉLÉVERSÉ — une ligne pour le geste ENTIER : stocké, analysé, et le
+ * consentement à l'analyse posé pour la première fois s'il l'a été.
+ *
+ * Depuis le 30/09/2026 (§D.30), l'analyse est un TRAVAIL : cette ligne est écrite
+ * par l'exécutant quand l'analyse ABOUTIT, sous la pièce du dépôt, avec le nombre
+ * d'ÉCARTS (valeurs du document ramenées ou écartées, §E.88). Un travail abandonné
+ * a SA ligne (`travail_ia_echoue`, écrite en base, même pièce) : l'échec ne se
+ * perd pas, et il n'est pas écrit deux fois.
  */
 export async function cvTeleverse(
   admin: SupabaseClient,
@@ -36,6 +40,7 @@ export async function cvTeleverse(
     experiences?: number
     formations?: number
     langues?: number
+    ecarts?: number
   },
 ): Promise<void> {
   await journaliserDans(admin, journal, {
@@ -49,6 +54,7 @@ export async function cvTeleverse(
       experiences: args.experiences,
       formations: args.formations,
       langues: args.langues,
+      ecarts: args.ecarts,
     },
   })
 }
@@ -58,7 +64,9 @@ export async function cvTeleverse(
  * fois ou republication : toute (re)publication relance la vérification, et
  * la ligne le dit avec l'état de vérification d'AVANT. Écrite avant la
  * vérification qui en découle : c'est le geste qui compte, pas son issue —
- * l'approbation a sa propre action (`compte_valide`).
+ * le verdict a SA ligne : `verification_conclue` quand la machine conclut
+ * (approuvé, ou déféré à un humain), `compte_valide` / `compte_refuse` quand un
+ * administrateur arbitre.
  */
 export async function profilPublie(
   admin: SupabaseClient,

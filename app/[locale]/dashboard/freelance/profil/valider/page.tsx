@@ -6,6 +6,11 @@ import { useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { sessionDuCompteAffiche } from '@/lib/identite/compte-affiche'
+import { messageRefusProfil } from '@/lib/profil/refus-profil'
+// Les bornes de la BASE, posées sur les champs (m6) — un miroir contrôlé par diag-parcours-expert.
+import { LONGUEURS_SAISIE, ANNEE_NAISSANCE_MIN, anneeNaissanceMax, ANNEE_FORMATION_MIN, anneeDebutFormationMax, anneeFinFormationMax } from '@/lib/profil/bornes-saisie'
+import EcartsAnalyse from '@/components/profile/EcartsAnalyse'
 import CountrySelect from '@/components/CountrySelect'
 import CompactListItem from '@/components/CompactListItem'
 
@@ -152,6 +157,7 @@ export default function ValiderProfilPage() {
   const router = useRouter()
   const secureFetch = useSecureFetch()
   const tProfile = useTranslations('profile_validation')
+  const tRefus = useTranslations('profil_refus')
   const tWorkZones = useTranslations('work_zones')
   const locale = useLocale()
 
@@ -221,6 +227,11 @@ export default function ValiderProfilPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [missingFields, setMissingFields] = useState<string[] | null>(null)
   const [parsingFailed, setParsingFailed] = useState(false)
+  // Le profil est-il EN LIGNE ? « Enregistrer comme brouillon » le retire de la vitrine, et l'écran le DIT avant.
+  const [etaitVisible, setEtaitVisible] = useState(false)
+  // Le référentiel (branches, spécialités, zones) n'a pas pu être lu : on n'envoie PAS des listes vides à sa place.
+  const [taxonomieIndisponible, setTaxonomieIndisponible] = useState(false)
+  const [profileId, setProfileId] = useState<string | null>(null)
   // Lot CV obligatoire : "CV prêt" = parsé (done) ET consentement IA donné.
   const [cvParsingStatus, setCvParsingStatus] = useState<string | null>(null)
   const [aiConsentAt, setAiConsentAt] = useState<string | null>(null)
@@ -377,9 +388,10 @@ export default function ValiderProfilPage() {
     let cancelled = false
 
     const load = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      // L'IDENTITÉ PAR LE COMPTE AFFICHÉ (§E.87) : avec deux comptes dans le navigateur, cette page
+      // montrait le profil de l'autre (audit du 30/09/2026).
+      const session = await sessionDuCompteAffiche()
+      if (session === 'ejecte') return
       if (!session) {
         router.push('/connexion')
         return
@@ -409,11 +421,22 @@ export default function ValiderProfilPage() {
         .eq('user_id', session.user.id)
         .single()
 
-      if (profErr || !profile) {
+      // UNE PANNE DE LECTURE N'EST PAS UNE ABSENCE (§E.42) : elle renvoyait vers le dépôt du CV, comme si
+      // l'expert n'avait rien déposé. On le DIT, et on ne touche à rien.
+      if (profErr) {
+        if (!cancelled) {
+          setErrorMsg(tProfile('errors.profile_load_failed'))
+          setLoading(false)
+        }
+        return
+      }
+      if (!profile) {
         router.push('/dashboard/freelance/profil')
         return
       }
       if (cancelled) return
+      setProfileId(profile.id as string)
+      setEtaitVisible(profile.visible === true)
 
       setParsingFailed(profile.cv_parsing_status === 'failed')
       setCvParsingStatus((profile as { cv_parsing_status?: string | null }).cv_parsing_status ?? null)
@@ -465,8 +488,11 @@ export default function ValiderProfilPage() {
         `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}`,
         { cache: 'no-store' },
       )
-        .then(r => (r.ok ? r.json() : { branches: [], specialities: [], work_zones: [] }))
-        .catch(() => ({ branches: [], specialities: [], work_zones: [] }))
+        // ⚠️ LE RÉFÉRENTIEL ILLISIBLE N'EST PAS UN RÉFÉRENTIEL VIDE (audit du 30/09/2026, M11). Retombé sur
+        //    des listes vides, il faisait envoyer `branch_slug: null`, `speciality_slugs: []` et
+        //    `work_zone_codes: []` — et la route les ÉCRIVAIT : branche, spécialités et zones effacées.
+        .then(r => (r.ok ? r.json() : { branches: [], specialities: [], work_zones: [], __illisible: true }))
+        .catch(() => ({ branches: [], specialities: [], work_zones: [], __illisible: true }))
 
       // ⚠️ LES TROIS RÉSULTATS SONT LIÉS ENTIERS, PAS DÉSTRUCTURÉS EN `data`.
       //    `const [{ data: exps }] = …` jetait l'`error` à l'écriture même de
@@ -518,6 +544,7 @@ export default function ValiderProfilPage() {
         })
       }
 
+      setTaxonomieIndisponible((taxonomy as { __illisible?: boolean }).__illisible === true)
       setBranches((brs ?? []) as Branch[])
       setSpecialities((sps ?? []) as Speciality[])
       setWorkZones((taxonomy.work_zones ?? []) as WorkZone[])
@@ -742,10 +769,15 @@ export default function ValiderProfilPage() {
         summary,
         skills,
         branch_id: branchId || null,
-        speciality_ids: specialityIds,
+        // « Autre » n'est pas un identifiant : c'est sa PRÉCISION qui tient le critère (B4).
+        speciality_ids: specialityIds.filter(id => id !== SPECIALITY_OTHER),
+        speciality_other: specialityIds.includes(SPECIALITY_OTHER) ? specialityOther : null,
         seniorities,
         work_zone_ids: workZoneIds,
-        availability_status: availabilityStatus || 'available',
+        // LA DISPONIBILITÉ EST DEMANDÉE, jamais supposée (audit du 30/09/2026, B1) : l'écran la
+        // disait « available » par défaut, ne l'envoyait jamais, et la route refusait la publication
+        // sur un champ que personne n'avait montré.
+        availability_status: availabilityStatus,
         cdi_status: null,
         experiences_count: experiences.filter(e => e.role.trim()).length,
         languages_count: languagesStructured.filter(l => l.language.trim()).length,
@@ -769,6 +801,11 @@ export default function ValiderProfilPage() {
     setErrorMsg(null)
     setSuccessMsg(null)
     setMissingFields(null)
+    if (taxonomieIndisponible) {
+      // Sans référentiel, l'écran ne sait ni lire ni écrire la branche, les spécialités, les zones.
+      setErrorMsg(tProfile('errors.taxonomy_unavailable'))
+      return
+    }
 
     if (visible) {
       const missing = validateForPublish()
@@ -842,12 +879,15 @@ export default function ValiderProfilPage() {
       work_zone_codes: workZoneIds
         .map(id => workZones.find(z => z.id === id)?.code)
         .filter((c): c is string => !!c),
-      languages: cleanedLanguages.map(l => l.language),
+      // La liste plate des langues suit la liste STRUCTURÉE : pas lue, pas envoyée (sinon `[]` l'effacerait).
+      ...(listesLues.includes('languages_structured') ? { languages: cleanedLanguages.map(l => l.language) } : {}),
       location: location.trim() || null,
       work_modes: workModes,
       tjm_min: tjmMin.trim() === '' ? null : Number(tjmMin),
       tjm_max: tjmMax.trim() === '' ? null : Number(tjmMax),
       availability_date: availabilityDate || null,
+      // B1 : la disponibilité, telle que l'expert l'a DONNÉE (null tant qu'il n'a pas répondu).
+      availability_status: availabilityStatus,
       linkedin_url: linkedinUrl.trim() || null,
       phone: phone.trim() || null,
       address_line: addressLine.trim() || null,
@@ -907,12 +947,15 @@ export default function ValiderProfilPage() {
         ) {
           setErrorMsg(tProfile('errors.verification_indisponible'))
         } else {
-          setErrorMsg(tProfile('errors.save_failed'))
+          // CHAQUE AUTRE CODE A SON MESSAGE (lib/profil/refus-profil.ts) — un `journal_error` après une
+          // publication RÉUSSIE ne se dit plus « erreur lors de la sauvegarde ».
+          setErrorMsg(messageRefusProfil(payload, res.status, (cle, v) => tRefus(cle as 'inattendu', v)))
         }
         return
       }
 
       if (visible) {
+        // La vérification est un TRAVAIL (§D.30) : le tableau de bord dit « en cours » tant que c'est vrai.
         router.push('/dashboard/freelance')
         return
       }
@@ -1073,6 +1116,7 @@ export default function ValiderProfilPage() {
               : tProfile('sections.missions.role_label')}
           </label>
           <input
+                    maxLength={LONGUEURS_SAISIE.role}
             type="text"
             value={exp.role}
             onChange={e => updateExperience(idx, { role: e.target.value })}
@@ -1089,6 +1133,7 @@ export default function ValiderProfilPage() {
           <div style={{ marginBottom: 12 }}>
             <label style={labelStyle}>{tProfile('sections.career.employer_label')}</label>
             <input
+                    maxLength={LONGUEURS_SAISIE.employer}
               type="text"
               value={exp.employer}
               onChange={e => updateExperience(idx, { employer: e.target.value })}
@@ -1109,6 +1154,7 @@ export default function ValiderProfilPage() {
             <div>
               <label style={labelStyle}>{tProfile('sections.missions.client_label')}</label>
               <input
+                    maxLength={LONGUEURS_SAISIE.client_name}
                 type="text"
                 value={exp.client_name}
                 onChange={e =>
@@ -1121,6 +1167,7 @@ export default function ValiderProfilPage() {
             <div>
               <label style={labelStyle}>{tProfile('sections.missions.sector_label')}</label>
               <input
+                    maxLength={LONGUEURS_SAISIE.sector}
                 type="text"
                 value={exp.sector}
                 onChange={e => updateExperience(idx, { sector: e.target.value })}
@@ -1461,6 +1508,8 @@ export default function ValiderProfilPage() {
               </div>
             )}
 
+            <EcartsAnalyse profileId={profileId} />
+
             {parsingFailed && !errorMsg && !successMsg && (
               <div
                 style={{
@@ -1530,10 +1579,10 @@ export default function ValiderProfilPage() {
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>{tProfile('sections.identity.title_label')}</label>
                 <input
+                    maxLength={LONGUEURS_SAISIE.title}
                   ref={fieldRefs.title}
                   className={focusClass('title')}
                   type="text"
-                  maxLength={200}
                   value={title}
                   onChange={e => setTitle(e.target.value)}
                   placeholder={tProfile('sections.identity.title_placeholder')}
@@ -1875,6 +1924,57 @@ export default function ValiderProfilPage() {
                 title={tProfile('sections.availability.title')}
               />
 
+              {/* LA DISPONIBILITÉ — un CV dit ce qu'on a fait, jamais ce qu'on accepte : on la DEMANDE,
+                  sans valeur cochée d'avance (audit du 30/09/2026, B1). Le prédicat de visibilité l'exige. */}
+              <div
+                ref={fieldRefs.availability}
+                className={focusClass('availability')}
+                role="radiogroup"
+                aria-label={tProfile('sections.availability.status_label')}
+                style={{ marginBottom: 18 }}
+              >
+                <label style={labelStyle}>{tProfile('sections.availability.status_label')}</label>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  {(['available', 'do_not_disturb'] as const).map(v => {
+                    const active = availabilityStatus === v
+                    return (
+                      <label
+                        key={v}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '10px 14px',
+                          border: `1.5px solid ${
+                            active ? 'var(--sk-accent)' : isMissing('availability') ? 'var(--sk-red)' : 'var(--sk-border)'
+                          }`,
+                          borderRadius: 10,
+                          background: active ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'var(--sk-surface)',
+                          cursor: 'pointer',
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: active ? 'var(--sk-accent)' : 'var(--sk-muted)',
+                          fontFamily: fontJakarta,
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="availability_status"
+                          checked={active}
+                          onChange={() => setAvailabilityStatus(v)}
+                          style={{ accentColor: 'var(--sk-accent)' }}
+                        />
+                        {tProfile(`sections.availability.status_options.${v}`)}
+                      </label>
+                    )
+                  })}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 6, fontFamily: fontJakarta }}>
+                  {tProfile('sections.availability.status_hint')}
+                </div>
+                <FieldError field="availability" />
+              </div>
+
               <div
                 ref={fieldRefs.work_modes}
                 className={focusClass('work_modes')}
@@ -2046,6 +2146,7 @@ export default function ValiderProfilPage() {
                       style={{ display: 'grid', gridTemplateColumns: '2fr 1.5fr auto', gap: 10, alignItems: 'center' }}
                     >
                       <input
+                    maxLength={LONGUEURS_SAISIE.language}
                         type="text"
                         value={l.language}
                         onChange={e => updateLanguage(i, { language: e.target.value })}
@@ -2107,8 +2208,8 @@ export default function ValiderProfilPage() {
               <SectionHeader n="5" title={tProfile('sections.links.title')} />
               <label style={labelStyle}>{tProfile('sections.links.linkedin_label')}</label>
               <input
+                    maxLength={LONGUEURS_SAISIE.linkedin_url}
                 type="url"
-                maxLength={500}
                 value={linkedinUrl}
                 onChange={e => setLinkedinUrl(e.target.value)}
                 placeholder={tProfile('sections.links.linkedin_placeholder')}
@@ -2136,6 +2237,7 @@ export default function ValiderProfilPage() {
                 <div>
                   <label style={labelStyle}>{tProfile('sections.contact.phone_label')}</label>
                   <input
+                    maxLength={LONGUEURS_SAISIE.phone}
                     type="tel"
                     value={phone}
                     onChange={e => setPhone(e.target.value)}
@@ -2147,8 +2249,8 @@ export default function ValiderProfilPage() {
                   <label style={labelStyle}>{tProfile('sections.contact.birth_year_label')}</label>
                   <input
                     type="number"
-                    min={1900}
-                    max={new Date().getFullYear()}
+                    min={ANNEE_NAISSANCE_MIN}
+                    max={anneeNaissanceMax()}
                     value={birthYear}
                     onChange={e => setBirthYear(e.target.value)}
                     placeholder={tProfile('sections.contact.birth_year_placeholder')}
@@ -2160,6 +2262,7 @@ export default function ValiderProfilPage() {
               <div style={{ marginBottom: 14 }}>
                 <label style={labelStyle}>{tProfile('sections.contact.address_label')}</label>
                 <input
+                    maxLength={LONGUEURS_SAISIE.address_line}
                   type="text"
                   value={addressLine}
                   onChange={e => setAddressLine(e.target.value)}
@@ -2180,6 +2283,7 @@ export default function ValiderProfilPage() {
                 <div>
                   <label style={labelStyle}>{tProfile('sections.contact.postal_code_label')}</label>
                   <input
+                    maxLength={LONGUEURS_SAISIE.postal_code}
                     type="text"
                     value={postalCode}
                     onChange={e => setPostalCode(e.target.value)}
@@ -2190,6 +2294,7 @@ export default function ValiderProfilPage() {
                 <div>
                   <label style={labelStyle}>{tProfile('sections.contact.city_label')}</label>
                   <input
+                    maxLength={LONGUEURS_SAISIE.city}
                     type="text"
                     value={city}
                     onChange={e => setCity(e.target.value)}
@@ -2412,6 +2517,7 @@ export default function ValiderProfilPage() {
                     <div>
                       <label style={labelStyle}>{tProfile('sections.education.school_label')}</label>
                       <input
+                    maxLength={LONGUEURS_SAISIE.school}
                         type="text"
                         value={edu.school}
                         onChange={e => updateEducation(i, { school: e.target.value })}
@@ -2422,6 +2528,7 @@ export default function ValiderProfilPage() {
                     <div>
                       <label style={labelStyle}>{tProfile('sections.education.degree_label')}</label>
                       <input
+                    maxLength={LONGUEURS_SAISIE.degree}
                         type="text"
                         value={edu.degree}
                         onChange={e => updateEducation(i, { degree: e.target.value })}
@@ -2443,6 +2550,7 @@ export default function ValiderProfilPage() {
                     <div>
                       <label style={labelStyle}>{tProfile('sections.education.field_label')}</label>
                       <input
+                    maxLength={LONGUEURS_SAISIE.field}
                         type="text"
                         value={edu.field}
                         onChange={e => updateEducation(i, { field: e.target.value })}
@@ -2453,6 +2561,7 @@ export default function ValiderProfilPage() {
                     <div>
                       <label style={labelStyle}>{tProfile('sections.education.location_label')}</label>
                       <input
+                    maxLength={LONGUEURS_SAISIE.education_location}
                         type="text"
                         value={edu.location}
                         onChange={e => updateEducation(i, { location: e.target.value })}
@@ -2474,8 +2583,8 @@ export default function ValiderProfilPage() {
                       <label style={labelStyle}>{tProfile('sections.education.start_year_label')}</label>
                       <input
                         type="number"
-                        min={1900}
-                        max={new Date().getFullYear() + 1}
+                        min={ANNEE_FORMATION_MIN}
+                        max={anneeDebutFormationMax()}
                         value={edu.start_year}
                         onChange={e => updateEducation(i, { start_year: e.target.value })}
                         style={inputStyle()}
@@ -2485,8 +2594,8 @@ export default function ValiderProfilPage() {
                       <label style={labelStyle}>{tProfile('sections.education.end_year_label')}</label>
                       <input
                         type="number"
-                        min={1900}
-                        max={new Date().getFullYear() + 10}
+                        min={ANNEE_FORMATION_MIN}
+                        max={anneeFinFormationMax()}
                         value={edu.end_year}
                         onChange={e => updateEducation(i, { end_year: e.target.value })}
                         style={inputStyle()}
@@ -2526,6 +2635,11 @@ export default function ValiderProfilPage() {
                     padding: '16px 20px',
                   }}
                 >
+                  {etaitVisible && (
+                    <div role="note" style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5, fontFamily: fontJakarta }}>
+                      {tProfile('actions.draft_unpublishes')}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', gap: 12 }}>
                     <button
                       type="button"

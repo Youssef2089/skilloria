@@ -179,110 +179,76 @@ export async function POST(request: NextRequest): Promise<Response> {
   // response. Un `void promise` serait tué par Vercel — `after()` garantit
   // l'exécution de bout en bout (cf. bug racine fire-and-forget). On y place
   // aussi l'envoi de l'email (awaité, best-effort) pour la même raison.
-  after(async () => {
-    // 1. Email de bienvenue (Resend) — locale = users.locale de l'expert.
-    //    En PLUS de la notif in-app déjà insérée ci-dessus. Best-effort :
-    //    awaité dans after(), un échec ne casse jamais la décision admin.
-    try {
-      const contactEmail = u?.email ?? null
-      if (contactEmail) {
-        // Base URL dérivée du domaine de l'EXPERT (slug), pas de l'origin admin.
-        // Lookup best-effort hors chemin de décision ; échec → fallback origin.
-        let expertSlug: string | null = null
-        if (row.domain_id) {
-          const { data: dom } = await auth.supabaseAdmin
-            .from('domains')
-            .select('slug')
-            .eq('id', row.domain_id)
-            .maybeSingle()
-          expertSlug = (dom?.slug as string | null) ?? null
-        }
-        // ── ORIGINE INCONNAISSABLE ⇒ ON N'ENVOIE PAS ────────────────────────
-        //  `siteOriginFromRequest` rend `null` en PRODUCTION quand
-        //  NEXT_PUBLIC_SITE_URL manque (cf. lib/site-url.ts). Un e-mail parti
-        //  avec un lien `localhost` est pire qu’un e-mail qui ne part pas : le
-        //  premier se découvre par un destinataire, le second par les journaux.
-        if (!siteOrigin) {
-          console.error('[admin:approve-expert] e-mail ANNULÉ — origine du site inconnaissable')
-          return
-        }
-        const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
-        // L'adresse de SON écosystème, dans l'environnement courant (§E.83) — inconstructible : pas d'envoi.
-        if (!baseOrigin) return
-        const loginUrl = `${baseOrigin}/${normalizeLocale(u?.locale ?? null)}/connexion`
-        // D3 : marque = domaine de l'EXPERT destinataire (row.domain_id).
-        const brandName = await resolveEmailBrandName(auth.supabaseAdmin, row.domain_id)
-        const rendered = renderExpertWelcomeEmail({
-          brandName,
-          locale: u?.locale ?? null,
-          firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),
-          loginUrl,
-        })
-        const res = await sendEmail({
-          to: contactEmail,
-          subject: rendered.subject,
-          html: rendered.html,
-          text: rendered.text,
-          preheader: rendered.preheader,
-          tag: rendered.tag,
-        })
-        console.log('[admin:approve-expert] email', { profileId, ok: res.ok, code: res.ok ? null : res.code })
-      } else {
-        console.warn('[admin:approve-expert] no contact email — welcome email skipped', { profileId })
-      }
-    } catch (err) {
-      console.error('[admin:approve-expert] welcome email threw (after)', err)
+  // ⚠️ DEUX TRAVAUX, DEUX FONCTIONS — ET LA MISE EN RELATION D'ABORD (audit du 30/09/2026, M6).
+  //    L'e-mail et la recherche partageaient UN corps : les `return` de l'e-mail (origine du site
+  //    inconnaissable, adresse de l'écosystème inconstructible) sortaient de TOUT le travail
+  //    différé — aucune recherche à l'approbation, aucune trace, aucune relance. Un e-mail
+  //    impossible annulait le « premier contact avec la plateforme ». La recherche passe
+  //    désormais EN PREMIER, et l'e-mail vit dans sa propre fonction : ses sorties ne coupent qu'elle.
+  const envoyerBienvenue = async (): Promise<void> => {
+    const contactEmail = u?.email ?? null
+    if (!contactEmail) {
+      console.warn('[admin:approve-expert] no contact email — welcome email skipped', { profileId })
+      return
     }
-
-    // 2. Mise en relation — direction EXPERT → annonces publiées.
-    //
-    //  IMMÉDIAT, ET SANS TEMPORISATION. C'est le moment qui compte pour
-    //  l'expert : son profil vient d'être validé, il doit voir des annonces
-    //  tout de suite. Le reporter d'une heure ici ferait de son premier
-    //  contact avec la plateforme un écran vide.
-    try {
-      const debutRun = new Date()
-      const { runMatchingForExpert } = await import('@/lib/matching')
-      const { solderRelance, echouerRelance, marquerTentativeRelance } = await import(
-        '@/lib/matching/relance'
-      )
-      // LA TENTATIVE SE COMPTE AVANT LE RUN, comme les deux autres appelants.
-      // Ce chemin la comptait APRÈS, et sur l'échec seul, pour ne pas consommer
-      // le plafond quand l'approbation réussit — mais `solderRelance` remet le
-      // compteur à zéro sur un succès : l'état final est le même. Ce qui change,
-      // c'est que le moteur LIT le compteur juste, et écrit l'abandon au moment
-      // exact où plus rien ne rejouera (§D.26, recherche_abandonnee).
-      await marquerTentativeRelance(auth.supabaseAdmin, profileId)
-      const v = await runMatchingForExpert({
-        supabaseAdmin: auth.supabaseAdmin,
-        profileId,
-        journal,
-      })
-      // Une relance était peut-être en attente pour ce profil : elle vient
-      // d'être satisfaite. Ne pas la solder ferait tourner le moteur une
-      // seconde fois dans l'heure, pour rien.
-      //
-      // ⚠️ MAIS SEULEMENT SI LE RUN A ABOUTI, ET C'EST ICI QUE ÇA COMPTE LE
-      //    PLUS. Ce chemin soldait inconditionnellement : un moteur éteint au
-      //    moment de l'approbation effaçait l'échéance, et plus rien ne
-      //    reprenait. Le commentaire six lignes plus haut dit pourquoi c'est
-      //    grave — « c'est le moment qui compte pour l'expert […] son premier
-      //    contact avec la plateforme » : cet écran restait vide, et pour
-      //    toujours. Troisième appelant du même défaut, trouvé par le contrôle
-      //    de ce lot et non par une relecture (§E.20).
-      const { runAcheve, codeDEchec } = await import('@/lib/matching/run-abouti')
-      if (runAcheve(v)) {
-        await solderRelance(auth.supabaseAdmin, profileId, debutRun)
-      } else {
-        await echouerRelance(auth.supabaseAdmin, profileId, codeDEchec(v))
+    // Base URL dérivée du domaine de l'EXPERT (slug), pas de l'origin admin.
+    let expertSlug: string | null = null
+    if (row.domain_id) {
+      const { data: dom, error: domErr } = await auth.supabaseAdmin.from('domains').select('slug').eq('id', row.domain_id).maybeSingle()
+      if (domErr) {
+        console.error('[admin:approve-expert] e-mail ANNULÉ — écosystème de l expert illisible', { profileId, message: domErr.message })
+        return
       }
-      console.log('[admin:approve-expert] matching done', {
-        profileId,
-        status: v.status,
-        proposals: v.proposals.length,
-      })
+      expertSlug = (dom?.slug as string | null) ?? null
+    }
+    // ── ORIGINE INCONNAISSABLE ⇒ ON N'ENVOIE PAS ────────────────────────────
+    //  Un e-mail parti avec un lien `localhost` est pire qu'un e-mail qui ne part pas.
+    if (!siteOrigin) {
+      console.error('[admin:approve-expert] e-mail ANNULÉ — origine du site inconnaissable')
+      return
+    }
+    const baseOrigin = expertSiteOrigin({ origin: siteOrigin, slug: expertSlug })
+    // L'adresse de SON écosystème, dans l'environnement courant (§E.83) — inconstructible : pas d'envoi.
+    if (!baseOrigin) {
+      console.error('[admin:approve-expert] e-mail ANNULÉ — adresse de l écosystème inconstructible', { profileId })
+      return
+    }
+    const loginUrl = `${baseOrigin}/${normalizeLocale(u?.locale ?? null)}/connexion`
+    // D3 : marque = domaine de l'EXPERT destinataire (row.domain_id).
+    const brandName = await resolveEmailBrandName(auth.supabaseAdmin, row.domain_id)
+    const rendered = renderExpertWelcomeEmail({
+      brandName,
+      locale: u?.locale ?? null,
+      firstName: (u?.first_name ?? '').trim() || (contactEmail.split('@')[0] ?? ''),
+      loginUrl,
+    })
+    const res = await sendEmail({
+      to: contactEmail,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      preheader: rendered.preheader,
+      tag: rendered.tag,
+    })
+    console.log('[admin:approve-expert] email', { profileId, ok: res.ok, code: res.ok ? null : res.code })
+  }
+
+  after(async () => {
+    // 1. LA MISE EN RELATION — immédiate, et REJOUÉE si elle échoue (lib/matching/mise-en-relation-immediate.ts,
+    //    le même chemin que l'auto-approbation : la tentative comptée avant, le solde seulement si le run
+    //    a abouti, sinon une échéance posée que le pilote reprend — §C.14).
+    try {
+      const { lancerMiseEnRelationImmediate } = await import('@/lib/matching/mise-en-relation-immediate')
+      const { verdict, acheve } = await lancerMiseEnRelationImmediate(auth.supabaseAdmin, profileId, journal)
+      console.log('[admin:approve-expert] matching done', { profileId, status: verdict.status, acheve, proposals: verdict.proposals.length })
     } catch (err) {
       console.error('[admin:approve-expert] matching threw (after)', err)
+    }
+    // 2. L'e-mail de bienvenue — best-effort : un échec ne défait jamais la décision.
+    try {
+      await envoyerBienvenue()
+    } catch (err) {
+      console.error('[admin:approve-expert] welcome email threw (after)', err)
     }
   })
 
