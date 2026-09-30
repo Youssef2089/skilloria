@@ -325,6 +325,51 @@ else {
 ok(reqDefauts.length === 0, 'G. la requête de staging est UNE instruction SELECT, sans rien qui écrive',
   reqDefauts.length ? `${relative(ROOT, CHEMIN_REQUETE)} : ${reqDefauts.join(', ')}` : undefined)
 
+// ── C bis. LE PLAN DE CHAQUE FICHIER DE TEST, TOUS DOSSIERS (ARRÊT 19, rejeu local du 30/09/2026) ──
+//  La section C ne lisait que `grand_livre/` : `profil/travaux_ia.test.sql` annonçait 26 tests et en
+//  faisait 27 — pgTAP l'a dit au rejeu, rien avant (§E.61 : une couverture bornée par un dossier).
+//  Compte : les `return next <assertion>(` (hors `skip`, qui tient la place d'une autre branche) et les
+//  `select <assertion>(` de premier niveau. Un fichier qui ÉMET dans une boucle se déclarerait ici,
+//  avec sa raison ; il n'y en a aucun au 30/09/2026.
+const ASSERTION_PGTAP = String.raw`(?:ok|is|isnt|cmp_ok|throws_ok|throws_like|throws_matching|lives_ok|results_eq|results_ne|set_eq|bag_eq|is_empty|isnt_empty|row_eq|pass|fail|matches|imatches|alike|unalike|has_\w+|hasnt_\w+|col_\w+|fk_ok|policies_are|function_returns|is_definer|isnt_definer|performs_ok)`
+const PLAN_EN_BOUCLE = {}
+const plansFaux = []
+for (const p of tousLesTests.filter((x) => x.endsWith(".test.sql"))) {
+  const rel = relative(RACINE_TESTS, p).split('\\').join('/')
+  const s = sansCommentaires(lire(p))
+  const plan = s.match(/select\s+plan\((\d+)\)/i)
+  if (!plan) { plansFaux.push(`${rel} : sans plan()`); continue }
+  const nexts = (s.match(new RegExp(String.raw`\breturn\s+next\s+` + ASSERTION_PGTAP + String.raw`\s*\(`, 'gi')) ?? []).length
+  const hauts = (s.match(new RegExp(String.raw`^\s*select\s+` + ASSERTION_PGTAP + String.raw`\s*\(`, 'gim')) ?? []).length
+  if (Number(plan[1]) !== nexts + hauts && !(rel in PLAN_EN_BOUCLE)) plansFaux.push(`${rel} : plan(${plan[1]}) pour ${nexts + hauts} assertions`)
+}
+ok(plansFaux.length === 0, `C bis. le plan de chacun des ${tousLesTests.filter((x) => x.endsWith(".test.sql")).length} fichiers de test égale ses assertions, tous dossiers`,
+  plansFaux.length ? plansFaux.join('\n       → ') : undefined)
+
+// ── K. AUCUN IDENTIFIANT DE SQL DYNAMIQUE TIRÉ D'UNE BOUCLE SUR UNE CONSTANTE (ARRÊT 19, §E.88) ──
+//  `plpgsql_check` suit la valeur des constantes : `foreach v in array <constante>` lui fait croire que
+//  `v` vaut le tableau ENTIER, et un `execute format('… %I …', v)` devient une erreur au lint et au test
+//  4 de plpgsql_check.test.sql (le cas de `ecrire_analyse_cv`). La forme admise : `for v in select … from
+//  unnest(<constante>)`. Lue sur la DERNIÈRE définition de chaque fonction.
+{
+  const defs = new Map()
+  for (const f of toutes) {
+    const sql = lire(join(MIGRATIONS, f))
+    const re = /create\s+(?:or\s+replace\s+)?function\s+(?:"?public"?\.)?"?([a-z_0-9]+)"?\s*\(([\s\S]*?)\)\s*returns[\s\S]*?\bas\s+(\$[a-z_]*\$)([\s\S]*?)\3/gi
+    for (const m of sql.matchAll(re)) defs.set(`${m[1]}|${m[2].replace(/\s+/g, '')}`, { nom: m[1], corps: sansCommentaires(m[4]) })
+  }
+  const fautives = []
+  for (const { nom, corps } of defs.values()) {
+    if (!/\bexecute\b/i.test(corps)) continue
+    const constantes = new Set([...corps.matchAll(/(\w+)\s+constant\b/gi)].map((m) => m[1]))
+    for (const m of corps.matchAll(/foreach\s+(\w+)\s+in\s+array\s+(\w+)/gi)) {
+      if (constantes.has(m[2])) fautives.push(`${nom} : foreach ${m[1]} in array ${m[2]} (constante) dans une fonction qui fait execute`)
+    }
+  }
+  ok(fautives.length === 0, `K. aucune fonction qui fait execute ne parcourt une constante par foreach (${defs.size} définitions lues)`,
+    fautives.length ? fautives.join('\n       → ') : undefined)
+}
+
 // ── E. La commande de test ne vise jamais la base liée ──
 const INTERDIT = new RegExp('test\\s+db\\s+--' + 'linked|test\\s+db\\s+--' + 'db-url')
 const RACINES = ['CLAUDE.md', 'AGENTS.md', 'package.json', 'docs', 'scripts', 'supabase/tests']

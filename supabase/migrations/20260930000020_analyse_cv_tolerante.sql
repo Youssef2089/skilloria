@@ -147,7 +147,15 @@ begin
   for v_col in select jsonb_array_elements_text(v_borne -> 'tronques') loop
     v_ecarts := v_ecarts || jsonb_build_object('bloc', 'profil', 'champ', v_col, 'code', 'texte_tronque');
   end loop;
-  foreach v_col in array c_colonnes loop
+  -- FOR … IN SELECT, et NON `foreach v_col in array c_colonnes` (ARRÊT 19, rejeu local du 30/09/2026) :
+  -- `plpgsql_check`, qui suit la valeur des CONSTANTES, attribuait à `v_col` le tableau ENTIER qu'on
+  -- parcourt, évaluait le `format()` ci-dessous avec lui, et rendait une ERREUR — colonne
+  -- « {title,summary,…} » introuvable — qui rougissait `db lint` et `plpgsql_check.test.sql`. À
+  -- l'exécution, `foreach` donne bien un nom à la fois (les tests écrivent titre, résumé, compétences
+  -- par cette ligne) ; mais une erreur au lint arrête le déploiement, et la forme d'une requête ne se
+  -- lit pas comme une constante. Balayé : aucune autre fonction n'interpole un identifiant tiré d'une
+  -- boucle sur une constante (garde : diag-tests-grand-livre, section K).
+  for v_col in select c.colonne from unnest(c_colonnes) as c(colonne) loop
     continue when not (v_profil ? v_col);
     begin
       -- Un objet à UNE clé : une valeur illisible n'empêche pas de lire les autres.

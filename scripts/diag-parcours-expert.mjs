@@ -223,6 +223,24 @@ section('F. Point 5 — une valeur fautive ne rejette plus l’analyse (normalis
   const ecrire = corpsSql('ecrire_analyse_cv')
   ok((ecrire.match(/exception when sqlstate 'AC001' then/g) ?? []).length === 3 && /when others then\s+v_ecarts := v_ecarts \|\| jsonb_build_object\('bloc', 'profil', 'champ', v_col, 'code', 'valeur_refusee'/.test(ecrire),
     'en base : un champ refusé n’emporte pas les autres ; une liste entièrement refusée n’efface rien')
+  // LA LIGNE DYNAMIQUE TOURNE, SUR CHAQUE COLONNE (ARRÊT 19, rejeu local) : le test G écrit un profil propre
+  // et exige zéro écart ; ses clés doivent être EXACTEMENT la liste fermée de la fonction — une colonne
+  // ajoutée à la liste sans passer par le test rougit ici.
+  const listeFermee = [...(/c_colonnes constant text\[\] := array\[([\s\S]*?)\];/.exec(ecrire)?.[1] ?? '').matchAll(/'([a-z_]+)'/g)].map((m) => m[1]).sort()
+  const testTol = lire('supabase/tests/database/profil/analyse_cv_tolerante.test.sql')
+  const blocG = /v_complet := jsonb_build_object\(([\s\S]*?)\);\n/.exec(testTol)?.[1] ?? ''
+  // Les arguments de PREMIER niveau de jsonb_build_object : on efface les parenthèses imbriquées (valeurs
+  // composées), on coupe aux virgules ; les clés sont aux positions paires.
+  let plat = blocG
+  for (let avant = ''; avant !== plat;) { avant = plat; plat = plat.replace(/\([^()]*\)/g, '') }
+  const args = plat.split(',').map((x) => x.trim())
+  const clesTest = args.filter((_, i) => i % 2 === 0).map((x) => /^'([a-z_]+)'$/.exec(x)?.[1] ?? `?${x}`).sort()
+  ok(listeFermee.length === 28 && JSON.stringify(listeFermee) === JSON.stringify(clesTest)
+     && /jsonb_array_length\(v_res -> 'ecarts'\) = 0/.test(testTol) && /to_jsonb\(p\) -> e\.key is distinct from e\.value/.test(testTol),
+    `la ligne dynamique d'ecrire_analyse_cv est EXÉCUTÉE par un test sur les ${listeFermee.length} colonnes de la liste fermée, aucun écart admis`,
+    `liste : ${listeFermee.join(',')} · test : ${clesTest.join(',')}`)
+  ok(/for v_col in select c\.colonne from unnest\(c_colonnes\) as c\(colonne\) loop/.test(ecrire) && !/foreach v_col in array c_colonnes/.test(ecrire),
+    'la boucle ne donne pas à plpgsql_check le tableau entier pour valeur (for … in select, pas foreach sur la constante)')
   ok(/cv_parsing_count_24h = case when p\.cv_parsing_reset_at > now\(\)/.test(ecrire) && !/cv_parsing_count_24h/.test(sansCommentaires(lire('lib/profil/depot-cv.ts')).replace(/cv_parsing_count_24h, cv_parsing_reset_at/, '').replace(/profile\.cv_parsing_count_24h/g, '')),
     'le quota ne compte que l’analyse ABOUTIE, dans la transaction qui l’écrit — le dépôt ne le compte plus')
   const ex = sansCommentaires(lire('lib/travaux-ia/executer-analyse.ts'))

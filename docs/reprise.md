@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 30/09/2026 (ARRÊT 19).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 30/09/2026 (ARRÊT 19 bis — les deux rouges du rejeu local).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -231,6 +231,50 @@ validation, les écarts de l'analyse et la question de disponibilité.
 - **Les 80 assertions pgTAP nouvelles n'ont PAS tourné** (ni Docker ni base, par mandat) : c'est l'étape 4 de Youssef.
 
 **ARRÊT 19 : terminé.** Aucun `git push`, aucune écriture en base.
+
+## ⛔ ARRÊT 19 bis — LES DEUX ROUGES DU REJEU LOCAL (30/09/2026)
+
+Rejeu de Youssef : 54 fichiers, 541 tests, deux rouges. Tout le reste vert, dont les 80 assertions de l'ARRÊT 19.
+
+**① `ecrire_analyse_cv`, ligne 51 (l'`EXECUTE`) — `db lint` et le test 4 de `plpgsql_check.test.sql` : « column
+"{title,summary,seniorities,…}" not found in data type profiles ».**
+- **La cause.** La fonction parcourait sa liste fermée par `foreach v_col in array c_colonnes`, où `c_colonnes` est une
+  CONSTANTE, et interpolait `v_col` dans `execute format('update … set %1$I = …')`. `plpgsql_check` suit la valeur des
+  constantes : il a donné à `v_col` le tableau ENTIER, évalué la requête avec lui, et trouvé une « colonne » qui porte
+  le texte du tableau — c'est exactement le nom que cite le message. Déduit du message et du code ; `plpgsql_check` ne
+  tourne pas ici (ni Docker ni base).
+- **Contradiction signalée : la ligne ne « rate » pas chaque analyse.** À l'exécution, `foreach` donne un nom à la fois,
+  et tes deux rejeux verts le prouvent : `analyse_cv_tolerante` exige un titre TRONQUÉ à 200, le résumé et les
+  compétences écrits — trois écritures qui ne passent QUE par cette ligne ; `travaux_ia` (C) exige le titre écrit par
+  `terminer_analyse_cv`, qui l'appelle. C'est pourquoi les deux tests sont verts : ils la font tourner. **Mais le
+  rouge au lint bloque le déploiement, et il avait raison sur un point** : si la ligne avait échoué pour de bon, chaque
+  champ serait tombé en `valeur_refusee`, l'analyse se serait dite terminée sur un profil vide, et les tests ne
+  vérifiaient que trois colonnes sur vingt-huit.
+- **Le correctif.** `for v_col in select c.colonne from unnest(c_colonnes) as c(colonne)` : la valeur vient d'une
+  requête, le vérificateur n'a plus de constante à suivre ; l'exécution est la même. La migration n'est PAS appliquée
+  (ni staging ni production) : elle est corrigée sur place.
+- **Le test qui la fait tourner pour de vrai, sur tout.** `analyse_cv_tolerante` G : un profil propre, les 28 colonnes
+  de la liste fermée avec des valeurs admises par leurs contraintes (lues dans les migrations, §G.10), écrites À
+  L'IDENTIQUE, et ZÉRO écart. `diag-parcours-expert` exige que les clés du test soient EXACTEMENT la liste de la fonction.
+- **Le balayage.** Trois fonctions (quatre définitions) font un `EXECUTE` : `rls_auto_enable` (l'identité
+  d'un objet d'événement), `admin_cron_run_now` (deux définitions successives, une commande lue dans `cron.job`) et
+  `ecrire_analyse_cv`. **Une seule parcourait une constante** : celle-ci. Gardé par `diag-tests-grand-livre` K (173
+  définitions lues).
+
+**② `profil/travaux_ia.test.sql` : « planned 26 tests but ran 27 ».** Les 27 assertions sont distinctes et voulues : le
+plan était mal compté. `plan(27)`. **Pourquoi rien ne l'a vu** : le contrôle du plan existait dans
+`diag-tests-grand-livre`, mais borné au dossier `grand_livre/` (§E.61). Il couvre désormais les 54 fichiers (C bis).
+Au passage, `analyse_cv_tolerante` passe à `plan(19)` (le test G).
+
+**Pour Youssef — dans l'ordre :**
+1. Docker lancé : `npx supabase db reset --local` (la migration `analyse_cv_tolerante` a changé : il faut la rejouer).
+2. `npx supabase db lint -s public --level error` — la sortie doit être **vide**.
+3. `npx supabase test db --local` — **tout vert**, 542 tests : le nouveau G compris. Si G rougit, copiez-moi son
+   message : il nomme la colonne qui n'est pas écrite à l'identique.
+4. Puis la suite de l'ARRÊT 19 inchangée : la requête de staging, `db push`, `git push`.
+
+### L'épreuve de l'ARRÊT 19 bis
+(ci-dessous, au commit de l'épreuve)
 
 ## ⛔ ARRÊT 18 — DEUX COMPTES DANS LE MÊME NAVIGATEUR : LE MENU DE L'UN, LES REQUÊTES DE L'AUTRE (30/09/2026)
 

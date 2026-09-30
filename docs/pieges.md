@@ -4198,8 +4198,26 @@ une échéance posée à `now()` n'est jamais « passée » — les tests recule
 Et un code d'action écrit en littéral dans un test compte pour `diag-tests-grand-livre` comme « testé » : un test qui
 cite une action sans l'exécuter trompe le recensement.
 
+**Et deux rouges au premier rejeu local (30/09/2026, Youssef : 54 fichiers, 541 tests).**
+④ **`plpgsql_check` lit une boucle sur une CONSTANTE comme une affectation du tableau entier.** `ecrire_analyse_cv`
+  parcourait sa liste fermée par `foreach v_col in array c_colonnes` (une `constant`) et interpolait `v_col` dans un
+  `execute format('… %1$I …')`. Le vérificateur, qui suit la valeur des constantes, a évalué la requête avec `v_col`
+  = « {title,summary,…} » et rendu une ERREUR — colonne introuvable — au `db lint` ET au test 4 de
+  `plpgsql_check.test.sql`. **À l'exécution, la ligne tournait** : `analyse_cv_tolerante` (titre tronqué, résumé,
+  compétences) et `travaux_ia` (titre écrit par `terminer_analyse_cv`) passent PAR elle, et ils étaient verts. La
+  cause est donc DÉDUITE du message (le texte du tableau entier à la place d'un nom), pas mesurée : `plpgsql_check` ne
+  tourne pas ici. La parade : `for v_col in select … from unnest(c_colonnes)` — la valeur vient d'une requête, rien à
+  suivre. **Le vrai danger était ailleurs** : si la ligne avait réellement échoué, chaque champ serait tombé dans
+  `valeur_refusee`, l'analyse aurait été dite « terminée » sur un profil vide — et les tests n'en vérifiaient que trois
+  colonnes. Le test G exige désormais les 28 colonnes de la liste écrites À L'IDENTIQUE et zéro écart.
+⑤ **Un plan faux ne se voit qu'au rejeu** : `profil/travaux_ia.test.sql` annonçait 26 et en faisait 27. Le contrôle
+  du plan existait, borné au dossier `grand_livre/` (§E.61) ; il couvre désormais les 54 fichiers.
+
 **Gardé par** [`diag-parcours-expert`](../scripts/diag-parcours-expert.mjs) (la liste unique, la normalisation
-exécutée sur des cas fabriqués) et `profil/types_experience.test.sql`, `profil/analyse_cv_tolerante.test.sql`.
+exécutée sur des cas fabriqués, le test G sur EXACTEMENT la liste fermée, la forme de la boucle),
+[`diag-tests-grand-livre`](../scripts/diag-tests-grand-livre.mjs) (C bis : le plan de chaque fichier ; K : aucune
+fonction qui fait `execute` ne parcourt une constante par `foreach`) et `profil/types_experience.test.sql`,
+`profil/analyse_cv_tolerante.test.sql`.
 **Ce qu'ils ne voient pas** : un CV réel — la tolérance est éprouvée sur des valeurs fabriquées, pas sur la variété
 des documents que le modèle rencontrera.
 

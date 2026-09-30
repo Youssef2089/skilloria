@@ -7,12 +7,13 @@
 --      double → écartée ;
 --   D. une liste ENTIÈREMENT refusée n'efface rien : la liste d'avant reste ;
 --   E. le quota compte les analyses ABOUTIES, dans la même transaction ; le statut `done` en dernier ;
---   F. une fenêtre de quota absente est refusée ; la fonction est fermée au navigateur.
+--   F. une fenêtre de quota absente est refusée ; la fonction est fermée au navigateur ;
+--   G. un profil PROPRE : les 28 colonnes de la liste fermée passent par l'update dynamique, aucun écart.
 -- Les deux fonctions d'appui (`longueur_max_colonne`, `borner_textes`) sont appelées en direct.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir ../grand_livre/_fabriques.psql
-select plan(18);
+select plan(19);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -22,6 +23,7 @@ declare
   v_res     jsonb;
   v_ecarts  jsonb;
   v_long    text := repeat('x', 260);
+  v_complet jsonb;
 begin
   select p.user_id into v_user from public.profiles p where p.id = v_profil;
   select u.first_name into v_prenom from public.users u where u.id = v_user;
@@ -108,6 +110,30 @@ begin
   return next ok(not has_function_privilege('authenticated', 'public.ecrire_analyse_cv(uuid, jsonb, jsonb, jsonb, jsonb, interval)', 'execute')
                  and has_function_privilege('service_role', 'public.ecrire_analyse_cv(uuid, jsonb, jsonb, jsonb, jsonb, interval)', 'execute'),
                  'F. fermée au navigateur, ouverte à la clé de service');
+
+  -- G. LA LIGNE DYNAMIQUE TOURNE POUR DE VRAI, SUR CHAQUE COLONNE DE LA LISTE FERMÉE (ARRÊT 19, rejeu local).
+  --    Un profil PROPRE : chacune des 28 colonnes reçoit une valeur admise par ses contraintes (lues dans les
+  --    migrations, §G.10) ; elle doit être écrite À L'IDENTIQUE, et AUCUN écart rendu. Si l'update dynamique
+  --    ne s'exécutait pas, chaque champ tomberait dans « valeur_refusee » et le profil resterait vide — c'est
+  --    précisément ce que ce test rend impossible à taire. Les clés sont celles de `c_colonnes`, une à une
+  --    (diag-parcours-expert vérifie qu'elles coïncident).
+  v_profil := pg_temp.fab_profil('expert');
+  v_complet := jsonb_build_object(
+    'title', 'Architecte Azure', 'summary', 'Résumé propre de sonde', 'seniorities', jsonb_build_array('senior', 'expert'),
+    'years_experience', 12, 'skills', jsonb_build_array('Azure', 'Dynamics'), 'certifications', jsonb_build_array('AZ-305'),
+    'branch_id', (select b.id from public.branches b order by b.id limit 1),
+    'speciality_ids', to_jsonb(array(select s.id from public.specialities s order by s.id limit 1)),
+    'languages', jsonb_build_array('Français', 'Anglais'), 'location', 'Paris', 'tjm_min', 500, 'tjm_max', 800,
+    'linkedin_url', 'https://www.linkedin.com/in/sonde', 'phone', '+33600000000', 'address_line', '1 rue de la Sonde',
+    'postal_code', '75001', 'city', 'Paris', 'country', 'FR', 'birth_year', 1985, 'years_total_experience', 15,
+    'work_modes', jsonb_build_array('remote', 'hybrid'),
+    'cdi_status', 'open_to_work', 'cdi_notice_period', '1_month', 'cdi_salary_min', 50000, 'cdi_salary_max', 60000,
+    'cdi_variable_pct', 10, 'cdi_career_goals', 'Diriger une équipe', 'cdi_motivations', 'Des projets ambitieux');
+  v_res := public.ecrire_analyse_cv(v_profil, v_complet, null, null, null, interval '24 hours');
+  return next ok(jsonb_array_length(v_res -> 'ecarts') = 0
+                 and not exists (select 1 from jsonb_each(v_complet) e, public.profiles p
+                                  where p.id = v_profil and to_jsonb(p) -> e.key is distinct from e.value),
+                 'G. un profil propre : les 28 colonnes écrites à l identique par l update dynamique, aucun écart');
 end $$;
 
 select * from pg_temp.essai();

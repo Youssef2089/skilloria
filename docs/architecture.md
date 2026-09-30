@@ -314,7 +314,9 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   (ni identité, ni `photo_url`), chaque champ écrit à part (un champ refusé n'emporte pas les autres), chaque ligne
 >   à part (une ligne refusée est écartée), textes tronqués à la longueur de la colonne, une liste entièrement
 >   refusée n'efface rien (`AC001`) ; le quota compté ICI, sur la réussite ; le statut `done` en dernier ; rend les
->   écarts. Test : `profil/analyse_cv_tolerante.test.sql`.
+>   écarts. La liste des colonnes se parcourt par `for … in select … from unnest(…)`, jamais par `foreach` sur la
+>   constante (§E.88 ④ : `plpgsql_check` en faisait une erreur au lint). Test : `profil/analyse_cv_tolerante.test.sql`
+>   (G : les 28 colonnes écrites par la ligne dynamique, zéro écart).
 > - **`verification_conclue`** — action `verification_conclue` (famille compte ; clés `approuve`, `motif`, `de`) ;
 >   `poser_verdict_verification` en est le seul écrivain (verdict automatique, origine système) ; elle et
 >   `statuer_sur_expert` passent aussi `users.status` de `in_review` à `active` à l'approbation. Test :

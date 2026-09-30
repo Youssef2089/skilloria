@@ -14,7 +14,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir ../grand_livre/_fabriques.psql
-select plan(26);
+select plan(27);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
