@@ -179,9 +179,9 @@ section('E. B4 — « Autre » est publiable (prédicat EXÉCUTÉ, contrainte lu
     '… une précision vide, non')
   ok(/or nullif\(btrim\(speciality_other\), ''\) is not null/.test(migration('specialite_autre_publiable')), 'la contrainte en base dit la même chose')
   // m5 : le résumé se mesure en caractères, comme la base.
-  const resume = '😀'.repeat(200)
+  const resume = '😀'.repeat(500)
   ok(!modules.vis.missingForVisibility({ ...base, summary: resume, speciality_other: 'X' }, 'expert_freelance').includes('summary'),
-    'm5 — 200 emojis font 200 caractères (et non 400 unités UTF-16), comme `char_length` en base')
+    'm5 — 500 emojis font 500 caractères (et non 1000 unités UTF-16, au-delà de 800), comme `char_length` en base')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -123,7 +123,7 @@ d'import, si un CV est déjà analysé, propose « Reprendre la validation » à
 ### Ce qui a été fait, item par item de l'audit (sur `aac5f79`)
 
 « Contrôle » = `scripts/diag-parcours-expert.mjs` (nouveau, 99 vérifications, section entre crochets), sauf mention.
-« Test » = pgTAP, `supabase/tests/database/…` — **écrits, JAMAIS exécutés ici** (ni Docker ni base) : c'est l'étape 3
+« Test » = pgTAP, `supabase/tests/database/…` — **écrits, JAMAIS exécutés ici** (ni Docker ni base) : c'est l'étape 4
 de Youssef qui dit s'ils passent.
 
 | Item | État | Ce qui a été fait | Prouvé par |
@@ -211,8 +211,26 @@ validation, les écarts de l'analyse et la question de disponibilité.
   l'expert (disponibilité, zones, séniorités acceptées, classement).
 - `appliquer_analyse_cv` (ARRÊT 18) n'est plus appelée : elle partira au push suivant (§E.72).
 
-### L'épreuve
-(ci-dessous, au commit de l'épreuve)
+### L'épreuve (sur `84c0ee4`)
+
+- `tsc --noEmit` : **aucune erreur** (hors `.next/`) · `next build` : **réussi**, séparément.
+- Lint : **50 erreurs / 24 avertissements** — la base était 65/24, le lot l'a fait DESCENDRE de 15 : la base du
+  cliquet est abaissée à 50/24 dans le même commit (§G.5 ter).
+- Parité i18n : **4237 clés** dans les quatre langues · cliquet des migrations vert · `diag-memoire-exacte` vert
+  (169 migrations) · `diag-memoire-a-jour --base=aac5f79` vert.
+- Série complète `diag.mjs` : **119 verts, 0 rouge, 5 muets** (les mêmes : trois écartés parce qu'ils écrivent en
+  base, deux arrêtés par l'assertion libuv de Windows, sans lien avec le lot). Avant le commit, un sixième muet :
+  `diag-controles-a-rejouer` dépassait le délai de 120 s de la série parce qu'il rejouait les 100 diagnostics que
+  le lot touchait — seul, il est VERT (115 s) ; après le commit, il est vert dans la série.
+- **Mutations : 27 sur 27 rougissent** — les quatre bloquants (B3 trois fois : la vérification dans la requête, le
+  repli en base, le pilote ; B4 deux fois : le prédicat et la contrainte), onze majeurs sur douze (M2 trois fois ; M3
+  est couvert par les mutations de B3, même mécanisme), m5, m8, m9, le point 4, le point 7, une longueur de saisie, la
+  mise en page. **Une mutation est d'abord PASSÉE au travers** : remettre la mesure du résumé en unités UTF-16 laissait
+  le contrôle vert — le cas de 200 emojis (400 unités) restait entre 200 et 800, il ne distinguait rien. Le cas est
+  passé à 500 emojis (1000 unités, au-delà de 800) : la mutation rougit (§E.33, le banc s'éprouve).
+- **Les 80 assertions pgTAP nouvelles n'ont PAS tourné** (ni Docker ni base, par mandat) : c'est l'étape 4 de Youssef.
+
+**ARRÊT 19 : terminé.** Aucun `git push`, aucune écriture en base.
 
 ## ⛔ ARRÊT 18 — DEUX COMPTES DANS LE MÊME NAVIGATEUR : LE MENU DE L'UN, LES REQUÊTES DE L'AUTRE (30/09/2026)
 
