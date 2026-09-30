@@ -167,8 +167,29 @@ repasse par la vérification quand il revient.
 9. **À décider** : les points 9 à 13 ci-dessus. Et `scripts/diag-readonly-expert-achwek.mjs` : il imprime les données
    d'une personne réelle ; je recommande de le supprimer (je ne l'ai pas fait : c'est votre fichier d'enquête).
 
-### L'épreuve de l'ARRÊT 20
-(ci-dessous, au commit de l'épreuve)
+### L'épreuve de l'ARRÊT 20 (sur `838527e` et `f4a31e5`)
+
+- `tsc --noEmit` : aucune erreur (hors `.next/`) · `next build` : réussi, séparément · lint **50/24** (deux avertissements
+  nés du lot, corrigés avant le commit) · parité **4257 clés**.
+- Série complète `diag.mjs` : **118 verts, 0 rouge, 0 n'a pas tourné, 7 écartés par construction** — trois écrivent en
+  base, quatre la lisent (`--avec-ecritures`, `--avec-base`) ; **la série sort en 0 pour la première fois**. Les deux
+  « plantages Windows » des arrêts précédents n'étaient pas des pannes de contrôle : c'étaient des lectures de la vraie
+  base (§E.89).
+- **Mutations : 22 sur 22 rougissent** — les deux lignes de l'inscription remises sur le même sujet, le JSON brut remis
+  dans la pièce, le résumé retiré de la liste, l'administrateur redit « client » ; une clé du menu, un acteur de la
+  dépense, une entrée du menu sans texte ; le panneau de configuration caché quand rien ne manque, la configuration
+  muette ; quatre défauts de la joignabilité (tout 401 dit « protection », un verdict de tâche lu comme injoignable, la
+  gravité, la facturation coupée qui alarme) et une route `/api/cron` qui lirait l'écosystème ; l'adresse du site
+  détachée de la racine, `NEXT_PUBLIC_APP_URL` relue ; un hôte en toutes lettres dans le cookie, la portée de staging
+  resserrée, la production au nom de staging ; le lanceur qui relance les lecteurs, un script qui ressort sans fermer
+  sa connexion ; une postcondition qui renvoie à une preuve absente. **Une mutation est d'abord PASSÉE au travers** :
+  retirer `nav_travaux_ia` de `fr.json` laissait `diag-cles-i18n` vert — parce que la ligne retirée était une
+  **seconde** clé, orpheline, posée un niveau trop haut à l'ARRÊT 19 ; la vraie clé du menu était intacte. L'orpheline
+  est retirée (`f4a31e5`), la mutation vise la clé lue, elle rougit.
+- **Ni la base ni Vercel n'ont été touchés** : les 540 tests pgTAP, la protection de la racine, les variables et les
+  secrets sont les étapes de Youssef, ci-dessus.
+
+**ARRÊT 20 : terminé.** Aucun `git push`, aucune écriture en base.
 
 ## ⛔ ARRÊT 19 — LE PARCOURS EXPERT, DU CV À LA PREMIÈRE MISE EN RELATION, SANS UN MUR (30/09/2026)
 
