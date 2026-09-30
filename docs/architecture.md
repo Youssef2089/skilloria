@@ -294,6 +294,13 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > `domains.id` (la clé technique, immuable) et `domains.slug` (le sous-domaine, un réglage) ; liste blanche de
 > `ecosysteme_modifie` étendue à `sous_domaine.avant` / `sous_domaine.apres`. Aucune fonction. ORDRE : AVANT le
 > déploiement. Test : `grand_livre/sous_domaine.test.sql`.
+>
+> **`analyse_cv_atomique` (30/09/2026) — l'analyse d'un CV s'écrit en une fois, ou pas du tout (§E.87).**
+> `appliquer_analyse_cv(profil, champs, expériences, formations, langues)` : une liste FERMÉE de colonnes du profil
+> (une clé hors liste — un prénom lu dans un CV — est ignorée ; ni `users`, ni `visible`, ni `verification_status`),
+> les trois listes remplacées (`null` ou vide = inchangée : la liste réinsérée est testée avant la suppression),
+> le statut `done` EN DERNIER, dans UNE transaction, chaque écriture du profil exige son compte (EC001).
+> `security definer`, fermée au navigateur. ORDRE : AVANT le déploiement. Test : `profil/analyse_cv.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -3411,6 +3418,29 @@ liste n'est écrite dans le code, la règle est dans la documentation. **Aucun n
 tassée) et rougit s'il en trouve un dans le code (commentaires exclus), les messages des quatre langues ou les
 documents légaux ; les trois descriptions des pages légales portaient « Skilloria 365 » en dur — elles lisent
 désormais le nom de l'écosystème servi.
+
+<a id="d29"></a>
+### D.29 — UNE REQUÊTE N'AGIT QUE SOUS LE COMPTE QUE L'ÉCRAN AFFICHE ; UN NAVIGATEUR, UN COMPTE (30/09/2026)
+
+**Le cas** : §E.87 — deux comptes dans le même navigateur, le menu de l'un, les requêtes de l'autre.
+
+**La décision de Youssef.** Une requête n'agit jamais sous un autre compte que celui qui s'est connecté en dernier ET
+que l'écran affiche. Si les deux divergent, la requête est refusée et la personne déconnectée proprement — jamais un
+mélange. Le menu montre toujours le compte qui agit réellement.
+
+**La mise en œuvre.**
+- L'écran DÉCLARE le compte qu'il affiche : la coquille (`DashboardShell`) et l'admin le retiennent
+  (`lib/identite/compte-affiche.ts`, état du module, AUCUNE copie dans le navigateur) ; `useSecureFetch` l'envoie
+  (`x-compte-affiche`) et n'envoie rien si la session a changé.
+- Le SERVEUR tranche : `requireAuth` compare l'en-tête au compte du jeton (`lib/identite/verdict.ts`, pur, partagé)
+  et REFUSE (403 `compte_different`) avant toute autre garde. Sans en-tête (premier chargement, appels publics),
+  rien à comparer.
+- L'ONGLET se déconnecte proprement quand la session change sous lui (écoute de la session, retour sur l'onglet) :
+  session locale purgée, écran de connexion avec le motif `compte_different`, quatre langues.
+- Les écrans qui lisent l'identité pour AGIR ou AFFICHER passent par `sessionDuCompteAffiche()`.
+
+**Ce que ça coûte, et c'est voulu** : deux comptes ne cohabitent plus dans un navigateur — le second se connecte en
+fenêtre privée. **Gardé** par `diag-identite-cv`.
 
 ---
 

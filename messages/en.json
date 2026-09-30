@@ -576,7 +576,18 @@
       "unknown_reason": "unknown error",
       "parsing_default": "Analysis failed",
       "timeout": "Timed out, please try again.",
-      "verification_indisponible": "A check could not be completed: this is not a refusal, and your file was not sent. Please try again in a moment."
+      "verification_indisponible": "A check could not be completed: this is not a refusal, and your file was not sent. Please try again in a moment.",
+      "fichier_absent": "No file was received. Select your CV again, as a PDF.",
+      "compte_different": "Another account signed in on this browser, so you were signed out. Sign in again with your account, then upload your CV.",
+      "mauvais_type": "This upload is reserved for freelance expert accounts, and the account signed in on this browser is not one. Sign out, then sign in with your freelance account.",
+      "compte_introuvable": "Your account or profile cannot be found. Sign out and sign in again; if it persists, write to us.",
+      "budget": "Automatic CV analysis is paused for now. Your CV was not analysed: complete your profile by hand, or try again later.",
+      "configuration": "CV upload is misconfigured on this site: it is not your doing, and trying again will not help. Write to us; meanwhile, complete your profile by hand.",
+      "stockage": "Your CV could not be saved; your profile was not changed. Try again in a moment.",
+      "ecriture": "The analysis of your CV could not be saved: your profile was not changed. Try again in a moment.",
+      "journal": "Your CV was processed, but its record could not be written. Reload the page to see your profile; if it happens again, write to us.",
+      "inattendu": "The upload did not go through (code: {code}). Nothing was changed; if it happens again, send us this code.",
+      "reseau": "The connection to the server failed: your file was not sent. Check your connection, then try again."
     }
   },
   "profile_validation": {
@@ -912,6 +923,21 @@
       "list_read_failed_title": "Part of your profile could not be loaded",
       "list_read_failed_body": "These sections could not be read: {sections}. What you see is therefore incomplete — nothing has been lost. Reload the page to try again.",
       "list_read_failed_retry": "Reload"
+    },
+    "refus": {
+      "lecture_compte": "Your account could not be read: this is a temporary failure, not a refusal. Reload the page in a moment.",
+      "compte_absent": "Your account cannot be found. Sign out and sign in again; if it persists, write to us.",
+      "lecture_profil": "Your profile could not be read: this is a temporary failure, not a refusal. Reload the page in a moment.",
+      "inattendu": "Your profile could not open for an unexpected reason. Reload the page; if it happens again, write to us.",
+      "pas_freelance_titre": "This page is reserved for freelance experts",
+      "pas_freelance": "The account signed in on this browser is a {type} account. If it is not yours, sign out and sign in with your freelance account."
+    },
+    "types": {
+      "admin": "administrator",
+      "expert_cdi": "permanent-position expert",
+      "client": "client organisation",
+      "cabinet": "firm",
+      "inconnu": "different"
     }
   },
   "login": {
@@ -3585,7 +3611,9 @@
     "superseded_message": "Your account was opened on another device. For security reasons, you have been signed out.",
     "superseded_signin": "Sign in again",
     "suspended_title": "Access suspended",
-    "suspended_message": "Access to this account has been suspended by an administrator. Your listings and applications have not been deleted. Contact support to find out more."
+    "suspended_message": "Access to this account has been suspended by an administrator. Your listings and applications have not been deleted. Contact support to find out more.",
+    "compte_different_title": "Another account signed in on this browser",
+    "compte_different_message": "So that you never act as one account while another is displayed, you were signed out. Sign in again with the account you want — one account at a time per browser, or a private window for the second."
   },
   "settings": {
     "notifications": {

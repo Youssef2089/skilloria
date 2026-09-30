@@ -576,7 +576,18 @@
       "unknown_reason": "unbekannter Fehler",
       "parsing_default": "Analyse fehlgeschlagen",
       "timeout": "Zeitüberschreitung, bitte versuchen Sie es erneut.",
-      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung, und Ihre Datei wurde nicht gesendet. Bitte versuchen Sie es gleich erneut."
+      "verification_indisponible": "Eine Prüfung konnte nicht abgeschlossen werden: das ist keine Ablehnung, und Ihre Datei wurde nicht gesendet. Bitte versuchen Sie es gleich erneut.",
+      "fichier_absent": "Es wurde keine Datei empfangen. Wählen Sie Ihren Lebenslauf erneut als PDF aus.",
+      "compte_different": "In diesem Browser hat sich ein anderes Konto angemeldet, daher wurden Sie abgemeldet. Melden Sie sich erneut mit Ihrem Konto an und laden Sie dann Ihren Lebenslauf hoch.",
+      "mauvais_type": "Dieser Upload ist Freelance-Expertenkonten vorbehalten, und das in diesem Browser angemeldete Konto ist keines. Melden Sie sich ab und mit Ihrem Freelance-Konto wieder an.",
+      "compte_introuvable": "Ihr Konto oder Profil wurde nicht gefunden. Melden Sie sich ab und wieder an; falls es weiterhin auftritt, schreiben Sie uns.",
+      "budget": "Die automatische Lebenslauf-Analyse ist vorerst ausgesetzt. Ihr Lebenslauf wurde nicht analysiert: Vervollständigen Sie Ihr Profil manuell oder versuchen Sie es später erneut.",
+      "configuration": "Der Lebenslauf-Upload ist auf dieser Website falsch konfiguriert: Das liegt nicht an Ihnen, und ein erneuter Versuch hilft nicht. Schreiben Sie uns; vervollständigen Sie Ihr Profil bis dahin manuell.",
+      "stockage": "Ihr Lebenslauf konnte nicht gespeichert werden; Ihr Profil wurde nicht geändert. Versuchen Sie es gleich noch einmal.",
+      "ecriture": "Die Analyse Ihres Lebenslaufs konnte nicht gespeichert werden: Ihr Profil wurde nicht geändert. Versuchen Sie es gleich noch einmal.",
+      "journal": "Ihr Lebenslauf wurde verarbeitet, aber sein Eintrag konnte nicht geschrieben werden. Laden Sie die Seite neu, um Ihr Profil zu sehen; falls es erneut auftritt, schreiben Sie uns.",
+      "inattendu": "Der Upload ist nicht durchgegangen (Code: {code}). Es wurde nichts geändert; falls es erneut auftritt, teilen Sie uns diesen Code mit.",
+      "reseau": "Die Verbindung zum Server ist fehlgeschlagen: Ihre Datei wurde nicht gesendet. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
     }
   },
   "profile_validation": {
@@ -912,6 +923,21 @@
       "list_read_failed_title": "Ein Teil Ihres Profils konnte nicht geladen werden",
       "list_read_failed_body": "Diese Abschnitte konnten nicht gelesen werden: {sections}. Was Sie sehen, ist daher unvollständig — es ist nichts verloren gegangen. Laden Sie die Seite neu, um es erneut zu versuchen.",
       "list_read_failed_retry": "Neu laden"
+    },
+    "refus": {
+      "lecture_compte": "Ihr Konto konnte nicht gelesen werden: Das ist eine vorübergehende Störung, keine Ablehnung. Laden Sie die Seite gleich neu.",
+      "compte_absent": "Ihr Konto wurde nicht gefunden. Melden Sie sich ab und wieder an; falls es weiterhin auftritt, schreiben Sie uns.",
+      "lecture_profil": "Ihr Profil konnte nicht gelesen werden: Das ist eine vorübergehende Störung, keine Ablehnung. Laden Sie die Seite gleich neu.",
+      "inattendu": "Ihr Profil konnte aus einem unerwarteten Grund nicht geöffnet werden. Laden Sie die Seite neu; falls es erneut auftritt, schreiben Sie uns.",
+      "pas_freelance_titre": "Diese Seite ist Freelance-Experten vorbehalten",
+      "pas_freelance": "Das in diesem Browser angemeldete Konto ist ein Konto vom Typ {type}. Wenn es nicht Ihres ist, melden Sie sich ab und mit Ihrem Freelance-Konto wieder an."
+    },
+    "types": {
+      "admin": "Administrator",
+      "expert_cdi": "Festanstellungs-Experte",
+      "client": "Kundenorganisation",
+      "cabinet": "Beratungsfirma",
+      "inconnu": "anderer Typ"
     }
   },
   "login": {
@@ -3585,7 +3611,9 @@
     "superseded_message": "Ihr Konto wurde auf einem anderen Gerät geöffnet. Aus Sicherheitsgründen wurden Sie abgemeldet.",
     "superseded_signin": "Erneut anmelden",
     "suspended_title": "Zugang gesperrt",
-    "suspended_message": "Der Zugang zu diesem Konto wurde von einer Administratorin oder einem Administrator gesperrt. Ihre Anzeigen und Bewerbungen wurden nicht gelöscht. Wenden Sie sich an den Support, um mehr zu erfahren."
+    "suspended_message": "Der Zugang zu diesem Konto wurde von einer Administratorin oder einem Administrator gesperrt. Ihre Anzeigen und Bewerbungen wurden nicht gelöscht. Wenden Sie sich an den Support, um mehr zu erfahren.",
+    "compte_different_title": "In diesem Browser hat sich ein anderes Konto angemeldet",
+    "compte_different_message": "Damit Sie nie unter einem Konto handeln, während ein anderes angezeigt wird, wurden Sie abgemeldet. Melden Sie sich mit dem gewünschten Konto erneut an – ein Konto pro Browser, oder ein privates Fenster für das zweite."
   },
   "settings": {
     "notifications": {

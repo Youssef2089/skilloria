@@ -278,7 +278,7 @@ ok(
 )
 
 /* ══════════════════════════════════════════════════════════════════════════
- * C. LES TROIS ECRIVAINS PORTENT LA MEME GARDE
+ * C. LES ECRIVAINS PORTENT LA MEME GARDE (deux en TypeScript, un delegue a la base)
  *
  * Ancre sur le BLOC vise (§E.8), jamais une regex lachee sur le fichier.
  * ════════════════════════════════════════════════════════════════════════ */
@@ -299,8 +299,15 @@ section('C. L INVENTAIRE DES ECRIVAINS DE `profile_languages`')
  *    PROPRIETE, elle, est verifiee par la section B pour tout le depot.
  *    Un QUATRIEME ecrivain fait rougir : il doit etre lu, pas devine.
  */
+/*
+ * La voie FREELANCE a quitte cet inventaire le 30/09/2026 (§E.87) : la route
+ * n ecrit plus l analyse elle-meme, elle la confie a `appliquer_analyse_cv`
+ * (une transaction). Sa suppression est donc SQL — invisible au balayage B —
+ * et la propriete se verifie plus bas, sur ses deux moities : la route ne
+ * passe une liste que si elle est non vide APRES normalisation, et la
+ * fonction ne supprime que si la liste recue est non vide.
+ */
 const ECRIVAINS_ATTENDUS = [
-  ['app/api/profile/upload-cv/route.ts', 'analyse de CV — freelance'],
   ['app/api/profile/cdi-upload-cv/route.ts', 'analyse de CV — CDI'],
   ['app/api/profile/route.ts', 'PATCH du profil'],
 ]
@@ -326,10 +333,46 @@ for (const [rel, label] of ECRIVAINS_ATTENDUS) {
   )
 }
 
+// ── La voie freelance, deleguee a la base (§E.87) ──
+{
+  const routeFreelance = sansCommentaires(lire(join(ROOT, 'app/api/profile/upload-cv/route.ts')))
+  // Moitie 1 — la route : la liste des langues passee a la fonction est NON VIDE APRES normalisation.
+  // Ancre sur la propriete (§E.34) : la variable passee en `p_langues` n est affectee a une liste que
+  // derriere un test de longueur de la liste dont elle derive — quel que soit son nom.
+  const passee = routeFreelance.match(/rpc\(\s*'appliquer_analyse_cv'[\s\S]{0,400}?p_langues:\s*([A-Za-z_]\w*)/)?.[1]
+  const affectations = passee
+    ? [...routeFreelance.matchAll(new RegExp(`\\b${passee}\\s*=\\s*([A-Za-z_]\\w*)\\.map\\(`, 'g'))]
+    : []
+  const testees = affectations.filter((m) => {
+    const avant = routeFreelance.slice(Math.max(0, m.index - 400), m.index)
+    return new RegExp(`\\b${m[1]}\\.length\\s*(===\\s*0|>\\s*0)`).test(avant)
+  })
+  ok(
+    !!passee && affectations.length > 0 && testees.length === affectations.length,
+    'analyse de CV — freelance — la route ne confie a la base qu une liste de langues testee NON VIDE apres normalisation',
+    passee ? `\`${passee}\` recoit une liste qu aucun test de longueur ne precede` : 'l appel a appliquer_analyse_cv ne passe plus p_langues',
+  )
+  // Moitie 2 — la fonction : la derniere definition ne supprime une liste que si celle qu elle recoit est non vide.
+  const dossier = join(ROOT, 'supabase', 'migrations')
+  const definitions = readdirSync(dossier).filter((f) => f.endsWith('.sql')).sort()
+    .map((f) => lire(join(dossier, f)))
+    .map((s) => s.match(/create\s+(?:or\s+replace\s+)?function\s+public\.appliquer_analyse_cv\s*\([\s\S]*?\$fn\$([\s\S]*?)\$fn\$/i)?.[1])
+    .filter(Boolean)
+  const corps = definitions.at(-1) ?? ''
+  const listes = [['p_experiences', 'profile_experiences'], ['p_formations', 'profile_educations'], ['p_langues', 'profile_languages']]
+  const nonGardees = listes.filter(([param, table]) =>
+    !new RegExp(`if\\s+coalesce\\(\\s*jsonb_array_length\\(\\s*${param}\\s*\\)\\s*,\\s*0\\s*\\)\\s*>\\s*0\\s+then\\s+delete\\s+from\\s+public\\.${table}\\b`, 'i').test(corps))
+  ok(
+    definitions.length > 0 && nonGardees.length === 0,
+    'analyse de CV — freelance — appliquer_analyse_cv ne supprime une liste que si celle qu elle recoit est non vide',
+    definitions.length === 0 ? 'appliquer_analyse_cv introuvable dans les migrations' : `suppression non gardee : ${nonGardees.map(([, t]) => t).join(', ')}`,
+  )
+}
+
 const inconnus = ecrivainsTrouves.filter((r) => !ECRIVAINS_ATTENDUS.some(([x]) => x === r))
 ok(
   inconnus.length === 0,
-  'aucun QUATRIEME ecrivain n est apparu sans avoir ete lu',
+  'aucun ecrivain nouveau n est apparu sans avoir ete lu',
   inconnus.join(', '),
 )
 

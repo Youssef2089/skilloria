@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **160** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
+Sur les **161** migrations : **72 insertions vues, 59 analysées, 2268 valeurs confrontées** (mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
@@ -4120,6 +4120,51 @@ code ne lit aucune variable inconnue de la liste, et réciproquement ; exécute 
 Vonage ; les quatre routes ; l'écran). **Ce qu'ils ne voient pas** : ce que Vercel porte vraiment et ce que Vonage
 répond sur le compte — le démarrage, la supervision et la ligne `[otp]` le disent. Relevé au passage : la route de
 changement de téléphone ne demandait pas un code à 6 chiffres, contrairement à sa jumelle (§E.20) — alignée.
+
+---
+
+<a id="e87"></a>
+### E.87 — DEUX COMPTES DANS LE MÊME NAVIGATEUR : LE MENU MONTRAIT L'UN, LES REQUÊTES PARTAIENT SOUS L'AUTRE — et chaque écran disait une chose vraie d'un compte qu'on ne voyait pas.
+
+**Le cas mesuré (30/09/2026, `skilloria365.staging.skilloria.io`, `b7b5c68`).** Un compte d'essai freelance « Mehdi »,
+puis, dans le même navigateur, Youssef connecté à l'admin. Revenu sur l'onglet du compte d'essai : le dépôt du CV
+répond « Une erreur est survenue » ; l'accueil dit « Bonjour Youssef » sous un menu « Mehdi Ben ayed · Freelance » ;
+« Mon profil » dit « réservée aux experts freelance ».
+
+**La cause, lue dans le code (à `b7b5c68`).** ① La session Supabase du navigateur est UNE par adresse (stockage de
+l'origine, `lib/supabase.ts` ne configure rien) et le cookie de session unique est posé sur le domaine parent : la
+DERNIÈRE connexion gagne, pour tous les onglets de l'adresse. ② Le menu (`components/shell/DashboardShell.tsx`, effet
+à dépendances vides, l. 81-136) lit l'identité UNE fois, au montage, et ne la relit jamais : il est resté sur Mehdi.
+③ Chaque page relit la session à son montage (`app/[locale]/dashboard/freelance/page.tsx` l. 221 ;
+`…/mon-profil/page.tsx` l. 305) : elle a lu l'admin — « Bonjour Youssef » est le prénom DE L'ADMIN, et « Mon profil »
+refuse parce que `user_type` vaut `admin` (l. 324), un message vrai du compte qui agissait. ④ Le dépôt du CV
+(`useSecureFetch`) est parti avec le jeton de l'admin : la route a refusé (`wrong_user_type`,
+`app/api/profile/upload-cv/route.ts` l. 77), et l'écran, qui ne connaissait que six codes, a dit « une erreur est
+survenue » (`…/freelance/profil/page.tsx` l. 124). Le serveur ne pouvait rien voir : jeton et cookie étaient
+COHÉRENTS — ceux de l'admin. **Les deux autres pistes sont réfutées par le code** : l'analyseur n'extrait aucun nom
+(`lib/cv-parser.ts`) et la route n'écrit pas `users` — le prénom n'est pas venu du CV ; la route s'est arrêtée avant
+l'analyse — aucun profil n'a été écrit à moitié.
+
+**Pourquoi rien ne l'a vu.** Les tests pgTAP éprouvent la base, où rien n'était faux. La garde serveur du tableau de
+bord redirige un admin — mais seulement au chargement COMPLET d'une page ; une navigation dans un onglet déjà ouvert
+ne la rejoue pas. Et aucun écran ne déclarait au serveur quel compte il affichait : la seule identité connue du
+serveur était celle du jeton, qui avait changé sans bruit.
+
+**Deux défauts voisins, trouvés au balayage.** La route du CV écrivait l'analyse en SEPT appels (profil, statut
+`done` compris, puis supprimer + réinsérer trois listes), chaque erreur seulement journalisée : un échec en cours de
+route laissait un profil « analysé » à moitié écrit. Et « Mon profil » disait « Impossible de charger votre profil »
+pour quatre raisons différentes.
+
+**La parade.** **Une requête n'agit que sous le compte que l'écran affiche** (§D.29) : la coquille (et l'admin)
+retient le compte qu'elle affiche (`lib/identite/compte-affiche.ts`) ; `useSecureFetch` n'envoie pas sous un autre et
+déclare le compte affiché (`x-compte-affiche`) ; `requireAuth` refuse un jeton d'un autre compte (403
+`compte_different`, avant toute autre garde) ; la coquille écoute la session et le retour sur l'onglet — un
+changement de compte déconnecte proprement l'onglet, qui le dit à l'écran de connexion. **L'analyse s'écrit en une
+fois** (`appliquer_analyse_cv`, migration `analyse_cv_atomique`), le statut `done` en dernier, sans jamais toucher
+`users`. **Chaque refus dit sa raison** : `lib/profil/refus-depot-cv.ts` (chaque code de la route, un code inconnu
+cité), « Mon profil » nomme le type du compte connecté. [`diag-identite-cv`](../scripts/diag-identite-cv.mjs) et
+`supabase/tests/database/profil/analyse_cv.test.sql`. **Ce qu'ils ne voient pas** : un navigateur réel — la diffusion
+de session entre onglets de supabase-js n'est pas mesurée ; la garde s'appuie aussi sur le retour sur l'onglet.
 
 ---
 

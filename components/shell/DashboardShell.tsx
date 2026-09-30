@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
+import { sessionDuCompteAffiche, useGardeCompteAffiche } from '@/lib/identite/compte-affiche'
 import { useDomain } from '@/context/DomainContext'
 import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import { deriveVerificationUiState } from '@/lib/verification-state'
@@ -77,12 +78,18 @@ export default function DashboardShell({
   const pathname = usePathname()
   const [user, setUser] = useState<UserInfo | null>(null)
   const [profile, setProfile] = useState<ProfileInfo | null>(null)
+  // Le compte que CE menu affiche (§E.87) : la garde éjecte l'onglet si un autre compte prend la main.
+  const [idAffiche, setIdAffiche] = useState<string | null>(null)
+  useGardeCompteAffiche(idAffiche)
 
   useEffect(() => {
     let cancelled = false
     const load = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return
+      // Relancé sur `sk:availability-changed` / `sk:profile-changed` : si un AUTRE compte a pris la main
+      // entre-temps, on n'affiche pas son nom sous ce menu — on éjecte (§E.87).
+      const session = await sessionDuCompteAffiche()
+      if (!session || session === 'ejecte' || !session.user) return
+      setIdAffiche(session.user.id)
       // ⚠️ L'ERREUR SE RÉCUPÈRE, ET « RIEN » N'EST PAS « PANNE » (§E.22).
       //   Ces deux lectures ignoraient leur `error`. Une panne rendait donc
       //   `null` — la MÊME valeur que « ce compte n'a pas de profil » — et le

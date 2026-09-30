@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { MARQUES_TIERCES } from '@/lib/palette'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { cleMessageDepotCv } from '@/lib/profil/refus-depot-cv'
 import { LEGAL_PATHS } from '@/lib/legal'
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error'
@@ -98,30 +99,21 @@ export default function ProfilUploadPage() {
       const payload = await res.json().catch(() => ({} as any))
 
       if (!res.ok) {
+        // CHAQUE CODE A SON MESSAGE (§E.87) : la table vit dans lib/profil/refus-depot-cv.ts, confrontée
+        // aux codes de la route par `diag-identite-cv`. Un code inconnu est CITÉ — plus jamais « une erreur est
+        // survenue », qui ne disait ni la cause ni quoi faire.
         const code = payload?.code
-        if (res.status === 503 && code === 'ai_disabled') {
-          setErrorMsg(t('errors.ai_disabled'))
-        } else if (res.status === 429) {
+        const cle = cleMessageDepotCv(code)
+        if (cle === 'rate_limit') {
           const reset = payload?.reset_at
             ? new Date(payload.reset_at).toLocaleString(LOCALE_DATE_MAP[locale] ?? locale)
             : t('errors.rate_limit_later')
           setErrorMsg(t('errors.rate_limit', { reset }))
-        } else if (code === 'file_too_large') {
-          setErrorMsg(t('errors.file_too_large'))
-        } else if (code === 'bad_mime') {
-          setErrorMsg(t('errors.invalid_format'))
-        } else if (code === 'consent_missing') {
-          setErrorMsg(t('errors.consent_required'))
-        } else if (
-          code === 'compte_verification_indisponible' ||
-          code === 'profil_verification_indisponible'
-        ) {
-          // Une LECTURE qui n'a pas abouti : ni un refus, ni un problème du
-          // fichier. Le message le dit, et il dit que rien n'a été envoyé.
-          setErrorMsg(t('errors.verification_indisponible'))
+        } else if (cle === 'inattendu') {
+          console.error('[profil upload] code de refus inconnu', { code, status: res.status })
+          setErrorMsg(t('errors.inattendu', { code: typeof code === 'string' ? code : `HTTP ${res.status}` }))
         } else {
-          // Jamais payload.error (anglais brut) : générique i18n.
-          setErrorMsg(t('errors.generic'))
+          setErrorMsg(t(`errors.${cle}` as 'errors.consent_required'))
         }
         setStatus('error')
         return
@@ -141,7 +133,8 @@ export default function ProfilUploadPage() {
           return
         }
       } else if (payload?.status !== 'done') {
-        setErrorMsg(t('errors.generic'))
+        // Une réponse 2xx sans statut lisible : on le DIT, avec ce qu'on a reçu.
+        setErrorMsg(t('errors.inattendu', { code: String(payload?.status ?? 'sans_statut') }))
         setStatus('error')
         return
       }
@@ -150,8 +143,9 @@ export default function ProfilUploadPage() {
       setStatusMsg(t('parsing_overlay.success'))
       router.push('/dashboard/freelance/profil/valider')
     } catch (err) {
-      console.error('[profil upload] unexpected error', err)
-      setErrorMsg(t('errors.generic'))
+      // La requête n'a pas abouti (réseau, réponse illisible) : le fichier n'est pas parti.
+      console.error('[profil upload] requête en échec', { code: 'reseau', err })
+      setErrorMsg(t('errors.reseau'))
       setStatus('error')
     }
   }

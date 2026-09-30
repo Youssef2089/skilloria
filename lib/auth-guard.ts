@@ -3,6 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { readSessionCookieToken, hashSessionToken } from '@/lib/session-token'
 import { resolveEcosystemAccess, type EcosystemDenialCode } from '@/lib/ecosystem-guard'
 import { sousDomaineDeLaRequete } from '@/lib/subdomain'
+import { verdictCompte, ENTETE_COMPTE_AFFICHE, CODE_COMPTE_DIFFERENT } from '@/lib/identite/verdict'
 
 /** Messages techniques des refus d'écosystème. L'UI, elle, traduit sur `code`. */
 const ECOSYSTEM_DENIAL_MESSAGES: Record<EcosystemDenialCode, string> = {
@@ -269,6 +270,20 @@ export async function requireAuth(request: NextRequest): Promise<AuthContext> {
     await supabaseAdmin.auth.getUser(accessToken)
   if (sessionError || !userInfo?.user) {
     throw new AuthError(401, { error: 'Not authenticated', code: 'invalid_token' })
+  }
+
+  // UNE REQUÊTE N'AGIT QUE SOUS LE COMPTE QUE L'ÉCRAN AFFICHE (§E.87). Deux comptes dans le même navigateur
+  // partagent la session Supabase de l'adresse et le cookie de session unique : la DERNIÈRE connexion gagne,
+  // pour tous les onglets — et un onglet ouvert sur le premier compte envoyait le jeton du second sous son
+  // propre menu. L'écran déclare le compte qu'il affiche ; un jeton d'un autre compte est REFUSÉ, jamais servi.
+  const compteAffiche = request.headers.get(ENTETE_COMPTE_AFFICHE)
+  if (verdictCompte(compteAffiche, userInfo.user.id) === 'different') {
+    console.error('[auth-guard] le jeton n\u2019appartient pas au compte affiché — requête refusée', {
+      code: CODE_COMPTE_DIFFERENT,
+      compte_affiche: compteAffiche,
+      compte_du_jeton: userInfo.user.id,
+    })
+    throw new AuthError(403, { error: 'Token does not belong to the displayed account', code: CODE_COMPTE_DIFFERENT })
   }
 
   const { data: userRow, error: userErr } = await supabaseAdmin

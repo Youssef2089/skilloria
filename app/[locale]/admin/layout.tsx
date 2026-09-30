@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Link, useRouter, usePathname } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
+import { sessionDuCompteAffiche, useGardeCompteAffiche } from '@/lib/identite/compte-affiche'
 import { useDomain } from '@/context/DomainContext'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import DeletionGate from '@/components/DeletionGate'
@@ -197,11 +198,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   })()
 
   const [state, setState] = useState<GuardState>({ kind: 'loading' })
+  // Le compte que cet onglet d'administration affiche (§E.87) : un autre compte qui prend la main l'éjecte.
+  const [idAffiche, setIdAffiche] = useState<string | null>(null)
+  useGardeCompteAffiche(idAffiche)
 
   const checkAdmin = useCallback(async () => {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
+    const session = await sessionDuCompteAffiche()
+    if (session === 'ejecte') return
     if (!session?.user) {
       setState({ kind: 'redirect_login' })
       return
@@ -220,6 +223,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       setState({ kind: 'redirect_home' })
       return
     }
+    setIdAffiche(session.user.id)
     setState({ kind: 'ok' })
   }, [])
 

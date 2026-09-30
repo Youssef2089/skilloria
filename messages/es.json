@@ -576,7 +576,18 @@
       "unknown_reason": "error desconocido",
       "parsing_default": "Análisis fallido",
       "timeout": "Tiempo agotado, vuelve a intentarlo.",
-      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo y su archivo no se ha enviado. Inténtelo de nuevo en unos instantes."
+      "verification_indisponible": "No se ha podido completar una verificación: no es un rechazo y su archivo no se ha enviado. Inténtelo de nuevo en unos instantes.",
+      "fichier_absent": "No se ha recibido ningún archivo. Seleccione de nuevo su CV en formato PDF.",
+      "compte_different": "Otra cuenta ha iniciado sesión en este navegador, por lo que se ha cerrado su sesión. Vuelva a iniciar sesión con su cuenta y suba su CV.",
+      "mauvais_type": "Este envío está reservado a las cuentas de expertos freelance, y la cuenta conectada en este navegador no lo es. Cierre la sesión y vuelva a iniciarla con su cuenta freelance.",
+      "compte_introuvable": "No se encuentra su cuenta o su perfil. Cierre la sesión y vuelva a iniciarla; si persiste, escríbanos.",
+      "budget": "El análisis automático de CV está suspendido por ahora. Su CV no se ha analizado: complete su perfil manualmente o inténtelo más tarde.",
+      "configuration": "El envío de CV está mal configurado en este sitio: no es culpa suya y volver a intentarlo no servirá. Escríbanos; mientras tanto, complete su perfil manualmente.",
+      "stockage": "No se ha podido guardar su CV; su perfil no se ha modificado. Inténtelo de nuevo en unos instantes.",
+      "ecriture": "No se ha podido guardar el análisis de su CV: su perfil no se ha modificado. Inténtelo de nuevo en unos instantes.",
+      "journal": "Su CV se ha procesado, pero no se ha podido escribir su registro. Recargue la página para ver su perfil; si vuelve a ocurrir, escríbanos.",
+      "inattendu": "El envío no se ha completado (código: {code}). No se ha modificado nada; si vuelve a ocurrir, comuníquenos este código.",
+      "reseau": "La conexión con el servidor ha fallado: su archivo no se ha enviado. Compruebe su conexión y vuelva a intentarlo."
     }
   },
   "profile_validation": {
@@ -912,6 +923,21 @@
       "list_read_failed_title": "No se ha podido cargar una parte de tu perfil",
       "list_read_failed_body": "No se han podido leer estas secciones: {sections}. Por tanto, lo que ves está incompleto — no se ha perdido nada. Vuelve a cargar la página para reintentarlo.",
       "list_read_failed_retry": "Recargar"
+    },
+    "refus": {
+      "lecture_compte": "No se ha podido leer su cuenta: es un fallo pasajero, no un rechazo. Recargue la página en un instante.",
+      "compte_absent": "No se encuentra su cuenta. Cierre la sesión y vuelva a iniciarla; si persiste, escríbanos.",
+      "lecture_profil": "No se ha podido leer su perfil: es un fallo pasajero, no un rechazo. Recargue la página en un instante.",
+      "inattendu": "Su perfil no ha podido abrirse por un motivo inesperado. Recargue la página; si vuelve a ocurrir, escríbanos.",
+      "pas_freelance_titre": "Esta página está reservada a los expertos freelance",
+      "pas_freelance": "La cuenta conectada en este navegador es una cuenta de {type}. Si no es la suya, cierre la sesión y vuelva a iniciarla con su cuenta freelance."
+    },
+    "types": {
+      "admin": "administrador",
+      "expert_cdi": "experto con contrato indefinido",
+      "client": "organización cliente",
+      "cabinet": "consultora",
+      "inconnu": "otro tipo"
     }
   },
   "login": {
@@ -3585,7 +3611,9 @@
     "superseded_message": "Tu cuenta se ha abierto en otro dispositivo. Por motivos de seguridad, se ha cerrado tu sesión.",
     "superseded_signin": "Volver a iniciar sesión",
     "suspended_title": "Acceso suspendido",
-    "suspended_message": "Un administrador ha suspendido el acceso a esta cuenta. Tus anuncios y candidaturas no se han eliminado. Contacta con el soporte para saber más."
+    "suspended_message": "Un administrador ha suspendido el acceso a esta cuenta. Tus anuncios y candidaturas no se han eliminado. Contacta con el soporte para saber más.",
+    "compte_different_title": "Otra cuenta ha iniciado sesión en este navegador",
+    "compte_different_message": "Para que nunca actúe con una cuenta mientras se muestra otra, se ha cerrado su sesión. Vuelva a iniciar sesión con la cuenta deseada: una sola cuenta a la vez por navegador, o una ventana privada para la segunda."
   },
   "settings": {
     "notifications": {

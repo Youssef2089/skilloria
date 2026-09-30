@@ -7,6 +7,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
 import { chargerPays } from '@/lib/pays/referentiel-client'
 import { supabase } from '@/lib/supabase'
+import { sessionDuCompteAffiche } from '@/lib/identite/compte-affiche'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import EmptyState from '@/components/ui/EmptyState'
 import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
@@ -268,7 +269,10 @@ export default function MonProfilPage() {
 
   const [loading, setLoading] = useState(true)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const [forbidden, setForbidden] = useState(false)
+  // Le TYPE du compte connecté quand ce n'est pas un freelance — la raison exacte du refus, dite à l'écran.
+  // (Le 30/09/2026, « réservée aux experts freelance » s'affichait sous le menu d'un freelance : le compte qui
+  // agissait était l'admin, connecté dans le même navigateur — §E.87.)
+  const [forbidden, setForbidden] = useState<string | null>(null)
   // Lot CV obligatoire : verrou Mon Profil tant qu'aucun CV n'a été déposé
   // (cv_file_path nul). On n'affiche plus un profil vide ni ne redirige en
   // silence : on montre un écran de blocage avec lien vers l'upload CV.
@@ -293,16 +297,17 @@ export default function MonProfilPage() {
     const load = async () => {
       setLoading(true)
       setErrorMsg(null)
-      setForbidden(false)
+      setForbidden(null)
 
       // ⚠️ LE CHARGEUR N’AVAIT AUCUN catch : chaque branche d’erreur relâchait
       //    le drapeau, l’EXCEPTION jamais — et un squelette qui ne se relâche
       //    pas est un écran mort. Le relâchement vit dans le finally (gardé par
       //    `cancelled` : on n’écrit pas dans un composant démonté).
       try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      // L'identité est celle du MENU (§E.87) : un autre compte connecté dans ce navigateur n'ouvre pas ce
+      // profil sous le nom affiché — l'onglet se déconnecte et le dit.
+      const session = await sessionDuCompteAffiche()
+      if (session === 'ejecte') return
       if (!session) {
         router.push('/connexion')
         return
@@ -316,13 +321,20 @@ export default function MonProfilPage() {
 
       if (cancelled) return
 
-      if (userErr || !userRow) {
-        setErrorMsg(t('error'))
+      // Deux raisons, deux messages : une lecture en panne n'est pas un compte absent (§E.22).
+      if (userErr) {
+        console.error('[mon-profil] lecture du compte en panne', { code: 'lecture_compte', message: userErr.message })
+        setErrorMsg(t('refus.lecture_compte'))
+        return
+      }
+      if (!userRow) {
+        console.error('[mon-profil] compte introuvable pour la session', { code: 'compte_absent' })
+        setErrorMsg(t('refus.compte_absent'))
         return
       }
 
       if ((userRow.user_type as string) !== 'expert_freelance') {
-        setForbidden(true)
+        setForbidden((userRow.user_type as string | null) ?? 'inconnu')
         return
       }
 
@@ -339,7 +351,8 @@ export default function MonProfilPage() {
       if (cancelled) return
 
       if (profileErr) {
-        setErrorMsg(t('error'))
+        console.error('[mon-profil] lecture du profil en panne', { code: 'lecture_profil', message: profileErr.message })
+        setErrorMsg(t('refus.lecture_profil'))
         return
       }
 
@@ -411,8 +424,8 @@ export default function MonProfilPage() {
       setEducations(lignesOuVide(edusLu))
       setLanguages(lignesOuVide(langsLu))
       } catch (err) {
-        console.error('[mon-profil] chargement en échec', err)
-        if (!cancelled) setErrorMsg(t('error'))
+        console.error('[mon-profil] chargement en échec', { code: 'chargement_inattendu', err })
+        if (!cancelled) setErrorMsg(t('refus.inattendu'))
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -726,12 +739,15 @@ export default function MonProfilPage() {
   // ── Forbidden (not freelance) ──
   if (forbidden) {
     return (
-      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, padding: 24 }}>
         {sharedStyles}
-        <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>🔒</div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--sk-red)', margin: 0, marginBottom: 10 }}>{t('error')}</h1>
-          <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 20 }}>{t('not_freelance')}</p>
+        <div role="alert" style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 24 }}>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--sk-red)', margin: 0, marginBottom: 10 }}>{t('refus.pas_freelance_titre')}</h1>
+          <p style={{ fontSize: 14, color: 'var(--sk-text)', marginBottom: 20 }}>
+            {t('refus.pas_freelance', {
+              type: ['admin', 'expert_cdi', 'client', 'cabinet'].includes(forbidden) ? t(`types.${forbidden}` as 'types.admin') : t('types.inconnu'),
+            })}
+          </p>
           <Link href="/" className="icon-btn" style={{ display: 'inline-flex' }}>
             ← {t('back_to_dashboard')}
           </Link>
@@ -743,10 +759,9 @@ export default function MonProfilPage() {
   // ── Hard error ──
   if (errorMsg && !profile) {
     return (
-      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div className={jakarta.variable} style={{ fontFamily: fontJakarta, padding: 24 }}>
         {sharedStyles}
-        <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 32, maxWidth: 480, textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+        <div role="alert" style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red-soft)', borderRadius: 16, padding: 24 }}>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--sk-red)', margin: 0, marginBottom: 16 }}>{errorMsg}</h1>
           <button
             type="button"

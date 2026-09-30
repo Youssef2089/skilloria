@@ -23,10 +23,12 @@ export default function ConnexionPage() {
   // suspension, par le refus de `initSession` juste en dessous. Un motif
   // inconnu n'affiche rien plutôt qu'un bandeau vide.
   const reason = searchParams.get('reason')
-  const bannerKind: 'superseded' | 'suspended' | null =
+  const bannerKind: 'superseded' | 'suspended' | 'compte_different' | null =
     reason === 'session_superseded' ? 'superseded'
       : reason === 'account_suspended' ? 'suspended'
-        : null
+        // Un autre compte s'est connecté dans ce navigateur : l'onglet s'est déconnecté (§E.87).
+        : reason === 'compte_different' ? 'compte_different'
+          : null
   const [form, setForm] = useState({ email: '', password: '' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -232,11 +234,11 @@ export default function ConnexionPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--sk-amber)' }} />
             <strong style={{ fontWeight: 600 }}>
-              {bannerKind === 'suspended' ? tSession('suspended_title') : tSession('superseded_title')}
+              {bannerKind === 'suspended' ? tSession('suspended_title') : bannerKind === 'compte_different' ? tSession('compte_different_title') : tSession('superseded_title')}
             </strong>
           </div>
           <div>
-            {bannerKind === 'suspended' ? tSession('suspended_message') : tSession('superseded_message')}
+            {bannerKind === 'suspended' ? tSession('suspended_message') : bannerKind === 'compte_different' ? tSession('compte_different_message') : tSession('superseded_message')}
           </div>
         </div>
       )}

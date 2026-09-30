@@ -5,6 +5,7 @@ import { useTranslations, useLocale } from 'next-intl'
 import ProfilMasqueBanner from '@/components/profile/ProfilMasqueBanner'
 import { Link, useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
+import { sessionDuCompteAffiche } from '@/lib/identite/compte-affiche'
 import { useDomain } from '@/context/DomainContext'
 import TJMQuickEditModal from '@/components/TJMQuickEditModal'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
@@ -218,7 +219,10 @@ export default function DashboardFreelance() {
 
   useEffect(() => {
     const loadUserAndProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
+      // L'IDENTITÉ DE LA SALUTATION EST CELLE DU MENU (§E.87) : si un autre compte a pris la main dans ce
+      // navigateur, on ne dit pas « Bonjour » à l'autre — l'onglet se déconnecte et le dit.
+      const session = await sessionDuCompteAffiche()
+      if (session === 'ejecte') return
       if (!session) {
         router.push('/connexion')
         return

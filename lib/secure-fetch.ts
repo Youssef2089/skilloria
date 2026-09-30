@@ -3,6 +3,8 @@
 import { useCallback } from 'react'
 import { useRouter } from '@/i18n/navigation'
 import { supabase } from '@/lib/supabase'
+import { verdictCompte, ENTETE_COMPTE_AFFICHE, CODE_COMPTE_DIFFERENT } from '@/lib/identite/verdict'
+import { lireCompteAffiche, ejecterCompteDifferent } from '@/lib/identite/compte-affiche'
 import {
   ECOSYSTEM_SCREEN_CODES,
   ECOSYSTEM_UNAVAILABLE_PATH,
@@ -87,10 +89,23 @@ export async function secureFetch(
     data: { session },
   } = await supabase.auth.getSession()
 
+  // UNE REQUÊTE N'AGIT QUE SOUS LE COMPTE QUE L'ÉCRAN AFFICHE (§E.87). Si un autre compte s'est connecté
+  // dans ce navigateur, on N'ENVOIE PAS : l'onglet se déconnecte et le dit. Sinon, le compte affiché part
+  // avec la requête, et le serveur refuse à son tour un jeton qui n'est pas le sien (`compte_different`).
+  const affiche = lireCompteAffiche()
+  if (verdictCompte(affiche, session?.user?.id) === 'different') {
+    ejecterCompteDifferent()
+    return new Response(JSON.stringify({ error: 'Account changed in this browser', code: CODE_COMPTE_DIFFERENT }), {
+      status: 403,
+      headers: { 'content-type': 'application/json' },
+    })
+  }
+
   const headers = new Headers(init?.headers)
   if (session?.access_token) {
     headers.set('Authorization', `Bearer ${session.access_token}`)
   }
+  if (affiche) headers.set(ENTETE_COMPTE_AFFICHE, affiche)
 
   const res = await fetch(input, {
     ...init,
@@ -106,6 +121,9 @@ export async function secureFetch(
         | null
       if (payload?.code === 'session_superseded') {
         ctx.onSuperseded()
+      } else if (payload?.code === CODE_COMPTE_DIFFERENT) {
+        // Le serveur a vu un jeton d'un AUTRE compte que celui affiché : même issue qu'au client.
+        ejecterCompteDifferent()
       } else if (payload?.code === 'account_deletion_scheduled') {
         ctx.onDeletionScheduled()
       } else if (payload?.code === 'account_suspended') {

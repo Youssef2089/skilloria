@@ -576,7 +576,18 @@
       "unknown_reason": "erreur inconnue",
       "parsing_default": "Analyse échouée",
       "timeout": "Délai dépassé, réessayez.",
-      "verification_indisponible": "Une vérification n’a pas pu aboutir : ce n’est pas un refus, et votre fichier n’a pas été envoyé. Réessayez dans quelques instants."
+      "verification_indisponible": "Une vérification n’a pas pu aboutir : ce n’est pas un refus, et votre fichier n’a pas été envoyé. Réessayez dans quelques instants.",
+      "fichier_absent": "Aucun fichier n'a été reçu. Sélectionnez de nouveau votre CV au format PDF.",
+      "compte_different": "Un autre compte s'est connecté dans ce navigateur : vous avez été déconnecté. Reconnectez-vous avec votre compte, puis déposez votre CV.",
+      "mauvais_type": "Ce dépôt est réservé aux comptes experts freelance, et le compte connecté dans ce navigateur n'en est pas un. Déconnectez-vous, puis reconnectez-vous avec votre compte freelance.",
+      "compte_introuvable": "Votre compte ou votre profil est introuvable. Déconnectez-vous puis reconnectez-vous ; si cela persiste, écrivez-nous.",
+      "budget": "L'analyse automatique des CV est suspendue pour le moment. Votre CV n'a pas été analysé : complétez votre profil à la main, ou réessayez plus tard.",
+      "configuration": "Le dépôt de CV est mal configuré sur ce site : ce n'est pas de votre fait, et réessayer n'y changera rien. Écrivez-nous ; en attendant, complétez votre profil à la main.",
+      "stockage": "Votre CV n'a pas pu être enregistré ; votre profil n'a pas été modifié. Réessayez dans quelques instants.",
+      "ecriture": "L'analyse de votre CV n'a pas pu être enregistrée : votre profil n'a pas été modifié. Réessayez dans quelques instants.",
+      "journal": "Votre CV a été traité, mais sa trace n'a pas pu être écrite. Rechargez la page pour voir votre profil ; si cela se reproduit, écrivez-nous.",
+      "inattendu": "Le dépôt n'a pas abouti (code : {code}). Rien n'a été modifié ; si cela se reproduit, communiquez-nous ce code.",
+      "reseau": "La connexion au serveur a échoué : votre fichier n'est pas parti. Vérifiez votre connexion, puis réessayez."
     }
   },
   "profile_validation": {
@@ -912,6 +923,21 @@
       "list_read_failed_title": "Une partie de votre profil n'a pas pu être chargée",
       "list_read_failed_body": "Ces sections n'ont pas pu être lues : {sections}. Ce que vous voyez n'est donc pas complet — rien n'a été perdu. Rechargez la page pour réessayer.",
       "list_read_failed_retry": "Recharger"
+    },
+    "refus": {
+      "lecture_compte": "Votre compte n'a pas pu être lu : c'est une panne passagère, pas un refus. Rechargez la page dans un instant.",
+      "compte_absent": "Votre compte est introuvable. Déconnectez-vous puis reconnectez-vous ; si cela persiste, écrivez-nous.",
+      "lecture_profil": "Votre profil n'a pas pu être lu : c'est une panne passagère, pas un refus. Rechargez la page dans un instant.",
+      "inattendu": "Votre profil n'a pas pu s'ouvrir pour une raison inattendue. Rechargez la page ; si cela se reproduit, écrivez-nous.",
+      "pas_freelance_titre": "Cette page est réservée aux experts freelance",
+      "pas_freelance": "Le compte connecté dans ce navigateur est un compte {type}. Si ce n'est pas le vôtre, déconnectez-vous et reconnectez-vous avec votre compte freelance."
+    },
+    "types": {
+      "admin": "administrateur",
+      "expert_cdi": "expert CDI",
+      "client": "organisation cliente",
+      "cabinet": "cabinet",
+      "inconnu": "d’un autre type"
     }
   },
   "login": {
@@ -3585,7 +3611,9 @@
     "superseded_message": "Votre compte a été ouvert sur un autre appareil. Pour des raisons de sécurité, vous avez été déconnecté.",
     "superseded_signin": "Se reconnecter",
     "suspended_title": "Accès suspendu",
-    "suspended_message": "L’accès à ce compte a été suspendu par un administrateur. Vos annonces et vos candidatures ne sont pas supprimées. Contactez le support pour en savoir plus."
+    "suspended_message": "L’accès à ce compte a été suspendu par un administrateur. Vos annonces et vos candidatures ne sont pas supprimées. Contactez le support pour en savoir plus.",
+    "compte_different_title": "Un autre compte s’est connecté dans ce navigateur",
+    "compte_different_message": "Pour ne jamais agir sous un compte en en affichant un autre, vous avez été déconnecté. Reconnectez-vous avec le compte voulu — un seul compte à la fois par navigateur, ou une fenêtre privée pour le second."
   },
   "settings": {
     "notifications": {

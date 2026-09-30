@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 29/09/2026 (ARRÊT 17).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 30/09/2026 (ARRÊT 18).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,8 +13,8 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — AUCUNE migration en attente : staging est à jour jusqu'à `sous_domaine_reglable` (ARRÊT 15,
-déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 17 (le SMS dit sa cause ; les variables se disent au démarrage) — l'ARRÊT 16 est déployé (`2ace4ab`). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
+**Au prochain push** — UNE migration en attente, `analyse_cv_atomique` (ARRÊT 18) : staging est à jour jusqu'à
+`sous_domaine_reglable` (ARRÊT 15, déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 17 (le SMS dit sa cause ; les variables se disent au démarrage) — l'ARRÊT 16 est déployé (`2ace4ab`). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
 l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
 `NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
 (étapes de Youssef, ARRÊT 14). La requête de staging est écrite pour cet état (⓪ `sous_domaine_reglable`,
@@ -54,6 +54,78 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 18 — DEUX COMPTES DANS LE MÊME NAVIGATEUR : LE MENU DE L'UN, LES REQUÊTES DE L'AUTRE (30/09/2026)
+
+Constat de Youssef (`skilloria365.staging.skilloria.io`, `b7b5c68` déployé) : compte d'essai « Mehdi », puis l'admin
+connecté dans le même navigateur ; revenu sur le compte d'essai : dépôt du CV → « Une erreur est survenue » ; accueil
+→ « Bonjour Youssef » sous le menu « Mehdi Ben ayed » ; « Mon profil » → « réservée aux experts freelance ». Tag local
+`sauvegarde-avant-identite` sur `b7b5c68`, arbre propre (hormis `supabase/snippets/`). Détail :
+[pieges.md §E.87](pieges.md#e87), [architecture.md §D.29](architecture.md#d29).
+
+**LA CAUSE, PISTE PAR PISTE (point 1), lue dans le code à `b7b5c68`.**
+- **(a) VRAIE — c'est elle.** La session Supabase du navigateur est une par adresse et le cookie de session unique est
+  posé sur le domaine parent : la connexion de l'admin a remplacé celle de Mehdi pour tous les onglets. Le menu
+  (`components/shell/DashboardShell.tsx`, effet l. 81-136, lu UNE fois au montage) est resté sur Mehdi ; les pages ont
+  relu la session à leur montage — l'admin : « Bonjour Youssef » est le prénom de l'admin
+  (`app/[locale]/dashboard/freelance/page.tsx` l. 221) ; « Mon profil » refuse sur `user_type = admin`
+  (`…/mon-profil/page.tsx` l. 305 et 324) ; le dépôt part avec le jeton de l'admin → `wrong_user_type`
+  (`app/api/profile/upload-cv/route.ts` l. 77) → « une erreur est survenue » (`…/freelance/profil/page.tsx` l. 124).
+- **(b) FAUSSE.** L'analyseur n'extrait aucun nom (`lib/cv-parser.ts`), la route du CV n'écrit pas `users` — et ici
+  elle s'est arrêtée à la ligne 77, avant l'analyse. Le prénom affiché était celui du compte qui agissait.
+- **(c) FAUSSE pour ce cas** : aucun profil à moitié écrit — la route n'a rien écrit. Mais le défaut EXISTAIT : la route
+  écrivait l'analyse en sept appels séparés, erreurs seulement journalisées. Corrigé (point 3).
+
+**Contradictions signalées :** ① le serveur ne peut pas savoir quel compte un écran affiche si l'écran ne le dit pas :
+la garde est donc partagée — l'écran DÉCLARE (`x-compte-affiche`), le serveur TRANCHE (`compte_different`). Une requête
+sans déclaration (premier chargement, routes publiques) n'a rien à comparer. ② « Déconnecté proprement » purge la
+session locale du navigateur : l'AUTRE onglet (l'admin) est déconnecté aussi — un navigateur, un compte (§D.29). ③ La
+diffusion de la session entre onglets par supabase-js n'est PAS MESURÉE : la garde écoute aussi le retour sur l'onglet.
+
+| Point | État | Ce qui a été fait |
+|---|---|---|
+| 1. La cause | **prouvée par le code** | Ci-dessus, piste par piste. |
+| 2. La sécurité | **fait** | `lib/identite/verdict.ts` (pur, client et serveur) ; `lib/identite/compte-affiche.ts` (le compte affiché, la garde de la coquille et de l'admin, l'éjection propre) ; `useSecureFetch` n'envoie pas sous un autre compte et déclare le sien ; `requireAuth` refuse `compte_different` (403) avant toute autre garde ; la salutation, « Mon profil » et l'admin lisent l'identité par le compte affiché ; l'écran de connexion dit le motif (quatre langues). |
+| 3. Le nom, l'analyse | **fait** | Migration `analyse_cv_atomique` : `appliquer_analyse_cv` écrit profil + trois listes en UNE transaction, statut `done` en dernier, liste fermée de colonnes, jamais `users`. La route l'appelle ; un échec → `analyse_non_ecrite`, profil inchangé. |
+| 4. Les messages | **fait** | `lib/profil/refus-depot-cv.ts` : chacun des codes de la route a son message (quatre langues), un code inconnu est CITÉ, plus de « une erreur est survenue » ; « Mon profil » : lecture du compte, compte absent, lecture du profil, inattendu, et « pas freelance » qui NOMME le type du compte connecté — panneaux en pleine largeur, alignés à gauche, 24 px. |
+| 5. La preuve | **faite** | `diag-identite-cv` (la séquence des deux comptes exécutée sur le verdict ; le câblage ; le nom ; l'atomicité ; les messages) ; `supabase/tests/database/profil/analyse_cv.test.sql` (12 : analyse complète, CV AU NOM D'UNE AUTRE PERSONNE sans effet sur le compte, échec en cours de route qui n'écrit RIEN, fermée au navigateur) — **jamais exécuté ici** (pas de base). |
+| 6. Pour Youssef | **écrit** | Ci-dessous. |
+
+**Checklist** : 0 (aucun nom, aucune valeur) · 5 (la garde tranche au serveur ; l'analyse s'écrit en base, en une
+transaction ; l'écran ne fait que déclarer et prévenir) · 12 (`compte_different`, `analyse_non_ecrite` nouveaux ; aucun
+code renommé) · 13-14 (messages actionnables, quatre langues) · 15 (V0 = la prod : même garde partout).
+
+**Migration nouvelle : `20260930000000_analyse_cv_atomique`** (AVANT le déploiement). Requête de staging : ⓪
+`sous_domaine_reglable` ; `prochain_push_cree` = la fonction `appliquer_analyse_cv`.
+
+**Épreuve** : voir le commit suivant.
+
+### Les étapes de Youssef — dans cet ordre
+**A. Remettre le navigateur au propre**
+1. Déconnecte-toi de l'admin et du compte d'essai, puis ferme tous les onglets de `*.staging.skilloria.io`.
+2. (Si tu veux être sûr) outils de développement → **Application** → **Effacer les données du site**, sur
+   `skilloria365.staging.skilloria.io` : session du navigateur et cookie de session partent.
+3. Désormais : **un compte par navigateur**. Pour le second (l'admin), une **fenêtre privée** ou un autre navigateur.
+
+**B. Vérifier le compte d'essai (lecture seule, éditeur SQL de staging)** — remplace l'adresse :
+`select u.first_name, u.last_name, u.user_type, p.cv_parsing_status, p.cv_file_path is not null as cv_depose, p.title, (select count(*) from public.profile_experiences e where e.profile_id = p.id) as experiences from public.users u join public.profiles p on p.user_id = u.id where u.email = '<adresse du compte d essai>';`
+Attendu : `first_name` = Mehdi, `user_type` = `expert_freelance`. **Rien à réparer à la main** : le dépôt n'a rien écrit, et
+le prochain dépôt réécrit l'analyse en une fois. Si `first_name` n'est PAS Mehdi, arrête-toi et envoie-moi la ligne —
+ce serait contraire à ce que le code dit.
+
+**C. Le déploiement** (une migration : la séquence complète de §G.4 ter)
+1. En local : `npx supabase db reset --local`, `npx supabase db lint -s public --level error` (sortie vide),
+   `npx supabase test db --local` (un fichier neuf : `profil/analyse_cv.test.sql`).
+2. La requête de staging : ⓪ `sous_domaine_reglable`, **aucun ÉCART** (la ligne ② vérifie que la fonction n'existe pas encore).
+3. `npm run build`, `npx supabase db push`, puis `git push` aussitôt.
+
+**D. Le nouvel essai du dépôt du CV** — **fenêtre privée**, seul le compte d'essai connecté :
+1. `https://skilloria365.staging.skilloria.io/fr/connexion` → compte d'essai → « Bonjour Mehdi ».
+2. « Créez votre profil » → coche l'autorisation → dépose un CV PDF → l'analyse aboutit (page de validation), ou le
+   message dit maintenant la vraie raison.
+3. (Facultatif, pour voir la garde) dans une fenêtre NORMALE avec le compte d'essai ouvert, connecte-toi à l'admin dans
+   un autre onglet puis reviens : l'onglet du compte d'essai se déconnecte et dit « Un autre compte s'est connecté dans
+   ce navigateur ».
 
 ## ⛔ ARRÊT 17 — L'INSCRIPTION EXPERT S'ARRÊTAIT À L'ENVOI DU SMS : SIX CAUSES, UN SEUL MESSAGE « TEMPORAIRE » (29/09/2026)
 

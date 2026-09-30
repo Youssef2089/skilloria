@@ -467,58 +467,42 @@ export async function POST(request: NextRequest): Promise<Response> {
     return isEmpty ? next : (existing as T)
   }
 
-  const { error: finalErr } = await supabaseAdmin
-    .from('profiles')
-    .update({
-      cv_parsing_status: 'done',
-      cv_parsed_at: now.toISOString(),
-      cv_parsing_error: null,
-      title: coalesce(profile.title, parsed.title),
-      summary: coalesce(profile.summary, parsed.summary),
-      seniorities: coalesce(profile.seniorities as string[] | null, parsed.seniorities),
-      years_experience: coalesce(profile.years_experience, parsed.years_experience),
-      skills: coalesce(profile.skills as any, parsed.skills),
-      certifications: coalesce(profile.certifications as any, parsed.certifications),
-      branch_id: coalesce(profile.branch_id, branchId),
-      speciality_ids: coalesce(profile.speciality_ids as string[] | null, specialityIds),
-      languages: coalesce(profile.languages as any, parsed.languages),
-      location: coalesce(profile.location, parsed.location),
-      tjm_min: coalesce(profile.tjm_min, parsed.tjm_min),
-      tjm_max: coalesce(profile.tjm_max, parsed.tjm_max),
-      linkedin_url: coalesce(profile.linkedin_url, parsed.linkedin_url),
-      phone: coalesce(profile.phone, parsed.phone),
-      address_line: coalesce(profile.address_line, parsed.address_line),
-      postal_code: coalesce(profile.postal_code, parsed.postal_code),
-      city: coalesce(profile.city, parsed.city),
-      country: coalesce(profile.country, parsed.country),
-      birth_year: coalesce(profile.birth_year, parsed.birth_year),
-      photo_url: coalesce(profile.photo_url, parsed.photo_url),
-      years_total_experience: coalesce(
-        profile.years_total_experience,
-        parsed.years_total_experience,
-      ),
-      work_modes: coalesce(profile.work_modes as any, parsed.work_modes),
-    })
-    .eq('id', profile.id)
-
-  if (finalErr) {
-    console.error('[upload-cv] final update failed', finalErr)
+  // ═══ L'ANALYSE S'ÉCRIT EN UNE FOIS, OU PAS DU TOUT (§E.87, 30/09/2026) ═══════════
+  //  Avant : SEPT écritures séparées — le profil (statut `done` compris), puis supprimer + réinsérer
+  //  les expériences, les formations, les langues — et chaque erreur n'était que journalisée. Une
+  //  analyse qui échouait en cours de route laissait un profil à moitié écrit, marqué « analysé ».
+  //  Désormais UNE fonction (`appliquer_analyse_cv`, migration analyse_cv_atomique) écrit tout dans
+  //  une transaction, le statut `done` en dernier. Elle ne connaît ni `users` ni l'identité : le
+  //  prénom et le nom viennent du COMPTE, jamais d'un CV.
+  const profilAnalyse = {
+    title: coalesce(profile.title, parsed.title),
+    summary: coalesce(profile.summary, parsed.summary),
+    seniorities: coalesce(profile.seniorities as string[] | null, parsed.seniorities),
+    years_experience: coalesce(profile.years_experience, parsed.years_experience),
+    skills: coalesce(profile.skills as any, parsed.skills),
+    certifications: coalesce(profile.certifications as any, parsed.certifications),
+    branch_id: coalesce(profile.branch_id, branchId),
+    speciality_ids: coalesce(profile.speciality_ids as string[] | null, specialityIds),
+    languages: coalesce(profile.languages as any, parsed.languages),
+    location: coalesce(profile.location, parsed.location),
+    tjm_min: coalesce(profile.tjm_min, parsed.tjm_min),
+    tjm_max: coalesce(profile.tjm_max, parsed.tjm_max),
+    linkedin_url: coalesce(profile.linkedin_url, parsed.linkedin_url),
+    phone: coalesce(profile.phone, parsed.phone),
+    address_line: coalesce(profile.address_line, parsed.address_line),
+    postal_code: coalesce(profile.postal_code, parsed.postal_code),
+    city: coalesce(profile.city, parsed.city),
+    country: coalesce(profile.country, parsed.country),
+    birth_year: coalesce(profile.birth_year, parsed.birth_year),
+    photo_url: coalesce(profile.photo_url, parsed.photo_url),
+    years_total_experience: coalesce(profile.years_total_experience, parsed.years_total_experience),
+    work_modes: coalesce(profile.work_modes as any, parsed.work_modes),
   }
 
-  // ---- Blocs enrichis : DELETE + INSERT uniquement si des données sont fournies ----
-
-  if (Array.isArray(parsed.experiences) && parsed.experiences.length > 0) {
-    const { error: delErr } = await supabaseAdmin
-      .from('profile_experiences')
-      .delete()
-      .eq('profile_id', profile.id)
-    if (delErr) {
-      console.error('[upload-cv] experiences delete failed', delErr)
-    } else {
-      const rows = parsed.experiences.map((e, i) => ({
-        profile_id: profile.id,
-        domain_id: user.domain_id,
-        sort_order: i,
+  // Les listes : `null` (ou vide : la fonction l'ignore aussi) = on n'y touche pas ; un tableau = elle est remplacée,
+  // dans la même transaction.
+  const experiences = Array.isArray(parsed.experiences) && parsed.experiences.length > 0
+    ? parsed.experiences.map((e) => ({
         experience_type: e.experience_type,
         role: e.role,
         employer: e.employer,
@@ -529,24 +513,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         is_current: e.is_current,
         description: e.description,
       }))
-      const { error: insErr } = await supabaseAdmin
-        .from('profile_experiences')
-        .insert(rows)
-      if (insErr) console.error('[upload-cv] experiences insert failed', insErr)
-    }
-  }
-
-  if (Array.isArray(parsed.educations) && parsed.educations.length > 0) {
-    const { error: delErr } = await supabaseAdmin
-      .from('profile_educations')
-      .delete()
-      .eq('profile_id', profile.id)
-    if (delErr) {
-      console.error('[upload-cv] educations delete failed', delErr)
-    } else {
-      const rows = parsed.educations.map(e => ({
-        profile_id: profile.id,
-        domain_id: user.domain_id,
+    : null
+  const formations = Array.isArray(parsed.educations) && parsed.educations.length > 0
+    ? parsed.educations.map((e) => ({
         school: e.school,
         degree: e.degree,
         field: e.field,
@@ -554,67 +523,62 @@ export async function POST(request: NextRequest): Promise<Response> {
         end_year: e.end_year,
         location: e.location,
       }))
-      const { error: insErr } = await supabaseAdmin
-        .from('profile_educations')
-        .insert(rows)
-      if (insErr) console.error('[upload-cv] educations insert failed', insErr)
-    }
-  }
+    : null
 
-  if (
-    Array.isArray(parsed.languages_structured) &&
-    parsed.languages_structured.length > 0
-  ) {
+  // LANGUES : une réponse non vide mais illisible (`[{ language: "  " }]`) ne remplace RIEN — la garde
+  // et l'action lisent la même liste, normalisée (§E.36 à l'intérieur d'une fonction).
+  let langues: Array<{ language: string; level: string; is_primary: boolean }> | null = null
+  if (Array.isArray(parsed.languages_structured) && parsed.languages_structured.length > 0) {
     const seen = new Set<string>()
-    const deduped = parsed.languages_structured.filter(l => {
+    const deduped = parsed.languages_structured.filter((l) => {
       const key = l.language?.trim().toLowerCase()
       if (!key || seen.has(key)) return false
       seen.add(key)
       return true
     })
-
     // Une seule langue principale max
     let primaryKept = false
-    const normalised = deduped.map(l => {
+    const normalised = deduped.map((l) => {
       if (l.is_primary && !primaryKept) {
         primaryKept = true
         return { ...l, is_primary: true }
       }
       return { ...l, is_primary: false }
     })
-
-    // ⚠️ LA GARDE ET L’ACTION DOIVENT LIRE LA MÊME LISTE.
-    //    La garde ci-dessus teste la liste BRUTE ; le `delete` qui suit
-    //    agissait sur `normalised`, la liste FILTRÉE. Un modèle qui rend
-    //    `[{ language: "  " }]` — une réponse non vide mais illisible, cause
-    //    que ce dépôt nomme déjà `reponse_illisible` — passait la garde,
-    //    déclenchait la suppression, et réinsérait ZÉRO ligne : toutes les
-    //    langues saisies disparaissaient.
-    //    §E.36 À L’INTÉRIEUR D’UNE FONCTION : il suffit de deux lectures.
-    //    `PATCH /api/profile` portait déjà cette garde, et il était SEUL des
-    //    trois écrivains à la porter — le trou qu’on croit fermé.
     if (normalised.length === 0) {
-      console.error(`[upload-cv] langues illisibles — aucune suppression`, { profileId: profile.id })
+      console.error('[upload-cv] langues illisibles — aucune remplacée', { profileId: profile.id })
     } else {
-      const { error: delErr } = await supabaseAdmin
-        .from('profile_languages')
-        .delete()
-        .eq('profile_id', profile.id)
-      if (delErr) {
-        console.error('[upload-cv] languages delete failed', delErr)
-      } else {
-      const rows = normalised.map(l => ({
-        profile_id: profile.id,
-        language: l.language.trim(),
-        level: l.level,
-        is_primary: l.is_primary,
-      }))
-      const { error: insErr } = await supabaseAdmin
-        .from('profile_languages')
-        .insert(rows)
-      if (insErr) console.error('[upload-cv] languages insert failed', insErr)
-      }
+      langues = normalised.map((l) => ({ language: l.language.trim(), level: l.level, is_primary: l.is_primary }))
     }
+  }
+
+  const { error: analyseErr } = await supabaseAdmin.rpc('appliquer_analyse_cv', {
+    p_profile_id: profile.id,
+    p_profil: profilAnalyse,
+    p_experiences: experiences,
+    p_formations: formations,
+    p_langues: langues,
+  })
+  if (analyseErr) {
+    // RIEN n'est écrit de l'analyse (la transaction est annulée) : le profil est celui d'avant. On le
+    // DIT — à l'écran (`analyse_non_ecrite`), aux journaux avec la cause, au grand livre (analyse échouée).
+    console.error('[upload-cv] analyse NON écrite — profil inchangé', {
+      code: 'analyse_non_ecrite',
+      profileId: profile.id,
+      sqlstate: analyseErr.code,
+      message: analyseErr.message,
+    })
+    await supabaseAdmin
+      .from('profiles')
+      .update({ cv_parsing_status: 'failed', cv_parsing_error: `analyse_non_ecrite: ${analyseErr.message}`.slice(0, 500) })
+      .eq('id', profile.id)
+    try {
+      await cvTeleverse(supabaseAdmin, journal, { profileId: profile.id, octets: buffer.length, analyse: 'failed', premierConsentement })
+    } catch (err) {
+      if (!(err instanceof JournalError)) throw err
+      console.error('[upload-cv] grand livre en échec après écriture', { profileId: profile.id, message: err.message })
+    }
+    return json({ error: 'Analysis could not be saved', code: 'analyse_non_ecrite' }, 500)
   }
 
   // LA LIGNE DU GRAND LIVRE — le geste entier, à son issue, AVANT l'audit

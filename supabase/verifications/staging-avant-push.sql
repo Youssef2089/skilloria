@@ -37,14 +37,17 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- Ce push (la garde lit l'adresse, 29/09/2026, §E.85) : AUCUNE migration — les deux listes sont vides.
+  -- Ce push (l'analyse du CV en une fois, 30/09/2026, §E.87) : UNE migration, `analyse_cv_atomique` — elle ne
+  -- retire aucune signature ; elle crée la fonction appliquer_analyse_cv.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
   prochain_push_cree(genre, nom) as (
-    select v.genre, v.nom from (values (null::text, null::text)) v(genre, nom) where false
+    select v.genre, v.nom from (values
+      ('fonction', 'appliquer_analyse_cv')
+    ) v(genre, nom)
   )
 
 select v.ordre,
