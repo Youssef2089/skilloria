@@ -93,7 +93,12 @@ ok(/supabase\.auth\.onAuthStateChange/.test(ca) && /addEventListener\('visibilit
   'A. la garde écoute la session (et le retour sur l’onglet), déconnecte proprement, et ne garde AUCUNE copie dans le navigateur')
 const connexion = sansCommentaires(read('app/[locale]/connexion/page.tsx'))
 const sansTexte = LANGUES.filter((l) => !['compte_different_title', 'compte_different_message'].every((k) => typeof messages[l].session?.[k] === 'string'))
-ok(/reason === 'compte_different' \? 'compte_different'/.test(connexion) && sansTexte.length === 0,
+// Le motif reconnu ET son texte affiché (la mutation l’a dit : reconnaître le motif puis afficher le texte
+// d’un autre restait vert).
+ok(/reason === 'compte_different' \? 'compte_different'/.test(connexion)
+   && /bannerKind === 'compte_different' \? tSession\('compte_different_title'\)/.test(connexion)
+   && /bannerKind === 'compte_different' \? tSession\('compte_different_message'\)/.test(connexion)
+   && sansTexte.length === 0,
   'A. l’écran de connexion dit pourquoi, dans les quatre langues', sansTexte.join(', ') || undefined)
 
 // ── B. LE NOM VIENT DU COMPTE ────────────────────────────────────────────────
@@ -149,8 +154,16 @@ const refusManquants = []
 for (const l of LANGUES) for (const k of refus) if (typeof lireCle(messages[l], `profile_view.refus.${k}`) !== 'string') refusManquants.push(`${l}:${k}`)
 ok(refusManquants.length === 0 && refus.every((k) => mp.includes(`t('refus.${k}'`)) && /setForbidden\(\(userRow\.user_type as string \| null\) \?\? 'inconnu'\)/.test(mp),
   '« Mon profil » dit la vraie raison de chaque refus — dont le TYPE du compte connecté', refusManquants.join(', ') || undefined)
-ok(!/maxWidth: 480|textAlign: 'center'/.test(mp.slice(mp.indexOf('if (forbidden)'), mp.indexOf('if (errorMsg && !profile)') + 900)),
-  'D. ses panneaux de refus sont en pleine largeur, alignés à gauche')
+// La PROPRIÉTÉ, pas une ancienne valeur (§E.34 — la mutation l’a dit : la version qui cherchait `maxWidth: 480`
+// restait verte sur `maxWidth: 560, margin: '0 auto'`). Les deux panneaux, de `if (forbidden)` à la fin du bloc
+// `if (errorMsg && !profile)` : aucune largeur bornée, aucun centrage, 24 px de marge.
+const debutRefus = mp.indexOf('if (forbidden)')
+const debutErreur = mp.indexOf('if (errorMsg && !profile)')
+const blocRefus = debutRefus >= 0 && debutErreur > debutRefus ? mp.slice(debutRefus, mp.indexOf('\n  }\n', debutErreur) + 4) : ''
+const centrage = /maxWidth|minWidth|margin:\s*'[^']*auto|margin(Inline|Left|Right):\s*'auto'|textAlign:\s*'center'|justifyContent:\s*'center'|alignItems:\s*'center'|placeItems|placeContent/.exec(blocRefus)
+ok(blocRefus.length > 0 && !centrage && (blocRefus.match(/fontFamily: fontJakarta, padding: 24 \}/g) ?? []).length === 2,
+  'D. ses panneaux de refus sont en pleine largeur, alignés à gauche',
+  blocRefus ? (centrage ? `centrage ou largeur bornée : ${centrage[0]}` : 'la marge de 24 px manque à un panneau') : 'les panneaux de refus sont introuvables')
 
 console.log(failures === 0
   ? '\n✅ Une requête n’agit que sous le compte affiché ; le nom vient du compte ; l’analyse s’écrit en une fois ; chaque refus dit sa raison.'
