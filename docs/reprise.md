@@ -88,7 +88,7 @@ diffusion de la session entre onglets par supabase-js n'est PAS MESURÉE : la ga
 | 2. La sécurité | **fait** | `lib/identite/verdict.ts` (pur, client et serveur) ; `lib/identite/compte-affiche.ts` (le compte affiché, la garde de la coquille et de l'admin, l'éjection propre) ; `useSecureFetch` n'envoie pas sous un autre compte et déclare le sien ; `requireAuth` refuse `compte_different` (403) avant toute autre garde ; la salutation, « Mon profil » et l'admin lisent l'identité par le compte affiché ; l'écran de connexion dit le motif (quatre langues). |
 | 3. Le nom, l'analyse | **fait** | Migration `analyse_cv_atomique` : `appliquer_analyse_cv` écrit profil + trois listes en UNE transaction, statut `done` en dernier, liste fermée de colonnes, jamais `users`. La route l'appelle ; un échec → `analyse_non_ecrite`, profil inchangé. |
 | 4. Les messages | **fait** | `lib/profil/refus-depot-cv.ts` : chacun des codes de la route a son message (quatre langues), un code inconnu est CITÉ, plus de « une erreur est survenue » ; « Mon profil » : lecture du compte, compte absent, lecture du profil, inattendu, et « pas freelance » qui NOMME le type du compte connecté — panneaux en pleine largeur, alignés à gauche, 24 px. |
-| 5. La preuve | **faite** | `diag-identite-cv` (la séquence des deux comptes exécutée sur le verdict ; le câblage ; le nom ; l'atomicité ; les messages) ; `supabase/tests/database/profil/analyse_cv.test.sql` (12 : analyse complète, CV AU NOM D'UNE AUTRE PERSONNE sans effet sur le compte, échec en cours de route qui n'écrit RIEN, fermée au navigateur) — **jamais exécuté ici** (pas de base). |
+| 5. La preuve | **faite** | `diag-identite-cv` (la séquence des deux comptes exécutée sur le verdict ; le câblage ; le nom ; l'atomicité ; les messages) ; `supabase/tests/database/profil/analyse_cv.test.sql` (13 : analyse complète, CV AU NOM D'UNE AUTRE PERSONNE sans effet sur le compte, échec en cours de route qui n'écrit RIEN, liste vide qui n'efface rien, fermée au navigateur) — **jamais exécuté ici** (pas de base). |
 | 6. Pour Youssef | **écrit** | Ci-dessous. |
 
 **Checklist** : 0 (aucun nom, aucune valeur) · 5 (la garde tranche au serveur ; l'analyse s'écrit en base, en une
@@ -98,7 +98,27 @@ code renommé) · 13-14 (messages actionnables, quatre langues) · 15 (V0 = la p
 **Migration nouvelle : `20260930000000_analyse_cv_atomique`** (AVANT le déploiement). Requête de staging : ⓪
 `sous_domaine_reglable` ; `prochain_push_cree` = la fonction `appliquer_analyse_cv`.
 
-**Épreuve** : voir le commit suivant.
+**Épreuve** (lot commité en `a00e686` AVANT de muter) :
+- `tsc --noEmit` : aucune erreur hors `.next/` · `next build` : **exit 0** · lint : **65 / 24** · parité i18n :
+  **4054 clés** · série complète `diag.mjs` : **118 verts, 0 rouge, 5 muets** (les mêmes : trois écartés parce
+  qu'ils écrivent en base, deux arrêtés par libuv sous Windows) · `diag-memoire-a-jour --base=b7b5c68` : vert.
+- Pendant la série, deux contrôles ont rougi à raison. `diag-ecritures-effectives` : les deux écritures du profil dans
+  `appliquer_analyse_cv` exigent maintenant leur compte (EC001) ; les trois suppressions de listes sont au gel, raison
+  écrite (un premier dépôt n'a rien à effacer). `diag-garde-et-action` : la voie freelance a quitté l'inventaire des
+  suppressions TypeScript — la propriété (« la liste réinsérée est testée avant la suppression ») se vérifie sur ses
+  deux moitiés : la route ne confie qu'une liste non vide après normalisation, et la FONCTION ne supprime que sur une
+  liste non vide (règle posée en base, test E).
+- **18 mutations, 16 rouges au premier passage** : un panneau de refus centré en `maxWidth: 560` et un motif
+  `compte_different` reconnu mais affiché avec le texte d'un autre restaient verts — deux contrôles ancrés sur une
+  forme (§E.34). Portés sur la propriété et commités (`f141f9e`) : **18 sur 18 rougissent** — l'envoi sous un autre
+  compte, l'en-tête absent, le refus serveur retiré, la garde de la coquille puis de l'admin retirées, la salutation
+  sur la session brute, une copie du compte dans le navigateur, **le prénom du CV écrit dans `users`**, le statut
+  `done` avant les listes, une liste vide qui efface, un compte non exigé, la route qui supprime elle-même, un code
+  sans message, un code inconnu non cité, « une erreur est survenue » revenu, le panneau centré, le motif sans texte
+  en allemand, le motif affiché avec un autre texte. Arbre propre après chaque restauration.
+- **Ce qui n'est PAS prouvé ici** : le test pgTAP (13) n'a jamais tourné — pas de base ; c'est l'étape C.1 de
+  Youssef. Et aucun navigateur réel n'a été ouvert : la séquence des deux comptes est exécutée sur le verdict pur,
+  le câblage est lu dans le code.
 
 ### Les étapes de Youssef — dans cet ordre
 **A. Remettre le navigateur au propre**
