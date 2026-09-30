@@ -273,8 +273,18 @@ Au passage, `analyse_cv_tolerante` passe à `plan(19)` (le test G).
    message : il nomme la colonne qui n'est pas écrite à l'identique.
 4. Puis la suite de l'ARRÊT 19 inchangée : la requête de staging, `db push`, `git push`.
 
-### L'épreuve de l'ARRÊT 19 bis
-(ci-dessous, au commit de l'épreuve)
+### L'épreuve de l'ARRÊT 19 bis (sur `e2b2666`)
+
+- `tsc --noEmit` : aucune erreur · `next build` : réussi · lint 50/24 (inchangé) · parité 4237 clés.
+- Série complète `diag.mjs` : **119 verts, 0 rouge, 5 muets** (les mêmes cinq).
+- **Mutations : 8 sur 8 rougissent** — la boucle remise en `foreach` sur la constante (deux contrôles : le parcours et
+  le balayage K), le plan de `travaux_ia` remis à 26, un plan faux dans un AUTRE dossier (`matching/`, que l'ancien
+  contrôle ne lisait pas), une colonne retirée du test G, une colonne ajoutée à la liste sans passer par G, G qui
+  admet des écarts, G qui ne compare plus les valeurs.
+- **Ni `plpgsql_check` ni les tests n'ont tourné ici** (ni Docker ni base) : les étapes 1 à 3 de Youssef, ci-dessus,
+  disent si le lint est vide et si les 542 tests passent.
+
+**ARRÊT 19 bis : terminé.** Aucun `git push`, aucune écriture en base.
 
 ## ⛔ ARRÊT 18 — DEUX COMPTES DANS LE MÊME NAVIGATEUR : LE MENU DE L'UN, LES REQUÊTES DE L'AUTRE (30/09/2026)
 
