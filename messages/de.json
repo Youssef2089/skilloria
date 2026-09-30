@@ -3551,7 +3551,6 @@
       "resume_objet": "Objekt: {objet}",
       "resume_plus": "+ {n} weitere"
     },
-    "nav_travaux_ia": "KI-Aufträge",
     "travaux_ia": {
       "title": "KI-Aufträge mit Handlungsbedarf",
       "subtitle": "Die Lebenslaufanalyse und die Expertenprüfung laufen außerhalb der Anfrage des Experten und wiederholen sich selbst, wenn der Fehler bei uns liegt. Hier: was sich nicht von selbst gelöst hat. Jede Zeile ist ein wartender Experte.",

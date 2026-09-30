@@ -3551,7 +3551,6 @@
       "resume_objet": "object: {objet}",
       "resume_plus": "+ {n} more"
     },
-    "nav_travaux_ia": "AI jobs",
     "travaux_ia": {
       "title": "AI jobs needing attention",
       "subtitle": "CV analysis and expert verification run outside the expert's request, and retry on their own when the incident is on our side. Listed here: what did not resolve by itself. Each line is an expert who is waiting.",

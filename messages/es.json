@@ -3551,7 +3551,6 @@
       "resume_objet": "objeto: {objet}",
       "resume_plus": "+ {n} más"
     },
-    "nav_travaux_ia": "Tareas de IA",
     "travaux_ia": {
       "title": "Tareas de IA pendientes",
       "subtitle": "El análisis del CV y la verificación del experto se ejecutan fuera de la solicitud del experto y se reintentan solos cuando el incidente es nuestro. Aquí: lo que no se resolvió solo. Cada línea es un experto que espera.",

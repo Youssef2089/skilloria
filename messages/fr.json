@@ -3551,7 +3551,6 @@
       "resume_objet": "objet : {objet}",
       "resume_plus": "+ {n} autre(s)"
     },
-    "nav_travaux_ia": "Travaux d'IA",
     "travaux_ia": {
       "title": "Travaux d'IA à reprendre",
       "subtitle": "L'analyse d'un CV et la vérification d'un expert tournent hors de la requête de l'expert, et se rejouent d'elles-mêmes quand l'incident est de notre côté. Ici : ce qui ne s'est pas réglé seul. Chaque ligne est un expert qui attend.",
