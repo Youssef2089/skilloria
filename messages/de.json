@@ -2567,7 +2567,9 @@
       "nav_supervision": "Überwachung",
       "nav_facturation": "Abrechnung",
       "nav_consommation": "Verbrauch",
-      "nav_journal": "Hauptbuch"
+      "nav_journal": "Hauptbuch",
+      "nav_depots_echec": "Fehlgeschlagene Einreichungen",
+      "nav_travaux_ia": "KI-Aufträge"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -3233,7 +3235,15 @@
         "lecture_indisponible_acteurs_plafond": "Die Konten an der Obergrenze konnten nicht gezählt werden. Das ist nicht „keine“: wir wissen es nicht.",
         "variable_manquante": "Die Umgebungsvariable {nom} fehlt in dieser Bereitstellung: Eine Produktfunktion ist defekt. Setzen Sie sie in Vercel (Produktionsverfahren, Schritt 5) und stellen Sie erneut bereit.",
         "travaux_ia_en_souffrance": "{count} KI-Auftrag/Aufträge brauchen einen Menschen: eine Lebenslaufanalyse oder Expertenprüfung, die abgebrochen wurde, überfällig ist oder deren Ausführung gestoppt hat. Hinter jeder Zeile wartet ein Experte. Öffnen Sie KI-Aufträge und starten Sie sie neu.",
-        "lecture_indisponible_travaux_ia": "Die KI-Aufträge konnten nicht gezählt werden. Das heißt nicht „nichts zu tun“, sondern „wir wissen es nicht“. Öffnen Sie KI-Aufträge."
+        "lecture_indisponible_travaux_ia": "Die KI-Aufträge konnten nicht gezählt werden. Das heißt nicht „nichts zu tun“, sondern „wir wissen es nicht“. Öffnen Sie KI-Aufträge.",
+        "site_injoignable_protection": "Die Aufgabe „{nom}“ erreicht die Website nicht: Die von der Datenbank aufgerufene Adresse (Vault-Secret purge_cron_base_url) ist beim Hoster geschützt (Antwort {count}). Legen Sie in Vercel eine Schutzausnahme für diese Adresse an oder ersetzen Sie sie durch eine ungeschützte Adresse.",
+        "site_injoignable_secret_refuse": "Die Aufgabe „{nom}“ erreicht die Website, die ihr Secret ablehnt (Antwort {count}): Das Vault-Secret cron_secret stimmt nicht mit der Vercel-Variable CRON_SECRET überein. Tragen Sie auf beiden Seiten denselben Wert ein.",
+        "site_injoignable_redirection": "Die Aufgabe „{nom}“ wird umgeleitet (Antwort {count}) und erreicht die Aufgabe nie: Die Vault-Adresse purge_cron_base_url muss die endgültige Adresse sein, mit https und ohne abschließenden Schrägstrich.",
+        "site_injoignable_delai": "Die Aufgabe „{nom}“ hat innerhalb von 60 Sekunden keine Antwort der Website erhalten. Prüfen Sie, ob die Vault-Adresse purge_cron_base_url zur Website führt und ob die Website antwortet.",
+        "site_injoignable_connexion": "Die Aufgabe „{nom}“ konnte keine Verbindung zur Website herstellen: falsche Adresse purge_cron_base_url, unbekannter Domainname oder abgelehntes Zertifikat.",
+        "site_injoignable_erreur_http": "Die Aufgabe „{nom}“ hat einen Fehler der Website erhalten (Antwort {count}), ohne dass die Aufgabe ihr Ergebnis geschrieben hat. Öffnen Sie ihren Verlauf, um die Antwort zu lesen.",
+        "site_injoignable_aucune_reponse": "Die Aufgabe „{nom}“ wurde aufgerufen, ohne dass eine Antwort beobachtet wurde. Die Datenbank bewahrt Antworten etwa sechs Stunden auf: Öffnen Sie den Verlauf der Aufgabe oder starten Sie sie manuell und prüfen Sie ihre Antwort.",
+        "lecture_indisponible_joignabilite": "Die letzten Aufrufe der geplanten Aufgaben können nicht gelesen werden: Wir wissen nicht, ob die Datenbank die Website erreicht."
       },
       "spread_title": "Verteilung der Bewertungen",
       "spread_empty": "Noch kein Lauf auf der neuen Skala. Die Verteilung füllt sich mit den nächsten Matching-Läufen.",
@@ -3307,7 +3317,9 @@
       "by_actor_alert": "Dieses Konto hat seine Warnstufe erreicht. Es wird nichts blockiert.",
       "actor": {
         "organization": "Organisationen",
-        "profile": "Expertinnen und Experten"
+        "profile": "Expertinnen und Experten",
+        "reste_non_detaille": "Weitere Konten (zusammengefasst)",
+        "non_imputable": "Keinem Konto zurechenbar"
       },
       "cause": {
         "plafond": "Budget erreicht",
@@ -3323,7 +3335,13 @@
         "ouverture_croisee": "Gegenseitige Öffnung",
         "disponibilite": "Verfügbarkeit",
         "cv_reanalyse": "Lebenslauf neu ausgewertet"
-      }
+      },
+      "config_title": "Beim Start erforderliche Einstellungen",
+      "config_toutes": "Alle {n} erforderlichen Variablen sind gesetzt.",
+      "config_manquantes": "{n} von {total} erforderlichen Variablen fehlen: {noms}. Setzen Sie sie in Vercel (Settings → Environment Variables) und stellen Sie neu bereit.",
+      "config_controle": "Geprüft am {quand} · Version {version} · Umgebung {environnement}",
+      "config_version_inconnue": "unbekannt",
+      "config_env_local": "lokaler Rechner"
     },
     "depots_echec": {
       "title": "Fehlgeschlagene Bewerbungseingänge",
@@ -3366,7 +3384,6 @@
       "raison_ne_pas_deranger": "Fachkraft auf „nicht stören“",
       "raison_non_en_recherche": "Fachkraft beschäftigt, nicht suchend"
     },
-    "nav_depots_echec": "Fehlgeschlagene Einreichungen",
     "consommation": {
       "title": "Verbrauch pro Konto",
       "intro": "Was jedes Konto diesen Monat gekostet hat, und welches seine Obergrenze erreicht hat. Die Obergrenzen werden eingestellt in",
@@ -3528,7 +3545,11 @@
           "messagerie": "Kein gesetzliches Minimum gefunden (0).",
           "journal": "Spuren der Bereinigungen werden nie gelöscht."
         }
-      }
+      },
+      "oui": "ja",
+      "non": "nein",
+      "resume_objet": "Objekt: {objet}",
+      "resume_plus": "+ {n} weitere"
     },
     "nav_travaux_ia": "KI-Aufträge",
     "travaux_ia": {

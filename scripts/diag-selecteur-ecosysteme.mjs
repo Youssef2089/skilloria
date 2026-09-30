@@ -47,7 +47,7 @@
 // LECTURE PURE : ce script n'ecrit JAMAIS et ne touche JAMAIS la base.
 
 import { readFileSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { dirname, join } from 'node:path'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -331,10 +331,16 @@ ok(iEco !== -1 && iRole !== -1 && iEco < iRole,
 // ═══ G. LE COOKIE DE STAGING VOIT LES SOUS-DOMAINES ════════════════════════
 section('G. Staging : une seule regle, et elle voit les sous-domaines')
 
-const TOK = strip(read('lib/session-token.ts'))
-ok(/h === 'staging\.skilloria\.io' \|\| h\.endsWith\('\.staging\.skilloria\.io'\)/.test(TOK),
-  'l’hote de staging inclut ses SOUS-DOMAINES',
-  'sinon <slug>.staging poserait `ss_token` sur .skilloria.io — donc SUR le cookie de production')
+// DEPUIS LA RECETTE STAGING (30/09/2026), la règle ne teste plus un hôte ÉCRIT dans le code : elle vient de
+// l'environnement et de la racine (lib/session-cookie.ts, pur). On l'EXÉCUTE — un motif sur un littéral
+// rougirait au premier renommage et verdirait au premier déplacement (§E.34).
+const { regleCookieSession } = await import(pathToFileURL(join(ROOT, 'lib/session-cookie.ts')).href)
+const sousDomaine = regleCookieSession({ host: 'eco.staging.racine.invalid', racine: 'staging.racine.invalid', environnement: 'preview' })
+const racineStaging = regleCookieSession({ host: 'staging.racine.invalid', racine: 'staging.racine.invalid', environnement: 'preview' })
+const production = regleCookieSession({ host: 'eco.racine.invalid', racine: 'racine.invalid', environnement: 'production' })
+ok(sousDomaine.nom === 'ss_token_staging' && racineStaging.nom === 'ss_token_staging' && production.nom === 'ss_token',
+  'l’hote de staging inclut ses SOUS-DOMAINES : hors production, chaque hôte sous la racine porte le nom distinct',
+  'sinon <slug>.staging poserait `ss_token` sur le domaine parent — donc SUR le cookie de production')
 ok(!/staging\.skilloria\.io/.test(DASH),
   'la garde du dashboard ne recopie plus la regle',
   'deux copies finissent par lire deux cookies differents, et celle qui lit le mauvais ne garde plus rien')

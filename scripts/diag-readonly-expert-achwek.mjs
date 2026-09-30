@@ -8,16 +8,27 @@ for (const line of env.split(/\r?\n/)) {
   const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/)
   if (m) process.env[m[1]] = m[2]
 }
+// ⚠️ SORTIR SANS LAISSER DE CONNEXION OUVERTE (recette staging, 30/09/2026). Lancé par `diag.mjs`, ce script
+//    s'arrêtait sur « Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c » : un
+//    `process.exit()` alors que la connexion HTTPS gardée ouverte par fetch (undici) se fermait encore. Cause
+//    PROBABLE, non reproduite (190 essais sans base : HTTP, DNS, TLS, IPv6, spawnSync) — le script, lui, joint la
+//    vraie base et ne se lance pas dans la série statique. On ferme le pool AVANT de sortir.
+async function sortir(code) {
+  try { await globalThis[Symbol.for('undici.globalDispatcher.1')]?.close?.() } catch { /* rien à fermer */ }
+  process.exit(code)
+}
+
 const { createClient } = await import('@supabase/supabase-js')
 const supa = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 })
 const EMAIL = 'achwek.bacc@gmail.com'
 
+async function principal() {
 console.log('=== 1. USER ===')
 const { data: users } = await supa.auth.admin.listUsers()
 const u = users?.users?.find(x => x.email?.toLowerCase() === EMAIL)
-if (!u) { console.log('NOT FOUND in auth.users'); process.exit(0) }
+if (!u) { console.log('NOT FOUND in auth.users'); return }
 console.log('auth.users.id =', u.id, '| email_confirmed_at =', u.email_confirmed_at)
 
 const { data: uRow } = await supa.from('users').select('id, email, user_type, is_verified, domain_id, locale, created_at, domains(slug, name)').eq('id', u.id).maybeSingle()
@@ -25,7 +36,7 @@ console.log('public.users :', JSON.stringify(uRow, null, 2))
 
 console.log('\n=== 2. PROFILE ===')
 const { data: prof } = await supa.from('profiles').select('*').eq('user_id', u.id).maybeSingle()
-if (!prof) { console.log('NO PROFILE ROW'); process.exit(0) }
+if (!prof) { console.log('NO PROFILE ROW'); return }
 console.log('profile.id =', prof.id)
 console.log({
   verification_status: prof.verification_status,
@@ -98,3 +109,7 @@ const poolQ = await supa.from('profiles')
 console.log('Profils éligibles dans le pool (au moment de l\'appel runMatching de la dernière publi) :', poolQ.count ?? poolQ.data?.length ?? 0)
 const inPool = (poolQ.data ?? []).some(r => r.id === prof.id)
 console.log('=> CET EXPERT DANS LE POOL =', inPool)
+}
+
+await principal()
+await sortir(0)

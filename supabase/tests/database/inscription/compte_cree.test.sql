@@ -101,7 +101,7 @@ begin
   v_m := pg_temp.fab_signer(v_email, jsonb_build_object('role', 'entreprise', 'domain_slug', v_slug, 'firstname', 'Sonde', 'lastname', 'Admin',
            'voie', 'administrateur', 'piece', gen_random_uuid()::text, 'acteur_id', ''));
   perform pg_temp.fab_auth(v_ids[7], v_email, v_m, true);
-  return next ok(pg_temp.ligne_ok(v_ids[7], (v_m ->> 'piece')::uuid, 'systeme', null, 'client', 'administrateur', v_dom),
+  return next ok(pg_temp.ligne_ok(v_ids[7], (v_m ->> 'piece')::uuid, 'systeme', null, 'admin', 'administrateur', v_dom),
                  'administrateur : UNE ligne compte_cree, origine système, SANS acteur (il est sur la promotion)');
   -- ── l'appel DIRECT : sans preuve, plus de compte, donc plus de ligne ──
   return next throws_ok(format('select pg_temp.fab_auth(%L, %L, %L::jsonb, false)', v_ids[8], pg_temp.fab_email(v_ids[8]),

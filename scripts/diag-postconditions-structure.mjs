@@ -88,6 +88,7 @@ ok(metier.has('users') && metier.has('publications') && metier.has('candidatures
 const lectures = []
 const ecritures = []
 const sansRenvoi = []
+const preuvesRetirees = []
 const exceptionsVues = new Set()
 for (const f of soumises) {
   const s = sansCommentaires(lire(join(DOSSIER, f)))
@@ -107,6 +108,13 @@ for (const f of soumises) {
     for (const m of c.matchAll(/raise notice 'postcondition (?:tenue|PARTIELLE)[^']*'/g)) {
       const refs = [...m[0].matchAll(/((?:tests\/database\/|scripts\/|lib\/|app\/)[A-Za-z0-9_\-/.[\]]+\.(?:sql|mjs|ts|tsx))/g)].map((x) => x[1])
       const existe = refs.some((r) => existsSync(join(ROOT, r.startsWith('tests/') ? `supabase/${r}` : r)))
+      // UNE PREUVE PART AVEC CE QU'ELLE PROUVAIT (recette staging, 30/09/2026) : une migration APPLIQUÉE ne se
+      // réécrit pas, et sa ligne de fin nomme le test de sa fonction. Si CHAQUE fonction qu'elle a créée est
+      // supprimée par une migration ultérieure (§E.72, étape 3), ce test n'a plus rien à prouver — dérivé, pas gelé.
+      const creees = [...s.matchAll(/create\s+(?:or\s+replace\s+)?function\s+public\.(\w+)\s*\(/gi)].map((x) => x[1].toLowerCase())
+      const toutesRetirees = creees.length > 0 && creees.every((fn) =>
+        toutes.some((g) => g > f && new RegExp(String.raw`drop\s+function\s+(?:if\s+exists\s+)?public\.` + fn + String.raw`\s*\(`, 'i').test(sansCommentaires(lire(join(DOSSIER, g))))))
+      if (!existe && toutesRetirees) { preuvesRetirees.push(f); continue }
       if (!existe) sansRenvoi.push(`${f} : « ${m[0].slice(20, 90)}… »`)
     }
   }
@@ -117,6 +125,7 @@ ok(ecritures.length === 0, 'B. aucune postcondition n’écrit directement une t
   ecritures.length ? ecritures.join(' · ') : undefined)
 ok(sansRenvoi.length === 0, 'C. chaque ligne de fin renvoie à sa preuve — un fichier du dépôt qui existe',
   sansRenvoi.length ? sansRenvoi.join('\n         ') : undefined)
+if (preuvesRetirees.length) console.log(`  note preuve retirée avec sa fonction (supprimée depuis) : ${preuvesRetirees.join(', ')}`)
 const perimees = Object.keys(EXCEPTIONS).filter((k) => !exceptionsVues.has(k))
 ok(perimees.length === 0, 'chaque exception correspond encore à une lecture réelle (la liste ne peut que se vider)', perimees.join(' · ') || undefined)
 ok(Object.values(EXCEPTIONS).every((r) => /^(LÉGITIME|DÉFAUT NOMMÉ) — /.test(r)), 'chaque exception dit LÉGITIME ou DÉFAUT NOMMÉ (§G.8)')

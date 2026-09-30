@@ -8,12 +8,13 @@
 --   D. une liste ENTIÈREMENT refusée n'efface rien : la liste d'avant reste ;
 --   E. le quota compte les analyses ABOUTIES, dans la même transaction ; le statut `done` en dernier ;
 --   F. une fenêtre de quota absente est refusée ; la fonction est fermée au navigateur ;
---   G. un profil PROPRE : les 28 colonnes de la liste fermée passent par l'update dynamique, aucun écart.
+--   G. un profil PROPRE : les 28 colonnes de la liste fermée passent par l'update dynamique, aucun écart ;
+--   H. (repris d'appliquer_analyse_cv, retirée) l'identité et la gouvernance ne s'écrivent pas ; trois listes vides n'effacent rien.
 -- Les deux fonctions d'appui (`longueur_max_colonne`, `borner_textes`) sont appelées en direct.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir ../grand_livre/_fabriques.psql
-select plan(19);
+select plan(21);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -134,6 +135,22 @@ begin
                  and not exists (select 1 from jsonb_each(v_complet) e, public.profiles p
                                   where p.id = v_profil and to_jsonb(p) -> e.key is distinct from e.value),
                  'G. un profil propre : les 28 colonnes écrites à l identique par l update dynamique, aucun écart');
+
+  -- H. REPRIS DE L'ANCIEN TEST (appliquer_analyse_cv, retirée — §E.72) : un CV AU NOM D'UNE AUTRE PERSONNE et des
+  --    clés de gouvernance dans l'analyse ne touchent ni le compte ni le profil ; trois listes VIDES n'effacent rien.
+  perform public.ecrire_analyse_cv(v_profil,
+    jsonb_build_object('first_name', 'Autre', 'last_name', 'Personne', 'email', 'autre@exemple.invalid',
+                       'visible', true, 'verification_status', 'approved', 'user_id', gen_random_uuid()),
+    '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, interval '24 hours');
+  return next ok((select p.visible is not true and p.verification_status is distinct from 'approved'
+                         and p.user_id = (select u.id from public.users u where u.id = p.user_id)
+                    from public.profiles p where p.id = v_profil)
+                 and (select u.last_name is distinct from 'Personne' and u.email is distinct from 'autre@exemple.invalid'
+                        from public.users u join public.profiles p on p.user_id = u.id where p.id = v_profil),
+                 'H. l identité et la gouvernance lues dans un CV ne s écrivent ni sur le compte ni sur le profil');
+  return next ok((select count(*) = 28 from jsonb_each(v_complet) e, public.profiles p
+                   where p.id = v_profil and to_jsonb(p) -> e.key is not distinct from e.value),
+                 'H. trois listes vides et aucun champ de la liste : le profil G est intact');
 end $$;
 
 select * from pg_temp.essai();

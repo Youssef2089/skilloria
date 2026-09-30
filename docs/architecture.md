@@ -340,6 +340,19 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > - **`listes_profil_atomiques`** — `remplacer_listes_profil(profil, expériences, formations, langues)` : les trois
 >   listes en une transaction, `null` = inchangée ; une ligne refusée lève `LP001` avec la liste, le rang, la colonne
 >   et la cause. Test : `profil/listes_profil.test.sql`.
+>
+> **LES TROIS MIGRATIONS DE LA RECETTE STAGING (30/09/2026).**
+> - **`journal_inscription_distincte`** (AVANT le déploiement) — `handle_new_user()` remplacée à signature identique :
+>   `compte_cree` porte le compte (type FINAL — « admin » pour un administrateur, plus « client » —, voie, version des
+>   CGU, téléphone vérifié) ; `expert_inscrit` porte sur le PROFIL (branche, nombre de spécialités, « Autre »). Listes
+>   blanches élargies en conséquence (§D.32). Tests : `grand_livre/inscriptions.test.sql`, `inscription/compte_cree.test.sql`,
+>   `grand_livre/administrateur_cree.test.sql`.
+> - **`appliquer_analyse_cv_retiree`** (indifférent) — `drop function appliquer_analyse_cv(uuid, jsonb, jsonb, jsonb, jsonb)`,
+>   la troisième étape de §E.72 ; son test est parti avec elle, ses garanties sont reprises par
+>   `profil/analyse_cv_tolerante.test.sql` (H).
+> - **`joignabilite_du_site`** (AVANT) — `cron_joignabilite(interval)` : le dernier appel HTTP de chaque tâche (24 h),
+>   journal ET réponse brute de pg_net, avec la source du verdict et le drapeau « notre secret refusé » ; lecture
+>   seule, fermée au navigateur (§E.89). Test : `taches_planifiees/joignabilite.test.sql`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -1433,6 +1446,14 @@ where u.anonymized_at is not null
 
 
 ### C.9 — Ce que `/admin/supervision` doit porter, mesure par mesure
+
+> **RECETTE STAGING (30/09/2026) — TROIS AJOUTS AU CONTRAT.** ① **Les réglages exigés, TOUJOURS dits** : le même
+> contrôle que le démarrage (`etatConfiguration`, lib/configuration/variables.ts), rejoué à chaque lecture, avec
+> l'heure et la version contrôlées (`VERCEL_GIT_COMMIT_SHA`) — présent même quand rien ne manque. ② **La base atteint-elle
+> le site ?** `cron_joignabilite()` + `causeInjoignable()` (lib/supervision/joignabilite.ts) : une tâche dont le dernier
+> appel n'atteint pas le site est BLOQUANTE, avec sa cause (protection de l'hébergeur, secret refusé, redirection,
+> délai, connexion, aucune réponse). ③ **La vérification Stripe « impossible » parce que la facturation est coupée
+> n'alarme plus** : même règle (`motifEstNormal`) que /admin/facturation, qui la montrait déjà en gris (§E.52).
 
 **Pourquoi ce tableau existe.** La refonte de septembre 2026 a séparé ce qui se **décide** de ce qui
 s'**observe** — et la séparation a fait tomber une mesure en route (§E.35). Le réglage crie quand il
@@ -3567,6 +3588,33 @@ dépublie (seul chemin qui refait passer une modification par la vérification �
 republier un profil approuvé le laisse approuvé pendant sa re-vérification (quelques minutes), le verdict démote s'il
 le faut.
 
+<a id="d32"></a>
+### D.32 — DEUX ÉCRITURES D'UN MÊME GESTE NE SE RESSEMBLENT PAS (recette staging, 30/09/2026)
+
+**Le cas** : sur staging, à l'inscription d'un expert, « Compte créé » et « Inscription d'un expert » s'affichaient avec
+le même résumé, et la pièce ouverte ne montrait aucune différence. Mesuré : même sujet (le compte), même acteur, même
+écosystème ; seule la version des CGU les séparait — et l'écran ne montrait pas le détail (la liste l'ignorait, la
+pièce le vidait en JSON brut).
+
+**La décision de Youssef.** Un geste ne garde qu'une écriture quand deux ne se distinguent en rien. Soit chacune porte
+des détails propres et l'écran les montre, soit l'une disparaît en gardant tout ce qu'elle portait.
+
+**Ce qui a été fait, pour toute la plateforme.** Balayage des écrivains SQL et TypeScript (docs/reprise.md, recette) :
+l'inscription d'un expert était le SEUL cas où deux lignes ne se distinguaient en rien. Elle garde ses deux lignes,
+chacune sur SON objet — `compte_cree` le compte, `expert_inscrit` le profil né à l'inscription —, comme
+l'organisation et l'invitation le faisaient déjà. Cas jugés distincts, et dits : la création d'un administrateur
+(`compte_cree` par le système, `administrateur_cree` par l'administrateur qui agit — le type « client » était faux,
+il vaut « admin ») ; le franchissement d'un plafond puis un refus dans le même geste (`plafond_atteint` réussi, une
+fois par mois, et `refus_plafond_atteint` refusé) ; l'échec d'une recherche au plafond de tentatives
+(`recherche_echouee` puis `recherche_abandonnee`). L'écran rend le détail clé par clé (`DetailEcriture`,
+`ResumeEcriture`, components/admin/journal/presentation.tsx) : deux écritures d'une pièce se distinguent sans être
+ouvertes.
+
+**Gardé par** `diag-grand-livre` (deux actions d'une même fonction SQL sur le même sujet rougissent), le test
+`grand_livre/inscriptions` (deux sujets par voie), `diag-recette-staging` (l'écran). **Ce qu'ils ne voient pas** :
+deux lignes écrites par deux fonctions différentes ou par le TypeScript sous la même pièce — le balayage est à refaire
+à chaque action nouvelle.
+
 ---
 
 ## F. La classe de défaut « lire puis écrire »
@@ -3668,8 +3716,8 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
 [reprise.md](reprise.md), ARRÊT 11.
 
 **H.5 — DEUX DETTES NOMMÉES PAR L'ARRÊT 19 (30/09/2026).**
-- `appliquer_analyse_cv` (migration `analyse_cv_atomique`) n'est plus appelée : `ecrire_analyse_cv` la remplace. Elle
-  ne se supprime qu'au push SUIVANT celui qui déploie l'ARRÊT 19 (§E.72 : le code en ligne l'appelle jusque-là).
+- ~~`appliquer_analyse_cv` n'est plus appelée ; elle se supprime au push suivant~~ — **FERMÉE (recette staging)** : la
+  migration `appliquer_analyse_cv_retiree` la supprime (§E.72, étape 3).
 - La vérification d'un expert DÉJÀ approuvé qui republie tourne après la publication : pendant quelques minutes, le
   profil modifié reste approuvé (arbitrage ④ de l'ARRÊT 19, docs/reprise.md) — à trancher par Youssef s'il veut
   l'autre sens (repasser « en cours » tout de suite, et sortir des mises en relation à chaque republication).

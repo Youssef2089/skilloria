@@ -133,9 +133,16 @@ if (tests.length === 0) {
 console.log(`\n═══ Tests du grand livre — ${tests.length} fichiers, ${depuisSocle.length} migrations depuis le socle ═══\n`)
 
 // ── A. Chaque fonction a tourné ──
+// Dans l'ORDRE des migrations et du texte : une fonction SUPPRIMÉE ensuite (`drop function`, la troisième
+// étape de §E.72) n'existe plus — elle n'a plus de test à exiger (recette staging : appliquer_analyse_cv).
 const fonctions = new Set()
 for (const f of depuisSocle) {
-  for (const m of lire(join(MIGRATIONS, f)).matchAll(/create\s+(?:or\s+replace\s+)?function\s+public\.(\w+)\s*\(/gi)) fonctions.add(m[1].toLowerCase())
+  const sql = sansCommentaires(lire(join(MIGRATIONS, f)))
+  const evenements = [
+    ...[...sql.matchAll(/create\s+(?:or\s+replace\s+)?function\s+public\.(\w+)\s*\(/gi)].map((m) => ({ i: m.index, nom: m[1].toLowerCase(), cree: true })),
+    ...[...sql.matchAll(/drop\s+function\s+(?:if\s+exists\s+)?public\.(\w+)\s*\(/gi)].map((m) => ({ i: m.index, nom: m[1].toLowerCase(), cree: false })),
+  ].sort((a, b) => a.i - b.i)
+  for (const e of evenements) { if (e.cree) fonctions.add(e.nom); else fonctions.delete(e.nom) }
 }
 const nonAppelees = [...fonctions].filter((fn) =>
   DECLENCHEURS[fn] ? !corpusTests.includes(DECLENCHEURS[fn]) : !corpusTests.includes(`public.${fn}(`)).sort()

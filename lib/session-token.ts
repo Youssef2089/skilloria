@@ -1,6 +1,8 @@
 import type { NextRequest } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { randomUUID, createHash } from 'node:crypto'
+import { domaineRacine } from '@/lib/subdomain'
+import { regleCookieSession, type RegleCookieSession } from '@/lib/session-cookie'
 
 /**
  * Helpers de gestion du token de session unique (11F).
@@ -26,43 +28,17 @@ import { randomUUID, createHash } from 'node:crypto'
 const SESSION_COOKIE_BASE_NAME = 'ss_token'
 const SESSION_COOKIE_MAX_AGE_S = 30 * 24 * 60 * 60 // 30 jours
 
-/**
- * Hôte de staging — `staging.skilloria.io` ET TOUT SOUS-DOMAINE EN DESSOUS.
- *
- * ⚠️ LE SUFFIXE `_staging` NE SERT À RIEN S'IL NE VOIT PAS LES SOUS-DOMAINES.
- *
- *    La règle testait l'ÉGALITÉ STRICTE avec `staging.skilloria.io`. Tant que
- *    staging n'avait qu'un seul hôte, elle suffisait. Éprouver la bascule entre
- *    écosystèmes exige des hôtes `<slug>.staging.skilloria.io` — pour lesquels
- *    l'égalité est FAUSSE. Le cookie s'y serait appelé `ss_token`, posé sur
- *    `Domain=.skilloria.io`, donc EXACTEMENT sur le cookie de production :
- *    se connecter à staging aurait déconnecté l'utilisateur de la production.
- *    C'est précisément l'accident que ce suffixe existe pour empêcher.
- *
- * Fonction PURE et exportée : la garde du dashboard (server component, sans
- * NextRequest) doit appliquer la MÊME règle. Elle vivait recopiée là-bas ; deux
- * copies d'une règle de nommage de cookie finissent par lire deux cookies
- * différents, et la garde qui lit le mauvais ne garde plus rien, en silence.
- */
-export function isStagingHost(host: string | null | undefined): boolean {
-  const h = (host ?? '').toLowerCase().split(':')[0]
-  return h === 'staging.skilloria.io' || h.endsWith('.staging.skilloria.io')
+/** La règle pour CET environnement, lue dans la configuration. */
+function regleIci(host: string | null | undefined): RegleCookieSession {
+  return regleCookieSession({ host, racine: domaineRacine(), environnement: process.env.VERCEL_ENV })
 }
 
 /**
- * Nom du cookie de session — suffixé sur staging pour éviter la collision
- * avec prod sur le domaine parent `.skilloria.io`.
- *
- * NB : le nom du cookie est dérivé du host pour rester zero-config —
- * même règle côté pose (init-session), lecture (auth-guard) et garde dashboard.
- *
- * ⚠️ Il N'EST PAS suffixé par écosystème, et c'est VOULU : `microsoft.` et
- *    `sap.` partagent `Domain=.skilloria.io` et le même cookie. C'est ce qui
- *    permet de changer d'écosystème SANS se réauthentifier — et donc de ne
- *    jamais rappeler init-session à la bascule.
+ * Nom du cookie de session. Il N'EST PAS suffixé par écosystème, et c'est VOULU : `microsoft.` et `sap.`
+ * partagent le même cookie — changer d'écosystème ne rappelle pas init-session.
  */
 export function sessionCookieNameForHost(host: string | null | undefined): string {
-  return isStagingHost(host) ? `${SESSION_COOKIE_BASE_NAME}_staging` : SESSION_COOKIE_BASE_NAME
+  return regleIci(host).nom
 }
 
 export function getSessionCookieName(request: NextRequest): string {
@@ -150,12 +126,8 @@ export async function clearSessionToken(args: {
  * de la requête (cf. correction utilisateur 11F : scope sur le domaine
  * parent en prod pour suivre l'user cross-subdomain).
  *
- * Règles :
- *   - Host se termine par `.skilloria.io` OU est `skilloria.io` →
- *     Domain=.skilloria.io (cookie partagé entre microsoft./sap./etc.)
- *   - Sinon (localhost, *.vercel.app preview, autre) → pas de Domain
- *     (cookie scope host courant)
- *   - Secure : true si le host n'est pas localhost (HTTP en local OK)
+ * Règles : celles de `regleCookieSession()` ci-dessus — la portée et `Secure` viennent de la
+ * configuration de l'environnement, plus d'un hôte écrit dans le code.
  */
 export function buildSessionCookieOptions(request: NextRequest): {
   domain?: string
@@ -165,13 +137,11 @@ export function buildSessionCookieOptions(request: NextRequest): {
   path: '/'
   maxAge: number
 } {
-  const host = (request.headers.get('host') ?? '').toLowerCase().split(':')[0]
-  const isSkillariaProd = host === 'skilloria.io' || host.endsWith('.skilloria.io')
-  const isLocal = host === 'localhost' || host === '127.0.0.1' || host.endsWith('.local')
+  const regle = regleIci(request.headers.get('host'))
 
   return {
-    ...(isSkillariaProd ? { domain: '.skilloria.io' } : {}),
-    secure: !isLocal,
+    ...(regle.domaine ? { domain: regle.domaine } : {}),
+    secure: regle.secure,
     sameSite: 'lax',
     httpOnly: true,
     path: '/',

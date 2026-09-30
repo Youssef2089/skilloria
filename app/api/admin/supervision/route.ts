@@ -4,7 +4,9 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { classerProblemes, type SourcesSupervision } from '@/lib/supervision/problemes'
 import { MINUTES_AVANT_COINCE } from '@/lib/stripe-exploitation/journal'
 import { capaciteActive } from '@/lib/interrupteurs'
-import { variablesExigeesManquantes } from '@/lib/configuration/variables'
+import { etatConfiguration, variablesExigeesManquantes } from '@/lib/configuration/variables'
+import { motifEstNormal } from '@/lib/stripe-exploitation/etat'
+import { causeInjoignable, type AppelDeTache } from '@/lib/supervision/joignabilite'
 import { resolveCatalogueKey } from '@/lib/billing/config'
 import { lireToutesLesLiaisons, modeDeLaCle } from '@/lib/billing/catalogue-stripe'
 import { vendabilite } from '@/lib/billing/vendabilite'
@@ -78,6 +80,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     coincesRes,
     depotsRes,
     travauxRes,
+    joignabiliteRes,
   ] = await Promise.all([
     admin.rpc('matching_threshold_health'),
     admin.rpc('matching_coverage_health'),
@@ -112,7 +115,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     //  disant « rien à signaler » et l'autre « je ne sais pas » (§E.36).
     admin
       .from('stripe_reconciliation_runs')
-      .select('etat, manquants, ran_at')
+      .select('etat, manquants, ran_at, motif_impossible')
       .order('ran_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -135,6 +138,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       .or(filtreDepotsEnSouffrance(Date.now())),
     //  LES TRAVAUX D'IA EN SOUFFRANCE — la MÊME fonction que l'écran /admin/travaux-ia (§E.36).
     admin.rpc('travaux_ia_en_souffrance', {}, { count: 'exact', head: true }),
+    //  LA BASE ATTEINT-ELLE LE SITE ? Le dernier appel de chaque tâche, journal ET réponse brute de pg_net
+    //  (recette staging : un 401 de la journée était perdu avant la réconciliation de la nuit).
+    admin.rpc('cron_joignabilite'),
   ])
 
   /** `null` = « je n'ai pas pu regarder ». Jamais `[]`, qui dit « rien à voir ». */
@@ -158,6 +164,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       : {
           etat: 'disponible',
           nuit: nuitStripeRes.data.etat === 'impossible' ? 'impossible' : 'compare',
+          // LA SOURCE UNIQUE du « normal » (lib/stripe-exploitation/etat.ts) : facturation coupée = rien à
+          // rapprocher. /admin/facturation le dit en gris ; la supervision ne le peint plus en orange (recette).
+          motifNormal:
+            nuitStripeRes.data.etat === 'impossible' &&
+            motifEstNormal(nuitStripeRes.data.motif_impossible as Parameters<typeof motifEstNormal>[0]),
           manquants:
             nuitStripeRes.data.manquants === null ? null : Number(nuitStripeRes.data.manquants),
           ranAt: nuitStripeRes.data.ran_at as string,
@@ -234,6 +245,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     // rassurant, et c'est celui qu'on ne veut surtout pas donner à l'aveugle.
     depotsEnSouffrance: depotsRes.error ? null : (depotsRes.count ?? 0),
     travauxIaEnSouffrance: travauxRes.error ? null : (travauxRes.count ?? 0),
+    // La cause est nommée par le module pur (lib/supervision/joignabilite.ts) — une par action à faire.
+    tachesInjoignables: joignabiliteRes.error
+      ? null
+      : ((joignabiliteRes.data ?? []) as AppelDeTache[]).flatMap((a) => {
+          const cause = causeInjoignable(a, Date.now())
+          return cause ? [{ tache: a.job_name, cause, statut: a.http_status, depuis: a.requested_at }] : []
+        }),
   }
 
   return json(
@@ -241,6 +259,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       // CE QUI NE VA PAS, EN PREMIER ET DÉJÀ TRIÉ. L'écran n'a plus qu'à le
       // rendre : il ne décide pas de ce qui est grave.
       problemes: classerProblemes(sources),
+      // LA CONFIGURATION, TOUJOURS DITE (recette staging) : le même contrôle que le démarrage, rejoué ici,
+      // avec l'heure et la version contrôlées — présente même quand rien ne manque.
+      configuration: { ...etatConfiguration(process.env, process.env.VERCEL_GIT_COMMIT_SHA), verifiee_a: new Date().toISOString() },
       distribution: sources.distribution,
       couverture: sources.couverture,
       pannes: sources.pannes,

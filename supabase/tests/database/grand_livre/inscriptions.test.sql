@@ -5,10 +5,13 @@
 --   expert_inscrit : expert freelance, expert CDI
 --   organisation_preinscrite : client, cabinet, ESN (sujet l'organisation née avec le compte)
 -- Puis les listes blanches : les anciennes clés d'échec, le téléphone, l'identifiant d'entreprise — refusés.
+-- DEUX LIGNES D'UN GESTE NE SE RESSEMBLENT PAS (recette staging, 30/09/2026) : `compte_cree` dit le COMPTE (type,
+-- voie, CGU, téléphone), la ligne sœur dit l'OBJET que la voie crée — le profil, l'organisation. `paire()` exige
+-- deux SUJETS différents : deux lignes sur le même sujet, c'est le cas que Youssef a vu à l'écran.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(10);
+select plan(11);
 
 -- Une inscription prouvée, et sa pièce.
 create or replace function pg_temp.inscrire(p_id uuid, p_role text, p_remplace jsonb default '{}'::jsonb) returns uuid
@@ -19,10 +22,11 @@ begin
   return (v ->> 'piece')::uuid;
 end $$;
 
--- La paire sous une pièce : compte_cree ET la ligne sœur (un code), rien d'autre.
+-- La paire sous une pièce : compte_cree ET la ligne sœur (un code), rien d'autre — sur DEUX sujets différents.
 create or replace function pg_temp.paire(p_piece uuid, p_soeur text) returns boolean
 language sql as $$
   select pg_temp.lignes(p_piece) = 2
+     and (select count(distinct (g.sujet_type, g.sujet_id)) from public.grand_livre g where g.piece = p_piece) = 2
      and exists (select 1 from public.grand_livre g where g.piece = p_piece and g.type_action = 'compte_cree')
      and exists (select 1 from public.grand_livre g where g.piece = p_piece and g.type_action = p_soeur and g.statut = 'reussi')
 $$;
@@ -32,19 +36,28 @@ declare
   v_dom uuid := pg_temp.fab_domaine();
   v_ids uuid[] := array(select gen_random_uuid() from generate_series(1, 5));
   v_p   uuid[] := array[]::uuid[];
+  v_branche uuid;
 begin
+  select b.id into v_branche from public.branches b where b.domain_id = v_dom and b.active order by b.slug limit 1;
   -- ── expert_inscrit ──
   v_p[1] := pg_temp.inscrire(v_ids[1], 'expert');
   return next ok(pg_temp.paire(v_p[1], 'expert_inscrit')
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[1] and g.type_action = 'expert_inscrit'
                               and g.origine = 'utilisateur' and g.acteur_id = v_ids[1] and g.acteur_type = 'expert_freelance'
-                              and g.sujet_type = 'users' and g.sujet_id = v_ids[1] and g.ecosysteme_id = v_dom
-                              and g.detail = jsonb_build_object('type_de_compte', 'expert_freelance', 'cgu_version', 'sonde')),
-                 'expert freelance : compte_cree ET expert_inscrit (type de compte, version des CGU — rien d''autre)');
+                              and g.sujet_type = 'profiles' and g.sujet_id = (select p.id from public.profiles p where p.user_id = v_ids[1])
+                              and g.ecosysteme_id = v_dom
+                              and g.detail = jsonb_build_object('branch_id', v_branche, 'nb_specialites', 0, 'specialite_autre', true)),
+                 'expert freelance : expert_inscrit dit l''EXPERT — sur son profil : branche, spécialités, « Autre » (rien du compte)');
+  return next ok(exists (select 1 from public.grand_livre g where g.piece = v_p[1] and g.type_action = 'compte_cree'
+                          and g.sujet_type = 'users' and g.sujet_id = v_ids[1]
+                          and g.detail = jsonb_build_object('type_de_compte', 'expert_freelance', 'voie_declaree', 'inscription_expert',
+                                                            'cgu_version', 'sonde', 'telephone_verifie', true)),
+                 'expert freelance : compte_cree dit le COMPTE — type, voie, version des CGU, téléphone vérifié');
   v_p[2] := pg_temp.inscrire(v_ids[2], 'cdi');
   return next ok(pg_temp.paire(v_p[2], 'expert_inscrit')
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[2] and g.type_action = 'expert_inscrit'
-                              and g.acteur_type = 'expert_cdi' and g.detail ->> 'type_de_compte' = 'expert_cdi'),
+                              and g.acteur_type = 'expert_cdi' and g.sujet_type = 'profiles'
+                              and g.sujet_id = (select p.id from public.profiles p where p.user_id = v_ids[2])),
                  'expert CDI : la paire sous la même pièce');
   -- ── organisation_preinscrite : le sujet est l'organisation née avec le compte ──
   v_p[3] := pg_temp.inscrire(v_ids[3], 'entreprise');
@@ -75,8 +88,9 @@ begin
                                  null::uuid, null::numeric, null::text)$q$, gen_random_uuid(), v_ids[1], v_dom, v_ids[1]),
                         'GL004', null, 'expert_inscrit : le téléphone n''entre pas');
   return next throws_ok(format($q$select public.journaliser(%L, 'expert_inscrit', 'reussi', 'utilisateur', %L, 'expert_freelance', %L,
-                                 'users', %L, '{"type_de_compte":"expert_freelance"}'::jsonb,
-                                 null::uuid, null::numeric, null::text)$q$, v_p[1], v_ids[1], v_dom, v_ids[1]),
+                                 'profiles', %L, '{"nb_specialites":0}'::jsonb,
+                                 null::uuid, null::numeric, null::text)$q$, v_p[1], v_ids[1], v_dom,
+                                 (select p.id from public.profiles p where p.user_id = v_ids[1])),
                         'GL005', null, 'expert_inscrit : une seconde ligne sous la même pièce est refusée (une fois par geste)');
   return next throws_ok(format($q$select public.journaliser(%L, 'organisation_preinscrite', 'echoue', 'utilisateur', %L, 'client', %L,
                                  'users', %L, '{"org_type":"client","organisation_nettoyee":true}'::jsonb,

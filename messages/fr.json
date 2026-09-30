@@ -2567,7 +2567,9 @@
       "nav_supervision": "Supervision",
       "nav_facturation": "Facturation",
       "nav_consommation": "Consommation",
-      "nav_journal": "Grand livre"
+      "nav_journal": "Grand livre",
+      "nav_depots_echec": "Dépôts en échec",
+      "nav_travaux_ia": "Travaux d'IA"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -3233,7 +3235,15 @@
         "lecture_indisponible_acteurs_plafond": "Les comptes au plafond n’ont pas pu être comptés. Ce n’est pas « aucun » : on ne sait pas.",
         "variable_manquante": "La variable d'environnement {nom} manque sur ce déploiement : une fonction du produit est cassée. Posez-la dans Vercel (procédure de mise en production, étape 5), puis redéployez.",
         "travaux_ia_en_souffrance": "{count} travail(aux) d'IA attendent un humain : une analyse de CV ou une vérification d'expert abandonnée, en retard, ou dont l'exécutant s'est arrêté. Derrière chaque ligne, un expert attend. Ouvrez Travaux d'IA et relancez-les.",
-        "lecture_indisponible_travaux_ia": "Les travaux d'IA n'ont pas pu être comptés. Ce n'est pas « rien à reprendre » : c'est « on ne sait pas ». Ouvrez Travaux d'IA."
+        "lecture_indisponible_travaux_ia": "Les travaux d'IA n'ont pas pu être comptés. Ce n'est pas « rien à reprendre » : c'est « on ne sait pas ». Ouvrez Travaux d'IA.",
+        "site_injoignable_protection": "La tâche « {nom} » n’atteint pas le site : l’adresse appelée par la base (secret purge_cron_base_url du Vault) est protégée par l’hébergeur (réponse {count}). Ajoutez une exception de protection pour cette adresse dans Vercel, ou remplacez-la par une adresse non protégée.",
+        "site_injoignable_secret_refuse": "La tâche « {nom} » atteint le site, qui refuse son secret (réponse {count}) : le secret cron_secret du Vault n’est pas identique à la variable CRON_SECRET de Vercel. Recopiez la même valeur des deux côtés.",
+        "site_injoignable_redirection": "La tâche « {nom} » est redirigée (réponse {count}) et n’atteint jamais la tâche : l’adresse purge_cron_base_url du Vault doit être l’adresse finale, en https, sans barre oblique finale.",
+        "site_injoignable_delai": "La tâche « {nom} » n’a pas reçu de réponse du site en 60 secondes. Vérifiez que l’adresse purge_cron_base_url du Vault mène au site et que le site répond.",
+        "site_injoignable_connexion": "La tâche « {nom} » n’a pas pu se connecter au site : adresse purge_cron_base_url fausse, nom de domaine introuvable ou certificat refusé.",
+        "site_injoignable_erreur_http": "La tâche « {nom} » a reçu une erreur du site (réponse {count}) sans que la tâche ait écrit son verdict. Ouvrez son historique pour lire la réponse.",
+        "site_injoignable_aucune_reponse": "La tâche « {nom} » a été appelée sans qu’aucune réponse soit observée. La base garde les réponses environ six heures : ouvrez l’historique de la tâche, ou lancez-la à la main et regardez sa réponse.",
+        "lecture_indisponible_joignabilite": "Impossible de lire les derniers appels des tâches planifiées : on ne sait pas si la base atteint le site."
       },
       "spread_title": "Répartition des notes",
       "spread_empty": "Aucune exécution pour l’instant sur la nouvelle échelle. La répartition se remplira aux prochaines mises en relation.",
@@ -3307,7 +3317,9 @@
       "by_actor_alert": "Ce compte a atteint son niveau d’alerte. Rien n’est bloqué.",
       "actor": {
         "organization": "Organisations",
-        "profile": "Experts"
+        "profile": "Experts",
+        "reste_non_detaille": "Autres comptes (regroupés)",
+        "non_imputable": "Non imputable à un compte"
       },
       "cause": {
         "plafond": "Budget atteint",
@@ -3323,7 +3335,13 @@
         "ouverture_croisee": "Ouverture croisée",
         "disponibilite": "Disponibilité",
         "cv_reanalyse": "CV réanalysé"
-      }
+      },
+      "config_title": "Réglages exigés au démarrage",
+      "config_toutes": "Les {n} variables exigées sont posées.",
+      "config_manquantes": "{n} variable(s) exigée(s) sur {total} manquent : {noms}. Posez-les dans Vercel (Settings → Environment Variables), puis redéployez.",
+      "config_controle": "Contrôlé le {quand} · version {version} · environnement {environnement}",
+      "config_version_inconnue": "inconnue",
+      "config_env_local": "poste local"
     },
     "depots_echec": {
       "title": "Dépôts de candidature en échec",
@@ -3366,7 +3384,6 @@
       "raison_ne_pas_deranger": "expert en « ne pas déranger »",
       "raison_non_en_recherche": "expert en poste, non en recherche"
     },
-    "nav_depots_echec": "Dépôts en échec",
     "consommation": {
       "title": "Consommation par compte",
       "intro": "Ce que chaque compte a coûté ce mois-ci, et lequel a atteint son plafond. Les plafonds se règlent dans",
@@ -3528,7 +3545,11 @@
           "messagerie": "Aucun plancher légal trouvé (0).",
           "journal": "Les traces des nettoyages ne s’effacent jamais."
         }
-      }
+      },
+      "oui": "oui",
+      "non": "non",
+      "resume_objet": "objet : {objet}",
+      "resume_plus": "+ {n} autre(s)"
     },
     "nav_travaux_ia": "Travaux d'IA",
     "travaux_ia": {

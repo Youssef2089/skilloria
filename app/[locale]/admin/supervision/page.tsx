@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
@@ -89,8 +89,17 @@ type LigneActeur = {
 }
 type SeuilActeur = { acteur: string; seuil_mensuel_usd: number }
 
+type Configuration = {
+  exigees: number
+  manquantes: string[]
+  version: string | null
+  environnement: string | null
+  verifiee_a: string
+}
+
 type Reponse = {
   problemes: Probleme[]
+  configuration: Configuration
   distribution: Distribution[] | null
   depense: LigneDepense[] | null
   historique: LigneHistorique[] | null
@@ -125,6 +134,7 @@ const somme = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 
 export default function SupervisionPage() {
   const t = useTranslations('admin_back_office.supervision')
+  const locale = useLocale()
   const secureFetch = useSecureFetch()
 
   const [data, setData] = useState<Reponse | null>(null)
@@ -194,7 +204,7 @@ export default function SupervisionPage() {
       <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t('title')}
       </h1>
-      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px', maxWidth: 720 }}>
+      <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: '0 0 20px' }}>
         {t('intro')}
       </p>
 
@@ -206,6 +216,33 @@ export default function SupervisionPage() {
         </p>
       ) : (
         <>
+          {/* ─── LES RÉGLAGES EXIGÉS, TOUJOURS DITS (recette staging) ─────────
+              Le contrôle du démarrage, rejoué à chaque lecture : présent même quand rien ne manque,
+              avec l'heure et la version contrôlées. Ce qui manque est AUSSI un problème bloquant, ci-dessous. */}
+          {data?.configuration && (
+            <section style={cardStyle} aria-labelledby="configuration-titre">
+              <h2 id="configuration-titre" style={h2Style}>{t('config_title')}</h2>
+              <p
+                role={data.configuration.manquantes.length > 0 ? 'alert' : undefined}
+                style={{ fontSize: 14, margin: '0 0 6px', fontWeight: 600,
+                         color: data.configuration.manquantes.length > 0 ? 'var(--sk-red)' : 'var(--sk-success)' }}
+              >
+                {data.configuration.manquantes.length === 0
+                  ? t('config_toutes', { n: data.configuration.exigees })
+                  : t('config_manquantes', { n: data.configuration.manquantes.length, total: data.configuration.exigees,
+                                              noms: data.configuration.manquantes.join(', ') })}
+              </p>
+              <p style={{ fontSize: 13, color: 'var(--sk-muted)', margin: 0 }}>
+                {t('config_controle', {
+                  quand: new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'medium' })
+                    .format(new Date(data.configuration.verifiee_a)),
+                  version: data.configuration.version ?? t('config_version_inconnue'),
+                  environnement: data.configuration.environnement ?? t('config_env_local'),
+                })}
+              </p>
+            </section>
+          )}
+
           {/* ─── CE QUI NE VA PAS, EN PREMIER ─────────────────────────────── */}
           <section style={cardStyle}>
             <h2 style={h2Style}>{t('problems_title')}</h2>

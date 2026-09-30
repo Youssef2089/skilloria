@@ -1687,6 +1687,52 @@ section('G. Un détail passé au grand livre ne porte ni clé ni valeur personne
     'témoin : une variable sans littéral dans le fichier est opaque, donc refusée')
 }
 
+// ── DEUX ÉCRITURES D'UN GESTE NE SE RESSEMBLENT PAS (recette staging, 30/09/2026) ──
+//  Décision de Youssef : un geste ne garde qu'une écriture quand deux ne se distinguent en rien.
+//  Le cas vu à l'écran : `handle_new_user` écrivait `compte_cree` ET `expert_inscrit` sur le MÊME
+//  sujet (le compte), avec presque le même détail. Ce contrôle lit la DERNIÈRE définition de
+//  chaque fonction SQL et refuse que deux ACTIONS différentes y soient écrites sur la même
+//  expression de sujet (type ET identifiant). Une même action dans deux branches (réussi /
+//  échoué) n'est pas un doublon. Une exception se déclare, avec sa raison (§G.8).
+//  CE QU'IL NE VOIT PAS : deux lignes écrites par DEUX fonctions (un écrivain qui en appelle un
+//  autre) ou par le TypeScript sous la même pièce — le test `grand_livre/inscriptions` exige deux
+//  sujets par voie ; le balayage complet est dans docs/reprise.md (recette staging).
+{
+  const MEME_SUJET_ADMIS = {}
+  const argsDe = (s, i) => {
+    const out = []
+    let prof = 0, cur = '', q = false
+    for (; i < s.length; i++) {
+      const c = s[i]
+      if (c === "'") q = !q
+      if (!q && c === '(') { prof++; if (prof === 1) continue }
+      if (!q && c === ')') { prof--; if (prof === 0) { out.push(cur.trim()); return out } }
+      if (!q && c === ',' && prof === 1) { out.push(cur.trim()); cur = ''; continue }
+      if (prof >= 1) cur += c
+    }
+    return out
+  }
+  const doublons = []
+  let lues = 0
+  for (const [nom, { corps }] of DEFINITIONS_COURANTES) {
+    const parSujet = new Map()
+    for (const m of corps.matchAll(/public\.journaliser\s*\(/g)) {
+      const a = argsDe(corps, m.index + m[0].length - 1)
+      if (a.length < 10) continue
+      lues++
+      const sujet = `${a[7]} / ${a[8]}`.replace(/\s+/g, ' ')
+      if (!parSujet.has(sujet)) parSujet.set(sujet, new Set())
+      parSujet.get(sujet).add(a[1])
+    }
+    for (const [sujet, actions] of parSujet) {
+      if (actions.size > 1 && !MEME_SUJET_ADMIS[nom]) doublons.push(`${nom} : ${[...actions].join(' + ')} sur ${sujet}`)
+    }
+  }
+  ok(lues > 20 && doublons.length === 0,
+    `aucune fonction n’écrit deux actions différentes sur le même sujet (${lues} appels à journaliser lus)`,
+    doublons.length ? doublons.join('\n       → ') + '\n       → deux lignes d’un geste sur le même objet ne se distinguent pas à l’écran : chacune dit SON objet, ou l’une disparaît' : undefined)
+}
+
 console.log()
 if (failures) {
   console.log(`✘ ${failures} CONTRÔLE(S) EN ÉCHEC — le socle du grand livre ne tient pas`)

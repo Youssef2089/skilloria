@@ -45,7 +45,8 @@ begin
                  'create-admin : le compte naît promu (admin, rôle Admin, actif, adresse vérifiée)');
   return next ok(pg_temp.lignes(v_p[1]) = 2
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[1] and g.type_action = 'compte_cree'
-                              and g.origine = 'systeme' and g.acteur_id is null and g.detail ->> 'voie_declaree' = 'administrateur')
+                              and g.origine = 'systeme' and g.acteur_id is null and g.detail ->> 'voie_declaree' = 'administrateur'
+                              and g.detail ->> 'type_de_compte' = 'admin')
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[1] and g.type_action = 'administrateur_cree'
                               and g.statut = 'reussi' and g.origine = 'administrateur' and g.acteur_id = v_admin and g.acteur_type = 'admin'
                               and g.sujet_id = v_ids[1] and g.ecosysteme_id = v_dom and not (g.detail ->> 'jour_zero')::boolean),

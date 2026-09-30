@@ -23,6 +23,16 @@ const DIM = '\x1b[2m'
 const BOLD = '\x1b[1m'
 const RESET = '\x1b[0m'
 
+// ⚠️ SORTIR SANS LAISSER DE CONNEXION OUVERTE (recette staging, 30/09/2026). Lancé par `diag.mjs`, ce script
+//    s'arrêtait sur « Assertion failed: !(handle->flags & UV_HANDLE_CLOSING), file src\\win\\async.c » : un
+//    `process.exit()` alors que la connexion HTTPS gardée ouverte par fetch (undici) se fermait encore. Cause
+//    PROBABLE, non reproduite (190 essais sans base : HTTP, DNS, TLS, IPv6, spawnSync) — le script, lui, joint la
+//    vraie base et ne se lance pas dans la série statique. On ferme le pool AVANT de sortir.
+async function sortir(code) {
+  try { await globalThis[Symbol.for('undici.globalDispatcher.1')]?.close?.() } catch { /* rien à fermer */ }
+  process.exit(code)
+}
+
 const envPath = resolve(process.cwd(), '.env.local')
 
 console.log(`${BOLD}=== diag-supabase — env + REST live test ===${RESET}`)
@@ -171,7 +181,7 @@ try {
   console.log(`${BOLD}VERDICT${RESET}`)
   console.log(`  ${RED}Le runtime Node ne peut pas joindre ${url}.${RESET}`)
   console.log(`  ${YELLOW}Vérifier la connectivité réseau / DNS / pare-feu.${RESET}`)
-  process.exit(3)
+  await sortir(3)
 }
 
 console.log(`Status HTTP : ${status === 200 ? `${GREEN}${status}${RESET}` : `${RED}${status}${RESET}`}`)
@@ -206,7 +216,7 @@ if (status === 200) {
   console.log(`  elle-même. Le bundle JS client a été produit avec une autre valeur (ou undefined) :`)
   console.log(`  ${BOLD}→ Tuer et relancer ${GREEN}npm run dev${RESET}${BOLD} pour rebuilder le bundle client.${RESET}`)
   console.log(`  → Hard-refresh navigateur (Ctrl+Shift+R) pour vider le cache JS.`)
-  process.exit(0)
+  await sortir(0)
 }
 if (status === 401 || (pgrstMsg && /no api key|invalid api key|jwt/i.test(pgrstMsg))) {
   console.log(`  ${RED}✗ La clé anon dans .env.local NE FONCTIONNE PAS contre PostgREST.${RESET}`)
@@ -219,7 +229,7 @@ if (status === 401 || (pgrstMsg && /no api key|invalid api key|jwt/i.test(pgrstM
   console.log(`  ${BOLD}Fix :${RESET} récupérer la bonne anon key dans Supabase Dashboard → Settings →`)
   console.log(`  API → Project API keys → anon public, puis la coller telle quelle dans .env.local`)
   console.log(`  (sans guillemets, sans espace autour du =).`)
-  process.exit(4)
+  await sortir(4)
 }
 console.log(`  ${YELLOW}Status inattendu ${status}.${RESET} Examiner manuellement la réponse PostgREST.`)
-process.exit(5)
+await sortir(5)

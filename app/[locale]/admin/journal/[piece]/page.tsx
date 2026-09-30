@@ -8,7 +8,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import MasterDetail from '@/components/ui/MasterDetail'
 import { estUuid, type PieceJournal } from '@/lib/journal/lecture'
-import { Acteur, Montant, PastilleStatut, Quand, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
+import { Acteur, DetailEcriture, Montant, PastilleStatut, Quand, ResumeEcriture, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
 
 /**
  * /admin/journal/[piece] — LA PIÈCE COMPLÈTE depuis une de ses lignes (§D.26,
@@ -119,6 +119,8 @@ export default function PiecePage({ params }: Props) {
                     <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--sk-muted)' }}>
                       <PastilleStatut statut={x.statut} /> <Quand iso={x.horodatage} />
                     </span>
+                    {/* Deux écritures d'un même geste se distinguent ICI, sans être ouvertes (recette staging). */}
+                    <ResumeEcriture ligne={x} max={2} />
                   </button>
                 </li>
               ))}
@@ -185,13 +187,7 @@ export default function PiecePage({ params }: Props) {
               )}
               <div>
                 <p style={etiquette}>{t('detail_titre')}</p>
-                {Object.keys(l.detail ?? {}).length === 0 ? (
-                  <p style={{ ...valeur, color: 'var(--sk-muted)' }}>{t('detail_vide')}</p>
-                ) : (
-                  <pre style={{ ...mono, margin: '4px 0 0', padding: 10, borderRadius: 8, background: 'var(--sk-surface-2)', color: 'var(--sk-text)', overflowX: 'auto', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-                    {JSON.stringify(l.detail, null, 2)}
-                  </pre>
-                )}
+                <DetailEcriture detail={l.detail} />
               </div>
             </div>
           ) : (

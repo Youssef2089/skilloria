@@ -70,6 +70,18 @@ const LANGUES = ['fr', 'en', 'es', 'de']
 const MESSAGES = Object.fromEntries(LANGUES.map((l) => [l, JSON.parse(lire(`messages/${l}.json`))]))
 
 /** Descend un chemin pointé. Rend `undefined` si une marche manque. */
+/** Le corps de la DERNIERE definition (ordre des fichiers) d'une fonction SQL `public.<nom>` — nom EXACT. */
+const derniereDefinitionSql = (nom) => {
+  let corps = ''
+  const dossier = 'supabase/migrations'
+  for (const f of readdirSync(join(ROOT, dossier)).filter((x) => x.endsWith('.sql')).sort()) {
+    const m = new RegExp(String.raw`create\s+(?:or\s+replace\s+)?function\s+public\.` + nom + String.raw`\s*\([\s\S]*?\bas\s+(\$[a-z_]*\$)([\s\S]*?)\1`, 'i')
+      .exec(lire(`${dossier}/${f}`))
+    if (m) corps = m[2].split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
+  }
+  return corps
+}
+
 const descendre = (o, chemin) =>
   chemin.split('.').reduce((n, s) => (n && typeof n === 'object' ? n[s] : undefined), o)
 
@@ -163,15 +175,59 @@ section('B. Une cle dynamique nourrie par la BASE est bornee par une LISTE')
       motif: /^\s*'([A-Z_]+)',$/gm,
       espace: 'admin_seuils.flag',
     },
+    // RECETTE STAGING (30/09/2026) : deux espaces dont les VALEURS ne vivaient pas dans les messages, et que
+    // le balayage des cles litterales ne pouvait pas voir — Youssef a lu les chemins bruts a l'ecran.
+    {
+      // Le menu d'administration : `t(\`sidebar.${item.labelKey}\`)`, la cle vient de lib/nav-config.ts.
+      // `nav_depots_echec` n'y a jamais eu de texte ; `nav_travaux_ia` (ARRET 19) non plus.
+      // L'espace porte aussi les titres de section : les orphelins n'y sont pas une faute.
+      quoi: 'les entrees du menu d administration',
+      module: 'lib/nav-config.ts',
+      motif: /labelKey:\s*'([a-z_]+)'/g,
+      espace: 'admin_back_office.sidebar',
+      orphelins: false,
+    },
+    {
+      // Supervision, « par acteur » : `t(\`actor.${a.acteur_type}\`)`, la valeur vient de la BASE —
+      // `ai_spend_par_acteur` rend quatre types, et les messages n'en portaient que deux.
+      // Lue dans la DERNIERE definition de la fonction, jamais recopiee ici.
+      quoi: 'les acteurs de la depense IA (Supervision)',
+      valeurs: () => {
+        const corps = derniereDefinitionSql('ai_spend_par_acteur')
+        const cas = /then\s+'([a-z_]+)'\s+else\s+'([a-z_]+)'\s+end\s+as\s+acteur_type/.exec(corps)
+        const lignes = [...corps.matchAll(/union\s+all\s+select\s+'([a-z_]+)'::text/g)].map((m) => m[1])
+        return cas ? [cas[1], cas[2], ...lignes] : []
+      },
+      source: 'la derniere definition de public.ai_spend_par_acteur (supabase/migrations)',
+      espace: 'admin_back_office.supervision.actor',
+    },
+    {
+      // Supervision, « ce qui ne va pas » : `t(\`problem.${p.cle}\`)`. Les cles litterales de
+      // lib/supervision/problemes.ts, et `site_injoignable_<cause>` pour chaque cause du module pur
+      // (recette staging : la base n'atteint pas le site).
+      quoi: 'les problemes de la supervision',
+      valeurs: () => {
+        const src = sansCommentaires(lire('lib/supervision/problemes.ts'))
+        const litterales = [...src.matchAll(/cle:\s*'([a-z_]+)'/g)].map((m) => m[1])
+        const causes = [...sansCommentaires(lire('lib/supervision/joignabilite.ts'))
+          .matchAll(/^\s*'([a-z_]+)',\s*$/gm)].map((m) => `site_injoignable_${m[1]}`)
+        return /cle:\s*`site_injoignable_\$\{t\.cause\}`/.test(src) ? [...litterales, ...causes] : litterales
+      },
+      source: 'lib/supervision/problemes.ts + lib/supervision/joignabilite.ts',
+      espace: 'admin_back_office.supervision.problem',
+      orphelins: false,
+    },
   ]
 
   for (const b of BORNES) {
-    const src = sansCommentaires(lire(b.module))
     // DEDOUBLONNE : la declaration de type porte les memes litteraux que les
     // donnees (`sujet: 'experts' | 'entreprises'…`), et compter deux fois
     // `experts` ferait annoncer QUATRE sujets la ou il y en a trois. Un
     // chiffre faux dans un controle est un chiffre qu on citera.
-    const valeurs = [...new Set([...src.matchAll(b.motif)].map((m) => m[1]))]
+    const valeurs = b.valeurs
+      ? [...new Set(b.valeurs())]
+      : [...new Set([...sansCommentaires(lire(b.module)).matchAll(b.motif)].map((m) => m[1]))]
+    b.module = b.module ?? b.source
     ok(valeurs.length > 0, `${b.quoi} : la liste est lisible dans ${b.module} (${valeurs.length})`,
       'si le motif ne trouve plus rien, ce controle ne garde plus rien — il se relit')
     for (const langue of LANGUES) {
@@ -184,7 +240,7 @@ section('B. Une cle dynamique nourrie par la BASE est bornee par une LISTE')
         `${b.quoi} — ${langue} : chaque valeur a son texte`,
         `${sansTexte.join(', ')} n'ont pas d'entree dans ${b.espace} : next-intl rendrait LE CHEMIN DE LA CLE, affiche tel quel`,
       )
-      ok(
+      if (b.orphelins !== false) ok(
         orphelins.length === 0,
         `${b.quoi} — ${langue} : aucun texte orphelin`,
         `${orphelins.join(', ')} existent dans ${b.espace} sans valeur correspondante : un texte sans emploi finit par etre cru vivant`,

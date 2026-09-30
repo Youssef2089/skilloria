@@ -180,6 +180,11 @@ export type SourcesSupervision = {
   depotsEnSouffrance: number | null
   /** Les travaux d'IA qui attendent un humain (`travaux_ia_en_souffrance()`, §D.30) ; `null` = pas pu compter. */
   travauxIaEnSouffrance: number | null
+  /**
+   * LES TÂCHES DONT LE DERNIER APPEL N'A PAS ATTEINT LE SITE, avec leur cause (lib/supervision/joignabilite.ts).
+   * `null` = la lecture a échoué — PAS « aucune tâche injoignable » (§E.22).
+   */
+  tachesInjoignables: Array<{ tache: string; cause: string; statut: number | null; depuis: string }> | null
 }
 
 /**
@@ -200,6 +205,8 @@ export type VerificationStripe =
   | {
       etat: 'disponible'
       nuit: 'compare' | 'impossible'
+      /** La nuit n'a pas comparé pour une raison NORMALE (facturation coupée, §D.1) : rien à signaler. */
+      motifNormal: boolean
       manquants: number | null
       ranAt: string
     }
@@ -325,6 +332,26 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
       sujet: null,
       lien: '/admin/travaux-ia',
     })
+  }
+
+  // ── 0 ter. LA BASE ATTEINT-ELLE LE SITE ? (recette staging, 30/09/2026) ──
+  //  Chaque tâche planifiée est un appel de la base au site. Refusé AVANT d'atteindre le code (protection de
+  //  l'hébergeur, redirection, délai), aucune tâche ne tourne — purges RGPD comprises — et rien ne le disait.
+  //  BLOQUANT, une ligne par tâche, avec SA cause : chacune appelle une action différente.
+  if (s.tachesInjoignables === null) {
+    out.push({ cle: 'lecture_indisponible_joignabilite', gravite: 'attention', compte: null, depuis: null, sujet: null, lien: '/admin/taches-planifiees' })
+  } else {
+    for (const t of s.tachesInjoignables) {
+      out.push({
+        cle: `site_injoignable_${t.cause}`,
+        gravite: 'bloquant',
+        compte: t.statut,
+        depuis: t.depuis,
+        sujet: null,
+        nom: t.tache,
+        lien: `/admin/taches-planifiees/${encodeURIComponent(t.tache)}`,
+      })
+    }
   }
 
   // ── 1. LES MISES EN RELATION QUI NE SE FERONT PAS ──────────────────────
@@ -505,7 +532,10 @@ export function classerProblemes(s: SourcesSupervision): Probleme[] {
     })
   } else {
     const v = s.verificationStripe
-    if (v.nuit === 'impossible') {
+    if (v.nuit === 'impossible' && v.motifNormal) {
+      // RIEN À SIGNALER : la facturation est coupée (§D.1), il n'y a rien à rapprocher. L'écran
+      // /admin/facturation le dit, en gris. Le peindre en orange chaque nuit apprenait à l'ignorer (§E.52).
+    } else if (v.nuit === 'impossible') {
       out.push({
         cle: 'verification_stripe_impossible',
         gravite: 'attention',

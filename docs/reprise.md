@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 30/09/2026 (ARRÊT 19 bis — les deux rouges du rejeu local).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 30/09/2026 (ARRÊT 20 — la recette staging, tout le reste de la liste).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -13,9 +13,9 @@
 dans les cinq sous-journaux ; l'écran `/admin/journal` (liste, pièce complète) et le nettoyage manuel.
 **Déployé sur staging** (Youssef, 28/09/2026) : les 17 migrations de la phase B appliquées, le code en ligne.
 
-**Au prochain push** — HUIT migrations de l'ARRÊT 19 (le parcours expert, ci-dessous), à pousser APRÈS
-`analyse_cv_atomique` (ARRÊT 18) : la requête de staging suppose `analyse_cv_atomique` appliquée (⓪) ; si elle ne
-l'est pas, ⓪ sort en ÉCART — on s'arrête et on me le dit. Avant l'ARRÊT 18, staging était à jour jusqu'à
+**Au prochain push** — TROIS migrations de l'ARRÊT 20 (la recette staging, ci-dessous). Staging est à jour jusqu'à
+`listes_profil_atomiques` (ARRÊTS 18, 19 et 19 bis déployés, `dbd028e`) : la requête de staging l'attend en ⓪.
+(Historique : l'ARRÊT 19 portait HUIT migrations, poussées après `analyse_cv_atomique`.) Avant l'ARRÊT 18, staging était à jour jusqu'à
 `sous_domaine_reglable` (ARRÊT 15, déployé par Youssef le 29/09/2026). Le prochain push porte le code de l'ARRÊT 17 (le SMS dit sa cause ; les variables se disent au démarrage) — l'ARRÊT 16 est déployé (`2ace4ab`). **L'ARRÊT 14 remplace le correctif de l'ARRÊT 13** : staging lit l'écosystème dans
 l'adresse, comme la production — `DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel ; il faut
 `NEXT_PUBLIC_DOMAINE_RACINE` sur Production et Preview **avant** le déploiement, et l'adresse générique de staging
@@ -56,6 +56,119 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 20 — LA RECETTE STAGING : TOUT LE RESTE DE LA LISTE, EN UN SEUL LOT (30/09/2026)
+
+État de départ : ARRÊTS 18, 19 et 19 bis déployés sur staging (`dbd028e`, dernière migration `listes_profil_atomiques`).
+Tag local `sauvegarde-avant-reste-recette` sur `dbd028e`, arbre propre (hormis `supabase/snippets/`, à Youssef). La règle
+§G.10 (lire les contraintes réelles avant d'écrire une fonction, une route ou un test) figure dans CLAUDE.md, en une ligne.
+
+**Contradictions et faits signalés AVANT d'écrire.**
+① **Point 7 — les deux scripts qui « plantent » lisent la VRAIE base** : ils lisent `.env.local` sur le disque, que le
+  lanceur ne peut pas retirer. Avec eux, `diag-cron-purges` et `diag-gate-recalibrage` (affichés VERTS) : quatre
+  sondes sur donnée réelle à chaque série, lecture seule — **y compris chaque série que j'ai lancée aux ARRÊTS 18, 19 et
+  19 bis**. `diag-readonly-expert-achwek` imprime les données d'une personne réelle, avec la clé de service. Je ne les
+  ai pas exécutés pour prouver le correctif : ce serait une sonde de plus.
+② **Point 7 — la cause du plantage n'est PAS prouvée** : non reproduite en 190 essais sans base (HTTP, DNS, TLS, IPv6,
+  `spawnSync` et tubes). Cause probable écrite comme telle ; le vrai correctif est que la série ne les lance plus.
+③ **Point 4 — la ligne Stripe « n'a pas pu comparer » prouve que la route a TOURNÉ au moins une fois** : si l'appel avait
+  été refusé par la protection (401), aucune ligne n'aurait été écrite et l'écran dirait « n'a jamais tourné ». Le motif
+  le plus probable sur staging est `billing_disabled` (facturation coupée) — NON VÉRIFIÉ, la base n'est pas lue ici.
+④ **Point 14 contredit l'option C de la procédure** (« protéger la Production actuelle ») : la base appelle le site sur
+  sa racine ; une protection devant elle arrête toutes les tâches. C reste valable AVANT la bascule, et se retire le jour
+  de la bascule — c'est écrit.
+⑤ **Point 6 — `lib/session-token.ts` n'existe pas sur `main`** : la production n'a aujourd'hui AUCUN cookie de session
+  unique. Le jour de la fusion, chaque session de production en ouvre un à sa prochaine connexion — c'est la couche
+  11F qui arrive, pas la bascule ; la bascule, elle, pose en production exactement `ss_token` sur `.skilloria.io`.
+
+### Le compte exact, point par point
+
+| Point | État | Ce qui a été fait | Prouvé par |
+|---|---|---|---|
+| **1. Grand livre** | **corrigé** | Balayage de toute la plateforme (SQL et TypeScript) : l'inscription d'un expert — freelance et CDI — était le SEUL geste où deux lignes ne se distinguaient en rien. `compte_cree` dit désormais le COMPTE (type final, voie, CGU, téléphone), `expert_inscrit` le PROFIL (branche, nombre de spécialités, « Autre »). Administrateur : le type « client » était faux, il vaut « admin ». Organisation et invitation : déjà deux objets différents. L'écran rend le détail clé par clé (liste et pièce). | `diag-grand-livre` (deux actions d'une fonction SQL sur le même sujet), `diag-recette-staging` 1 ; tests `grand_livre/inscriptions` (deux sujets par voie), `inscription/compte_cree`, `grand_livre/administrateur_cree` |
+| **2. Traductions** | **corrigé** | `nav_depots_echec` était posée un niveau trop haut (déplacée), `nav_travaux_ia` manquait (ma régression de l'ARRÊT 19), `actor.reste_non_detaille` et `actor.non_imputable` manquaient. `diag-cles-i18n` suit désormais les clés dont la VALEUR vient d'ailleurs : le menu (lib/nav-config.ts), les acteurs (la dernière définition SQL de `ai_spend_par_acteur`), les problèmes de la supervision. | `diag-cles-i18n` (bornes B) |
+| **3. Supervision : les réglages** | **fait** | Panneau permanent « Réglages exigés au démarrage » : les N variables exigées posées, ou lesquelles manquent ; l'heure, la version (`VERCEL_GIT_COMMIT_SHA`) et l'environnement contrôlés. | `diag-recette-staging` 3 (exécuté) |
+| **4. Tâches planifiées** | **fait** | Les 7 routes `/api/cron` ne lisent aucun écosystème : elles répondent sur la racine. `cron_joignabilite()` lit le dernier appel de chaque tâche (journal ET réponse brute de pg_net) ; la supervision dit, en BLOQUANT, chaque tâche qui n'atteint pas le site, avec sa cause. La ligne Stripe « impossible » pour facturation coupée n'alarme plus. | `diag-recette-staging` 4 (dix causes exécutées) ; test `taches_planifiees/joignabilite` (8) |
+| **5. Adresse du site** | **fait** | `NEXT_PUBLIC_SITE_URL` reste, et vaut la RACINE (signalée `hote_hors_racine` sinon) ; `NEXT_PUBLIC_APP_URL` n'est lue nulle part : **à retirer de Vercel**. | `diag-recette-staging` 5, `diag-variables-environnement` C |
+| **6. Cookie de session** | **corrigé** | Plus aucun hôte en toutes lettres : la règle vient de `VERCEL_ENV` et de la racine (`lib/session-cookie.ts`, pur). Production : `ss_token` sur `.skilloria.io` ; staging : `ss_token_staging` sur `.skilloria.io`, comme avant — personne n'est déconnecté. Seule différence : les adresses `…vercel.app` de Preview (cookie limité à l'hôte, renommé `_staging`). | `diag-recette-staging` 6 (exécuté sur chaque environnement) |
+| **7. Deux diagnostics sous Windows** | **corrigé** (cause probable) | Le lanceur écarte, par propriété, les scripts qui lisent la vraie base sans drapeau (`--avec-base` pour les inclure) et les range à part, hors du compte des pannes ; les deux scripts ferment la connexion avant de sortir. | `diag-recette-staging` 7 |
+| **8. appliquer_analyse_cv** | **supprimée** | Migration `appliquer_analyse_cv_retiree` ; son test retiré, ses garanties reprises par `analyse_cv_tolerante` (H). | `diag-parcours-expert`, `diag-tests-grand-livre` A |
+| **14. Procédure** | **écrite** | docs/mise-en-production.md, « Le compte Vercel » : offre Pro, secrets en Sensitive, variables Supabase propres à la production, adresse appelée par la base sans protection ; `purge_cron_base_url` et `NEXT_PUBLIC_SITE_URL` valent la racine. | `diag-parametrage-manuel` |
+
+**Les trois migrations nouvelles** (plage `0xxxxx`, §G.2) : `20260930000090_journal_inscription_distincte` (AVANT),
+`20260930000100_appliquer_analyse_cv_retiree` (indifférent), `20260930000110_joignabilite_du_site` (AVANT).
+Tests : `taches_planifiees/joignabilite.test.sql` (nouveau, 8) ; `analyse_cv_tolerante` 19 → 21 ; `inscriptions` 10 → 11 ;
+`profil/analyse_cv.test.sql` retiré (13) — **540 tests attendus dans 54 fichiers**, jamais exécutés ici.
+
+### B — Les décisions à prendre (rien n'est construit)
+
+**9. Faire échouer le build quand une variable EXIGÉE manque.** *Recommandation* : oui — une vérification en tête de la
+construction (`next.config.ts`), qui rejoue `variablesManquantes` sur Production et Preview et arrête la construction en
+NOMMANT chaque variable `deploye` absente ; une optionnelle ne bloque jamais, le poste local n'est pas concerné.
+*Coût* : une demi-journée (la vérification, un contrôle qui l'éprouve, la procédure). *Ce que ça change* : un
+déploiement incomplet ne remplace plus jamais la version en ligne, qui reste servie ; en contrepartie, un correctif
+urgent attend que la variable soit posée.
+
+**10. Rediriger l'ancienne adresse après un changement de sous-domaine.** *Recommandation* : garder, dans une table, les
+anciens sous-domaines d'un écosystème avec une échéance (90 jours, réglable), écrite par la même fonction que le
+renommage ; le proxy redirige `<ancien>.<racine>` vers `<nouveau>.<racine>` (308, chemin conservé) tant que l'échéance
+court, et la base refuse de donner un ancien nom à un autre écosystème pendant ce temps. *Coût* : un jour (migration,
+fonction de renommage, lecture en cache dans le proxy, tests). *Ce que ça change* : les liens des e-mails déjà envoyés
+et les favoris continuent de marcher ; l'écran de renommage cesse de prévenir « sans redirection ».
+
+**11. Refuser les sous-domaines qui heurtent l'infrastructure.** *Recommandation* : une liste réservée EN BASE, faite de
+deux parts — les noms DÉRIVÉS des racines (le premier label de toute racine qui vit sous une autre : `staging` sous
+`skilloria.io`), et une liste réglée dans l'administration pour ce que les racines ne disent pas (`www`, `api`,
+`mail`) — vérifiée par la même contrainte que la forme du sous-domaine. Les racines des environnements deviennent un
+réglage de la base (aujourd'hui elles ne vivent que dans Vercel). *Coût* : un jour. *Ce que ça change* : l'admin ne peut
+plus créer un écosystème dont l'adresse capturerait staging ou un service ; un nom déjà pris n'est pas touché, il est
+signalé.
+
+**12. Numéros de téléphone d'essai sur staging.** *Recommandation* : une table de numéros d'essai, chacun avec son code
+fixe stocké haché, réglée dans l'administration HORS production seulement ; la route d'OTP les reconnaît avant tout
+appel à Vonage, et deux verrous les refusent en production — le serveur (`VERCEL_ENV`) et la base (un réglage
+« environnement » posé par la procédure, que la fonction de vérification lit). *Coût* : un jour. *Ce que ça change* : la
+recette ne dépend plus d'un vrai téléphone ni du crédit Vonage ; le risque — un numéro d'essai en production — est fermé
+deux fois, et chaque usage s'écrit au grand livre.
+
+**13. Les deux arbitrages de l'ARRÊT 19.** *(a) Un profil approuvé qui republie reste approuvé pendant sa
+re-vérification* — *recommandation* : le garder ; la fenêtre se compte en minutes, et l'autre sens retire l'expert des
+mises en relation à chaque correction de faute de frappe. *Coût* : nul. *(b) « Enregistrer comme brouillon » dépublie un
+profil publié* — *recommandation* : séparer les deux gestes — « Enregistrer » ne dépublie jamais, et un bouton explicite
+« Masquer mon profil » dépublie (c'est aussi la porte de sortie que §H.0 réclame). *Coût* : une demi-journée (écran,
+route, textes en quatre langues, test). *Ce que ça change* : plus de dépublication par surprise ; un profil masqué
+repasse par la vérification quand il revient.
+
+### Pour Youssef — dans l'ordre, chaque étape verte avant la suivante
+
+1. **Vercel, la protection** : Settings → Deployment Protection → ajoutez **`staging.skilloria.io`** (la racine) aux
+   exceptions. Sans cela, aucune tâche planifiée ne tourne sur staging.
+2. **Vercel, les variables** (Settings → Environment Variables) : **supprimez `NEXT_PUBLIC_APP_URL`** ; vérifiez que
+   `NEXT_PUBLIC_SITE_URL` vaut `https://staging.skilloria.io` sur **Preview** (et `https://skilloria.io` sur Production) ;
+   laissez cochée « Automatically expose System Environment Variables ».
+3. **Le coffre-fort de la base** : `purge_cron_base_url` vaut `https://staging.skilloria.io` — c'est juste, ne le changez pas.
+4. **Sur votre poste**, Docker lancé : `npx supabase link --project-ref wnayuerhakekxccgimeg` puis
+   `node scripts/verifier-version-postgres.mjs` ; `npx supabase db reset --local` ; `npx supabase db lint -s public --level error`
+   (sortie vide) ; `npx supabase test db --local` (**540 tests, tous verts** — sinon envoyez-moi le fichier et le numéro).
+5. **La requête de staging** (`supabase/verifications/staging-avant-push.sql`, éditeur SQL de staging) : ⓪ doit dire
+   `listes_profil_atomiques` ; un seul ÉCART, on s'arrête.
+6. `npx supabase db push`, puis **aussitôt** `git push`.
+7. **Après le déploiement, sur staging** :
+   - `/admin/supervision` : le panneau « Réglages exigés au démarrage » dit que les variables sont posées, avec la version
+     déployée ; **aucune** ligne « La tâche … n'atteint pas le site ». S'il en reste une, elle dit pourquoi — faites ce
+     qu'elle dit. La ligne Stripe « n'a pas pu comparer » a disparu si la facturation est coupée.
+   - Menu de gauche et Supervision : plus aucune clé brute (« Dépôts en échec », « Travaux d'IA », « Autres comptes »,
+     « Non imputable à un compte »).
+   - Inscrivez un expert d'essai, puis `/admin/journal` : « Compte créé » et « Inscription d'un expert » montrent chacun
+     leur objet et leurs détails, différents.
+   - `/admin/taches-planifiees` → `matching_retry_trigger` → Exécuter maintenant : une minute plus tard, réponse `200`.
+8. **Le compte Vercel, avant tout usage commercial** (docs/mise-en-production.md, « Le compte Vercel ») : offre Pro ; les
+   secrets recréés en **Sensitive** ; la production avec ses propres variables Supabase.
+9. **À décider** : les points 9 à 13 ci-dessus. Et `scripts/diag-readonly-expert-achwek.mjs` : il imprime les données
+   d'une personne réelle ; je recommande de le supprimer (je ne l'ai pas fait : c'est votre fichier d'enquête).
+
+### L'épreuve de l'ARRÊT 20
+(ci-dessous, au commit de l'épreuve)
 
 ## ⛔ ARRÊT 19 — LE PARCOURS EXPERT, DU CV À LA PREMIÈRE MISE EN RELATION, SANS UN MUR (30/09/2026)
 

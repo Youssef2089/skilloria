@@ -137,8 +137,8 @@ export const CLES_DETAIL = {
   devoilement_ferme: ['publication_id', 'profile_id', 'unlocked_at', 'fin_echange'],
   message_envoye: ['conversation_id', 'candidature_id'], // jamais le contenu, ni sa longueur
   // La voie est DÉCLARÉE par l'appelant (métadonnées d'inscription) — la preuve d'une route est sa propre ligne, même pièce.
-  compte_cree: ['type_de_compte', 'voie_declaree'],
-  expert_inscrit: ['type_de_compte', 'cgu_version'],
+  compte_cree: ['type_de_compte', 'voie_declaree', 'cgu_version', 'telephone_verifie'],
+  expert_inscrit: ['branch_id', 'nb_specialites', 'specialite_autre'],
   organisation_preinscrite: ['org_type', 'domaine_public'],
   compte_valide: ['has_reason', 'de'],
   // Le verdict de la MACHINE (approuvé, ou déféré à un humain), son motif nommé — migration verification_conclue.

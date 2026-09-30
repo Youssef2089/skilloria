@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **169** migrations : **74 insertions vues, 61 analysées, 2280 valeurs confrontées** (mesuré le
-30/09/2026 — les huit migrations de l'ARRÊT 19 sèment deux actions nouvelles ; sur 161 : 72, 59, 2268, mesuré le
+Sur les **172** migrations : **74 insertions vues, 61 analysées, 2280 valeurs confrontées** (mesuré le
+30/09/2026 à la recette staging — ses trois migrations ne sèment rien, les compteurs ne bougent pas ; sur 169 : les mêmes,
+mesuré le 30/09/2026 — les huit migrations de l'ARRÊT 19 sèment deux actions nouvelles ; sur 161 : 72, 59, 2268, mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
 c'est le point. `palette_par_ecosysteme` ajoute six colonnes avec un `DEFAULT`, qui remplit les
@@ -4220,6 +4221,38 @@ fonction qui fait `execute` ne parcourt une constante par `foreach`) et `profil/
 `profil/analyse_cv_tolerante.test.sql`.
 **Ce qu'ils ne voient pas** : un CV réel — la tolérance est éprouvée sur des valeurs fabriquées, pas sur la variété
 des documents que le modèle rencontrera.
+
+---
+
+<a id="e89"></a>
+### E.89 — LA SÉRIE « STATIQUE » LISAIT LA VRAIE BASE, ET LA BASE N'ATTEIGNAIT PAS LE SITE — deux angles morts de l'exploitation, trouvés à la recette de staging.
+
+**① Le lanceur promettait « aucun accès base ».** `scripts/diag.mjs` retire les secrets de l'environnement de chaque
+script. Quatre scripts lisaient pourtant `.env.local` SUR LE DISQUE — ce qu'aucun retrait d'environnement n'empêche — et
+interrogeaient la base réelle à CHAQUE série : `diag-cron-purges` et `diag-gate-recalibrage` s'affichaient verts,
+`diag-supabase` et `diag-readonly-expert-achwek` « plantaient » (assertion libuv de Windows, `UV_HANDLE_CLOSING`). Le
+second imprime les données d'une personne réelle, lues avec la clé de service. Lecture seule — mais une sonde sur
+donnée réelle (§E.77), lancée par l'outil qui promettait de n'en faire aucune, et depuis des semaines : chaque série
+lancée pendant les arrêts précédents a fait ces lectures. **La parade** : le lanceur écarte, PAR PROPRIÉTÉ (le code
+nomme `.env.local` et ne se garde par aucun drapeau `--db`/`--live`), et les nomme dans une catégorie à part,
+« écartés par construction », hors du compte des pannes ; `--avec-base` les inclut. **Le plantage** : cause PROBABLE
+— `process.exit()` pendant la fermeture d'une connexion HTTPS gardée ouverte par fetch — NON REPRODUITE (190 essais
+sans base : HTTP, DNS, TLS, IPv6, `spawnSync` et tubes) ; les deux scripts ferment désormais le pool avant de sortir.
+
+**② Chaque tâche planifiée recevait un 401, et rien ne le disait.** La base appelle le site sur `purge_cron_base_url`
+(la racine). Sur staging, la racine était protégée par Vercel, seul `*.staging.skilloria.io` exempté : chaque appel
+était refusé AVANT d'atteindre le code. La route ne clôt pas un passage qui ne l'atteint pas ; la réconciliation ne
+recopie la réponse brute qu'à 03:15 et 03:45, et pg_net ne la garde qu'environ six heures — un refus de la journée
+disparaissait avant d'être lu ; /admin/supervision ne lisait aucun passage. **La parade** : `cron_joignabilite()` lit
+le journal ET la réponse brute ; `causeInjoignable()` (pure) sépare « la tâche a échoué » (elle a écrit son verdict :
+le site a été atteint) de « le site n'a pas été atteint », et nomme la cause — une action par cause.
+
+**La leçon commune** : un outil d'exploitation ne se juge pas à ce qu'il promet (« statique », « la tâche tourne
+chaque nuit ») mais à ce qu'il fait réellement — le lire, pas son en-tête (§E.57).
+
+**Gardé par** [`diag-recette-staging`](../scripts/diag-recette-staging.mjs) (7 : le lanceur ; 4 : dix causes exécutées)
+et `taches_planifiees/joignabilite.test.sql`. **Ce qu'ils ne voient pas** : la protection réelle de Vercel — seul
+l'écran de supervision, sur staging, dira qu'elle est levée.
 
 ---
 

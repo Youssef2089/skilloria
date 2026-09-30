@@ -94,8 +94,25 @@ section('A. Les types d’expérience : UNE liste — TypeScript, base, contrain
     const src = sansCommentaires(lire(p))
     ok(/enum: \[\.\.\.TYPES_EXPERIENCE\]/.test(src) && !/enum: \['career', 'project'\]/.test(src), `${p} : le schéma de l’analyseur LIT la liste partagée`)
   }
-  ok(/'experience_type', 'project'/.test(lire('supabase/tests/database/profil/analyse_cv.test.sql')) && !/'mission'/.test(lire('supabase/tests/database/profil/analyse_cv.test.sql')),
-    'le test analyse_cv pose un type ADMIS (il posait « mission », que la table refuse)')
+  // Le test `profil/analyse_cv` (qui posait « mission ») est parti avec `appliquer_analyse_cv` (recette staging,
+  // §E.72 étape 3) : la fonction est SUPPRIMÉE par une migration, et plus rien ne l'appelle.
+  const retrait = migration('appliquer_analyse_cv_retiree')
+  const appelants = ['lib', 'app', 'supabase/tests/database'].flatMap((d) => {
+    const out = []
+    const marche = (r) => {
+      for (const e of readdirSync(join(ROOT, r))) {
+        const p = `${r}/${e}`
+        if (statSync(join(ROOT, p)).isDirectory()) { marche(p); continue }
+        if (!/\.(ts|tsx|sql|psql)$/.test(e)) continue
+        const code = /\.(ts|tsx)$/.test(e) ? sansCommentaires(lire(p)) : sansCommentairesSql(lire(p))
+        if (/appliquer_analyse_cv/.test(code)) out.push(p)
+      }
+    }
+    marche(d)
+    return out
+  })
+  ok(/drop function if exists public\.appliquer_analyse_cv\(uuid, jsonb, jsonb, jsonb, jsonb\);/.test(retrait) && appelants.length === 0,
+    'l’ancienne écriture tout-ou-rien est supprimée en base, et plus aucun code ni test ne l’appelle', appelants.join(', '))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -42,6 +42,40 @@ Elle couvre **tout ce qui ne peut pas vivre dans le dépôt** : des secrets, des
 **Recommandation : A et C, avant la bascule.** A fait de la mise en production un acte délibéré qui suit la base ;
 C retire du public une version de cinq mois dont on ne sait pas à quelle base elle parle. B n'apporte rien que A ne
 donne mieux. **Rien n'est touché ici** : c'est un réglage du projet Vercel, à décider par Youssef.
+**⚠️ C se retire le jour de la bascule** : la base appelle le site sur sa RACINE (`purge_cron_base_url`, étape 3), et
+une protection posée devant la racine refuse chaque appel (401) — aucune tâche ne tourne, purges RGPD comprises
+(ci-dessous, « Le compte Vercel », ④).
+
+## ⚠️ Le compte Vercel, avant tout usage commercial (recette staging, 30/09/2026)
+
+Constats de Youssef dans l'écran de Vercel — **NON VÉRIFIÉS dans le dépôt** : ce sont des réglages du compte.
+
+**① Passer le compte en offre Pro.** L'offre Hobby est réservée à un usage **non commercial** (conditions de Vercel) :
+un site qui vend des abonnements ne peut pas y rester. Pro coûte par membre et par mois ; c'est aussi l'offre qui
+permet un environnement personnalisé `staging` (étape 6, voie C bis) et une durée de fonction de 300 secondes
+(les travaux d'IA, §D.30 — à vérifier dans Settings → Functions).
+
+**② Ranger en « Secret » (Sensitive) les cinq clés que Vercel signale « Needs Attention »** : `ANTHROPIC_API_KEY`,
+`STRIPE_SECRET_KEY`, `RESEND_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_WEBHOOK_SECRET`. Aujourd'hui en
+« Config », leur valeur se relit dans l'écran par quiconque a accès au projet. Une variable ne se convertit pas :
+**supprimez-la, recréez-la en cochant « Sensitive »**, avec la même valeur, sur les mêmes environnements, puis
+**redéployez** (la valeur n'est lue qu'à la construction et au démarrage). Faites-en autant pour `CRON_SECRET`,
+`INSCRIPTION_HMAC_SECRET`, `PHONE_OTP_HMAC_SECRET`, `REAUTH_HMAC_SECRET`, `SUPABASE_JWT_SECRET`,
+`VONAGE_API_SECRET`, `COHERE_API_KEY` : ce sont aussi des secrets.
+
+**③ Donner à la production SES variables Supabase.** Aujourd'hui `NEXT_PUBLIC_SUPABASE_URL`,
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` et `SUPABASE_SERVICE_ROLE_KEY` sont communes à Production, Preview et Development :
+la production parlerait à la base de staging. Pour chacune, **une valeur par environnement** — Production : le projet
+Supabase de production ; Preview : `wnayuerhakekxccgimeg` (staging) ; Development : rien (le poste local lit
+`.env.local`). Même chose pour `SUPABASE_JWT_SECRET`, qui appartient à un projet Supabase.
+
+**④ L'adresse que la base appelle ne doit être derrière AUCUNE protection.** Chaque tâche planifiée est un appel de la
+base au site, sur `purge_cron_base_url` (étape 3) — la RACINE de l'environnement. Une protection de Vercel (Vercel
+Authentication, mot de passe) devant elle répond 401 avant d'atteindre le code : sur staging, le 30/09/2026, la racine
+`https://staging.skilloria.io` était protégée, seul `*.staging.skilloria.io` en était exempté — aucune tâche ne
+tournait. **Sur staging** : Settings → Deployment Protection → ajoutez la racine aux exceptions. **En production** : ne
+protégez pas la racine. **Comment savoir** : `/admin/supervision` le dit désormais, tâche par tâche, avec sa cause
+(« protégée par l'hébergeur », « secret refusé », « redirection », « délai », « connexion impossible »).
 
 ---
 
@@ -121,7 +155,7 @@ La base déclenche elle-même cinq tâches en appelant l'application par Interne
 | Nom du secret | Ce que c'est |
 |---|---|
 | `cron_secret` | le **même** mot de passe que la variable `CRON_SECRET` de Vercel, au caractère près |
-| `purge_cron_base_url` | l'adresse de votre site, **sans barre oblique finale** — par exemple `https://microsoft.skilloria.io` |
+| `purge_cron_base_url` | **la racine** de l'environnement, en https, **sans barre oblique finale** : `https://skilloria.io` en production, `https://staging.skilloria.io` sur staging — jamais l'adresse d'un écosystème (les routes `/api/cron` n'en lisent aucun), et **derrière aucune protection** (« Le compte Vercel », ④) |
 | `inscription_hmac_secret` | le **même** mot de passe que la variable `INSCRIPTION_HMAC_SECRET` de Vercel, au caractère près (32 caractères au moins). **Sans lui, aucune inscription n'aboutit** : la base refuse tout compte dont elle ne peut pas vérifier la preuve (§D.27) |
 
 ### Ce qui se passe si vous les oubliez
@@ -233,7 +267,7 @@ Vercel → votre projet → **Settings** → **Environment Variables**.
 | `SUPABASE_SERVICE_ROLE_KEY` | clé privée de la base — **ne la partagez jamais** |
 | `SUPABASE_JWT_SECRET` | secret de signature des sessions |
 | `NEXT_PUBLIC_DOMAINE_RACINE` | **la racine des adresses de CET environnement** : `skilloria.io` sur **Production**, `staging.skilloria.io` sur **Preview** — jamais un nom d'écosystème (étape 6, « Les adresses ») |
-| `NEXT_PUBLIC_SITE_URL` | l'adresse de votre site, sans barre oblique finale |
+| `NEXT_PUBLIC_SITE_URL` | **la racine** en https, sans barre oblique finale : `https://skilloria.io` sur Production, `https://staging.skilloria.io` sur Preview — jamais l'adresse d'un écosystème (le démarrage et `/admin/supervision` le signalent : `hote_hors_racine`) |
 | `CRON_SECRET` | **la même valeur** que le secret `cron_secret` du coffre-fort (étape 3) |
 | `INSCRIPTION_HMAC_SECRET` | **la même valeur** que le secret `inscription_hmac_secret` du coffre-fort (étape 3) — sans elle, les formulaires d'inscription répondent « momentanément indisponible » |
 
@@ -243,6 +277,14 @@ Vercel → votre projet → **Settings** → **Environment Variables**.
 > **`NEXT_PUBLIC_SITE_URL` n'est pas optionnelle en production.**
 > Avec la racine, c'est elle qui autorise les liens de **tous** les e-mails : approbation d'un expert, refus d'une organisation, invitation à rejoindre une équipe, invitation d'un administrateur, notifications, et l'avertissement d'inactivité à 23 mois. Les liens eux-mêmes pointent vers **l'adresse de l'écosystème du destinataire**, `https://<écosystème>.<racine>` : depuis staging, vers staging.
 > Si l'une des deux manque en production, **ces e-mails ne partent plus du tout** — c'est volontaire : un message contenant un lien mort est pire qu'un message absent. Vous le verrez dans les journaux Vercel, sous la mention `origine du site inconnaissable` ou le code `domaine_racine_absent`.
+
+> **`NEXT_PUBLIC_APP_URL` : retirez-la de Vercel** (recette staging, 30/09/2026). Elle avait le même rôle que
+> `NEXT_PUBLIC_SITE_URL`, et **aucune ligne du code ne la lit** : une seconde adresse finit par diverger de la première
+> sans que rien ne le dise. Seule `NEXT_PUBLIC_SITE_URL` reste.
+
+> **Les variables système de Vercel doivent être exposées** (Settings → Environment Variables → « Automatically expose
+> System Environment Variables », coché par défaut) : `/admin/supervision` affiche la version contrôlée
+> (`VERCEL_GIT_COMMIT_SHA`) et l'environnement (`VERCEL_ENV`).
 
 > **`DEV_DOMAIN_SLUG` ne se pose sur AUCUN environnement Vercel** (décision de Youssef, 29/09/2026). Elle ne sert
 > qu'au poste local, où `localhost` n'a pas de sous-domaine. Staging se comporte **exactement** comme la production :
@@ -605,7 +647,11 @@ Ne touchez à rien chez Stripe. **Modifiez le prix dans /admin/packages**, c'est
 - [ ] Les variables indispensables sont posées sur **Production**
 - [ ] **Le catalogue est relié à Stripe dans le mode de cet environnement** — zéro offre « à relier » dans `/admin/facturation` → Écarts. **À refaire en `live`** : un prix créé en test n’existe pas en production
 - [ ] `NEXT_PUBLIC_DOMAINE_RACINE` est posée **avant** le déploiement (`skilloria.io` sur Production, `staging.skilloria.io` sur Preview) — sinon aucune page ne s'affiche
-- [ ] `NEXT_PUBLIC_SITE_URL` est posée — sinon aucun e-mail ne part
+- [ ] `NEXT_PUBLIC_SITE_URL` est posée et vaut **la racine** (`https://skilloria.io`) — sinon aucun e-mail ne part
+- [ ] `NEXT_PUBLIC_APP_URL` n'existe plus dans Vercel
+- [ ] Le compte Vercel est en offre **Pro** ; les secrets sont rangés en **Sensitive** ; la production a **ses** variables Supabase
+- [ ] `purge_cron_base_url` vaut la racine, **sans protection** — `/admin/supervision` ne montre aucune tâche « n'atteint pas le site »
+- [ ] `/admin/supervision` affiche « Les N variables exigées sont posées », avec la version déployée
 - [ ] `DEV_DOMAIN_SLUG` n'est posée sur **aucun** environnement Vercel
 - [ ] `CRON_SECRET` (Vercel) et `cron_secret` (coffre-fort) sont **identiques**
 - [ ] `INSCRIPTION_HMAC_SECRET` (Vercel) et `inscription_hmac_secret` (coffre-fort) sont **identiques**

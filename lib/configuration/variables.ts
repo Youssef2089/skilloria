@@ -52,6 +52,11 @@ export type VariableEnvironnement = {
   longueurMin?: number
   /** Valeur exacte exigée (un interrupteur : `'true'`, rien d'autre — §E.9). */
   valeurAttendue?: string
+  /**
+   * L'HÔTE de cette adresse doit être EXACTEMENT la valeur d'une autre variable (recette staging, 30/09/2026) :
+   * l'origine du site est la RACINE de l'environnement, jamais l'adresse d'un écosystème.
+   */
+  hoteEgalA?: string
 }
 
 export const VARIABLES: readonly VariableEnvironnement[] = [
@@ -73,8 +78,12 @@ export const VARIABLES: readonly VariableEnvironnement[] = [
   { nom: 'NEXT_PUBLIC_DOMAINE_RACINE', exigence: 'deploye',
     role: 'racine des adresses de CET environnement (skilloria.io, staging.skilloria.io) — jamais un nom d’écosystème',
     siAbsente: 'aucune page ne s’affiche : le serveur s’arrête en la nommant (§E.83)' },
-  { nom: 'NEXT_PUBLIC_SITE_URL', exigence: 'deploye',
-    role: 'origine du site : garde des liens d’e-mail en production, retours de paiement',
+  // LA SEULE ADRESSE DU SITE (recette staging, 30/09/2026) : NEXT_PUBLIC_APP_URL, posée sur Vercel avec le même
+  // rôle, n'est lue par AUCUNE ligne du code — elle se retire de Vercel. Celle-ci vaut la RACINE en https
+  // (https://staging.skilloria.io, https://skilloria.io), jamais l'adresse d'un écosystème : les liens vers un
+  // écosystème se construisent depuis son sous-domaine (`expertSiteOrigin`), pas depuis elle.
+  { nom: 'NEXT_PUBLIC_SITE_URL', exigence: 'deploye', hoteEgalA: 'NEXT_PUBLIC_DOMAINE_RACINE',
+    role: 'origine du site, sur la RACINE : garde des liens d’e-mail en production, retours de paiement, point de réception Stripe',
     siAbsente: 'en production, les e-mails à lien ne partent plus (origine du site inconnaissable)' },
   { nom: 'DEV_DOMAIN_SLUG', exigence: 'poste_local',
     role: 'sous-domaine réglé dans l’admin, désignant l’écosystème servi sur localhost',
@@ -151,13 +160,16 @@ export const VARIABLES: readonly VariableEnvironnement[] = [
   { nom: 'NEXT_RUNTIME', exigence: 'plateforme',
     role: 'moteur d’exécution de Next (nodejs, edge) — posé par Next',
     siAbsente: 'hors d’un serveur Next' },
+  { nom: 'VERCEL_GIT_COMMIT_SHA', exigence: 'plateforme',
+    role: 'le commit déployé — posé par Vercel ; la supervision dit la version qu’elle a contrôlée',
+    siAbsente: 'la version ne se dit pas (poste local, ou variables système de Vercel non exposées)' },
 ]
 
 export type Manque = {
   nom: string
   exigence: Exigence
   /** Pourquoi elle est signalée. */
-  motif: 'absente' | 'trop_courte' | 'valeur_inattendue' | 'posee_hors_du_poste_local'
+  motif: 'absente' | 'trop_courte' | 'valeur_inattendue' | 'posee_hors_du_poste_local' | 'hote_hors_racine'
   role: string
   siAbsente: string
 }
@@ -179,9 +191,41 @@ export function variablesManquantes(env: Record<string, string | undefined>): Ma
     const valeur = lue(v.nom) || (v.ouBien ? lue(v.ouBien) : '')
     if (!valeur) { out.push({ ...base, motif: 'absente' }); continue }
     if (v.longueurMin && valeur.length < v.longueurMin) { out.push({ ...base, motif: 'trop_courte' }); continue }
-    if (v.valeurAttendue && valeur !== v.valeurAttendue) out.push({ ...base, motif: 'valeur_inattendue' })
+    if (v.valeurAttendue && valeur !== v.valeurAttendue) { out.push({ ...base, motif: 'valeur_inattendue' }); continue }
+    if (v.hoteEgalA) {
+      const attendu = lue(v.hoteEgalA).toLowerCase()
+      let hote = ''
+      try { hote = new URL(valeur).hostname.toLowerCase() } catch { /* malformée : l'hôte vide ne vaut pas la racine */ }
+      // Racine absente : c'est ELLE qui manque, et elle est déjà signalée — on ne juge pas contre un vide.
+      if (attendu && hote !== attendu) out.push({ ...base, motif: 'hote_hors_racine' })
+    }
   }
   return out
+}
+
+/**
+ * L'ÉTAT DE LA CONFIGURATION, DIT EN PERMANENCE (recette staging, 30/09/2026). La supervision ne disait les
+ * variables que lorsqu'il en manquait une : un écran muet ne dit pas « tout est posé », il ne dit rien.
+ * Même contrôle que le démarrage (`variablesManquantes`), rejoué à chaque lecture, avec la version et
+ * l'environnement contrôlés — jamais une valeur.
+ */
+export type EtatConfiguration = {
+  /** Le nombre de variables EXIGÉES (`deploye`) de la liste. */
+  exigees: number
+  /** Celles qui manquent (ou sont trop courtes, ou n'ont pas la valeur exigée), par leur NOM. */
+  manquantes: string[]
+  /** Le commit déployé, raccourci ; `null` hors de Vercel. */
+  version: string | null
+  environnement: string | null
+}
+export function etatConfiguration(env: Record<string, string | undefined>, commit: string | undefined): EtatConfiguration {
+  const sha = (commit ?? '').trim()
+  return {
+    exigees: VARIABLES.filter((v) => v.exigence === 'deploye').length,
+    manquantes: variablesExigeesManquantes(env).map((m) => m.nom),
+    version: sha ? sha.slice(0, 7) : null,
+    environnement: (env.VERCEL_ENV ?? '').trim() || null,
+  }
 }
 
 /** Les manques qui CASSENT une fonction (exigence `deploye`) — ceux que la supervision dit BLOQUANTS. */

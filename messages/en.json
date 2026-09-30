@@ -2567,7 +2567,9 @@
       "nav_supervision": "Monitoring",
       "nav_facturation": "Billing",
       "nav_consommation": "Consumption",
-      "nav_journal": "General ledger"
+      "nav_journal": "General ledger",
+      "nav_depots_echec": "Failed submissions",
+      "nav_travaux_ia": "AI jobs"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -3233,7 +3235,15 @@
         "lecture_indisponible_acteurs_plafond": "Capped accounts could not be counted. This is not “none”: we do not know.",
         "variable_manquante": "The environment variable {nom} is missing on this deployment: a product feature is broken. Set it in Vercel (production procedure, step 5), then redeploy.",
         "travaux_ia_en_souffrance": "{count} AI job(s) need a human: a CV analysis or expert verification that was abandoned, is overdue, or whose worker stopped. Behind each line, an expert is waiting. Open AI jobs and restart them.",
-        "lecture_indisponible_travaux_ia": "The AI jobs could not be counted. This is not \"nothing to do\": it is \"we do not know\". Open AI jobs."
+        "lecture_indisponible_travaux_ia": "The AI jobs could not be counted. This is not \"nothing to do\": it is \"we do not know\". Open AI jobs.",
+        "site_injoignable_protection": "Task “{nom}” does not reach the site: the address the database calls (Vault secret purge_cron_base_url) is protected by the host (response {count}). Add a protection exception for this address in Vercel, or replace it with an unprotected address.",
+        "site_injoignable_secret_refuse": "Task “{nom}” reaches the site, which rejects its secret (response {count}): the Vault secret cron_secret does not match the Vercel variable CRON_SECRET. Copy the same value to both.",
+        "site_injoignable_redirection": "Task “{nom}” is redirected (response {count}) and never reaches the job: the Vault address purge_cron_base_url must be the final address, https, with no trailing slash.",
+        "site_injoignable_delai": "Task “{nom}” got no response from the site within 60 seconds. Check that the Vault address purge_cron_base_url leads to the site and that the site responds.",
+        "site_injoignable_connexion": "Task “{nom}” could not connect to the site: wrong purge_cron_base_url address, unknown domain name or rejected certificate.",
+        "site_injoignable_erreur_http": "Task “{nom}” received an error from the site (response {count}) without the job recording its verdict. Open its history to read the response.",
+        "site_injoignable_aucune_reponse": "Task “{nom}” was called and no response was observed. The database keeps responses for about six hours: open the task history, or run it manually and check its response.",
+        "lecture_indisponible_joignabilite": "Unable to read the latest scheduled-task calls: we cannot tell whether the database reaches the site."
       },
       "spread_title": "Score spread",
       "spread_empty": "No run yet on the new scale. The spread will fill in with the next matching runs.",
@@ -3307,7 +3317,9 @@
       "by_actor_alert": "This account reached the alert level. Nothing is blocked.",
       "actor": {
         "organization": "Organisations",
-        "profile": "Experts"
+        "profile": "Experts",
+        "reste_non_detaille": "Other accounts (grouped)",
+        "non_imputable": "Not attributable to an account"
       },
       "cause": {
         "plafond": "Budget reached",
@@ -3323,7 +3335,13 @@
         "ouverture_croisee": "Cross opening",
         "disponibilite": "Availability",
         "cv_reanalyse": "CV re-analysed"
-      }
+      },
+      "config_title": "Required settings at startup",
+      "config_toutes": "All {n} required variables are set.",
+      "config_manquantes": "{n} of {total} required variable(s) missing: {noms}. Set them in Vercel (Settings → Environment Variables), then redeploy.",
+      "config_controle": "Checked on {quand} · version {version} · environment {environnement}",
+      "config_version_inconnue": "unknown",
+      "config_env_local": "local machine"
     },
     "depots_echec": {
       "title": "Failed application submissions",
@@ -3366,7 +3384,6 @@
       "raison_ne_pas_deranger": "expert set to “do not disturb”",
       "raison_non_en_recherche": "expert employed, not looking"
     },
-    "nav_depots_echec": "Failed submissions",
     "consommation": {
       "title": "Consumption per account",
       "intro": "What each account cost this month, and which one reached its cap. Caps are set in",
@@ -3528,7 +3545,11 @@
           "messagerie": "No legal minimum found (0).",
           "journal": "Traces of clean-ups are never erased."
         }
-      }
+      },
+      "oui": "yes",
+      "non": "no",
+      "resume_objet": "object: {objet}",
+      "resume_plus": "+ {n} more"
     },
     "nav_travaux_ia": "AI jobs",
     "travaux_ia": {

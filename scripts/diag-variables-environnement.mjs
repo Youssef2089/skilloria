@@ -112,6 +112,9 @@ for (const v of VARIABLES) {
   if (v.exigence === 'plateforme' || v.exigence === 'poste_local') continue
   complet[v.nom] = v.valeurAttendue ?? 'x'.repeat(Math.max(v.longueurMin ?? 0, 40))
 }
+// Une adresse dont l'HÔTE doit valoir une autre variable (recette staging : l'origine du site est la racine)
+// se fabrique cohérente — sinon « tout posé » serait faux dès la fabrique.
+for (const v of VARIABLES) if (v.hoteEgalA) complet[v.nom] = `https://${complet[v.hoteEgalA]}`
 const sans = (env, ...noms) => { const e = { ...env }; for (const n of noms) delete e[n]; return e }
 const noms = (l) => l.map((m) => `${m.nom}:${m.motif}`)
 ok(variablesManquantes(complet).length === 0, 'C. tout posé : rien ne manque')
@@ -126,6 +129,9 @@ const interrupteur = variablesExigeesManquantes({ ...complet, ENABLE_RERANKING: 
 ok(interrupteur.length === 1 && interrupteur[0].motif === 'valeur_inattendue', 'C. un interrupteur exigé qui ne vaut pas exactement « true » est nommé (§E.9)', JSON.stringify(noms(interrupteur)))
 const local = variablesManquantes({ ...complet, DEV_DOMAIN_SLUG: 'alpha' })
 ok(local.length === 1 && local[0].motif === 'posee_hors_du_poste_local', 'C. DEV_DOMAIN_SLUG posée sur un déploiement est signalée', JSON.stringify(noms(local)))
+const horsRacine = variablesExigeesManquantes({ ...complet, NEXT_PUBLIC_SITE_URL: `https://eco.${complet.NEXT_PUBLIC_DOMAINE_RACINE}` })
+ok(horsRacine.length === 1 && horsRacine[0].nom === 'NEXT_PUBLIC_SITE_URL' && horsRacine[0].motif === 'hote_hors_racine',
+  'C. l’adresse du site qui nomme un écosystème est signalée (hote_hors_racine) — elle vaut la racine', JSON.stringify(noms(horsRacine)))
 const optionnelle = variablesManquantes(sans(complet, 'STRIPE_SECRET_KEY'))
 ok(optionnelle.length === 1 && optionnelle[0].exigence === 'optionnelle' && variablesExigeesManquantes(sans(complet, 'STRIPE_SECRET_KEY')).length === 0,
   'C. une variable optionnelle absente est signalée, sans être comptée exigée')

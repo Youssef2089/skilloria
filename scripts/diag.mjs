@@ -40,6 +40,7 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //   node scripts/diag.mjs              → tous les diagnostics STATIQUES.
 //                                        Aucun accès base, aucune écriture.
+//   node scripts/diag.mjs --avec-base  → y compris ceux qui LISENT la vraie base (.env.local) — lecture seule.
 //   node scripts/diag.mjs --avec-ecritures
 //                                      → y compris ceux qui MODIFIENT la base.
 //                                        À n'utiliser qu'en connaissance de cause.
@@ -61,6 +62,8 @@ const DELAI_MS = 120_000
 
 const args = process.argv.slice(2)
 const avecEcritures = args.includes('--avec-ecritures')
+// Écrire suppose de lire : --avec-ecritures inclut aussi les lecteurs.
+const avecBase = avecEcritures || args.includes('--avec-base')
 const detail = args.includes('--detail')
 const motif = args.find((a) => !a.startsWith('--')) ?? null
 
@@ -166,6 +169,29 @@ function ecritEnBase(nom) {
   return APPELLE_LA_GARDE.some((re) => re.test(nu))
 }
 
+/* ┌─ ET D'AUTRES LISAIENT LA VRAIE BASE, EN MODE « STATIQUE » (recette staging, 30/09/2026) ─┐
+   │ Le mode par défaut promettait « aucun accès base ». Quatre scripts lisaient pourtant      │
+   │ `.env.local` SUR LE DISQUE — ce que le retrait des secrets de l'environnement de l'enfant   │
+   │ ne peut pas empêcher — et interrogeaient la base réelle à CHAQUE série : deux s'affichaient │
+   │ verts (diag-cron-purges, diag-gate-recalibrage), deux « plantés » (diag-supabase,          │
+   │ diag-readonly-expert-achwek, qui imprime les données d'une personne réelle avec la clé de   │
+   │ service). Lecture seule, mais une sonde sur donnée réelle n'a rien à faire dans une série.   │
+   │                                                                                             │
+   │ LA PROPRIÉTÉ, PAS UNE LISTE (§E.34) : le script nomme `.env.local` dans son CODE (pas dans   │
+   │ un commentaire, §E.7) et ne se garde par aucun drapeau (`--db`, `--live`). Ceux qui se    │
+   │ gardent ne touchent la base que si on le leur demande : ils restent dans la série.          │
+   └─────────────────────────────────────────────────────────────────────────────────────────────┘ */
+function litLaVraieBase(nom) {
+  let code
+  try {
+    code = readFileSync(join(SCRIPTS, `${nom}.mjs`), 'utf8')
+  } catch {
+    return false
+  }
+  const nu = sansCommentaires(code)
+  return /['"`]\.env\.local['"`]/.test(nu) && !/['"`]--(?:db|live)['"`]/.test(nu)
+}
+
 function raisonDEcriture(nom) {
   return (
     ECRIVENT_EN_BASE[nom] ??
@@ -242,22 +268,34 @@ const fichiers = readdirSync(SCRIPTS)
 const verts = []
 const rouges = []
 const muets = []
+// ÉCARTÉS PAR CONSTRUCTION — ils touchent la vraie base. Nommés, avec leur raison, et SÉPARÉS des muets :
+// un muet est une panne du contrôle (il aurait dû tourner) ; un écarté ne devait pas tourner ici. Les compter
+// ensemble faisait sortir chaque série en échec, pour toujours — un signal qu'aucune action n'éteint (§E.52).
+
+const ecartes = []
 
 const envEnfant = envSansSecrets()
 
 console.log(`\n${B}DIAGNOSTICS — ${fichiers.length} script(s)${N}`)
 console.log(
   avecEcritures
-    ? `${J}Mode --avec-ecritures : les diagnostics qui ÉCRIVENT en base sont INCLUS.${N}\n`
-    : `${D}Mode statique : les diagnostics qui écrivent en base sont écartés (--avec-ecritures pour les inclure).${N}\n`,
+    ? `${J}Mode --avec-ecritures : les diagnostics qui ÉCRIVENT en base (et ceux qui la lisent) sont INCLUS.${N}\n`
+    : avecBase
+      ? `${J}Mode --avec-base : les diagnostics qui LISENT la vraie base sont inclus ; ceux qui écrivent restent écartés.${N}\n`
+      : `${D}Mode statique : aucun accès base — ceux qui écrivent (--avec-ecritures) ou lisent la vraie base (--avec-base) sont écartés.${N}\n`,
 )
 
 for (const f of fichiers) {
   const nom = f.replace(/\.mjs$/, '')
   const chemin = join(SCRIPTS, f)
   if (!avecEcritures && ecritEnBase(nom)) {
-    muets.push({ nom, raison: `écarté : ÉCRIT EN BASE — ${raisonDEcriture(nom)}`, sortie: '' })
-    console.log(`  ${J}≡${N} ${nom.padEnd(42)} ${D}N'A PAS TOURNÉ — écarté (écrit en base)${N}`)
+    ecartes.push({ nom, raison: `ÉCRIT EN BASE — ${raisonDEcriture(nom)}` })
+    console.log(`  ${D}○ ${nom.padEnd(42)} ÉCARTÉ (écrit en base)${N}`)
+    continue
+  }
+  if (!avecBase && litLaVraieBase(nom)) {
+    ecartes.push({ nom, raison: 'LIT LA VRAIE BASE (.env.local, sans drapeau --db) — lecture seule ; --avec-base pour l’inclure' })
+    console.log(`  ${D}○ ${nom.padEnd(42)} ÉCARTÉ (lit la vraie base)${N}`)
     continue
   }
 
@@ -324,7 +362,13 @@ if (rouges.length) {
   console.log()
 }
 
-console.log(`${G}VERT : ${verts.length}${N}   ${R}ROUGE : ${rouges.length}${N}   ${J}N'A PAS TOURNÉ : ${muets.length}${N}\n`)
+if (ecartes.length) {
+  console.log(`${D}${B}ÉCARTÉS PAR CONSTRUCTION — ${ecartes.length}${N} ${D}(ils touchent la vraie base : lancés seulement sur demande)${N}`)
+  for (const e of ecartes) console.log(`  ${D}○ ${e.nom}\n      ${e.raison}${N}`)
+  console.log()
+}
+
+console.log(`${G}VERT : ${verts.length}${N}   ${R}ROUGE : ${rouges.length}${N}   ${J}N'A PAS TOURNÉ : ${muets.length}${N}   ${D}ÉCARTÉS : ${ecartes.length}${N}\n`)
 
 if (detail) {
   for (const m of [...muets, ...rouges]) {

@@ -8,7 +8,7 @@ import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import { ACTIONS_JOURNAL } from '@/lib/journal/actions'
 import { FAMILLES_JOURNAL, ORIGINES_JOURNAL, STATUTS_JOURNAL, estUuid, type PageJournal } from '@/lib/journal/lecture'
-import { Acteur, Montant, PastilleStatut, Quand, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
+import { Acteur, Montant, PastilleStatut, Quand, ResumeEcriture, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
 import NettoyageJournal from '@/components/admin/journal/NettoyageJournal'
 
 /**
@@ -234,6 +234,7 @@ export default function JournalPage() {
                     <span style={{ color: 'var(--sk-muted)' }}>{l.ecosysteme_nom ?? t('ecosysteme_aucun')}</span>
                     <Montant ligne={l} />
                   </div>
+                  <ResumeEcriture ligne={l} />
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12 }}>
                     <Link href={`/admin/journal/${l.piece}`} style={{ color: 'var(--sk-accent)', fontWeight: 600 }}>{t('voir_piece')}</Link>
                     {objet && <Link href={objet} style={{ color: 'var(--sk-accent)' }}>{t('ouvrir_objet')}</Link>}

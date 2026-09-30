@@ -37,57 +37,17 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- Ce push (le parcours expert, 30/09/2026, ARRÊT 19, §D.30, §E.88) : HUIT migrations — types_experience,
-  -- analyse_cv_tolerante, verification_conclue, travaux_ia, premiere_recherche_rejouee, notifications_match,
-  -- specialite_autre_publiable, listes_profil_atomiques. Elles ne retirent AUCUNE signature (appliquer_analyse_cv
-  -- reste, plus appelée : elle partira au push SUIVANT, §E.72) ; elles remplacent À SIGNATURE IDENTIQUE
-  -- statuer_sur_expert, echouer_relance_expert, programmer_relance_expert, et deux contraintes existantes
-  -- (profile_experiences_experience_type_check, profiles_visible_requiert_criteres_check) — rien de tout cela n'est
-  -- « créé », c'est pourquoi ces noms ne figurent pas ci-dessous.
+  -- Ce push (la recette staging, 30/09/2026) : TROIS migrations — journal_inscription_distincte (remplace
+  -- handle_new_user À SIGNATURE IDENTIQUE, élargit deux listes blanches : rien de « créé »), appliquer_analyse_cv_retiree
+  -- (la troisième étape de §E.72 : le code déployé depuis dbd028e ne l'appelle plus), joignabilite_du_site.
   prochain_push_retire(signature) as (
-    select unnest(array[]::text[])
+    select unnest(array['public.appliquer_analyse_cv(uuid, jsonb, jsonb, jsonb, jsonb)']::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'types_experience'),
-      ('fonction', 'longueur_max_colonne'),
-      ('fonction', 'borner_textes'),
-      ('fonction', 'ecrire_analyse_cv'),
-      ('fonction', 'poser_verdict_verification'),
-      ('fonction', 'journaliser_travail_ia'),
-      ('fonction', 'reveiller_travaux_ia'),
-      ('fonction', 'deposer_travail_ia'),
-      ('fonction', 'deposer_analyse_cv'),
-      ('fonction', 'deposer_verification_expert'),
-      ('fonction', 'prendre_travail_ia'),
-      ('fonction', 'clore_travail_ia_en_echec'),
-      ('fonction', 'echouer_travail_ia'),
-      ('fonction', 'terminer_analyse_cv'),
-      ('fonction', 'conclure_verification_expert'),
-      ('fonction', 'clore_travaux_ia_perdus'),
-      ('fonction', 'piloter_travaux_ia'),
-      ('fonction', 'relancer_travail_ia'),
-      ('fonction', 'travaux_ia_en_souffrance'),
-      ('fonction', 'poser_notifications_match'),
-      ('fonction', 'remplacer_listes_profil'),
-      ('table', 'travaux_ia'),
-      ('index', 'travaux_ia_un_actif'),
-      ('index', 'travaux_ia_dus'),
-      ('index', 'travaux_ia_baux'),
-      ('index', 'travaux_ia_profil'),
-      ('index', 'travaux_ia_echecs'),
-      ('contrainte', 'travaux_ia_nature_check'),
-      ('contrainte', 'travaux_ia_statut_check'),
-      ('contrainte', 'travaux_ia_tentatives_check'),
-      ('contrainte', 'travaux_ia_bail_si_en_cours'),
-      ('contrainte', 'travaux_ia_fin_si_clos'),
-      ('contrainte', 'travaux_ia_code_si_echec'),
-      ('contrainte', 'travaux_ia_code_forme'),
-      ('contrainte', 'travaux_ia_charge_objet'),
-      ('contrainte', 'travaux_ia_acteur_coherent'),
-      ('contrainte', 'travaux_ia_acteur_type_check')
+      ('fonction', 'cron_joignabilite')
     ) v(genre, nom)
   )
 
@@ -100,7 +60,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'analyse_cv_atomique',
+   'listes_profil_atomiques',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 

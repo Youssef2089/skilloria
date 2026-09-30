@@ -2567,7 +2567,9 @@
       "nav_supervision": "Supervisión",
       "nav_facturation": "Facturación",
       "nav_consommation": "Consumo",
-      "nav_journal": "Libro mayor"
+      "nav_journal": "Libro mayor",
+      "nav_depots_echec": "Depósitos fallidos",
+      "nav_travaux_ia": "Tareas de IA"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -3233,7 +3235,15 @@
         "lecture_indisponible_acteurs_plafond": "No se pudieron contar las cuentas al límite. No es «ninguna»: no lo sabemos.",
         "variable_manquante": "Falta la variable de entorno {nom} en este despliegue: una función del producto no funciona. Configúrela en Vercel (procedimiento de puesta en producción, paso 5) y vuelva a desplegar.",
         "travaux_ia_en_souffrance": "{count} tarea(s) de IA necesitan a una persona: un análisis de CV o una verificación de experto abandonada, retrasada o cuyo ejecutor se detuvo. Detrás de cada línea, un experto espera. Abra Tareas de IA y relánzelas.",
-        "lecture_indisponible_travaux_ia": "No se pudieron contar las tareas de IA. No significa «nada pendiente»: significa «no lo sabemos». Abra Tareas de IA."
+        "lecture_indisponible_travaux_ia": "No se pudieron contar las tareas de IA. No significa «nada pendiente»: significa «no lo sabemos». Abra Tareas de IA.",
+        "site_injoignable_protection": "La tarea «{nom}» no llega al sitio: la dirección que llama la base (secreto purge_cron_base_url del Vault) está protegida por el alojamiento (respuesta {count}). Añada una excepción de protección para esa dirección en Vercel, o sustitúyala por una dirección sin protección.",
+        "site_injoignable_secret_refuse": "La tarea «{nom}» llega al sitio, que rechaza su secreto (respuesta {count}): el secreto cron_secret del Vault no coincide con la variable CRON_SECRET de Vercel. Copie el mismo valor en ambos.",
+        "site_injoignable_redirection": "La tarea «{nom}» es redirigida (respuesta {count}) y nunca llega a la tarea: la dirección purge_cron_base_url del Vault debe ser la dirección final, en https, sin barra final.",
+        "site_injoignable_delai": "La tarea «{nom}» no recibió respuesta del sitio en 60 segundos. Compruebe que la dirección purge_cron_base_url del Vault lleva al sitio y que el sitio responde.",
+        "site_injoignable_connexion": "La tarea «{nom}» no pudo conectarse al sitio: dirección purge_cron_base_url incorrecta, dominio inexistente o certificado rechazado.",
+        "site_injoignable_erreur_http": "La tarea «{nom}» recibió un error del sitio (respuesta {count}) sin que la tarea registrara su resultado. Abra su historial para leer la respuesta.",
+        "site_injoignable_aucune_reponse": "La tarea «{nom}» fue llamada sin que se observara ninguna respuesta. La base guarda las respuestas unas seis horas: abra el historial de la tarea, o ejecútela manualmente y mire su respuesta.",
+        "lecture_indisponible_joignabilite": "No se pueden leer las últimas llamadas de las tareas programadas: no sabemos si la base llega al sitio."
       },
       "spread_title": "Distribución de las notas",
       "spread_empty": "Todavía no hay ninguna ejecución en la nueva escala. La distribución se llenará con los próximos emparejamientos.",
@@ -3307,7 +3317,9 @@
       "by_actor_alert": "Esta cuenta ha alcanzado el nivel de alerta. No se bloquea nada.",
       "actor": {
         "organization": "Organizaciones",
-        "profile": "Expertos"
+        "profile": "Expertos",
+        "reste_non_detaille": "Otras cuentas (agrupadas)",
+        "non_imputable": "No imputable a una cuenta"
       },
       "cause": {
         "plafond": "Presupuesto alcanzado",
@@ -3323,7 +3335,13 @@
         "ouverture_croisee": "Apertura cruzada",
         "disponibilite": "Disponibilidad",
         "cv_reanalyse": "CV reanalizado"
-      }
+      },
+      "config_title": "Ajustes exigidos al arrancar",
+      "config_toutes": "Las {n} variables exigidas están definidas.",
+      "config_manquantes": "Faltan {n} de {total} variable(s) exigida(s): {noms}. Defínalas en Vercel (Settings → Environment Variables) y vuelva a desplegar.",
+      "config_controle": "Comprobado el {quand} · versión {version} · entorno {environnement}",
+      "config_version_inconnue": "desconocida",
+      "config_env_local": "equipo local"
     },
     "depots_echec": {
       "title": "Candidaturas que no se registraron",
@@ -3366,7 +3384,6 @@
       "raison_ne_pas_deranger": "experto en «no molestar»",
       "raison_non_en_recherche": "experto empleado, no en búsqueda"
     },
-    "nav_depots_echec": "Depósitos fallidos",
     "consommation": {
       "title": "Consumo por cuenta",
       "intro": "Lo que costó cada cuenta este mes, y cuál alcanzó su límite. Los límites se ajustan en",
@@ -3528,7 +3545,11 @@
           "messagerie": "No se ha encontrado mínimo legal (0).",
           "journal": "Las huellas de las depuraciones nunca se borran."
         }
-      }
+      },
+      "oui": "sí",
+      "non": "no",
+      "resume_objet": "objeto: {objet}",
+      "resume_plus": "+ {n} más"
     },
     "nav_travaux_ia": "Tareas de IA",
     "travaux_ia": {
