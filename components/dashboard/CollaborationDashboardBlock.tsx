@@ -7,6 +7,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import type { Annonce } from '@/types/annonce'
 import AnnonceCard from '@/components/dashboard/AnnonceCard'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
+import InfoBulle from '@/components/ui/InfoBulle'
 
 /**
  * CollaborationDashboardBlock — bloc « Collaboration experts » du tableau de
@@ -24,6 +25,7 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
   const t = useTranslations('collaboration_dashboard')
   const tList = useTranslations('collaboration.list')
   const tPlafond = useTranslations('plafonds')
+  const tInfo = useTranslations('infobulles')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
 
@@ -60,7 +62,11 @@ export default function CollaborationDashboardBlock({ basePath, isVerified }: Pr
   return (
     <div style={card}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('title')}</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>
+          {t('title')}
+          {/* Ce que le bloc montre (recette du 01/10/2026, point 6) — le même texte sur les deux voies. */}
+          <InfoBulle texte={tInfo('expert.collaboration')} etiquette={tInfo('etiquette', { titre: t('title') })} />
+        </span>
         {!isVerified ? (
           <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('locked_chip')}</span>
         ) : (

@@ -65,6 +65,8 @@ const DECLENCHEURS = {
   handle_new_user: 'insert into auth.users',
   // Le trigger de confirmation (on_auth_user_email_confirmed) : il tourne quand un test confirme une adresse.
   handle_email_confirmed: 'update auth.users set email_confirmed_at',
+  // La garde de la liste fermée des langues (langues_liste_fermee) : elle tourne quand un test attend son refus.
+  profile_languages_langue_de_la_liste: "'LG001'",
 }
 
 // LE GEL — une raison par entrée (§G.8). Il ne fait que descendre.

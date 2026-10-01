@@ -137,3 +137,59 @@ export function continentsOf(zones: WorkZone[]): WorkZone[] {
 export function worldZoneOf(zones: WorkZone[]): WorkZone | null {
   return zones.find((z) => z.kind === 'world') ?? null
 }
+
+// ─── LA SAISIE — deux questions, jamais un piège (recette du 01/10/2026, point 2) ──────────
+//
+// LE DÉFAUT : « Monde entier » était un bouton parmi les continents. Coché, il absorbait tout
+// (`dedupeCoveredZones` garde la zone la plus large) : un clic sur « Europe » l'ajoutait PUIS le
+// retirait aussitôt, couvert par le monde. Rien ne bougeait à l'écran ; il fallait d'abord
+// décocher le monde, puis recliquer — deux clics, et personne ne comprenait pourquoi.
+//
+// LA SAISIE, comme les plateformes comparables (voir docs/reprise-s1.md) : une PREMIÈRE question
+// fermée — « partout dans le monde » OU « dans certaines zones » — puis, seulement dans le second
+// cas, des continents en un clic et une RECHERCHE de pays, la sélection montrée en étiquettes
+// qu'on retire d'une croix. Le monde n'est plus jamais un bouton parmi les autres : aucun clic
+// ne peut plus être absorbé en silence.
+
+/** Le mode qu'une sélection exprime — `null` tant que rien n'est choisi (aucun défaut). */
+export function modeDeSelection(zones: readonly WorkZone[], selected: readonly string[]): 'monde' | 'zones' | null {
+  const monde = zones.find((z) => z.kind === 'world')
+  if (monde && selected.includes(monde.id)) return 'monde'
+  return selected.length > 0 ? 'zones' : null
+}
+
+/**
+ * La zone déjà choisie qui COUVRE `id` (un continent pour un de ses pays, le monde pour tout), ou
+ * `null`. Sert à dire « déjà couvert par Europe » au lieu d'ajouter une étiquette qui ne
+ * changerait rien.
+ */
+export function zoneCouvrante(zones: readonly WorkZone[], selected: readonly string[], id: string): WorkZone | null {
+  const parId = new Map(zones.map((z) => [z.id, z]))
+  let courant = parId.get(id)?.parent_id ?? null
+  while (courant) {
+    if (selected.includes(courant)) return parId.get(courant) ?? null
+    courant = parId.get(courant)?.parent_id ?? null
+  }
+  return null
+}
+
+/**
+ * Ajouter une zone EN MODE « certaines zones ». Le monde, s'il était choisi, s'efface : on vient
+ * de dire « pas partout ». Une zone déjà couverte ne s'ajoute pas (rendue inchangée — l'écran le
+ * dit) ; un continent ajouté absorbe ses pays déjà choisis.
+ */
+export function ajouterZone(zones: WorkZone[], selected: readonly string[], id: string): string[] {
+  const monde = worldZoneOf(zones)
+  const sansMonde = selected.filter((v) => v !== monde?.id)
+  if (sansMonde.includes(id) || zoneCouvrante(zones, sansMonde, id)) return [...sansMonde]
+  return dedupeCoveredZones(zones, [...sansMonde, id])
+}
+
+export function retirerZone(selected: readonly string[], id: string): string[] {
+  return selected.filter((v) => v !== id)
+}
+
+/** Une recherche de pays insensible à la casse et aux accents (« reunion » trouve « Réunion »). */
+export function normaliserRecherche(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}

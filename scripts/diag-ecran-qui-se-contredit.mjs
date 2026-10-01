@@ -173,17 +173,22 @@ section('② « Vérifié » et « visible » ne se contredisent plus')
 // ══════════════════════════════════════════════════════════════════════════
 
 {
+  // PORTÉ SUR LA PROPRIÉTÉ (recette du 01/10/2026, point 5 — §E.34) : la condition et le libellé ont
+  // DÉMÉNAGÉ dans la source unique du statut (lib/verification-state.ts, espace `statut_profil`). Ce
+  // contrôle exigeait leur texte DANS la pastille ; il exige désormais que la pastille passe `masque`
+  // au module, que le module en fasse un état AFFICHÉ distinct, et que cet état ait son libellé.
   const pastille = sansCommentaires(lire('components/dashboard/VerificationStatusPill.tsx'))
+  const etat = sansCommentaires(lire('lib/verification-state.ts'))
   ok(/masque\s*=\s*false/.test(pastille) || /masque\?:\s*boolean/.test(pastille),
     'la pastille sait si le profil est masqué')
-  ok(/state === 'approved' && masque/.test(pastille),
-    'et elle ne dit « vérifié » tout court que si le profil est visible',
+  ok(/etatAffiche\(\s*state\s*,\s*masque\s*\)/.test(pastille) && /state === 'approved' && masque/.test(etat),
+    'et elle ne dit « validé » tout court que si le profil est visible',
     'un point vert et le mot « verifie » a cote d un avertissement rouge : l expert conclut que l un des deux ment')
-  ok(/approved_hidden/.test(pastille),
+  ok(/'approved_masque'/.test(etat) && /cleLibelleStatut\(etat\)/.test(pastille),
     'elle a son propre libellé — elle n en emprunte pas un autre')
 
   // Le libellé, dans les quatre langues.
-  const manquantes = LANGUES.filter((l) => typeof cle(MSG[l], 'verification_status.approved_hidden') !== 'string')
+  const manquantes = LANGUES.filter((l) => typeof cle(MSG[l], 'statut_profil.etat.approved_masque') !== 'string')
   ok(manquantes.length === 0,
     'le libellé existe dans les quatre langues',
     `manquante(s) : ${manquantes.join(', ')}`)

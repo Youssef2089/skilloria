@@ -11,6 +11,7 @@ import PhoneOtpField, { type PhoneOtpLabels } from '@/components/PhoneOtpField'
 import PhoneTakenNotice from '@/components/auth/PhoneTakenNotice'
 import { LEGAL_PATHS } from '@/lib/legal'
 import { lienAideOtp } from '@/lib/otp/lien-aide'
+import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
 
 type RoleKey = 'expert' | 'cdi'
 
@@ -24,7 +25,6 @@ type FieldDef = {
 // D5/D6 : taxonomie structurée (branche → spécialité) + option « Autre ».
 type TaxBranch = { id: string; slug: string; name: string }
 type TaxSpeciality = { id: string; slug: string; name: string; branch_id: string }
-const SPECIALITY_OTHER = '__other__'
 
 export default function InscriptionRolePage() {
   const router = useRouter()

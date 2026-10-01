@@ -13,6 +13,7 @@ import { deriveVerificationUiState } from '@/lib/verification-state'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
 import ExpertOnboardingGuide from '@/components/dashboard/ExpertOnboardingGuide'
 import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDashboardBlock'
+import InfoBulle from '@/components/ui/InfoBulle'
 import { useLiveResource } from '@/hooks/useLiveResource'
 import MissionCastingCard from '@/components/dashboard/MissionCastingCard'
 import CandidatureCastingCard from '@/components/dashboard/CandidatureCastingCard'
@@ -92,6 +93,8 @@ export default function DashboardFreelance() {
   const tFeed = useTranslations('missions.feed')
   const tCommon = useTranslations('common')
   const tc = useTranslations('missions.casting')
+  // Ce que chaque case compte et ce que chaque bloc montre (recette du 01/10/2026, point 6).
+  const tInfo = useTranslations('infobulles')
   const locale = useLocale()
   const router = useRouter()
   const secureFetch = useSecureFetch()
@@ -606,7 +609,7 @@ export default function DashboardFreelance() {
             {/* C6 : statut de vérification = même pastille que la topbar « Mon
                 Profil » (source unique). C10 : greeting personnalisé. */}
             <div style={{ animation: 'fadeIn 0.6s ease 0.3s both' }}>
-              <VerificationStatusPill state={verifState} masque={profilMasque} />
+              <VerificationStatusPill state={verifState} masque={profilMasque} voie="freelance" />
             </div>
           </div>
 
@@ -638,38 +641,53 @@ export default function DashboardFreelance() {
               // avec l'accueil CDI). « Refusées » n'y figure pas : `rejected`
               // est une facette du bucket ARCHIVÉ, elle y vaudrait 0 à vie.
               // « En attente » la remplace — active par définition.
-              { label: t('stats.active_applications'), value: apps.stats?.total,                   facet: null,              delay: '0.1s'  },
-              { label: t('stats.in_discussion'),       value: apps.stats?.facets.exchange_open,    facet: 'exchange_open',   delay: '0.13s' },
-              { label: t('stats.awaiting'),            value: apps.stats?.facets.awaiting_review,  facet: 'awaiting_review', delay: '0.15s' },
-              { label: t('stats.retained'),            value: apps.stats?.facets.selected,         facet: 'selected',        delay: '0.17s', accent: 'var(--sk-amber)' },
+              { label: t('stats.active_applications'), info: tInfo('freelance.active_applications'), value: apps.stats?.total,                   facet: null,              delay: '0.1s'  },
+              { label: t('stats.in_discussion'),       info: tInfo('freelance.in_discussion'),       value: apps.stats?.facets.exchange_open,    facet: 'exchange_open',   delay: '0.13s' },
+              { label: t('stats.awaiting'),            info: tInfo('freelance.awaiting'),            value: apps.stats?.facets.awaiting_review,  facet: 'awaiting_review', delay: '0.15s' },
+              { label: t('stats.retained'),            info: tInfo('freelance.retained'),            value: apps.stats?.facets.selected,         facet: 'selected',        delay: '0.17s', accent: 'var(--sk-amber)' },
             ].map((stat) => {
               const text = !isVerified ? '—' : (stat.value ?? '…').toString()
               const body = (
                 <>
-                  <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginBottom: 10 }}>{stat.label}</div>
+                  {/* La place de l'icône « i » est réservée à droite du libellé : elle est posée
+                      HORS du lien (un bouton ne vit pas dans un `<a>`), en surimpression. */}
+                  <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginBottom: 10, paddingRight: 24 }}>{stat.label}</div>
                   <div style={{ fontSize: 28, fontWeight: 700, color: !isVerified ? 'var(--sk-border)' : (stat.accent ?? 'var(--sk-text)'), animation: `countUp 0.5s ease ${stat.delay} both` }}>{text}</div>
                 </>
               )
+              const info = (
+                <span style={{ position: 'absolute', top: 12, right: 12 }}>
+                  <InfoBulle texte={stat.info} etiquette={tInfo('etiquette', { titre: stat.label })} />
+                </span>
+              )
               if (!isVerified) {
                 return (
-                  <div key={stat.label} className="stat-card" style={{ background: 'var(--sk-surface-2)', animationDelay: stat.delay }}>
-                    {body}
+                  <div key={stat.label} style={{ position: 'relative' }}>
+                    <div className="stat-card" style={{ background: 'var(--sk-surface-2)', animationDelay: stat.delay, height: '100%' }}>
+                      {body}
+                    </div>
+                    {info}
                   </div>
                 )
               }
               return (
-                <Link
-                  key={stat.label}
-                  href={`/dashboard/freelance/candidatures?filter=active${stat.facet ? `&facet=${stat.facet}` : ''}`}
-                  className="stat-card is-link"
-                  style={{ background: 'var(--sk-surface-2)', animationDelay: stat.delay, textDecoration: 'none', color: 'inherit', display: 'block' }}
-                >
-                  {body}
-                </Link>
+                <div key={stat.label} style={{ position: 'relative' }}>
+                  <Link
+                    href={`/dashboard/freelance/candidatures?filter=active${stat.facet ? `&facet=${stat.facet}` : ''}`}
+                    className="stat-card is-link"
+                    style={{ background: 'var(--sk-surface-2)', animationDelay: stat.delay, textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}
+                  >
+                    {body}
+                  </Link>
+                  {info}
+                </div>
               )
             })}
-            <div className="stat-card" style={{ background: 'var(--sk-surface)', border: `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)`, animationDelay: '0.25s' }}>
-              <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginBottom: 10 }}>{t('stats.daily_rate')}</div>
+            <div className="stat-card" style={{ position: 'relative', background: 'var(--sk-surface)', border: `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)`, animationDelay: '0.25s' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 6, marginBottom: 10 }}>
+                <div style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{t('stats.daily_rate')}</div>
+                <InfoBulle texte={tInfo('freelance.daily_rate')} etiquette={tInfo('etiquette', { titre: t('stats.daily_rate') })} />
+              </div>
               <div style={{ fontSize: profile?.tjm_min != null && profile?.tjm_max != null ? 18 : 24, fontWeight: 700, color: 'var(--sk-accent)' }}>
                 {profile?.tjm_min != null && profile?.tjm_max != null
                   ? t('stats.daily_rate_range', { min: profile.tjm_min, max: profile.tjm_max })
@@ -680,7 +698,8 @@ export default function DashboardFreelance() {
                 onClick={() => setTjmModalOpen(true)}
                 style={{ background: 'transparent', border: 'none', padding: 0, fontSize: 12, color: 'var(--sk-accent)', cursor: 'pointer', marginTop: 6, fontFamily: 'inherit', fontWeight: 500 }}
               >
-                {t('stats.daily_rate_set')}
+                {/* « Modifier » quand le TJM est renseigné, « Définir » sinon (recette du 01/10/2026, point 6). */}
+                {profile?.tjm_min != null && profile?.tjm_max != null ? t('stats.daily_rate_edit') : t('stats.daily_rate_set')}
               </button>
             </div>
           </div>
@@ -690,8 +709,9 @@ export default function DashboardFreelance() {
               appliquée côté serveur (lib/matching/index.ts + /api/me/missions). */}
           <div className="main-card" style={{ animationDelay: '0.28s' }}>
             <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>
                 {t('availability_card.title')}
+                <InfoBulle texte={tInfo('freelance.availability')} etiquette={tInfo('etiquette', { titre: t('availability_card.title') })} />
               </div>
               <div style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.55 }}>
                 {t('availability_card.description')}
@@ -715,10 +735,11 @@ export default function DashboardFreelance() {
           {/* Complétion profil */}
           <div className="main-card" style={{ borderColor: `color-mix(in srgb, var(--sk-accent) 33%, transparent)`, animationDelay: '0.3s' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--sk-text)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 15, fontWeight: 600, color: 'var(--sk-text)' }}>
                 {completionPct >= 100
                   ? t('completion.title_complete')
                   : t('completion.title', { percent: completionPct })}
+                <InfoBulle texte={tInfo('freelance.completion')} etiquette={tInfo('etiquette', { titre: t('completion.title_complete') })} />
               </div>
               {/* « Compléter mon profil » mène à l'IMPORT (décision du 30/09/2026) ; un profil complet se consulte. */}
               <Link href={completionPct >= 100 ? '/dashboard/freelance/mon-profil' : '/dashboard/freelance/profil'} className="voir-tout" style={{ color: 'var(--sk-accent)' }}>{completionPct >= 100 ? t('completion.cta_complete') : t('completion.cta')}</Link>
@@ -737,6 +758,7 @@ export default function DashboardFreelance() {
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('cards.recommended_missions.title')}</span>
+                <InfoBulle texte={tInfo('freelance.recommended_missions')} etiquette={tInfo('etiquette', { titre: t('cards.recommended_missions.title') })} />
                 <span style={{ background: 'var(--sk-accent-soft)', color: 'var(--sk-accent)', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>{t('cards.recommended_missions.ai_badge')}</span>
               </div>
               {/* C3 : lien désactivé tant que non vérifié (rien à voir avant
@@ -837,7 +859,10 @@ export default function DashboardFreelance() {
               vérif → renvoie [] et l'état vide s'affiche proprement. */}
             <div className="main-card" style={{ animationDelay: '0.38s' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>{t('cards.your_candidatures.title')}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 600, color: 'var(--sk-text)' }}>
+                  {t('cards.your_candidatures.title')}
+                  <InfoBulle texte={tInfo('freelance.your_candidatures')} etiquette={tInfo('etiquette', { titre: t('cards.your_candidatures.title') })} />
+                </span>
                 {/* C3 : lien désactivé tant que non vérifié. */}
                 {!isVerified
                   ? <span style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 12, padding: '4px 10px', borderRadius: 20 }}>{t('cards.locked_chip')}</span>

@@ -44,7 +44,11 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         'years_experience, years_total_experience, languages, skills, certifications, ' +
         'location, mobility, tjm_min, tjm_max, salary_min, salary_max, ' +
         'availability_status, availability_date, work_modes, ' +
-        'cv_url, linkedin_url, visible, ai_consent_at, cv_parsing_status, ' +
+        // `cv_file_path`, pas `cv_url` : `cv_url` n'est écrite par AUCUN chemin, la case CV
+        // affichait « — » sur tout dossier (recette du 01/10/2026, point 14). Le chemin ne
+        // sort pas d'ici : la fiche reçoit `cv_depose`, et le lien se demande au clic
+        // (POST /api/admin/lien-cv/[id]).
+        'cv_file_path, linkedin_url, visible, ai_consent_at, cv_parsing_status, ' +
         'verification_status, verification_method, verification_score, ' +
         'verification_data, verified_at, verified_by, review_reason, ' +
         'photo_url, country, city, ' +
@@ -77,7 +81,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   //    humain à la place du modèle (§E.22 ⑦).
   const idsSpecialites = ((profile as unknown as { speciality_ids?: string[] | null }).speciality_ids ?? []) as string[]
   const [expRes, eduRes, langRes, spsRes] = await Promise.all([
-    auth.supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.experiences)),
+    // `experience_type` et `client_name` : une mission se lit avec son CLIENT, pas avec un
+    // employeur vide (recette du 01/10/2026, point 12).
+    auth.supabaseAdmin.from('profile_experiences').select('experience_type, role, employer, client_name, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.experiences)),
     auth.supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year, location').eq('profile_id', id).order('start_year', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.educations)),
     auth.supabaseAdmin.from('profile_languages').select('language, level, is_primary').eq('profile_id', id).order('is_primary', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.languages)),
     idsSpecialites.length > 0
@@ -99,10 +105,17 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
 
   // M3 : photo_url est un chemin storage. Admin voit tout -> URL signée (300s)
   // systématique quand une photo est présente. Seule la VALEUR change.
-  const prof = profile as unknown as Record<string, unknown> & { user_id: string; photo_url: string | null; domains?: unknown }
+  const { cv_file_path: cheminCv, ...prof } = profile as unknown as Record<string, unknown> & {
+    user_id: string
+    photo_url: string | null
+    domains?: unknown
+    cv_file_path: string | null
+  }
   const profDom = Array.isArray(prof.domains) ? prof.domains[0] : prof.domains
   const expert = {
     ...prof,
+    // Un fait, pas une adresse : le chemin du fichier reste au serveur.
+    cv_depose: typeof cheminCv === 'string' && cheminCv.length > 0,
     photo_url: prof.photo_url ? await signAvatarUrl(auth.supabaseAdmin, prof.user_id) : null,
     // D1 : écosystème exposé à la fiche admin.
     ecosystem: (profDom as { name?: string | null } | null)?.name ?? null,

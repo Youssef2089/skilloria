@@ -16,7 +16,7 @@ begin
   perform public.remplacer_listes_profil(v_profil,
     jsonb_build_array(jsonb_build_object('experience_type', 'career', 'role', 'Architecte', 'start_date', '2018-01-01', 'end_date', '2020-01-01')),
     null,
-    jsonb_build_array(jsonb_build_object('language', 'Français', 'level', 'C2', 'is_primary', true)));
+    jsonb_build_array(jsonb_build_object('language', 'fr', 'level', 'C2', 'is_primary', true)));
   return next ok((select count(*) = 1 from public.profile_experiences e where e.profile_id = v_profil)
                  and (select count(*) = 1 from public.profile_languages l where l.profile_id = v_profil),
                  'A. les listes envoyées sont remplacées');
@@ -27,7 +27,7 @@ begin
         jsonb_build_object('experience_type', 'career', 'role', 'Valide', 'start_date', '2010-01-01'),
         jsonb_build_object('experience_type', 'project', 'role', 'Refusée', 'start_date', '2021-01-01', 'end_date', '2020-01-01')),
       null,
-      jsonb_build_array(jsonb_build_object('language', 'Anglais', 'level', 'B2', 'is_primary', false)));
+      jsonb_build_array(jsonb_build_object('language', 'en', 'level', 'B2', 'is_primary', false)));
     v_msg := null;
   exception when sqlstate 'LP001' then
     v_msg := sqlerrm;
@@ -36,7 +36,7 @@ begin
                  and (v_msg::jsonb ->> 'rang')::int = 2,
                  'B. la ligne refusée est NOMMÉE : liste, rang, cause');
   return next ok((select count(*) = 1 from public.profile_experiences e where e.profile_id = v_profil and e.role = 'Architecte')
-                 and (select count(*) = 1 from public.profile_languages l where l.profile_id = v_profil and l.language = 'Français'),
+                 and (select count(*) = 1 from public.profile_languages l where l.profile_id = v_profil and l.language = 'fr'),
                  'B. RIEN n a été touché : les deux listes d avant sont intactes');
   return next throws_ok(format($q$select public.remplacer_listes_profil(%L, null,
       '[{"school":"Sonde","degree":"Master","start_year":1940}]'::jsonb, null)$q$, v_profil),

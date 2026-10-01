@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslations, useLocale } from 'next-intl'
+import { nomDeLangue } from '@/lib/profil/langues'
 import { Link, useRouter } from '@/i18n/navigation'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { useDomain } from '@/context/DomainContext'
@@ -11,7 +12,7 @@ import { sessionDuCompteAffiche } from '@/lib/identite/compte-affiche'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { messageRefusProfil } from '@/lib/profil/refus-profil'
 import EmptyState from '@/components/ui/EmptyState'
-import { deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
+import { cleLibelleStatut, deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -250,7 +251,9 @@ export default function MonProfilPage() {
 
   const t = useTranslations('profile_view')
   const tRefus = useTranslations('profil_refus')
-  const tVerifBadge = useTranslations('expert_verification.badge')
+  // Le MÊME libellé que la pastille et que l'étape 3 (recette du 01/10/2026, point 5) :
+  // `expert_verification.badge` disait l'état avec d'autres mots, sur la même page.
+  const tStatut = useTranslations('statut_profil')
   const tRejected = useTranslations('expert_verification.rejected_details')
   const tDash = useTranslations('dashboard_freelance')
   const tCommon = useTranslations('common')
@@ -915,7 +918,7 @@ export default function MonProfilPage() {
                 {/* La pastille de vérification suit le titre depuis que l'en-tête
                     maison a disparu. Source UNIQUE (VerificationStatusPill),
                     rendue par les cinq états réels — parité stricte avec CDI. */}
-                <VerificationStatusPill state={verifState} masque={profilMasque} />
+                <VerificationStatusPill state={verifState} masque={profilMasque} voie="freelance" />
               </div>
               <p style={{ fontSize: 14, color: 'var(--sk-muted)', margin: 0 }}>{t('page_subtitle')}</p>
             </div>
@@ -1075,7 +1078,8 @@ export default function MonProfilPage() {
                             fontWeight: 600,
                           }}
                         >
-                          {tVerifBadge(verifState)}
+                          {/* Le libellé s'écrit en minuscule pour suivre « Statut de votre profil : » ; seul, il prend sa majuscule. */}
+                          {(() => { const s = tStatut(cleLibelleStatut(verifState)); return s.charAt(0).toUpperCase() + s.slice(1) })()}
                         </span>
                       )
                     })()
@@ -1490,7 +1494,7 @@ export default function MonProfilPage() {
                       border: `1px solid color-mix(in srgb, var(--sk-accent) 33%, transparent)`,
                     }}
                   >
-                    <span style={{ fontWeight: 600 }}>{l.language}</span>
+                    <span style={{ fontWeight: 600 }}>{nomDeLangue(l.language, locale)}</span>
                     <span style={{ margin: '0 6px', opacity: 0.5 }}>·</span>
                     <span>{t(`labels.level_${l.level}`)}</span>
                     {l.is_primary && (

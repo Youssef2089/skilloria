@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
+import { estRefusAutre } from '@/lib/taxonomie/specialite-autre'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -125,6 +126,11 @@ export async function POST(request: NextRequest): Promise<Response> {
     .insert({ branch_id: branchId, domain_id: domainId, name, slug, active, sort_order: sortOrder })
     .select('id')
     .maybeSingle()
+  // « Autre » n'est jamais une spécialité du référentiel (recette du 01/10/2026, point 1) :
+  // c'est la précision de l'option « Autre (préciser) ». La base refuse ; on le dit.
+  if (estRefusAutre(insErr)) {
+    return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
+  }
   if (insErr || !created) {
     console.error('[admin:create-speciality] insert failed', insErr?.message)
     return json({ error: 'Create failed', code: 'db_error' }, 500)

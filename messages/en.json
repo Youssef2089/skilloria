@@ -453,7 +453,8 @@
       "retained": "Accepted",
       "daily_rate": "My day rate",
       "daily_rate_set": "Set →",
-      "daily_rate_range": "{min} € — {max} €"
+      "daily_rate_range": "{min} € — {max} €",
+      "daily_rate_edit": "Edit →"
     },
     "avatar_modal": {
       "title": "Profile photo",
@@ -465,10 +466,21 @@
       "saving": "Uploading...",
       "error_size": "File too large (max 2 MB)",
       "error_format": "Unsupported format (JPG, PNG, WebP only)",
-      "error_save": "Save failed, please try again",
       "success": "Photo updated",
       "close_aria": "Close",
-      "edit_overlay_cta": "Edit photo"
+      "edit_overlay_cta": "Edit photo",
+      "errors": {
+        "photo_absente": "No photo was received. Choose an image and save again.",
+        "photo_trop_volumineuse": "This image exceeds 2 MB. Choose a lighter image.",
+        "photo_format_refuse": "This format is not accepted. Choose a JPEG, PNG or WebP image.",
+        "photo_contenu_non_conforme": "This file is not a readable image. Choose another image.",
+        "photo_type_incoherent": "This file does not match the format it claims. Choose another image.",
+        "pas_expert": "Profile photos are reserved for expert accounts.",
+        "photo_stockage_indisponible": "Photo storage is not responding. Your photo was not saved: try again in a few minutes.",
+        "drapeau_refuse": "The photo was uploaded, but your profile could not be updated (code {code}). Try again; if it persists, send this code to support.",
+        "inattendu": "Saving was refused (code {code}). Try again; if it persists, send this code to support.",
+        "reseau": "The photo could not be sent: check your connection, then try again."
+      }
     },
     "tjm_modal": {
       "title": "Set my day rate",
@@ -737,7 +749,6 @@
         "languages_label": "Languages",
         "languages_min_hint": "(min. 1 to publish)",
         "languages_empty": "No language added.",
-        "language_placeholder": "French, English...",
         "level_options": {
           "A1": "A1 — Beginner",
           "A2": "A2 — Elementary",
@@ -1735,7 +1746,6 @@
         "title": "Languages",
         "languages_min_hint": "(min. 1 to publish)",
         "empty": "No language added yet.",
-        "language_placeholder": "French, English...",
         "level_options": {
           "A1": "A1 — Beginner",
           "A2": "A2 — Elementary",
@@ -1839,8 +1849,7 @@
       "to_review": "To review",
       "in_progress": "In progress",
       "accepted": "Accepted",
-      "rejected": "Declined",
-      "rejected_hint": "View declined applications (archived)"
+      "rejected": "Declined"
     },
     "overview": {
       "annonces_title": "Listings overview",
@@ -2844,7 +2853,6 @@
       "branch": "Branch",
       "speciality": "Speciality",
       "skills": "Skills",
-      "download_cv": "Download CV",
       "current": "(current)",
       "status_pending": "In progress",
       "status_pending_admin_review": "Awaiting review",
@@ -2865,7 +2873,15 @@
       "error_already_processed": "This profile has already been processed.",
       "error_reason_required": "A reason is required to reject.",
       "speciality_other_prefix": "{value} (not in the reference list)",
-      "years": "{count, plural, one {# year of experience} other {# years of experience}}"
+      "years": "{count, plural, one {# year of experience} other {# years of experience}}",
+      "cv_ouvrir": "Open the CV (read only)",
+      "cv_ouverture": "Opening…",
+      "cv_aucun": "No CV uploaded",
+      "cv_absent": "The CV is no longer available: the expert did not upload it, or removed it.",
+      "cv_lien_indisponible": "The link to the CV could not be created. Try again in a moment.",
+      "cv_lien_inattendu": "The link to the CV was refused (code {code}).",
+      "experience_mission": "mission for {client}",
+      "experience_client_confidentiel": "a confidential client"
     },
     "users": {
       "title": "Users",
@@ -3631,13 +3647,6 @@
     }
   },
   "expert_verification": {
-    "badge": {
-      "draft": "Draft",
-      "pending": "Verification in progress",
-      "admin_review": "Pending validation",
-      "approved": "Verified",
-      "rejected": "Rejected"
-    },
     "rejected_details": {
       "reason_label": "Reason:",
       "cta": "Complete my profile →"
@@ -3776,7 +3785,7 @@
       "sms_label": "By SMS",
       "sms_unavailable": "Unavailable: your phone number is not verified.",
       "sms_verify_link": "Verify my phone",
-      "grouping_note_digest": "Opportunities from the same recommendation run arrive in a single send. Other notifications are sent one by one.",
+      "grouping_note_digest": "When several missions match you at the same time, you receive a single email that groups them. Messages, however, are sent to you one by one.",
       "saved_on": "Notifications enabled.",
       "saved_off": "Notifications disabled.",
       "unsub_done": "You have been unsubscribed from email notifications.",
@@ -3989,13 +3998,6 @@
     "account_created_title": "Your account has been created",
     "account_created_body": "You have joined {company}. Sign in with your address and the password you just chose."
   },
-  "verification_status": {
-    "draft": "Draft",
-    "pending": "Pending verification",
-    "approved": "Verified profile",
-    "rejected": "Profile rejected",
-    "approved_hidden": "Verified · profile hidden"
-  },
   "expert_onboarding": {
     "title": "Welcome! Here's how to get started",
     "subtitle": "Complete these steps to become visible and receive opportunities.",
@@ -4018,7 +4020,6 @@
     "status": {
       "done": "Done",
       "current": "To do now",
-      "in_progress": "Verification in progress",
       "todo": "Coming up"
     }
   },
@@ -4233,7 +4234,8 @@
     "err_branch_in_use": "Branch in use: {profiles} profile(s), {publications} publication(s), {specialities} speciality(ies).",
     "err_spec_in_use": "Speciality in use: {profiles} profile(s), {publications} publication(s).",
     "usage_unavailable_warning": "We could not read what this branch still carries. That is not “nothing”: we do not know. Reload the page before deciding.",
-    "err_usage_unavailable": "Deletion refused: we could not check what this branch still carries. Nothing was deleted. Please try again in a moment."
+    "err_usage_unavailable": "Deletion refused: we could not check what this branch still carries. Nothing was deleted. Please try again in a moment.",
+    "err_specialite_autre_reservee": "“Other” is not a speciality of the reference list: it is the “Other (specify)” option offered to experts and job posts. Choose another name."
   },
   "candidature_lifecycle": {
     "filters": {
@@ -4356,11 +4358,21 @@
     "none_selected": "Select at least one area to publish",
     "coverage": "{count} countries covered",
     "country_count": "{count} countries",
-    "detail_by_country": "Pick specific countries in {continent}",
-    "covered_by_continent": "Already covered by {continent}",
     "suggestion_label": "Suggestion: {zone}",
     "suggestion_confirm": "Use this area",
-    "suggestion_not_applied": "Not applied until you confirm it"
+    "suggestion_not_applied": "Not applied until you confirm it",
+    "mode_monde": "Anywhere in the world",
+    "mode_monde_aide": "Covers all {count} countries in the list",
+    "mode_zones": "Only in some areas",
+    "mode_zones_aide": "Choose continents or specific countries",
+    "continents_label": "Whole continents",
+    "recherche_label": "Add a country",
+    "recherche_placeholder": "Type a country name…",
+    "recherche_aucun": "No country matches this search.",
+    "deja_couvert": "Already covered by {zone}",
+    "deja_choisi": "Already chosen",
+    "selection_label": "Your selection",
+    "retirer": "Remove {zone}"
   },
   "matching_badge": {
     "strong": "Strong match",
@@ -4701,7 +4713,6 @@
     "flag": {
       "DOMAIN_MISMATCH": "Ecosystem mismatch",
       "CV_PROFILE_INCOHERENT": "CV and profile inconsistent",
-      "LINKEDIN_UNVERIFIABLE": "LinkedIn unverifiable",
       "SUSPICIOUS_CONTENT": "Suspicious content"
     },
     "countries_title": "Only France has an official register we can query",
@@ -5965,7 +5976,8 @@
       "fin_avant_debut": "the end date is before the start date.",
       "annee_hors_bornes": "a year is outside the allowed range.",
       "valeur_hors_liste": "a value is not in the proposed list.",
-      "ligne_refusee": "the entry was refused."
+      "ligne_refusee": "the entry was refused.",
+      "langue_hors_liste": "language not in the proposed list"
     },
     "champs": {
       "birth_year": "Year of birth",
@@ -6028,7 +6040,86 @@
       "champ_obligatoire": "required field empty: entry set aside",
       "nombre_illisible": "unreadable number: entry set aside",
       "ligne_refusee": "entry refused by the platform: set aside",
-      "liste_entierement_refusee": "no readable entry: the previous list is kept"
+      "liste_entierement_refusee": "no readable entry: the previous list is kept",
+      "langue_inconnue": "language not recognised: left out, add it from the list"
     }
+  },
+  "statut_profil": {
+    "titre": "Your profile status: {etat}",
+    "etat": {
+      "draft": "draft",
+      "pending": "AI verification in progress",
+      "admin_review": "awaiting an administrator",
+      "approved": "approved",
+      "approved_masque": "approved, but hidden",
+      "rejected": "rejected"
+    },
+    "phrase": {
+      "freelance": {
+        "draft": "Missions will be offered to you as soon as your profile is published and approved.",
+        "pending": "Our AI is checking your profile, usually within a few minutes. Missions will be offered to you as soon as it is approved.",
+        "admin_review": "An administrator is reviewing your profile. You will be notified of the decision; missions will be offered to you as soon as it is approved.",
+        "approved": "Your profile is visible to companies: missions that match you are offered to you.",
+        "approved_masque": "Your profile is approved but hidden: complete what is missing and publish it again to receive missions.",
+        "rejected": "Your profile was not approved. Correct it and publish it again; the reason is shown on “My profile”."
+      },
+      "cdi": {
+        "draft": "Job offers will be suggested to you as soon as your profile is published and approved.",
+        "pending": "Our AI is checking your profile, usually within a few minutes. Job offers will be suggested to you as soon as it is approved.",
+        "admin_review": "An administrator is reviewing your profile. You will be notified of the decision; job offers will be suggested to you as soon as it is approved.",
+        "approved": "Your profile is visible to recruiters: job offers that match you are suggested to you.",
+        "approved_masque": "Your profile is approved but hidden: complete what is missing and publish it again to receive job offers.",
+        "rejected": "Your profile was not approved. Correct it and publish it again; the reason is shown on “My profile”."
+      }
+    }
+  },
+  "infobulles": {
+    "etiquette": "About “{titre}”",
+    "freelance": {
+      "active_applications": "All your applications still in progress: those awaiting an answer, those in discussion and those accepted. Closed applications are not included.",
+      "in_discussion": "Applications for which the company has opened a discussion with you.",
+      "awaiting": "Applications you sent that the company has not handled yet.",
+      "retained": "Applications the company has accepted.",
+      "daily_rate": "Your daily rate, as a range. It is shown to companies and used to offer you missions within your budget.",
+      "availability": "Shows whether you receive new missions. “Do not disturb” pauses offers without hiding your profile.",
+      "completion": "The share of your profile information that is filled in. A complete profile receives missions that match it better.",
+      "recommended_missions": "Missions our engine considers close to your profile: branch, specialities, work zones and seniority.",
+      "your_candidatures": "Your latest applications and their status. “See all” opens the full list."
+    },
+    "expert": {
+      "onboarding": "The steps to become visible: import your CV, complete and then publish your profile. This block disappears once your profile is approved.",
+      "collaboration": "Subcontracting needs published by other experts, and the ones you publish yourself."
+    },
+    "cdi": {
+      "active_applications": "All your applications still in progress: those awaiting an answer, those in discussion and those accepted. Closed applications are not included.",
+      "in_discussion": "Applications for which the recruiter has opened a discussion with you.",
+      "awaiting": "Applications you sent that the recruiter has not handled yet.",
+      "retained": "Applications the recruiter has accepted.",
+      "market_status": "Shows whether you are open to new job offers. It decides what is suggested to you.",
+      "completion": "The share of your profile information that is filled in. A complete profile receives job offers that match it better.",
+      "suggestions": "Job offers our engine considers close to your profile: branch, specialities, work zones and seniority.",
+      "applications": "Your latest applications and their status. “See all” opens the full list."
+    },
+    "entreprise": {
+      "annonces": "Where your job posts stand, by status. Each tile opens the matching list.",
+      "candidatures": "Applications received on your job posts, by stage. Each tile opens the matching list.",
+      "pub_published": "Job posts that are live and visible to experts.",
+      "pub_review": "Job posts being checked before going live.",
+      "pub_drafts": "Job posts saved but not yet published.",
+      "pub_closed": "Job posts that have expired or that you closed.",
+      "to_review": "Applications received that you have not handled yet.",
+      "in_progress": "Applications for which you have opened a discussion with the expert.",
+      "accepted": "Applications you have accepted.",
+      "rejected": "Applications you have rejected. They are archived."
+    }
+  },
+  "langues": {
+    "choisir_langue": "Choose a language",
+    "choisir_niveau": "Choose the level",
+    "heritee": "“{valeur}”: choose this language from the list.",
+    "nouvelle": "New language — to choose",
+    "niveau_a_choisir": "Level to choose",
+    "langue_hors_liste": "Language no. {rang}: choose it from the list, or remove the line.",
+    "niveau_manquant": "Language no. {rang}: choose its level."
   }
 }

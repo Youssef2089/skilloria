@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { ListeDeProfil } from '@/lib/lecture/liste'
 import { useTranslations, useLocale } from 'next-intl'
+import { nomDeLangue } from '@/lib/profil/langues'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -471,7 +472,7 @@ export default function CdiMonProfilPage() {
             <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
               {t('page_title')}
             </h1>
-            <VerificationStatusPill state={verifState} masque={profilMasque} />
+            <VerificationStatusPill state={verifState} masque={profilMasque} voie="cdi" />
             {/* LE STATUT DE MARCHÉ SUIT, LUI AUSSI. « En poste » / « en
                 recherche » vivait dans l'en-tête maison. C'est un ÉTAT — ses
                 couleurs vert et rouge sont donc légitimes ici, au contraire des
@@ -1256,12 +1257,15 @@ function LanguagesSection({
   domainColor: string
   t: ReturnType<typeof useTranslations<'cdi_profile_view'>>
 }) {
+  // Le NOM dans la langue de l'écran : la base garde un code (recette du 01/10/2026, point 3) ;
+  // une ligne héritée en texte libre s'affiche telle qu'elle est écrite.
+  const locale = useLocale()
   if (languages && languages.length > 0) {
     return (
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {languages.map((l, i) => (
           <Pill key={`${l.language}-${i}`} color={domainColor}>
-            {l.language} · {l.level}
+            {nomDeLangue(l.language, locale)} · {l.level}
             {l.is_primary ? ' ★' : ''}
           </Pill>
         ))}
@@ -1274,7 +1278,7 @@ function LanguagesSection({
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {fallbackLanguages.map((l, i) => (
           <Pill key={`${l}-${i}`} color={domainColor}>
-            {l}
+            {nomDeLangue(l, locale)}
           </Pill>
         ))}
       </div>

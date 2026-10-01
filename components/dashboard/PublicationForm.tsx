@@ -17,6 +17,7 @@ import MultiSelectChips from '@/components/ui/MultiSelectChips'
 import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
 import type { WorkZone } from '@/lib/work-zones'
 import { missingForPublish } from '@/lib/publications/publishable'
+import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
 
 /**
  * Formulaire de création + édition d'une publication.
@@ -76,7 +77,6 @@ type Branch = { id: string; slug: string; name: string }
 type Speciality = { id: string; slug: string; branch_id: string; name: string }
 
 // D6 : sentinel « Autre » (spécialité hors référentiel).
-const SPECIALITY_OTHER = '__other__'
 
 type TaxonomyResponse = {
   locale: string

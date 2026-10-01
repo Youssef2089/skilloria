@@ -6,6 +6,7 @@ import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { missingForVisibility } from '@/lib/profile-visibility'
 import { deposerVerificationExpert } from '@/lib/travaux-ia/travail'
+import { langueDeNotification, notifyExpertResult } from '@/lib/verification/expert-verification'
 import { LISTES_DE_PROFIL, estListeDeProfil, type ListeDeProfil } from '@/lib/lecture/liste'
 import { clesModifiees, listeModifiee } from '@/lib/profil/changements'
 
@@ -176,7 +177,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // (Lecture isolée : ne touche pas requireAuth() pour rester chirurgical.)
   const { data: userMetaRow, error: userMetaErr } = await supabaseAdmin
     .from('users')
-    .select('user_type')
+    // `locale` : la notification posée à la publication est écrite dans la langue de l'expert.
+    .select('user_type, locale')
     .eq('id', user.id)
     .maybeSingle()
   // ⚠️ RIEN NE S’OUVRAIT ICI : LA GARDE CHOISISSAIT LE MAUVAIS ÉTAT (§E.37).
@@ -788,6 +790,22 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         message: depot.message,
       })
       verificationNonDeposee = true
+    } else if (cp.verification_status !== 'approved') {
+      // LA NOTIFICATION « L'IA VÉRIFIE » PART À LA PUBLICATION (recette du 01/10/2026, point 7) :
+      // elle n'existait qu'au verdict, et seulement si l'IA déférait à un humain — l'expert
+      // l'apprenait une minute après. Pas pour un profil DÉJÀ validé qui republie : il reste
+      // validé pendant sa re-vérification (§H.5), et la pastille le dit ; une notification
+      // « en cours » la contredirait. Le dépôt a réussi : c'est bien ce qui se passe.
+      await notifyExpertResult({
+        supabaseAdmin,
+        user_id: user.id,
+        domain_id: user.domain_id,
+        user_type: userType,
+        locale: langueDeNotification((userMetaRow as { locale?: string | null } | null)?.locale ?? null),
+        verification_status: 'pending',
+        reason: null,
+        piece: journal.piece,
+      })
     }
   }
 

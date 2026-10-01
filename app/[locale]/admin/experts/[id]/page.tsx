@@ -5,6 +5,7 @@ import { use } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import { nomDeLangue } from '@/lib/profil/langues'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
@@ -31,7 +32,8 @@ type ExpertFull = {
   salary_max: number | null
   availability_status: string | null
   linkedin_url: string | null
-  cv_url: string | null
+  /** Un CV a été déposé — un FAIT ; le lien se demande au clic (POST /api/admin/lien-cv/[id]). */
+  cv_depose: boolean
   visible: boolean | null
   ai_consent_at: string | null
   cv_parsing_status: string | null
@@ -59,7 +61,7 @@ type ExpertFull = {
   users: { id: string; email: string; first_name: string | null; last_name: string | null; phone: string | null; locale: string | null; civility: string | null; job_title: string | null; linkedin_url: string | null } | null
 }
 
-type Experience = { role: string | null; employer: string | null; sector: string | null; start_date: string | null; end_date: string | null; is_current: boolean | null; description: string | null }
+type Experience = { experience_type: string | null; role: string | null; employer: string | null; client_name: string | null; sector: string | null; start_date: string | null; end_date: string | null; is_current: boolean | null; description: string | null }
 type Education = { school: string | null; degree: string | null; field: string | null; start_year: string | null; end_year: string | null; location: string | null }
 type LanguageItem = { language: string; level: string | null; is_primary: boolean | null }
 
@@ -97,6 +99,38 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const [data, setData] = useState<Payload | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<'approve' | 'reject' | null>(null)
+  // Le lien du CV : demandé AU CLIC, valable une minute (recette du 01/10/2026, point 14).
+  const [cvOuverture, setCvOuverture] = useState(false)
+  const [cvErreur, setCvErreur] = useState<string | null>(null)
+
+  const ouvrirCv = async () => {
+    setCvErreur(null)
+    setCvOuverture(true)
+    // L'onglet s'ouvre AU CLIC (un onglet ouvert après une attente est bloqué par le
+    // navigateur), puis reçoit l'adresse signée ; sans adresse, il se referme.
+    const onglet = window.open('', '_blank')
+    try {
+      const res = await secureFetch(`/api/admin/lien-cv/${id}`, { method: 'POST' })
+      const p = (await res.json().catch(() => ({}))) as { url?: string; code?: string }
+      if (!res.ok || !p.url) {
+        onglet?.close()
+        setCvErreur(p.code === 'cv_absent' ? t('cv_absent') : p.code === 'lien_cv_indisponible' ? t('cv_lien_indisponible') : t('cv_lien_inattendu', { code: p.code ?? `HTTP ${res.status}` }))
+        return
+      }
+      if (onglet) {
+        onglet.opener = null
+        onglet.location.href = p.url
+      } else {
+        window.location.assign(p.url)
+      }
+    } catch (err) {
+      onglet?.close()
+      console.error('[admin/expert] lien du CV', err)
+      setCvErreur(t('cv_lien_indisponible'))
+    } finally {
+      setCvOuverture(false)
+    }
+  }
   const [showReject, setShowReject] = useState(false)
   const [reason, setReason] = useState('')
 
@@ -261,7 +295,24 @@ export default function AdminExpertDetailPage({ params }: Props) {
           <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('email')}</div><div>{user?.email}</div></div>
           <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('phone')}</div><div>{user?.phone ?? '—'}</div></div>
           <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>LinkedIn (profil)</div><div>{e.linkedin_url ? <a href={e.linkedin_url} target="_blank" rel="noreferrer">{e.linkedin_url}</a> : '—'}</div></div>
-          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>CV</div><div>{e.cv_url ? <a href={e.cv_url} target="_blank" rel="noreferrer">↗ {t('download_cv')}</a> : '—'}</div></div>
+          <div>
+            <div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>CV</div>
+            {/* `cv_url` n'est écrite par aucun chemin : la case disait « — » sur tout dossier. Le
+                CV déposé s'ouvre en LECTURE SEULE, par un lien signé qui expire (point 14). */}
+            {e.cv_depose ? (
+              <button
+                type="button"
+                onClick={ouvrirCv}
+                disabled={cvOuverture}
+                style={{ padding: 0, border: 'none', background: 'none', color: 'var(--sk-accent)', fontSize: 13, fontWeight: 600, cursor: cvOuverture ? 'wait' : 'pointer', fontFamily: 'inherit', textAlign: 'left' }}
+              >
+                ↗ {cvOuverture ? t('cv_ouverture') : t('cv_ouvrir')}
+              </button>
+            ) : (
+              <div>{t('cv_aucun')}</div>
+            )}
+            {cvErreur && <div role="alert" style={{ fontSize: 12, color: 'var(--sk-red)', marginTop: 4 }}>{cvErreur}</div>}
+          </div>
         </div>
       </section>
 
@@ -290,7 +341,9 @@ export default function AdminExpertDetailPage({ params }: Props) {
           {troncature?.experiences.atteint && <BandeauTroncature texte={tPlafond('fiche_expert_liste_tronquee', { plafond: troncature.experiences.plafond })} />}
           {experiences.map((x, i) => (
             <div key={i} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i === experiences.length - 1 ? 'none' : '1px dashed var(--sk-border)' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-text)' }}>{x.role ?? '—'} <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {x.employer ?? '—'}</span></div>
+              {/* Une MISSION se lit avec son CLIENT, un poste avec son employeur (point 12) : la case
+                  disait « — » sur chaque mission d'un freelance. */}
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--sk-text)' }}>{x.role ?? '—'} <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {x.experience_type === 'project' ? t('experience_mission', { client: x.client_name || t('experience_client_confidentiel') }) : (x.employer ?? '—')}</span></div>
               <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>{x.sector ?? ''} · {x.start_date ?? '?'} → {x.is_current ? t('current') : x.end_date ?? '?'}</div>
               {x.description && <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 6, lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{x.description}</p>}
             </div>
@@ -319,7 +372,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {languages_structured.map((l, i) => (
               <span key={i} style={{ background: 'var(--sk-surface-2)', color: 'var(--sk-text)', padding: '4px 12px', borderRadius: 10, fontSize: 12, fontWeight: 500 }}>
-                {l.language} {l.level ? `(${l.level})` : ''}
+                {nomDeLangue(l.language, locale)} {l.level ? `(${l.level})` : ''}
               </span>
             ))}
           </div>

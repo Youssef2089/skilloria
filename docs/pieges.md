@@ -306,9 +306,11 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **176** migrations : **76 insertions vues, 63 analysées, 2320 valeurs confrontées** (mesuré le
-01/10/2026, ARRÊT 22 — la liste validée sème l'action `desabonnement_email`, les propositions de conservation leurs
-douze lignes ; sur 172 : 74, 61, 2280, mesuré le 30/09/2026 à la recette staging — ses trois migrations ne sèment rien ; sur 169 : les mêmes,
+Sur les **179** migrations : **78 insertions vues, 65 analysées, 3346 valeurs confrontées** (mesuré le
+01/10/2026 à la fusion du lot S1 dans l'ARRÊT 22 bis ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
+l'action `desabonnement_email`, les propositions de conservation leurs douze lignes ; sur 175, côté S1 : 76, 63, 3306 —
+`langues_liste_fermee` sème les 92 langues et leurs 467 noms ; sur 172 : 74, 61, 2280, mesuré le 30/09/2026 à la
+recette staging — ses trois migrations ne sèment rien ; sur 169 : les mêmes,
 mesuré le 30/09/2026 — les huit migrations de l'ARRÊT 19 sèment deux actions nouvelles ; sur 161 : 72, 59, 2268, mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
@@ -4305,6 +4307,109 @@ les GABARITS des quatre langues et refuse une désignation derrière « de/du/de
 français, « a/de » devant un masculin en espagnol, une préposition au datif en allemand, et une personne citée hors
 apposition ; éprouvé par mutation. **Ce qu'aucun contrôle ne voit** : l'accord d'une phrase hors de ces motifs. Toute phrase nouvelle se relit rendue, avec son repli, dans les quatre
 langues — un échantillon par action suffit, le repli compris.
+> **Numérotation.** Les pièges du worktree S1 commencent à **§E.100** (consigne du 01/10/2026) : le principal écrit
+> les siens en même temps, à la suite de §E.89. §E.90 à §E.99 restent au principal.
+
+<a id="e100"></a>
+### E.100 — UNE LIGNE DE DONNÉES PORTAIT LE NOM D'UNE OPTION D'ÉCRAN : deux « Autre », deux comportements, un mot.
+
+**Le cas mesuré (01/10/2026, recette S1, point 1).** L'écran de validation montrait deux boutons « Autre ». L'un était
+l'option « Autre (préciser) » du code, avec son champ ; l'autre, une SPÉCIALITÉ du référentiel nommée « Autre »
+(`parametrage_de_production`, slug `autre`), servie par `/api/taxonomy` comme les autres, sans champ. Le code ne
+pouvait pas la distinguer : pour lui, c'était une spécialité de plus. Et quatre écrans recopiaient chacun leur propre
+sentinelle `'__other__'` (§E.20).
+
+**La leçon.** Une option d'écran qui signifie « rien de ce qui précède » ne doit pas avoir de jumelle EN DONNÉES — sinon
+l'administration, ou la graine, la recrée sans que rien ne le voie. La parade est une contrainte (§E.31) :
+`specialities_autre_hors_referentiel` refuse une spécialité ACTIVE « Autre » ; la sentinelle vit une fois
+(`lib/taxonomie/specialite-autre.ts`). **Gardé par** `diag-recette-s1` 1 et `taxonomie/autre_hors_referentiel.test.sql`.
+**Ce qu'ils ne voient pas** : un synonyme (« Divers ») — le mot est reconnu, pas l'intention.
+
+---
+
+<a id="e101"></a>
+### E.101 — UN BUCKET RENDU PRIVÉ PERD SA LECTURE ET GARDE SON ÉCRITURE : l'`upsert` échoue au REMPLACEMENT seulement.
+
+**Le cas mesuré (01/10/2026, recette S1, point 8).** « Mon profil » → photo → « Enregistrer » : « Erreur lors de
+l'enregistrement ». La piste donnée (« le navigateur écrit encore directement dans le profil ») était fausse :
+`photo_url` passait déjà par le serveur. Le navigateur écrivait dans le STOCKAGE, en `upsert`. `avatars_private` avait
+rendu le bucket privé et retiré la politique de LECTURE — en laissant les trois d'écriture, « non touchées ici ». Or un
+`upsert` de Storage exige la lecture en plus de l'écriture : **le premier dépôt passait** (une insertion), **chaque
+remplacement échouait**. Un défaut qui ne se voit qu'au second essai, avec un message qui ne disait aucune cause.
+
+**La leçon.** Retirer un droit sur un objet, c'est relire CHAQUE geste qui l'utilisait — pas seulement celui qu'on
+vise (§E.65). Et un message unique pour toutes les causes cache la seule information utile. **La parade** : le dépôt
+passe par le serveur (`POST /api/profile/photo`, contenu vérifié, chemin dérivé du compte), les politiques d'écriture
+du navigateur sont retirées (`photo_par_le_serveur`), chaque refus a son code et son message. **Gardé par**
+`diag-recette-s1` 8. **Ce qu'il ne voit pas** : Storage lui-même — la règle « upsert exige la lecture » est
+documentée par Supabase, NON MESURÉE ici.
+
+---
+
+<a id="e102"></a>
+### E.102 — UN BOUTON « TOUT » PARMI DES BOUTONS « PARTIE », AVEC UN DÉDOUBLONNAGE QUI GARDE LE PLUS LARGE, ABSORBE LE CLIC SUIVANT.
+
+**Le cas mesuré (01/10/2026, recette S1, point 2).** Zones de travail : « Monde entier » coché, un clic sur « Europe »
+ne faisait RIEN. `dedupeCoveredZones` garde la zone la plus large — juste en soi —, donc Europe était ajoutée puis
+retirée aussitôt, couverte par le monde. Il fallait décocher le monde, puis recliquer : deux clics, sans explication.
+
+**La leçon.** Une règle de dédoublonnage juste devient un piège quand l'élément qui absorbe tout est PRÉSENTÉ comme un
+choix parmi les autres. Le remède n'est pas de retoucher la règle : c'est de faire du « tout » une question FERMÉE à
+part (« partout » / « certaines zones »), et de n'offrir les parties que dans la seconde réponse — comme les
+plateformes comparables (docs/reprise-s1.md). **Gardé par** `diag-recette-s1` 2 (la saisie exécutée : depuis « Monde
+entier », UN clic sur Europe donne Europe).
+
+---
+
+<a id="e103"></a>
+### E.103 — UNE GARDE POSÉE EN BASE REND SA PROPRE REPRISE INTESTABLE PAR UN CHEMIN NORMAL.
+
+**Le cas (01/10/2026, recette S1, point 3).** La migration `langues_liste_fermee` pose un déclencheur qui refuse toute
+langue hors de la liste fermée, PUIS rattache les lignes héritées en texte libre (« French » → `fr`). Pour éprouver
+cette reprise, un test devrait fabriquer une ligne « French » — que le déclencheur refuse. Les tests s'interdisent de
+désactiver un déclencheur (§G.4 ter). **La garde ferme la porte par laquelle on fabriquerait le cas.**
+
+**Ce qui est fait, et dit.** Le test prouve ce qui se prouve : le rattachement nom → code (la même fonction que la
+reprise appelle), la reprise de la liste plate (sans garde), l'idempotence. La reprise des lignes héritées de
+`profile_languages` reste NON PROUVÉE par un test : elle ne l'est que par sa lecture, et par le compte qu'elle rend à
+la migration (« N rattachée(s), N non reconnue(s) »). **La question à se poser à la prochaine garde en base** : la
+reprise doit-elle passer AVANT la garde, dans une migration séparée, pour rester testable ?
+
+---
+
+<a id="e104"></a>
+### E.104 — DEUX RÈGLES D'UNE MÊME CONSIGNE SE CONTREDISAIENT, ET UN CHAMP ÉTAIT LU SEUL POUR UNE DONNÉE QUI N'EN A PAS.
+
+**Le cas mesuré (01/10/2026, recette S1, points 10 à 13 — fiche du compte d'essai : 6/10, revue manuelle).**
+① L'axe LinkedIn disait « ne plafonne PAS seul » ; l'échelle disait « 5-6 → corroboration LinkedIn impossible alors
+qu'attendue ». Le modèle a suivi la plus PRÉCISE — l'échelle. LinkedIn bloquant les robots, tous les profils y
+seraient tombés. ② Le bloc des expériences écrivait « chez (employeur ?) » sur chaque mission : l'analyseur range le
+client d'une mission dans `client_name`, que le vérificateur ne lisait pas — « 10 employeurs non nommés sur 12 » sur un
+parcours entièrement nommé. ③ « senior 6-12 ; expert 12+ » mettait 12 ans dans deux tranches, et un analyseur donnait
+« 7 ans » comme charnière : trois lectures des mêmes bornes.
+
+**La leçon.** Une consigne à un modèle se relit comme un code : deux phrases qui se contredisent ne s'annulent pas, la
+plus concrète gagne. Un champ lu seul (« employeur ») pour une ligne dont la donnée vit ailleurs (« client ») produit
+un défaut qui ressemble à une faute de l'expert. Et un nombre recopié dans trois textes diverge. **La parade** : LinkedIn
+retiré entièrement (aucun outil, aucune adresse, aucun drapeau) ; chaque ligne dit ce qu'elle est (« MISSION — … pour
+le client … ») ; les tranches viennent d'un module (`lib/profil/seniorites.ts`, semi-ouvertes). **Gardé par**
+`diag-recette-s1` 10 à 13. **Ce qu'il ne voit pas** : le comportement du modèle — une nouvelle vérification le dira.
+
+---
+
+<a id="e105"></a>
+### E.105 — DEUX ÉTATS, UN LIBELLÉ, DEUX COULEURS : L'ÉTAT CHANGE ET SEULE LA COULEUR BOUGE.
+
+**Le cas mesuré (01/10/2026, recette S1, point 5).** La pastille disait « En attente de vérification » en bleu, puis, au
+rafraîchissement, la même phrase en ambre. `verificationStatusLabelKey` donnait le même libellé à `pending` (l'IA
+vérifie) et à `admin_review` (un humain relit), `verificationChipColors` deux couleurs : quand l'IA déférait à un
+humain, seule la couleur changeait. Et l'étape 3 (« Vérification en cours »), le chip de « Mon profil » (« En attente de
+validation ») et les notifications (en dur) disaient l'état avec d'autres mots.
+
+**La leçon.** Fusionner deux libellés « parce que c'est presque pareil » tout en gardant deux couleurs, c'est écrire
+un état que seul l'œil attentif lit — et que personne ne comprend. Un état réel = un libellé = une couleur, dans UNE
+source que tous les écrans et les notifications lisent. **Gardé par** `diag-recette-s1` 5 et
+`diag-ecran-qui-se-contredit` ②.
 
 ---
 

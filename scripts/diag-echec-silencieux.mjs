@@ -241,6 +241,11 @@ const GEL = {
   'lib/candidature-pitch-client.ts': { 'catch:null': 1 },
   'lib/candidatures/ai-assessment.ts': { 'catch:null': 1 },
   'lib/emails/domain-url.ts': { 'catch:null': 1 },
+  // LÉGITIME (recette S1, 01/10/2026) : `new Intl.DisplayNames([locale])` LÈVE sur une locale inconnue ;
+  // `null` y veut dire « aucun nom dans cette langue », et chaque appelant le traite : `nomDeLangue`
+  // rend alors la valeur TELLE QU'ÉCRITE (jamais une autre langue), l'index des noms saute la locale.
+  // Aucune lecture, aucun verdict métier : un affichage qui retombe sur la donnée brute.
+  'lib/profil/langues.ts': { 'catch:null': 1 },
   'lib/home-ecosystem.ts': { 'catch:[]': 1 },
   // 'lib/matching-resync-hint.ts' — RETIRE du gel le 23/09/2026 : le fichier
   // a ete SUPPRIME avec le defaut qu'il portait (§E.51, les deux chronometres).

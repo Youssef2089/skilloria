@@ -322,6 +322,8 @@ export default function AdminTaxonomieDetailPage() {
     if (code === 'invalid_name') return t('err_invalid_name')
     if (code === 'invalid_slug') return t('err_invalid_slug')
     if (code === 'slug_taken') return t('err_slug_taken')
+    // « Autre » n'est pas une spécialité du référentiel (recette du 01/10/2026, point 1).
+    if (code === 'specialite_autre_reservee') return t('err_specialite_autre_reservee')
     if (status === 403) return tAdmin('errors.forbidden')
     return tAdmin('errors.generic')
   }
@@ -374,7 +376,9 @@ export default function AdminTaxonomieDetailPage() {
         body: JSON.stringify({ id: s.id, active: !s.active }),
       })
       if (!res.ok) {
-        setSpecError(res.status === 403 ? tAdmin('errors.forbidden') : tAdmin('errors.generic'))
+        // Réactiver une ligne « Autre » retirée est refusé par la base, et ça se dit.
+        const payload = (await res.json().catch(() => ({}))) as { code?: string }
+        setSpecError(mapSpecError(payload.code, res.status))
         return
       }
       setConfirmDeactivateSpec(null)

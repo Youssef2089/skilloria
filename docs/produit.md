@@ -710,13 +710,28 @@ deux produits.
 > **Deux copies dérivent** : c'est le risque de parité réel de ce projet, et il est dans le code, pas
 > dans la liste des écrans.
 
+> **Recette S1 du 01/10/2026 — ce qui a changé sur ces écrans** (détail : architecture §D.40 à §D.44, docs/reprise-s1.md) :
+> · **`profil/valider`** — une seule option « Autre (préciser) » parmi les spécialités ; **les zones de travail en deux
+>   temps** : d'abord « partout dans le monde » OU « dans certaines zones » (rien de coché d'avance), puis, seulement
+>   dans le second cas, des continents en un clic, une recherche de pays, et la sélection en étiquettes qu'une croix
+>   retire ; **les langues dans une liste fermée**, nommées dans la langue de l'écran, sans niveau choisi d'office
+>   (« Choisir le niveau ») ; une langue héritée en texte libre est montrée et à choisir. « Publier » ramène au
+>   tableau de bord.
+> · **Accueil** — « Statut de votre profil : … » et la phrase qui dit la suite (un libellé et une couleur par état :
+>   brouillon, vérification par l'IA en cours, en attente d'un administrateur, validé, refusé) ; l'étape 3 du guide
+>   mène à la validation ; une icône « i » sur chaque case et chaque bloc (survol, toucher, clavier) ; la case TJM dit
+>   « Modifier » quand il est renseigné.
+> · **`mon-profil`** — la photo se dépose par le serveur ; chaque refus dit sa raison.
+> · **`parametres` › Notifications** — « Quand plusieurs missions vous correspondent en même temps, vous recevez un
+>   seul e-mail qui les regroupe. Les messages, eux, vous sont envoyés un par un. »
+
 ### P2.3 — Organisation (client, cabinet, ESN — un seul dashboard)
 `client`, `cabinet` et `esn` partagent **`/dashboard/entreprise`**. `/dashboard/cabinet` est une
 **redirection** conservée pour les anciens signets — pas un écran.
 
 | Écran | À quoi il sert |
 |---|---|
-| `/dashboard/entreprise` | Tableau de bord : annonces, candidatures reçues, compteurs. |
+| `/dashboard/entreprise` | Tableau de bord : annonces, candidatures reçues, compteurs. Une icône « i » sur chaque case et chaque bloc dit ce qu'il compte (recette S1, 01/10/2026). |
 | `annonces` · `annonces/nouvelle` · `annonces/[id]` · `annonces/[id]/modifier` | Cycle de vie d'une annonce. |
 | `annonces/[id]/candidatures` | Les candidats d'une annonce, triés serveur, **masqués** avant dévoilement. |
 | `candidatures` | Toutes les candidatures reçues, toutes annonces confondues. |
@@ -735,7 +750,7 @@ deux produits.
 |---|---|
 | `/admin` | Tableau de bord plateforme. |
 | `utilisateurs` · `utilisateurs/[id]` | Comptes : statut, rôle d'organisation, sessions, purge, ré-invitation. |
-| `experts` · `experts/[id]` | Modération des vérifications d'experts (approuver / refuser avec motif). **Le numéro de téléphone de l'expert y est visible, et c'est une finalité** (arbitré le 21/09/2026) : l'administrateur peut **appeler** l'expert en cas de doute avant de trancher — la donnée sert à la décision. C'est la seule surface d'administration qui le montre ; les écrans de gestion de **compte** (`utilisateurs`) n'en ont pas besoin pour suspendre ou révoquer, et ne le servent pas (`diag-admin-users`, famille A). |
+| `experts` · `experts/[id]` | Modération des vérifications d'experts (approuver / refuser avec motif). **Le numéro de téléphone de l'expert y est visible, et c'est une finalité** (arbitré le 21/09/2026) : l'administrateur peut **appeler** l'expert en cas de doute avant de trancher — la donnée sert à la décision. C'est la seule surface d'administration qui le montre ; les écrans de gestion de **compte** (`utilisateurs`) n'en ont pas besoin pour suspendre ou révoquer, et ne le servent pas (`diag-admin-users`, famille A). **Le CV s'ouvre en lecture seule** par un lien signé au clic, valable une minute (§D.44, recette S1) ; une mission se lit avec son client. |
 | `organisations` · `organisations/[id]` | Modération des organisations ; attribution manuelle d'offre ; consommation. |
 | `domaines-adresse` | **Les deux listes que la règle d'inscription lit** (§D.27) : domaines **bloqués** (une organisation ne s'y préinscrit pas) et **publics** (gmail.com… : accepté, le domaine ne se réserve pas). Ajouter, retirer (désactivé, jamais effacé), réactiver — chaque geste avec sa ligne `reglage_modifie` ; la base refuse un domaine invalide ou présent dans l'autre liste. |
 | `packages` · `packages/new` · `packages/[id]` | Catalogue commerce : offres, limites, offre par défaut, synchro Stripe. |

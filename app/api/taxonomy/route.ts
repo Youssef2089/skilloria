@@ -145,6 +145,25 @@ export async function GET(req: NextRequest) {
       name: tBDD(translations, 'work_zones', z.id, 'name', z.name),
     }))
 
+    // LES LANGUES — la liste FERMÉE (recette du 01/10/2026, point 3), servie SUR DEMANDE
+    // (`avec=langues`) : seuls les écrans de validation du profil la lisent, et une panne de
+    // cette lecture ne doit pas fermer l'inscription. Des CODES, pas des noms : l'écran les
+    // nomme dans sa langue (lib/profil/langues.ts). Lue en panne, elle rend `db_error` comme
+    // le reste du référentiel — jamais une liste vide, qui dirait « aucune langue ».
+    if (url.searchParams.get('avec') === 'langues') {
+      const { data: lgs, error: lgsErr } = await supabase
+        .from('langues')
+        .select('code')
+        .eq('active', true)
+        .order('code', { ascending: true })
+      if (lgsErr) {
+        console.error('[taxonomy] liste des langues illisible', { code: 'db_error', message: lgsErr.message })
+        return json({ error: 'Failed to load languages', code: 'db_error' }, 500)
+      }
+      const langues = (lgs ?? []).map(l => l.code as string)
+      return json({ locale, branches, specialities, work_zones, langues })
+    }
+
     return json({ locale, branches, specialities, work_zones })
   } catch (err) {
     console.error('[taxonomy] exception', { code: 'internal', message: err instanceof Error ? err.message : String(err) })

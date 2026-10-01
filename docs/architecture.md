@@ -71,7 +71,8 @@ journal des DÉPÔTS, §D.19 — une ligne par couple (annonce, expert), née **
 `transactions`, `usage_counters`, `promo_codes`, `promo_code_uses`,
 `stripe_events`, `stripe_reconciliation_runs` (§C.10).
 
-**Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`.
+**Taxonomie** — `branches`, `specialities`, `public_email_domains`, `blocked_email_domains`, `langues` et
+`langues_noms` (la liste FERMÉE des langues parlées et les noms qui y rattachent un texte libre, §D.41).
 
 > Ces quatre tables manquaient à cet inventaire, alors que `branches` est citée dans **20** fichiers
 > et `specialities` dans **19** : l'inscription d'un expert en dépend (§P1.1). Un inventaire
@@ -386,6 +387,29 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   organisation, annonce ; candidature → son annonce et son expert ; membre → son organisation et son nom), relu à
 >   l'AFFICHAGE, réservée à l'administrateur (AD002), 500 sujets au plus. Un compte effacé n'a plus de nom. Test :
 >   `grand_livre/liste_validee`.
+>
+> **LES TROIS MIGRATIONS DE LA RECETTE S1 DU PARCOURS EXPERT (01/10/2026, plage S1 `20261001100000`–`…199999`).**
+> - **`specialite_autre_hors_referentiel`** (AVANT) — `est_specialite_autre(nom, slug)` (immuable : le mot en quatre
+>   langues, seul ou avec parenthèse, ou un slug de cette forme) ; la reprise `retirer_specialites_autre()` (sort la
+>   ligne « Autre » de `profiles.speciality_ids` et `publications.speciality_ids`, garde « Autre » en
+>   `speciality_other` quand elle était vide, DÉSACTIVE la ligne — jamais supprimée, `profile_alerts.speciality_id`
+>   peut la citer — rend ses comptes, rejouable, fermée au navigateur), appelée dans son propre bloc AVANT la
+>   contrainte `specialities_autre_hors_referentiel` (`not active or not est_specialite_autre(name, slug)`). §D.40.
+>   Test : `taxonomie/autre_hors_referentiel.test.sql` (14).
+> - **`langues_liste_fermee`** (AVANT) — tables `langues` (code ISO 639-1, `active`) et `langues_noms` (nom en
+>   minuscules → code ; fr, en, es, de, natif, avec et sans accents ; 92 langues, 467 noms, générés depuis
+>   `Intl.DisplayNames`), RLS sans politique, fermées au navigateur ; `code_de_langue(texte)` ; le déclencheur
+>   `profile_languages_langue_de_la_liste` (avant insertion ou changement de `language` : hors liste active ⇒
+>   `LG001`) ; la reprise `rattacher_langues_heritees()` (fond les doublons — la principale d'abord —, rattache le
+>   texte libre reconnu, convertit la liste plate `profiles.languages` ; ce qu'aucun nom ne reconnaît RESTE) ;
+>   `remplacer_listes_profil` remplacée à signature identique, UNE cause de plus (`LG001` → `langue_hors_liste`).
+>   §D.41. Test : `profil/langues_liste_fermee.test.sql` (12) ; `listes_profil` et `analyse_cv_tolerante` passent aux
+>   codes (`fr`, `en`). ⚠️ La reprise des lignes HÉRITÉES de `profile_languages` n'est prouvée par aucun test : le
+>   déclencheur rend la donnée de départ infabricable par un chemin normal (§E.103).
+> - **`photo_par_le_serveur`** (INDIFFÉRENT, raison dans l'en-tête) — retire `avatars_auth_upload`, `_update`,
+>   `_delete` : le bucket `avatars` ne s'écrit plus depuis le navigateur (POST /api/profile/photo, clé de service).
+>   La cause du défaut (§E.101) : `avatars_private` avait retiré la LECTURE et laissé l'écriture ; un `upsert` exige
+>   les deux. Contrôlé par `diag-recette-s1` 8.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -1070,7 +1094,7 @@ un second en ferait un jumeau (§E.20).
 ⚠️ Il écrit en base **hors du périmètre** de `diag-scripts-destructeurs` (qui ne balaie que
 `scripts/diag-*.mjs`) : il est **gardé**, pas **découvert** — quatrième cas de l'angle mort de §E.4.
 
-**⑨ LES DEUX VALEURS QUI NE GOUVERNENT RIEN — documentées ici parce qu'elles ne s'affichent plus.**
+**⑨ LES VALEURS QUI NE GOUVERNENT RIEN — documentées ici parce qu'elles ne s'affichent plus** (deux à l'origine, trois depuis la recette S1 du 01/10/2026).
 
 `/admin/seuils` les montrait, chacune avec un champ et trois lignes expliquant qu'elle ne décide de
 rien. **§D.11** les a retirées de l'écran : *un champ qui ne règle rien finit par être rempli*.
@@ -1082,6 +1106,7 @@ et quelqu'un les remettrait. Elles sont aussi déclarées dans
 | Valeur | Pourquoi elle ne gouverne rien | Preuve |
 |---|---|---|
 | `verification_providers.confidence_threshold` de la ligne `official_api` (`sirene_insee`), **9** | Sirene est un fournisseur de **DONNÉES**, pas un décideur. Il interroge le registre officiel et remet ses champs à l'analyseur de cohérence ; c'est l'IA qui tranche. | `runVerification` ([lib/verification/index.ts:84](../lib/verification/index.ts#L84)) filtre sur `provider_type === 'ai_web_search'` pour choisir son décideur, puis lit **son** `confidence_threshold` (ligne 173). Aucun chemin ne lit celui d'`official_api`. Un admin qui passerait ce 9 à 3 ne changerait **strictement rien**. |
+| `verification_providers.config->>'web_search_max_uses'` de la ligne `profile_verification` *(ajoutée le 01/10/2026)* | La recherche web du vérificateur d'expert n'existait que pour corroborer LinkedIn — que LinkedIn bloque. LinkedIn est désormais ignoré (§D.43) : aucun outil n'est offert au modèle. | `lib/verification/ai-expert-verification.ts` n'appelle plus le modèle avec `tools` ; `loadConfig` (`lib/verification/expert-verification.ts`) ne lit plus la clé et ne l'exige plus — elle refusait la vérification si elle manquait. Elle reste en base, sans effet. |
 | la ligne `claude_profile_matching` (`provider_type = 'profile_matching'`) | C'est le moteur d'**AVANT** le reranking : Claude est sorti de la mise en relation. | **Aucun code ne lit `provider_type = 'profile_matching'`** — balayage de `app/` + `lib/` + `components/`. La migration `parametrage_de_production` l'a **désactivée** (`is_active = false`) **sans la supprimer**, et ne la recrée pas sur une base neuve : elle n'existe que comme vestige. La valeur reste dans le `CHECK` de `provider_type` pour que le type garde une explication. |
 
 > ⚠️ **ET C'EST CETTE LIGNE VESTIGE QUI A PRODUIT LA CLÉ i18n AFFICHÉE BRUTE.** L'écran rendait
@@ -3621,6 +3646,11 @@ dépublie (seul chemin qui refait passer une modification par la vérification �
 republier un profil approuvé le laisse approuvé pendant sa re-vérification (quelques minutes), le verdict démote s'il
 le faut.
 
+**Amendé à la recette S1 du 01/10/2026 (point 4, décision de Youssef) : l'ÉTAPE 3 mène à la VALIDATION.** Elle n'est
+l'étape courante qu'une fois le CV analysé ET le profil complet — il ne reste qu'à publier, et l'import la faisait
+repartir de zéro. Les étapes 1 et 2, le bandeau et « Compléter mon profil » mènent toujours à l'import ; sans profil,
+la page de validation renvoie d'elle-même à l'import. Gardé par `diag-recette-s1` 4.
+
 <a id="d32"></a>
 ### D.32 — DEUX ÉCRITURES D'UN MÊME GESTE NE SE RESSEMBLENT PAS (recette staging, 30/09/2026)
 
@@ -3706,6 +3736,100 @@ nouvelles formes), `diag-tests-grand-livre`, et les tests pgTAP `grand_livre/lis
 ne voient pas** : la JUSTESSE d'une traduction ; une valeur que la base inventerait hors des dimensions (elle
 s'affiche « une autre information ») ; le comportement « rien ne change, rien ne s'écrit » côté routes TypeScript
 (aucun test d'API) — il repose sur la relecture, lue par D ter.
+> **Numérotation.** Les décisions de la recette S1 (01/10/2026) commencent à **D.40** : le principal ajoute les
+> siennes au même moment, et deux §D.33 écrits sans se voir se seraient heurtés à la fusion (§M1 bis). D.33 à D.39
+> restent au principal.
+
+<a id="d40"></a>
+### D.40 — « AUTRE » EST UNE SEULE NOTION, ET CE N'EST JAMAIS UNE LIGNE DU RÉFÉRENTIEL (recette S1, 01/10/2026)
+
+**Le cas** : l'écran de validation montrait deux boutons « Autre » — l'option de l'écran, « Autre (préciser) », avec
+son champ, et une SPÉCIALITÉ du référentiel nommée « Autre » (semée dans Business Applications par
+`parametrage_de_production`), sans champ, servie par `/api/taxonomy` comme les autres. Deux notions, un mot.
+
+**La décision de Youssef** : une seule notion « Autre », la même à l'inscription, à la validation, dans une annonce et
+en base. **En base, « Autre » est `speciality_other`** — une précision non vide. **À l'écran, c'est l'option « Autre
+(préciser) »**, une sentinelle unique (`lib/taxonomie/specialite-autre.ts`) que les quatre écrans importent au lieu
+d'en recopier une chacun (§E.20). **Jamais une ligne du référentiel** : la migration `specialite_autre_hors_referentiel`
+reprend les profils et annonces qui en portaient une (la précision garde « Autre » si elle était vide), désactive la
+ligne, et la contrainte `specialities_autre_hors_referentiel` refuse toute spécialité ACTIVE « Autre » (création,
+renommage, réactivation) ; l'administration rend `specialite_autre_reservee` (400), dans les quatre langues.
+**Gardé par** `diag-recette-s1` 1 et `taxonomie/autre_hors_referentiel.test.sql`. **Ce qu'ils ne voient pas** : un
+« Autre » écrit autrement que les mots reconnus (« Divers », « Hors catégorie ») — `est_specialite_autre` reconnaît
+le mot dans les quatre langues, pas un synonyme.
+
+<a id="d41"></a>
+### D.41 — LES LANGUES PARLÉES : UNE LISTE FERMÉE, UN CODE EN BASE, UN NOM DANS LA LANGUE DE L'ÉCRAN (recette S1)
+
+**Le cas** : `profile_languages.language` était du texte libre. Un CV en anglais donnait « French, English, Arabic »,
+affichés tels quels sur un écran en français ; « Ajouter une langue » montrait l'exemple comme une langue, avec B2
+coché d'office.
+
+**La décision de Youssef** : le choix se fait dans une liste fermée, jamais par saisie libre. **La base garde un code
+ISO 639-1** (table `langues`, 92 langues ; un déclencheur refuse tout code hors liste, `LG001`) ; **le nom s'affiche
+dans la langue de l'écran** par `Intl.DisplayNames` (`lib/profil/langues.ts`) — les quatre langues sans une
+traduction écrite à la main ; **un nom lu dans un CV est rattaché à son code** avant l'écriture (« French »,
+« Français », « Francés », « Französisch » → `fr`), ce qui ne se rattache pas est écarté et DIT (`langue_inconnue`).
+**Aucun niveau d'office** : « Choisir le niveau » tant que l'expert n'a rien choisi ; une langue hors liste ou sans
+niveau bloque l'enregistrement, avec son rang. **Une ligne HÉRITÉE n'est jamais effacée** : la reprise rattache ce
+qu'elle reconnaît, le reste est montré tel qu'écrit, avec la demande de le choisir. La liste vient de
+`/api/taxonomy?avec=langues`, SUR DEMANDE — l'inscription n'en dépend pas. **Gardé par** `diag-recette-s1` 3 et
+`profil/langues_liste_fermee.test.sql`. **Ce qu'ils ne voient pas** : la reprise des lignes héritées de
+`profile_languages` (§E.103) ; et ce que rend `Intl` sur le serveur de Vercel (ICU complet, NON VÉRIFIÉ).
+
+<a id="d42"></a>
+### D.42 — LE STATUT DU PROFIL : UN LIBELLÉ PAR ÉTAT RÉEL, UNE COULEUR PAR ÉTAT, LE MÊME TEXTE PARTOUT (recette S1)
+
+**Le cas** : la pastille disait « En attente de vérification », l'étape 3 « Vérification en cours », et la couleur
+changeait au rafraîchissement sans que le texte change. Cause : `pending` (l'IA vérifie) et `admin_review` (un humain
+relit) partageaient UN libellé et avaient DEUX couleurs ; quand l'IA déférait, seule la couleur bougeait. Trois espaces
+de noms disaient la même chose autrement.
+
+**La décision de Youssef** : « Statut de votre profil : … », puis une phrase qui dit ce qui va se passer ; un libellé
+par état réel — brouillon, vérification par l'IA en cours, en attente d'un administrateur, validé, refusé (plus la
+nuance « validé, mais masqué ») — le même partout, avec une couleur constante par état. **Une source** :
+`lib/verification-state.ts` (état, clé du libellé, clé de la phrase PAR VOIE — missions ou offres —, couleurs) et
+l'espace `statut_profil` des messages, lu par la pastille, l'étape 3, le chip de « Mon profil » et les NOTIFICATIONS
+(`lib/profil/notification-statut.ts` : elles ne portent plus de texte en dur). **La notification « l'IA vérifie » part
+à la publication** (point 7), pas au verdict — sauf pour un profil déjà validé qui republie (il reste validé pendant
+sa re-vérification, §H.5 ; une notification « en cours » contredirait la pastille). **Gardé par** `diag-recette-s1` 5
+et 7.
+
+<a id="d43"></a>
+### D.43 — LA VÉRIFICATION D'UN EXPERT IGNORE LINKEDIN ; UNE MISSION SE LIT AVEC SON CLIENT ; UNE VALEUR, UNE TRANCHE (recette S1)
+
+**Le cas** (fiche du compte d'essai : 6/10, revue manuelle) : ① l'axe LinkedIn disait « ne plafonne pas seul », mais
+l'échelle rangeait « corroboration LinkedIn impossible » en 5-6 — et LinkedIn bloque les robots : TOUS les profils
+y seraient tombés ; ② le bloc des expériences écrivait « chez (employeur ?) » sur chaque MISSION (le client vit dans
+`client_name`, que le vérificateur ne lisait pas) : « 10 employeurs non nommés sur 12 » ; ③ des missions parallèles
+étaient lues comme des incohérences ; ④ « senior 6-12 ; expert 12+ » mettait 12 ans dans deux tranches.
+
+**Les décisions de Youssef, appliquées** : **LinkedIn est ignoré** — aucune adresse transmise, aucun outil offert au
+modèle (la recherche web n'existait que pour LinkedIn : plus aucune recherche payée), le drapeau `LINKEDIN_UNVERIFIABLE`
+n'est plus accepté ni réglable comme bloquant, l'échelle ne le cite plus ; `web_search_max_uses` ne gouverne plus rien
+(§B.2 ⑨). **Une mission se lit avec son client** (« MISSION — rôle pour le client X », client confidentiel normal) ; le
+vérificateur et la fiche admin lisent `experience_type` et `client_name` — **l'analyse du CV ne confondait pas** :
+elle range déjà le client d'une mission dans `client_name` ; c'était la LECTURE qui était fausse. **Des missions qui se
+chevauchent sont normales** : dit au modèle, ni signalées ni pénalisées. **Les tranches de séniorité sont
+semi-ouvertes** — `lib/profil/seniorites.ts` (junior : moins de 3 ans ; confirmé : de 3 à moins de 6 ; senior : de 6 à
+moins de 12 ; expert : 12 et plus) — et les trois consignes (vérificateur, deux analyseurs) en sont TIRÉES. **Gardé
+par** `diag-recette-s1` 10 à 13. **Ce qu'il ne voit pas** : que le modèle suive ces consignes — seule une nouvelle
+vérification du compte d'essai le dira.
+
+<a id="d44"></a>
+### D.44 — LE CV D'UN EXPERT S'OUVRE POUR L'ADMINISTRATEUR, EN LECTURE SEULE, PAR UN LIEN QUI EXPIRE (recette S1)
+
+**Le cas** : la case CV de la fiche admin affichait « — » sur tout dossier : elle lisait `profiles.cv_url`, qu'aucun
+chemin n'écrit (le CV vit dans le bucket privé `cv`, au chemin `cv_file_path`). L'administrateur décidait d'une
+approbation sans pouvoir lire le document vérifié.
+
+**La décision de Youssef — et ce qu'elle change** : l'en-tête de `storage_buckets_policies` disait « cv = PRIVÉ, accès
+service-role uniquement, jamais d'URL ». Le bucket RESTE privé et aucune politique ne s'ouvre au navigateur ; la seule
+URL qui existe est signée PAR LE SERVEUR, pour un administrateur, AU CLIC (`POST /api/admin/lien-cv/[id]`), valable
+**une minute** (`lib/profil/lien-cv.ts`). La fiche ne reçoit que le FAIT qu'un CV existe (`cv_depose`), jamais le
+chemin. Trois issues, jamais deux : aucun CV · lien impossible à créer (à réessayer) · lien. **Ce qui n'est pas
+fait, et signalé** : une consultation de CV par un administrateur n'est pas journalisée — le grand livre appartient au
+lot du principal ; l'écriture qu'elle mériterait est dans docs/reprise-s1.md. **Gardé par** `diag-recette-s1` 14.
 
 ---
 

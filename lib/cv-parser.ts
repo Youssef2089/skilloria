@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { consommationJetons, type ConsommationIA } from './ai-consommation.ts'
 import { TYPES_EXPERIENCE } from './profil/types-experience.ts'
 import { causeEchecModele, type CauseEchecModele } from './profil/cause-echec-modele.ts'
+import { tranchesPourConsigne } from './profil/seniorites.ts'
 
 export type DomainContext = {
   tags: string[]
@@ -217,7 +218,10 @@ function buildTool(ctx: DomainContext) {
             type: 'object',
             additionalProperties: false,
             properties: {
-              language: { type: 'string' },
+              // Un CODE, jamais un nom : un nom anglais (« French ») s'affichait tel quel sur
+              // un écran en français (recette du 01/10/2026, point 3). La normalisation
+              // rattache encore un nom à son code, si le modèle en écrit un.
+              language: { type: 'string', description: 'Code ISO 639-1 de la langue, en minuscules (fr, en, ar, es, de…), jamais son nom.' },
               level: {
                 type: 'string',
                 enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native'],
@@ -257,7 +261,9 @@ function buildSystemPrompt(ctx: DomainContext): string {
     '',
     "SPÉCIALITÉS (`speciality_slugs`) : un CV en montre souvent PLUSIEURS, et c'est un FAIT qu'on lit, pas une préférence qu'on suppose. Un consultant qui a mené des projets Finance ET Supply Chain a bien les deux. Retiens TOUTES celles que le parcours démontre réellement — missions, projets, certifications à l'appui. N'en ajoute aucune que le CV ne prouve pas : une spécialité inventée fera proposer à cette personne des missions qu'elle ne sait pas faire.",
     '',
-    "SÉNIORITÉS (`seniorities`) : ici la prudence est INVERSE. Un CV démontre un NIVEAU ATTEINT ; il ne dit rien de ce que la personne ACCEPTE. Retiens donc uniquement le ou les niveaux que le parcours établit — deux seulement si l'expérience est franchement à la charnière entre deux (par exemple 7 ans, entre confirmé et senior). N'ÉLARGIS JAMAIS vers le bas en supposant qu'un senior accepterait des missions de junior : c'est un choix qui appartient à la personne, et l'écran le lui demandera.",
+    "SÉNIORITÉS (`seniorities`) : ici la prudence est INVERSE. Un CV démontre un NIVEAU ATTEINT ; il ne dit rien de ce que la personne ACCEPTE. Retiens donc uniquement le ou les niveaux que le parcours établit — deux seulement si l'expérience est franchement à la charnière entre deux (à moins d'un an d'une borne). N'ÉLARGIS JAMAIS vers le bas en supposant qu'un senior accepterait des missions de junior : c'est un choix qui appartient à la personne, et l'écran le lui demandera.",
+    // Les tranches viennent de lib/profil/seniorites.ts : semi-ouvertes, aucune valeur dans deux (recette du 01/10/2026, point 13).
+    `Les tranches, la borne basse comprise et la borne haute exclue : ${tranchesPourConsigne()}.`,
     '',
     "ZONES DE TRAVAIL : ne les déduis PAS, et ne les invente sous aucune forme. Un CV dit où quelqu'un a TRAVAILLÉ, jamais où il ACCEPTE de travailler. Le schéma ne prévoit d'ailleurs aucun champ pour cela — c'est délibéré.",
     '',

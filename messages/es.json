@@ -453,7 +453,8 @@
       "retained": "Aceptadas",
       "daily_rate": "Mi tarifa diaria",
       "daily_rate_set": "Definir →",
-      "daily_rate_range": "{min} € — {max} €"
+      "daily_rate_range": "{min} € — {max} €",
+      "daily_rate_edit": "Modificar →"
     },
     "avatar_modal": {
       "title": "Foto de perfil",
@@ -465,10 +466,21 @@
       "saving": "Subiendo...",
       "error_size": "Archivo demasiado grande (máx. 2 MB)",
       "error_format": "Formato no admitido (solo JPG, PNG, WebP)",
-      "error_save": "Error al guardar, vuelve a intentarlo",
       "success": "Foto actualizada",
       "close_aria": "Cerrar",
-      "edit_overlay_cta": "Modificar la foto"
+      "edit_overlay_cta": "Modificar la foto",
+      "errors": {
+        "photo_absente": "No se ha recibido ninguna foto. Elige una imagen y vuelve a guardar.",
+        "photo_trop_volumineuse": "Esta imagen supera los 2 MB. Elige una imagen más ligera.",
+        "photo_format_refuse": "Este formato no se acepta. Elige una imagen JPEG, PNG o WebP.",
+        "photo_contenu_non_conforme": "Este archivo no es una imagen legible. Elige otra imagen.",
+        "photo_type_incoherent": "Este archivo no corresponde al formato que indica. Elige otra imagen.",
+        "pas_expert": "La foto de perfil está reservada a las cuentas de experto.",
+        "photo_stockage_indisponible": "El almacenamiento de fotos no responde. Tu foto no se ha guardado: inténtalo de nuevo en unos minutos.",
+        "drapeau_refuse": "La foto se ha subido, pero tu perfil no se ha podido actualizar (código {code}). Inténtalo de nuevo; si persiste, envía este código al soporte.",
+        "inattendu": "El guardado ha sido rechazado (código {code}). Inténtalo de nuevo; si persiste, envía este código al soporte.",
+        "reseau": "No se ha podido enviar la foto: comprueba tu conexión y vuelve a intentarlo."
+      }
     },
     "tjm_modal": {
       "title": "Definir mi tarifa diaria",
@@ -737,7 +749,6 @@
         "languages_label": "Idiomas",
         "languages_min_hint": "(mín. 1 para publicar)",
         "languages_empty": "Ningún idioma añadido.",
-        "language_placeholder": "Español, Inglés...",
         "level_options": {
           "A1": "A1 — Principiante",
           "A2": "A2 — Elemental",
@@ -1735,7 +1746,6 @@
         "title": "Idiomas",
         "languages_min_hint": "(mín. 1 para publicar)",
         "empty": "Aún no hay idiomas.",
-        "language_placeholder": "Español, Inglés...",
         "level_options": {
           "A1": "A1 — Principiante",
           "A2": "A2 — Elemental",
@@ -1839,8 +1849,7 @@
       "to_review": "Por revisar",
       "in_progress": "En curso",
       "accepted": "Aceptadas",
-      "rejected": "Rechazadas",
-      "rejected_hint": "Ver las candidaturas rechazadas (archivadas)"
+      "rejected": "Rechazadas"
     },
     "overview": {
       "annonces_title": "Seguimiento de anuncios",
@@ -2844,7 +2853,6 @@
       "branch": "Rama",
       "speciality": "Especialidad",
       "skills": "Competencias",
-      "download_cv": "Descargar CV",
       "current": "(en curso)",
       "status_pending": "En curso",
       "status_pending_admin_review": "A validar",
@@ -2865,7 +2873,15 @@
       "error_already_processed": "Este perfil ya ha sido procesado.",
       "error_reason_required": "Se requiere un motivo para rechazar.",
       "speciality_other_prefix": "{value} (fuera del catálogo)",
-      "years": "{count, plural, one {# año de experiencia} other {# años de experiencia}}"
+      "years": "{count, plural, one {# año de experiencia} other {# años de experiencia}}",
+      "cv_ouvrir": "Abrir el CV (solo lectura)",
+      "cv_ouverture": "Abriendo…",
+      "cv_aucun": "Ningún CV subido",
+      "cv_absent": "El CV ya no está disponible: el experto no lo subió o lo retiró.",
+      "cv_lien_indisponible": "No se ha podido crear el enlace al CV. Inténtalo de nuevo en unos instantes.",
+      "cv_lien_inattendu": "El enlace al CV ha sido rechazado (código {code}).",
+      "experience_mission": "misión para {client}",
+      "experience_client_confidentiel": "un cliente confidencial"
     },
     "users": {
       "title": "Usuarios",
@@ -3631,13 +3647,6 @@
     }
   },
   "expert_verification": {
-    "badge": {
-      "draft": "Borrador",
-      "pending": "Verificación en curso",
-      "admin_review": "Pendiente de validación",
-      "approved": "Verificado",
-      "rejected": "Rechazado"
-    },
     "rejected_details": {
       "reason_label": "Motivo:",
       "cta": "Completar mi perfil →"
@@ -3776,7 +3785,7 @@
       "sms_label": "Por SMS",
       "sms_unavailable": "No disponible: tu teléfono no está verificado.",
       "sms_verify_link": "Verificar mi teléfono",
-      "grouping_note_digest": "Las oportunidades de un mismo ciclo de recomendación llegan en un solo envío. Las demás notificaciones se envían de una en una.",
+      "grouping_note_digest": "Cuando varias misiones te corresponden al mismo tiempo, recibes un único correo que las agrupa. Los mensajes, en cambio, se te envían uno a uno.",
       "saved_on": "Notificaciones activadas.",
       "saved_off": "Notificaciones desactivadas.",
       "unsub_done": "Has cancelado las notificaciones por correo.",
@@ -3989,13 +3998,6 @@
     "account_created_title": "Su cuenta ha sido creada",
     "account_created_body": "Se ha unido a {company}. Inicie sesión con su dirección y la contraseña que acaba de elegir."
   },
-  "verification_status": {
-    "draft": "Borrador",
-    "pending": "Pendiente de verificación",
-    "approved": "Perfil verificado",
-    "rejected": "Perfil rechazado",
-    "approved_hidden": "Verificado · perfil oculto"
-  },
   "expert_onboarding": {
     "title": "¡Bienvenido! Así puede empezar",
     "subtitle": "Complete estos pasos para ser visible y recibir oportunidades.",
@@ -4018,7 +4020,6 @@
     "status": {
       "done": "Hecho",
       "current": "Por hacer ahora",
-      "in_progress": "Verificación en curso",
       "todo": "Próximamente"
     }
   },
@@ -4233,7 +4234,8 @@
     "err_branch_in_use": "Rama en uso: {profiles} perfil(es), {publications} publicación(es), {specialities} especialidad(es).",
     "err_spec_in_use": "Especialidad en uso: {profiles} perfil(es), {publications} publicación(es).",
     "usage_unavailable_warning": "No hemos podido leer lo que esta rama sigue conteniendo. No significa «nada»: no lo sabemos. Vuelve a cargar la página antes de decidir.",
-    "err_usage_unavailable": "Eliminación rechazada: no hemos podido comprobar lo que esta rama sigue conteniendo. No se ha eliminado nada. Inténtalo de nuevo en un momento."
+    "err_usage_unavailable": "Eliminación rechazada: no hemos podido comprobar lo que esta rama sigue conteniendo. No se ha eliminado nada. Inténtalo de nuevo en un momento.",
+    "err_specialite_autre_reservee": "«Otra» no es una especialidad del referencial: es la opción «Otra (especificar)» que se ofrece a los expertos y a los anuncios. Elige otro nombre."
   },
   "candidature_lifecycle": {
     "filters": {
@@ -4356,11 +4358,21 @@
     "none_selected": "Selecciona al menos una zona para publicar",
     "coverage": "{count} países cubiertos",
     "country_count": "{count} países",
-    "detail_by_country": "Elegir países concretos en {continent}",
-    "covered_by_continent": "Ya cubierto por {continent}",
     "suggestion_label": "Sugerencia: {zone}",
     "suggestion_confirm": "Usar esta zona",
-    "suggestion_not_applied": "No se aplica hasta que la confirmes"
+    "suggestion_not_applied": "No se aplica hasta que la confirmes",
+    "mode_monde": "En cualquier parte del mundo",
+    "mode_monde_aide": "Cubre los {count} países de la lista",
+    "mode_zones": "Solo en algunas zonas",
+    "mode_zones_aide": "Elige continentes o países concretos",
+    "continents_label": "Continentes enteros",
+    "recherche_label": "Añadir un país",
+    "recherche_placeholder": "Escribe el nombre de un país…",
+    "recherche_aucun": "Ningún país corresponde a esta búsqueda.",
+    "deja_couvert": "Ya cubierto por {zone}",
+    "deja_choisi": "Ya elegido",
+    "selection_label": "Tu selección",
+    "retirer": "Quitar {zone}"
   },
   "matching_badge": {
     "strong": "Coincidencia alta",
@@ -4701,7 +4713,6 @@
     "flag": {
       "DOMAIN_MISMATCH": "Ecosistema incoherente",
       "CV_PROFILE_INCOHERENT": "CV y perfil incoherentes",
-      "LINKEDIN_UNVERIFIABLE": "LinkedIn no verificable",
       "SUSPICIOUS_CONTENT": "Contenido sospechoso"
     },
     "countries_title": "Solo Francia tiene un registro oficial consultable",
@@ -5965,7 +5976,8 @@
       "fin_avant_debut": "la fecha de fin es anterior a la de inicio.",
       "annee_hors_bornes": "un año está fuera del rango permitido.",
       "valeur_hors_liste": "un valor no está en la lista propuesta.",
-      "ligne_refusee": "la línea fue rechazada."
+      "ligne_refusee": "la línea fue rechazada.",
+      "langue_hors_liste": "idioma ausente de la lista propuesta"
     },
     "champs": {
       "birth_year": "Año de nacimiento",
@@ -6028,7 +6040,86 @@
       "champ_obligatoire": "campo obligatorio vacío: línea descartada",
       "nombre_illisible": "número ilegible: línea descartada",
       "ligne_refusee": "línea rechazada por la plataforma: descartada",
-      "liste_entierement_refusee": "ninguna línea legible: se conserva la lista anterior"
+      "liste_entierement_refusee": "ninguna línea legible: se conserva la lista anterior",
+      "langue_inconnue": "idioma no reconocido: descartado, añádelo desde la lista"
     }
+  },
+  "statut_profil": {
+    "titre": "Estado de tu perfil: {etat}",
+    "etat": {
+      "draft": "borrador",
+      "pending": "verificación por la IA en curso",
+      "admin_review": "a la espera de un administrador",
+      "approved": "validado",
+      "approved_masque": "validado, pero oculto",
+      "rejected": "rechazado"
+    },
+    "phrase": {
+      "freelance": {
+        "draft": "Te propondremos misiones en cuanto tu perfil esté publicado y validado.",
+        "pending": "Nuestra IA está verificando tu perfil, normalmente en pocos minutos. Te propondremos misiones en cuanto esté validado.",
+        "admin_review": "Un administrador está revisando tu perfil. Te avisaremos de su decisión; te propondremos misiones en cuanto esté validado.",
+        "approved": "Tu perfil es visible para las empresas: te proponemos las misiones que te corresponden.",
+        "approved_masque": "Tu perfil está validado pero oculto: completa lo que falta y vuelve a publicarlo para recibir misiones.",
+        "rejected": "Tu perfil no ha sido validado. Corrígelo y vuelve a publicarlo; el motivo aparece en «Mi perfil»."
+      },
+      "cdi": {
+        "draft": "Te propondremos ofertas en cuanto tu perfil esté publicado y validado.",
+        "pending": "Nuestra IA está verificando tu perfil, normalmente en pocos minutos. Te propondremos ofertas en cuanto esté validado.",
+        "admin_review": "Un administrador está revisando tu perfil. Te avisaremos de su decisión; te propondremos ofertas en cuanto esté validado.",
+        "approved": "Tu perfil es visible para los reclutadores: te proponemos las ofertas que te corresponden.",
+        "approved_masque": "Tu perfil está validado pero oculto: completa lo que falta y vuelve a publicarlo para recibir ofertas.",
+        "rejected": "Tu perfil no ha sido validado. Corrígelo y vuelve a publicarlo; el motivo aparece en «Mi perfil»."
+      }
+    }
+  },
+  "infobulles": {
+    "etiquette": "Acerca de «{titre}»",
+    "freelance": {
+      "active_applications": "Todas tus candidaturas aún en curso: las que esperan respuesta, las que están en conversación y las aceptadas. Las candidaturas cerradas no se cuentan.",
+      "in_discussion": "Las candidaturas en las que la empresa ha abierto una conversación contigo.",
+      "awaiting": "Las candidaturas enviadas que la empresa aún no ha tratado.",
+      "retained": "Las candidaturas que la empresa ha aceptado.",
+      "daily_rate": "Tu tarifa diaria, en una horquilla. Se muestra a las empresas y sirve para proponerte misiones dentro de tu presupuesto.",
+      "availability": "Indica si recibes nuevas misiones. «No molestar» suspende las propuestas sin ocultar tu perfil.",
+      "completion": "La parte de la información de tu perfil que está completada. Un perfil completo recibe misiones que le corresponden mejor.",
+      "recommended_missions": "Las misiones que nuestro motor considera cercanas a tu perfil: rama, especialidades, zonas de trabajo y seniority.",
+      "your_candidatures": "Tus últimas candidaturas y su estado. «Ver todo» abre la lista completa."
+    },
+    "expert": {
+      "onboarding": "Los pasos para ser visible: importar tu CV, completar y luego publicar tu perfil. Este bloque desaparece cuando tu perfil está validado.",
+      "collaboration": "Las necesidades de subcontratación publicadas por otros expertos, y las que publicas tú."
+    },
+    "cdi": {
+      "active_applications": "Todas tus candidaturas aún en curso: las que esperan respuesta, las que están en conversación y las aceptadas. Las candidaturas cerradas no se cuentan.",
+      "in_discussion": "Las candidaturas en las que el reclutador ha abierto una conversación contigo.",
+      "awaiting": "Las candidaturas enviadas que el reclutador aún no ha tratado.",
+      "retained": "Las candidaturas que el reclutador ha aceptado.",
+      "market_status": "Indica si estás abierto a nuevas ofertas. Decide lo que se te propone.",
+      "completion": "La parte de la información de tu perfil que está completada. Un perfil completo recibe ofertas que le corresponden mejor.",
+      "suggestions": "Las ofertas que nuestro motor considera cercanas a tu perfil: rama, especialidades, zonas de trabajo y seniority.",
+      "applications": "Tus últimas candidaturas y su estado. «Ver todo» abre la lista completa."
+    },
+    "entreprise": {
+      "annonces": "En qué punto están tus anuncios, por estado. Cada casilla abre la lista correspondiente.",
+      "candidatures": "Las candidaturas recibidas en tus anuncios, por etapa. Cada casilla abre la lista correspondiente.",
+      "pub_published": "Los anuncios en línea, visibles para los expertos.",
+      "pub_review": "Los anuncios en verificación antes de su publicación.",
+      "pub_drafts": "Los anuncios guardados pero aún no publicados.",
+      "pub_closed": "Los anuncios vencidos o que has cerrado.",
+      "to_review": "Las candidaturas recibidas que aún no has tratado.",
+      "in_progress": "Las candidaturas en las que has abierto una conversación con el experto.",
+      "accepted": "Las candidaturas que has aceptado.",
+      "rejected": "Las candidaturas que has rechazado. Están archivadas."
+    }
+  },
+  "langues": {
+    "choisir_langue": "Elegir un idioma",
+    "choisir_niveau": "Elegir el nivel",
+    "heritee": "«{valeur}»: elige este idioma en la lista.",
+    "nouvelle": "Nuevo idioma: por elegir",
+    "niveau_a_choisir": "Nivel por elegir",
+    "langue_hors_liste": "Idioma n.º {rang}: elígelo en la lista o quita la línea.",
+    "niveau_manquant": "Idioma n.º {rang}: elige su nivel."
   }
 }
