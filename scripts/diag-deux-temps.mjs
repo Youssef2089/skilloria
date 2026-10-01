@@ -47,10 +47,10 @@ const ok = (cond, label, indice) => {
 }
 
 // ── LES EXCEPTIONS — une raison chacune (§G.8). Clé : `<suffixe de migration>::<motif>`. ──
-const EXCEPTIONS = {
-  'langues_liste_fermee::revoke:remplacer_listes_profil': 'LÉGITIME — la fonction est redéfinie à signature identique, et ce retrait (public, anon, authenticated) RE-DIT celui de listes_profil_atomiques : le code en ligne l’appelle par service_role, qui garde son droit (grant ci-dessous dans la même migration)',
-  'langues_liste_fermee::delete:profile_languages': 'LÉGITIME — la reprise FOND les doublons qu’elle crée en rattachant deux noms au même code (« French » et « Français ») ; le code en ligne remplace la liste entière à chaque enregistrement (remplacer_listes_profil : effacer puis réécrire), il ne cite jamais une ligne par son identifiant',
-}
+// Le gel ne fait que descendre : les deux exceptions de `langues_liste_fermee` (le retrait re-dit sur
+// remplacer_listes_profil, la fonte des doublons de langues) sont parties quand le lot A est devenu l'état de
+// staging (⓪ journal_photo_et_cv) — leur migration n'est plus en attente.
+const EXCEPTIONS = {}
 
 const dossier = 'supabase/migrations'
 const toutes = readdirSync(join(ROOT, dossier)).filter((f) => f.endsWith('.sql')).sort()
