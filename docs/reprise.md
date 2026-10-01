@@ -191,7 +191,7 @@ liste (deux lignes). Invariant ⑧ : `notification_preferences` ajoutée (aucune
 ⓪ inchangé (`listes_profil_atomiques`). **`diag-requete-staging` et `diag-portes-laterales` : verts.**
 
 ### 4. Le lot B
-Rebasé sur la branche fusionnée ; sa migration **renumérotée** `20261002000010_grand_livre_refus_des_retirees` — après toutes
+Rebasé sur la branche fusionnée (**ce commit**, au-dessus de l'ARRÊT 23) ; sa migration **renumérotée** `20261002000010_grand_livre_refus_des_retirees` — après toutes
 celles de S1 (`20261001100000`–`…100020`) et après `journal_photo_et_cv` (`20261002000000`). Toujours à déployer APRÈS le lot A.
 
 ### Le nombre de tests de base attendu

@@ -370,6 +370,8 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > - **`grand_livre_refus_des_retirees`** — **LOT SÉPARÉ, APRÈS le déploiement du précédent** (branche locale
 >   `lot/grand-livre-refus-retirees`, à fusionner une fois le code qui n'écrit plus les retirées en ligne) : `journaliser()`
 >   refuse une action retirée, nommément (**GL006**). Le seul changement : la fonction redéfinie à signature identique.
+>   Elle vit dans le dépôt depuis le commit du lot B, au-dessus du lot A ; sa présence fait passer `diag-journal-lisible`
+>   au TEMPS 2 (le refus dans elle seule, les tests attendent GL006). Horodatée après la plage S1 et `journal_photo_et_cv`.
 >   Tests : `grand_livre/liste_validee`, `message_envoye`, `refus_recherche_en_cours` y attendent GL006.
 > - **`ecritures_sur_vrai_changement`** — à signature identique : `envoyer_message` n'écrit plus de ligne ;
 >   `verifier_telephone` n'écrit pas quand le MÊME numéro est revérifié ; `effacer_adresses_ip` n'écrit que s'il a

@@ -1,8 +1,8 @@
 -- message_envoye — RETIRÉE du grand livre (décision de Youssef, 01/10/2026, ARRÊT 22) : la messagerie garde chaque
 -- message, daté et attribué ; le fait métier est l'ouverture de l'échange (« Coordonnées dévoilées »).
 -- envoyer_message() : le message et la date du fil, ensemble, SANS ligne au grand livre ; un fil hors des statuts
--- admis ne reçoit rien. Pendant la fenêtre db push → git push, le code en ligne écrit encore « message envoyé » :
--- la base l'ACCEPTE (aucun message ne doit échouer) ; le refus (GL006) part au lot suivant.
+-- admis ne reçoit rien ; écrire l'action retirée est refusé, nommément (GL006 — migration grand_livre_refus_des_retirees,
+-- déployée APRÈS le lot qui a cessé de l'écrire, §E.72).
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
@@ -31,9 +31,9 @@ begin
                  and exists (select 1 from public.conversations c where c.id = v_conv and c.last_message_at = (v_r ->> 'created_at')::timestamptz),
                  'le message ET la date du fil sont relus');
   return next is(pg_temp.lignes(v_p1), 0::bigint, 'AUCUNE ligne au grand livre : l''action est retirée');
-  return next lives_ok(format($q$select public.journaliser(%L, 'message_envoye', 'reussi', 'utilisateur', %L, 'client', null, 'messages', %L, '{}'::jsonb, null, null, null)$q$,
-                              gen_random_uuid(), v_admin, gen_random_uuid()),
-                       'pendant la fenêtre, la ligne qu''écrit encore le code en ligne est ACCEPTÉE (le refus GL006 part au lot suivant)');
+  return next throws_ok(format($q$select public.journaliser(%L, 'message_envoye', 'reussi', 'utilisateur', %L, 'client', null, 'messages', %L, '{}'::jsonb, null, null, null)$q$,
+                               gen_random_uuid(), v_admin, gen_random_uuid()),
+                        'GL006', null, 'écrire message_envoye est refusé, nommément (GL006)');
 end $$;
 
 select * from pg_temp.essai();
