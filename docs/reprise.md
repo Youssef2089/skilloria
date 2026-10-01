@@ -88,6 +88,13 @@ fichiers de test, chaque clé lue dans le détail d'une action nommée doit appa
 **Pour Youssef** : `npx supabase test db --local` — **543 tests, tous verts** ; le reste des étapes de l'ARRÊT 20 tel quel
 (aucune migration n'a changé).
 
+**L'épreuve (sur `c44570a`)** : tsc et next build séparément, lint 50/24, parité 4257, série complète **118 verts,
+0 rouge, 0 n'a pas tourné, 6 écartés** (sortie 0) ; **3 mutations sur 3 rougissent** — les tests 12 et 13 remis dans leur
+forme d'avant (la version des CGU, le type de compte lus sur `expert_inscrit`), une clé inconnue lue dans le test des
+lignes sœurs. Les 543 tests pgTAP restent à rejouer par Youssef.
+
+**ARRÊT 20 ter : terminé.** Aucun `git push`, aucune écriture en base.
+
 ## ⛔ ARRÊT 20 bis — AVANT LE DÉPLOIEMENT DE L'ARRÊT 20 : DEUX POINTS (01/10/2026)
 
 **① LE TÉLÉPHONE AU GRAND LIVRE — aucun numéro n'y était écrit ; le mot l'était.** `compte_cree` porte
