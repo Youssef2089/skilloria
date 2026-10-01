@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { changementsTaxonomie, taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
-import { estRefusAutre } from '@/lib/taxonomie/specialite-autre'
+import { contientAutre, estRefusAutre } from '@/lib/taxonomie/specialite-autre'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -150,6 +150,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (Object.keys(updates).length === 0 && trToUpsert.length === 0 && trToDelete.length === 0) {
     return json({ error: 'Nothing to update', code: 'no_changes' }, 400)
   }
+
+  // « Autre » — le nouveau nom, le nouveau slug ET chaque traduction écrite — se DEMANDE à la base AVANT toute
+  // écriture (relecture du 01/10/2026, point 11) : rien n'est écrit à moitié, et le refus est nommé.
+  const autre = await contientAutre(auth.supabaseAdmin, [updates.name as string | undefined, ...trToUpsert.map((t) => t.value)], (updates.slug as string | undefined) ?? null)
+  if (autre === 'illisible') return json({ error: 'Rule unreadable', code: 'lecture_indisponible' }, 503)
+  if (autre === 'autre') return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
 
   // Relu AVANT l'écriture : la ligne du grand livre ne nommera que ce qui change (ARRÊT 22).
   const changements = await changementsTaxonomie(auth.supabaseAdmin, {

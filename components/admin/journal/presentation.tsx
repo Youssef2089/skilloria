@@ -89,7 +89,9 @@ export function Montant({ ligne }: { ligne: Ligne }) {
   const locale = useLocale()
   if (ligne.cout_usd != null) {
     const montant = new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(Number(ligne.cout_usd))
-    return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{t('cout_ia', { montant })}</span>
+    // §D.24 : un coût calculé au minimum facturable (le fournisseur n'a pas dit ses unités) est ESTIMÉ, et le dit.
+    const estime = (ligne.detail ?? {}).unites_source === 'plancher'
+    return <span style={{ fontVariantNumeric: 'tabular-nums' }}>{t(estime ? 'cout_ia_estime' : 'cout_ia', { montant })}</span>
   }
   const d = ligne.detail ?? {}
   if (ligne.type_action === 'paiement_recu' && d.montant != null && typeof d.devise === 'string') {

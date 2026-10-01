@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
 // lib/taxonomie/specialite-autre.ts
 //
 // « AUTRE » EST UNE SEULE NOTION — À L'INSCRIPTION, À LA VALIDATION, DANS UNE ANNONCE ET EN BASE
@@ -31,4 +32,29 @@ export const CONTRAINTE_AUTRE = 'specialities_autre_hors_referentiel'
  */
 export function estRefusAutre(err: { code?: string | null; message?: string | null } | null | undefined): boolean {
   return !!err && err.code === '23514' && typeof err.message === 'string' && err.message.includes(CONTRAINTE_AUTRE)
+}
+
+/**
+ * CE NOM (OU CETTE TRADUCTION) EST-IL « AUTRE » ? — la base le DIT (`est_specialite_autre`, une seule définition, en
+ * quatre langues) ; l'administration le DEMANDE AVANT d'écrire un nom, un slug ou une traduction (relecture du
+ * 01/10/2026, point 11 : une traduction « Other » ou « Otra » passait, et les deux « Autre » revenaient dans cette
+ * langue ; les traductions s'écrivaient APRÈS la spécialité et leur refus n'était que journalisé). Une lecture en panne
+ * n'est pas un « non » (§E.22) : elle se dit.
+ */
+export async function contientAutre(
+  admin: SupabaseClient,
+  noms: Array<string | null | undefined>,
+  slug?: string | null,
+): Promise<'autre' | 'non' | 'illisible'> {
+  const aDemander = [...noms.filter((n): n is string => typeof n === 'string' && n.trim() !== '').map((n) => ({ nom: n, slug: null as string | null })),
+    ...(slug ? [{ nom: null as string | null, slug }] : [])]
+  for (const q of aDemander) {
+    const { data, error } = await admin.rpc('est_specialite_autre', { p_nom: q.nom, p_slug: q.slug })
+    if (error) {
+      console.error('[taxonomie] est_specialite_autre illisible', error.message)
+      return 'illisible'
+    }
+    if (data === true) return 'autre'
+  }
+  return 'non'
 }

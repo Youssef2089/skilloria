@@ -123,6 +123,9 @@ export const OBJETS = ['users', 'profiles', 'organizations', 'publications', 'ca
   'expert', 'membre'] as const
 export type TypeObjet = (typeof OBJETS)[number]
 
+/** Les types qui désignent une PERSONNE : seuls eux peuvent exister sans nom (`journal.designe_sans_nom.<type>`). */
+export const OBJETS_PERSONNE = ['users', 'profiles', 'expert', 'membre'] as const
+
 type Arg =
   | { k: 'n'; v: number }
   | { k: 'texte'; v: string }
@@ -189,12 +192,17 @@ function recherche(l: LignePhrase): Arg {
 /** « annonces examinées » (une recherche pour un profil) ou « profils examinés » (une recherche pour une annonce). */
 const versant = (l: LignePhrase) => (l.sujet_type === 'publications' ? 'profils' : 'annonces')
 
-/** Les compteurs d'une recherche, tous présents (lignes écrites depuis l'ARRÊT 22) — sinon `null`. */
+/**
+ * Les compteurs d'une recherche — l'exemple validé : « 14 annonces examinées, 3 retenues dont 1 forte ». Examinées,
+ * retenues et FORTES sont exigées (sinon `null`, la phrase simple) ; les NOTIFICATIONS ne le sont pas : une recherche
+ * qui n'a prévenu personne n'écrit pas `notifiees`, et « aucune notification envoyée » est alors exact (relecture du
+ * 01/10/2026, point 14 — la phrase retombait sur « terminée normalement », et disait « nouvelles » au lieu de « fortes »).
+ */
 function compteurs(d: Record<string, unknown>): Record<string, Arg> | null {
-  const cles = ['examinees', 'retenues', 'nouvelles', 'notifiees'] as const
-  const v = cles.map((c) => nombre(d[c]))
+  const exigees = ['examinees', 'retenues', 'fortes'] as const
+  const v = exigees.map((c) => nombre(d[c]))
   if (v.some((x) => x === null)) return null
-  return Object.fromEntries(cles.map((c, i) => [c, n(v[i] as number)]))
+  return { ...Object.fromEntries(exigees.map((c, i) => [c, n(v[i] as number)])), notifiees: n(nombre(d.notifiees) ?? 0) }
 }
 
 /** Les champs modifiés d'un réglage — « durée de vie d’une annonce : de 30 à 45 » ; une valeur illisible n'est pas montrée. */
@@ -518,7 +526,17 @@ export function phraseDe(l: LignePhrase): Phrase {
         : { cle: 'ecosysteme_cree.simple', args: { qui, ecosysteme: sujet(l, 'domains') } }
     case 'ecosysteme_modifie': {
       const op = chaine(d.operation) ?? 'modification'
-      if (op === 'activation' || op === 'desactivation') return { cle: `ecosysteme_modifie.${op}`, args: { qui, ecosysteme: sujet(l, 'domains') } }
+      if (op === 'activation' || op === 'desactivation') {
+        // OUVRIR EN RENOMMANT : les deux se disent (relecture du 01/10/2026, point 17) — la ligne porte l'ouverture
+        // ET les autres champs ; la phrase ne taisait que le second.
+        const autres: Phrase[] = [
+          ...liste(d.champs).filter((c) => c !== 'active').map((c): Phrase => ({ cle: '_champ', args: { champ: code('champ_ecosysteme', c) } })),
+          ...traductionsEcosysteme(d.traductions),
+        ]
+        return autres.length
+          ? { cle: `ecosysteme_modifie.${op}_et_modification`, args: { qui, ecosysteme: sujet(l, 'domains'), changements: { k: 'liste', elements: autres } } }
+          : { cle: `ecosysteme_modifie.${op}`, args: { qui, ecosysteme: sujet(l, 'domains') } }
+      }
       if (op === 'visuel_depose' || op === 'visuel_retire') return { cle: `ecosysteme_modifie.${op}`, args: { qui, ecosysteme: sujet(l, 'domains'), visuel: code('visuel', d.visuel) } }
       if (op === 'sous_domaine') {
         const sd = (d.sous_domaine ?? {}) as Record<string, unknown>
@@ -683,6 +701,8 @@ function rendreArg(a: Arg, c: ContexteRendu): string | number {
     case 'objet': {
       const nom = a.ref ? c.noms[cleObjet(a.ref.type, a.ref.id)]?.[a.role] ?? null : null
       if (nom) return tr.t(`designe.${a.type}`, { nom })
+      // '' : le compte EXISTE et n'a jamais donné de nom — ce n'est pas un compte effacé (relecture du 01/10/2026, point 18).
+      if (nom === '' && c.nomsDisponibles && tr.has(`designe_sans_nom.${a.type}`)) return tr.t(`designe_sans_nom.${a.type}`)
       return tr.t(`${a.ref && c.nomsDisponibles ? 'designe_absent' : 'designe_inconnu'}.${a.type}`)
     }
     case 'date':

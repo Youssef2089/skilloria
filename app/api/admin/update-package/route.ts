@@ -14,6 +14,7 @@ import { targetRoleForOrgType } from '@/lib/org-target-role'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { JournalError } from '@/lib/journal/journaliser'
 import { journaliserReglage } from '@/lib/journal/reglages'
+import { memeValeur } from '@/lib/profil/changements'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -436,39 +437,52 @@ export async function POST(request: NextRequest): Promise<Response> {
   //  modifiées avec leur valeur d'avant — jamais la raison en texte libre,
   //  qui reste dans l'historique et l'audit. En littéraux, clé par clé
   //  (`undefined` = colonne non touchée, la clé n'est pas transmise).
+  //  CE QUI CHANGE VRAIMENT (relecture du 01/10/2026, point 19) : l'écran renvoie tout le formulaire ; la ligne ne
+  //  porte que les colonnes et les limites dont la valeur CHANGE — une offre réenregistrée à l'identique n'en écrit
+  //  aucune (journaliser_reglage : avant = après et complément vide → rien).
   const ligneAvant = pkg as Record<string, unknown>
-  const touche = (champ: string) => champ in packageUpdates
+  const valeurLue: Record<string, unknown> = {
+    name: ligneAvant.name as string,
+    target_role: ligneAvant.target_role as string,
+    price_monthly: nombreOuNull(ligneAvant.price_monthly),
+    price_yearly: nombreOuNull(ligneAvant.price_yearly),
+    is_free: Boolean(ligneAvant.is_free),
+    active: Boolean(ligneAvant.active),
+  }
+  const change = (champ: string) => champ in packageUpdates && !memeValeur(valeurLue[champ], packageUpdates[champ])
   const avant = {
-    name: touche('name') ? (ligneAvant.name as string) : undefined,
-    target_role: touche('target_role') ? (ligneAvant.target_role as string) : undefined,
-    price_monthly: touche('price_monthly') ? nombreOuNull(ligneAvant.price_monthly) : undefined,
-    price_yearly: touche('price_yearly') ? nombreOuNull(ligneAvant.price_yearly) : undefined,
-    is_free: touche('is_free') ? Boolean(ligneAvant.is_free) : undefined,
-    active: touche('active') ? Boolean(ligneAvant.active) : undefined,
+    name: change('name') ? (valeurLue.name as string) : undefined,
+    target_role: change('target_role') ? (valeurLue.target_role as string) : undefined,
+    price_monthly: change('price_monthly') ? (valeurLue.price_monthly as number | null) : undefined,
+    price_yearly: change('price_yearly') ? (valeurLue.price_yearly as number | null) : undefined,
+    is_free: change('is_free') ? (valeurLue.is_free as boolean) : undefined,
+    active: change('active') ? (valeurLue.active as boolean) : undefined,
   }
   const apres = {
-    name: packageUpdates.name,
-    target_role: packageUpdates.target_role,
-    price_monthly: packageUpdates.price_monthly,
-    price_yearly: packageUpdates.price_yearly,
-    is_free: packageUpdates.is_free,
-    active: packageUpdates.active,
+    name: change('name') ? packageUpdates.name : undefined,
+    target_role: change('target_role') ? packageUpdates.target_role : undefined,
+    price_monthly: change('price_monthly') ? packageUpdates.price_monthly : undefined,
+    price_yearly: change('price_yearly') ? packageUpdates.price_yearly : undefined,
+    is_free: change('is_free') ? packageUpdates.is_free : undefined,
+    active: change('active') ? packageUpdates.active : undefined,
   }
   const valeurAvant = new Map(
     ((currentFeats ?? []) as { feature_code: string; value: string }[]).map((f) => [f.feature_code, f.value]),
   )
-  const limites = featureUpdates.map((f) => ({
-    feature_code: f.feature_code,
-    value: f.value,
-    avant: valeurAvant.get(f.feature_code) ?? null,
-  }))
+  const limites = featureUpdates
+    .map((f) => ({
+      feature_code: f.feature_code,
+      value: f.value,
+      avant: valeurAvant.get(f.feature_code) ?? null,
+    }))
+    .filter((l) => !memeValeur(l.avant, l.value))
   try {
     await journaliserReglage(auth.supabaseAdmin, journal, {
       sujet: { type: 'packages', id: packageId },
       avant,
       apres,
       complement: {
-        package_fields: Object.keys(packageUpdates).filter((k) => k !== 'updated_at'),
+        package_fields: Object.keys(packageUpdates).filter((k) => k !== 'updated_at' && change(k)),
         features: limites,
       },
     })

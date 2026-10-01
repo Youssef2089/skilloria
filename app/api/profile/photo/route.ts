@@ -40,7 +40,8 @@ export const maxDuration = 60
  *
  * Codes : `photo_absente`, `photo_trop_volumineuse`, `photo_format_refuse`,
  * `photo_contenu_non_conforme`, `photo_type_incoherent` (400) ; `pas_expert` (403) ;
- * `photo_stockage_indisponible` (503). Chacun a son message, dans les quatre langues.
+ * `photo_compte_illisible` (503 : le compte ou le profil n'a pas pu être lu — relecture du 01/10/2026, point 8 : ce
+ * n'est PAS le stockage, §E.22) ; `photo_stockage_indisponible` (503). Chacun a son message, dans les quatre langues.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -78,7 +79,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     .maybeSingle()
   if (compteErr) {
     console.error('[profile/photo] type de compte illisible', { userId: auth.user.id, message: compteErr.message })
-    return json({ error: 'Account unavailable', code: 'photo_stockage_indisponible' }, 503)
+    return json({ error: 'Account unavailable', code: 'photo_compte_illisible' }, 503)
   }
   const type = (compte as { user_type?: string | null } | null)?.user_type ?? null
   if (type !== 'expert_freelance' && type !== 'expert_cdi') {
@@ -118,7 +119,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     .maybeSingle()
   if (profilErr || !profil) {
     console.error('[profile/photo] profil illisible', { userId: auth.user.id, message: profilErr?.message ?? 'absent' })
-    return json({ error: 'Profile unavailable', code: 'photo_stockage_indisponible' }, 503)
+    return json({ error: 'Profile unavailable', code: 'photo_compte_illisible' }, 503)
   }
   const p = profil as { id: string; photo_url: string | null }
 

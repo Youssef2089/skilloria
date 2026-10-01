@@ -507,5 +507,49 @@ section('5. Les écrans : une phrase, « qui » une seule fois, la conservation 
   ok(/href: '\/admin\/journal\/conservation'/.test(nav), 'la conservation du journal a son entrée de menu')
 }
 
+// ═════════════════════════════════════════════════════════════════════════════════════════════════════════════
+section('6. Les cas de la relecture du 01/10/2026 — EXÉCUTÉS, dans les quatre langues')
+{
+  const humain = { origine: 'administrateur', acteur_id: ACTEUR, acteur_nom: 'Youssef Cherif', acteur_supprime: false }
+  const rendre = (ligne, langue, noms = {}, dispo = true) => P.phraseLisible({ ligne, noms, nomsDisponibles: dispo, locale: langue, tr: TR[langue] })
+
+  // Point 14 — l'exemple validé : « 14 annonces examinées, 3 retenues dont 1 forte » ; une recherche qui n'a prévenu
+  // personne n'écrit pas `notifiees`, et sa phrase garde ses compteurs.
+  const fin = { type_action: 'recherche_terminee', statut: 'reussi', origine: 'tache_planifiee', acteur_id: null, acteur_nom: null, acteur_supprime: false,
+    sujet_type: 'profiles', sujet_id: SUJET, detail: { issue: 'ok', examinees: 14, retenues: 3, fortes: 1, nouvelles: 2 } }
+  const fr14 = rendre(fin, 'fr')
+  ok(/14 annonces examinées, 3 retenues, dont 1 forte ; aucune notification envoyée/.test(fr14) && !/nouvelle/.test(fr14),
+    'point 14 : « 14 annonces examinées, 3 retenues, dont 1 forte » — sans « notifiees », la phrase garde ses compteurs', fr14)
+  const parLangue14 = LANGUES.map((l) => rendre(fin, l))
+  ok(parLangue14.every((t) => /14/.test(t) && /\b3\b/.test(t) && /\b1\b/.test(t) && !/\b2\b/.test(t)),
+    'point 14 : dans les quatre langues, les FORTES sont dites — jamais les nouvelles', parLangue14.join(' | '))
+
+  // Point 17 — ouvrir un écosystème EN le renommant : les deux se disent.
+  const eco = { type_action: 'ecosysteme_modifie', statut: 'reussi', ...humain, sujet_type: 'domains', sujet_id: SUJET,
+    detail: { operation: 'activation', champs: ['active', 'name'], traductions: [] } }
+  const nomsEco = { [P.cleObjet('domains', SUJET)]: { nom: 'Microsoft', contexte: null } }
+  const fr17 = rendre(eco, 'fr', nomsEco)
+  ok(/a ouvert l’écosystème « Microsoft » aux organisations, et a modifié le nom\./.test(fr17) && !/l’ouverture/.test(fr17),
+    'point 17 : « a ouvert … et a modifié le nom » — l’ouverture n’est pas répétée dans la liste', fr17)
+  const seule = rendre({ ...eco, detail: { operation: 'desactivation', champs: ['active'], traductions: [] } }, 'fr', nomsEco)
+  ok(/a fermé l’écosystème « Microsoft » aux organisations\.$/.test(seule), 'point 17 : une fermeture seule reste une phrase courte', seule)
+  ok(LANGUES.every((l) => !/[{}]/.test(rendre(eco, l, nomsEco))), 'point 17 : la phrase combinée se rend dans les quatre langues')
+
+  // Point 18 — un compte qui VIT sans nom (« ») n'est pas un compte effacé (null).
+  const compte = { type_action: 'compte_valide', statut: 'reussi', ...humain, sujet_type: 'users', sujet_id: SUJET, detail: {} }
+  const vide = { [P.cleObjet('users', SUJET)]: { nom: '', contexte: null } }
+  const efface = { [P.cleObjet('users', SUJET)]: { nom: null, contexte: null } }
+  const frVide = rendre(compte, 'fr', vide)
+  const frEfface = rendre(compte, 'fr', efface)
+  ok(/sans nom renseigné/.test(frVide) && !/effacé/.test(frVide) && /effacées/.test(frEfface),
+    'point 18 : « un compte sans nom renseigné » pour un compte qui vit, « données effacées » pour un compte effacé', `${frVide} | ${frEfface}`)
+  ok(rendre(compte, 'fr', vide, false) === rendre(compte, 'fr', {}, false), 'point 18 : noms illisibles → le nom commun, sans jugement')
+  const manques = LANGUES.flatMap((l) => P.OBJETS_PERSONNE.filter((t) => !TR[l].has(`designe_sans_nom.${t}`)).map((t) => `${l}:${t}`))
+  ok(manques.length === 0, `point 18 : « sans nom renseigné » existe pour les ${P.OBJETS_PERSONNE.length} désignations de personne, dans les quatre langues`, manques.join(', '))
+  const sql = lire('supabase/migrations/20261001000030_journal_libelles.sql')
+  ok(/select u\.id, btrim\(coalesce\(u\.first_name, ''\) \|\| ' ' \|\| coalesce\(u\.last_name, ''\)\) as nom\s+from public\.users u where u\.anonymized_at is null/.test(sql),
+    'point 18 : en base, un compte qui vit sans nom rend « » ; un compte effacé n’est pas relu (NULL)')
+}
+
 console.log(echecs === 0 ? '\n✅ Le grand livre se lit en phrases, et la liste validée tient.' : `\n❌ ${echecs} contrôle(s) rouge(s).`)
 process.exit(echecs === 0 ? 0 : 1)

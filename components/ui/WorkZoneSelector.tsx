@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import {
   ajouterZone,
@@ -48,7 +48,14 @@ const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
  * une zone que personne n'a choisie.
  *
  * AUCUNE bibliothèque : boutons et champ natifs, styles en ligne, pleine largeur
- * alignée à gauche. Chaque contrôle se joue au clavier.
+ * alignée à gauche. Chaque contrôle se joue au clavier (relecture du 01/10/2026, point 13) :
+ *  · la question fermée suit le motif « groupe de boutons radio » — une seule tabulation, les
+ *    flèches passent d'un choix à l'autre ET le choisissent ;
+ *  · la recherche suit le motif « combobox » — les flèches parcourent les pays, l'option active
+ *    est annoncée (`aria-activedescendant`), Entrée choisit, Échap ferme, et la liste se FERME
+ *    quand le champ perd le focus ;
+ *  · une zone que le référentiel ne propose plus (désactivée) reste VISIBLE dans la sélection,
+ *    nommée comme telle, avec sa croix — jamais un « 0 pays couverts » sans explication.
  */
 
 type Props = {
@@ -79,13 +86,17 @@ export default function WorkZoneSelector({
   const idListe = useId()
   const [recherche, setRecherche] = useState('')
   const [actif, setActif] = useState(0)
+  // La liste des pays n'est ouverte que tant que le champ a le focus (point 13).
+  const [ouverte, setOuverte] = useState(false)
+  const radios = useRef<Array<HTMLButtonElement | null>>([])
   // Le mode « certaines zones » choisi alors que rien n'est encore coché : la sélection seule
   // ne peut pas le dire (elle est vide), l'écran le retient.
   const [zonesChoisiesVides, setZonesChoisiesVides] = useState(false)
 
   const liste = useMemo(() => zones as WorkZone[], [zones])
   const monde = useMemo(() => worldZoneOf(liste), [liste])
-  const continents = useMemo(() => continentsOf(liste), [liste])
+  // Un continent dont aucun pays n'est proposé ne couvrirait rien : il n'est pas offert (point 13).
+  const continents = useMemo(() => continentsOf(liste).filter((c) => countryCountOf(liste, c.id) > 0), [liste])
   const pays = useMemo(
     () =>
       liste
@@ -135,6 +146,22 @@ export default function WorkZoneSelector({
     const contient = pays.filter((p) => !p.cle.startsWith(q) && p.cle.includes(q))
     return [...commence, ...contient].slice(0, SUGGESTIONS_MAX).map((p) => p.zone)
   }, [recherche, pays])
+
+  // LE GROUPE RADIO AU CLAVIER : une tabulation pour le groupe (le choix fait, sinon le premier), les flèches
+  // déplacent ET choisissent — le motif WAI-ARIA, sans bibliothèque.
+  const choix = [...(monde ? [{ cle: 'monde' as const, choisir: choisirMonde }] : []), { cle: 'zones' as const, choisir: choisirZones }]
+  const rangChoisi = Math.max(0, choix.findIndex((c) => c.cle === mode))
+  const clavierRadio = (e: React.KeyboardEvent) => {
+    const pas = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0
+    if (pas === 0) return
+    e.preventDefault()
+    const i = (rangChoisi + pas + choix.length) % choix.length
+    choix[i].choisir()
+    radios.current[i]?.focus()
+  }
+
+  const listeOuverte = ouverte && resultats.length > 0
+  const idOption = (i: number) => `${idListe}-option-${i}`
 
   const choisirPays = (z: WorkZone) => {
     if (selected.includes(z.id) || zoneCouvrante(liste, selected, z.id)) return
@@ -212,9 +239,17 @@ export default function WorkZoneSelector({
       ) : null}
 
       {/* ── ① La question fermée : partout, ou certaines zones. Rien de coché d'avance. ── */}
-      <div role="radiogroup" aria-label={t('label')} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+      <div role="radiogroup" aria-label={t('label')} onKeyDown={clavierRadio} style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
         {monde ? (
-          <button type="button" role="radio" aria-checked={mode === 'monde'} onClick={choisirMonde} style={styleCarte(mode === 'monde')}>
+          <button
+            type="button"
+            role="radio"
+            ref={(el) => { radios.current[0] = el }}
+            tabIndex={rangChoisi === 0 ? 0 : -1}
+            aria-checked={mode === 'monde'}
+            onClick={choisirMonde}
+            style={styleCarte(mode === 'monde')}
+          >
             <Puce choisie={mode === 'monde'} />
             <span>
               <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{t('mode_monde')}</span>
@@ -224,7 +259,15 @@ export default function WorkZoneSelector({
             </span>
           </button>
         ) : null}
-        <button type="button" role="radio" aria-checked={mode === 'zones'} onClick={choisirZones} style={styleCarte(mode === 'zones')}>
+        <button
+          type="button"
+          role="radio"
+          ref={(el) => { radios.current[monde ? 1 : 0] = el }}
+          tabIndex={rangChoisi === (monde ? 1 : 0) ? 0 : -1}
+          aria-checked={mode === 'zones'}
+          onClick={choisirZones}
+          style={styleCarte(mode === 'zones')}
+        >
           <Puce choisie={mode === 'zones'} />
           <span>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{t('mode_zones')}</span>
@@ -264,18 +307,23 @@ export default function WorkZoneSelector({
               id={idRecherche}
               type="text"
               role="combobox"
-              aria-expanded={resultats.length > 0}
+              aria-expanded={listeOuverte}
               aria-controls={idListe}
               aria-autocomplete="list"
+              aria-activedescendant={listeOuverte && resultats[actif] ? idOption(actif) : undefined}
               autoComplete="off"
               value={recherche}
               placeholder={t('recherche_placeholder')}
-              onChange={(e) => { setRecherche(e.target.value); setActif(0) }}
+              onFocus={() => setOuverte(true)}
+              onBlur={() => setOuverte(false)}
+              onChange={(e) => { setRecherche(e.target.value); setActif(0); setOuverte(true) }}
               onKeyDown={(e) => {
-                if (e.key === 'ArrowDown' && resultats.length > 0) { e.preventDefault(); setActif((a) => Math.min(a + 1, resultats.length - 1)) }
-                else if (e.key === 'ArrowUp' && resultats.length > 0) { e.preventDefault(); setActif((a) => Math.max(a - 1, 0)) }
-                else if (e.key === 'Enter' && resultats[actif]) { e.preventDefault(); choisirPays(resultats[actif]) }
-                else if (e.key === 'Escape') setRecherche('')
+                if (e.key === 'ArrowDown' && resultats.length > 0) { e.preventDefault(); setOuverte(true); setActif((a) => Math.min(a + 1, resultats.length - 1)) }
+                else if (e.key === 'ArrowUp' && resultats.length > 0) { e.preventDefault(); setOuverte(true); setActif((a) => Math.max(a - 1, 0)) }
+                else if (e.key === 'Home' && listeOuverte) { e.preventDefault(); setActif(0) }
+                else if (e.key === 'End' && listeOuverte) { e.preventDefault(); setActif(resultats.length - 1) }
+                else if (e.key === 'Enter' && listeOuverte && resultats[actif]) { e.preventDefault(); choisirPays(resultats[actif]) }
+                else if (e.key === 'Escape') { if (listeOuverte) setOuverte(false); else setRecherche('') }
               }}
               style={{
                 width: '100%',
@@ -292,10 +340,11 @@ export default function WorkZoneSelector({
             {normaliserRecherche(recherche) && resultats.length === 0 ? (
               <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--sk-muted)' }}>{t('recherche_aucun')}</p>
             ) : null}
-            {resultats.length > 0 ? (
+            {listeOuverte ? (
               <ul
                 id={idListe}
                 role="listbox"
+                aria-label={t('recherche_label')}
                 style={{
                   listStyle: 'none',
                   margin: '6px 0 0',
@@ -310,6 +359,7 @@ export default function WorkZoneSelector({
                   return (
                     <li
                       key={z.id}
+                      id={idOption(i)}
                       role="option"
                       aria-selected={i === actif}
                       aria-disabled={couvrante ? true : undefined}
@@ -346,7 +396,22 @@ export default function WorkZoneSelector({
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {selected.map((id) => {
                   const z = parId.get(id)
-                  if (!z) return null
+                  // Une zone que le référentiel ne propose plus : NOMMÉE comme telle, retirable — jamais cachée.
+                  if (!z) {
+                    return (
+                      <span key={id} style={{ ...styleEtiquette(false), cursor: 'default', borderStyle: 'dashed' }}>
+                        {t('zone_retiree')}
+                        <button
+                          type="button"
+                          onClick={() => retirer(id)}
+                          aria-label={t('retirer', { zone: t('zone_retiree') })}
+                          style={{ border: 'none', background: 'transparent', color: 'var(--sk-muted)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0 }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )
+                  }
                   return (
                     <span key={id} style={{ ...styleEtiquette(true), cursor: 'default' }}>
                       {z.name}
@@ -372,11 +437,12 @@ export default function WorkZoneSelector({
         style={{
           margin: '10px 0 0',
           fontSize: 12,
-          color: selected.length === 0 ? 'var(--sk-red)' : 'var(--sk-muted)',
+          color: paysCouverts.length === 0 ? 'var(--sk-red)' : 'var(--sk-muted)',
         }}
       >
-        {selected.length === 0
-          ? t('none_selected')
+        {/* Aucun pays couvert — rien choisi, ou seulement une zone retirée : jamais « 0 pays couverts » (point 13). */}
+        {paysCouverts.length === 0
+          ? t(selected.length === 0 ? 'none_selected' : 'aucun_pays_couvert')
           : t('coverage', { count: paysCouverts.length })}
       </p>
     </div>

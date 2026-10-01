@@ -412,6 +412,6 @@ begin
   if has_function_privilege('authenticated', 'public.se_desabonner_email(uuid, uuid, text)', 'execute') then
     raise exception 'postcondition NON TENUE : se_desabonner_email ouverte au navigateur';
   end if;
-  raise notice 'postcondition tenue : six ecrivains en place, le message sans ligne, le desabonnement ferme au navigateur ; chaque geste est prouve par tests/database/grand_livre/liste_validee.test.sql';
+  raise notice 'postcondition tenue : six ecrivains en place, le message sans ligne, le desabonnement ferme au navigateur ; les gestes sont prouves par tests/database/grand_livre/message_envoye.test.sql (aucune ligne), tests/database/grand_livre/telephone_verifie.test.sql, tests/database/grand_livre/socle.test.sql (effacer_adresses_ip), tests/database/grand_livre/purges.test.sql (avertissement), tests/database/grand_livre/verification_conclue.test.sql (la note) et tests/database/grand_livre/liste_validee.test.sql (desabonnement)';
 end
 $post$;

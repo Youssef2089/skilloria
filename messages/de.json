@@ -476,6 +476,7 @@
         "photo_contenu_non_conforme": "Diese Datei ist kein lesbares Bild. Wählen Sie ein anderes Bild.",
         "photo_type_incoherent": "Diese Datei entspricht nicht dem angegebenen Format. Wählen Sie ein anderes Bild.",
         "pas_expert": "Das Profilfoto ist Expertenkonten vorbehalten.",
+        "photo_compte_illisible": "Ihr Profil konnte nicht gelesen werden: Ihr Foto wurde nicht gespeichert. Versuchen Sie es in einigen Minuten erneut.",
         "photo_stockage_indisponible": "Der Fotospeicher antwortet nicht. Ihr Foto wurde nicht gespeichert: Versuchen Sie es in einigen Minuten erneut.",
         "drapeau_refuse": "Das Foto wurde hochgeladen, aber Ihr Profil konnte nicht aktualisiert werden (Code {code}). Versuchen Sie es erneut; falls es anhält, senden Sie diesen Code an den Support.",
         "inattendu": "Das Speichern wurde abgelehnt (Code {code}). Versuchen Sie es erneut; falls es anhält, senden Sie diesen Code an den Support.",
@@ -3477,6 +3478,7 @@
       "ecosysteme_aucun": "Kein Ökosystem",
       "ouvrir_objet": "Seite öffnen",
       "cout_ia": "KI-Kosten: {montant}",
+      "cout_ia_estime": "KI-Kosten, geschätzt zum Mindestabrechnungsbetrag: {montant}",
       "voir_piece": "Zugehörige Einträge ansehen",
       "piece_titre": "Einträge einer Aktion",
       "piece_intro": "Eine Aktion kann mehrere Einträge hinterlassen – zum Beispiel ein erstelltes Konto und die Registrierung des Experten. Hier sind alle, mit dem, was die Detailprotokolle zu dieser Aktion aufbewahren.",
@@ -4372,7 +4374,9 @@
     "deja_couvert": "Bereits abgedeckt durch {zone}",
     "deja_choisi": "Bereits gewählt",
     "selection_label": "Ihre Auswahl",
-    "retirer": "{zone} entfernen"
+    "retirer": "{zone} entfernen",
+    "zone_retiree": "Nicht mehr angebotene Zone",
+    "aucun_pays_couvert": "Kein Land abgedeckt: Entfernen Sie die nicht mehr angebotene Zone und wählen Sie, wo Sie arbeiten"
   },
   "matching_badge": {
     "strong": "Starke Übereinstimmung",
@@ -5154,6 +5158,12 @@
       "expert": "(Konto gelöscht)",
       "membre": "(Konto gelöscht)"
     },
+    "designe_sans_nom": {
+      "users": "ein Konto ohne angegebenen Namen",
+      "profiles": "ein Profil ohne angegebenen Namen",
+      "expert": "(kein Name angegeben)",
+      "membre": "(kein Name angegeben)"
+    },
     "designe_inconnu": {
       "users": "ein Konto",
       "profiles": "ein Profil",
@@ -5249,8 +5259,8 @@
       },
       "travail_ia_relance": "{qui} hat {nature} für {profil} neu gestartet, die fehlgeschlagen war: {code}.",
       "recherche_terminee": {
-        "ok_annonces": "{qui} hat {recherche} gestartet: {examinees, plural, =0 {keine Anzeige geprüft} one {# Anzeige geprüft} other {# Anzeigen geprüft}}, {retenues, plural, =0 {keine ausgewählt} one {# ausgewählt} other {# ausgewählt}}, davon {nouvelles, plural, =0 {keine neu} one {# neu} other {# neu}}; {notifiees, plural, =0 {keine Benachrichtigung gesendet} one {# Benachrichtigung gesendet} other {# Benachrichtigungen gesendet}}.",
-        "ok_profils": "{qui} hat {recherche} gestartet: {examinees, plural, =0 {kein Profil geprüft} one {# Profil geprüft} other {# Profile geprüft}}, {retenues, plural, =0 {keines ausgewählt} one {# ausgewählt} other {# ausgewählt}}, davon {nouvelles, plural, =0 {keines neu} one {# neu} other {# neu}}; {notifiees, plural, =0 {keine Benachrichtigung gesendet} one {# Benachrichtigung gesendet} other {# Benachrichtigungen gesendet}}.",
+        "ok_annonces": "{qui} hat {recherche} gestartet: {examinees, plural, =0 {keine Anzeige geprüft} one {# Anzeige geprüft} other {# Anzeigen geprüft}}, {retenues, plural, =0 {keine ausgewählt} one {# ausgewählt} other {# ausgewählt}}, davon {fortes, plural, =0 {keine stark} one {# stark} other {# stark}}; {notifiees, plural, =0 {keine Benachrichtigung gesendet} one {# Benachrichtigung gesendet} other {# Benachrichtigungen gesendet}}.",
+        "ok_profils": "{qui} hat {recherche} gestartet: {examinees, plural, =0 {kein Profil geprüft} one {# Profil geprüft} other {# Profile geprüft}}, {retenues, plural, =0 {keines ausgewählt} one {# ausgewählt} other {# ausgewählt}}, davon {fortes, plural, =0 {keines stark} one {# stark} other {# stark}}; {notifiees, plural, =0 {keine Benachrichtigung gesendet} one {# Benachrichtigung gesendet} other {# Benachrichtigungen gesendet}}.",
         "ok_simple": "{qui} hat {recherche} gestartet; sie ist normal zu Ende gegangen.",
         "vivier_vide_annonces": "{qui} hat {recherche} gestartet: Keine offene Anzeige konnte passen.",
         "vivier_vide_profils": "{qui} hat {recherche} gestartet: Kein verfügbares Profil konnte passen.",
@@ -5404,7 +5414,9 @@
         "modification": "{qui} hat {ecosysteme} geändert: {changements}.",
         "simple": "{qui} hat {ecosysteme} geändert.",
         "activation": "{qui} hat {ecosysteme} geöffnet: Organisationen können jetzt beitreten.",
+        "activation_et_modification": "{qui} hat {ecosysteme} für Organisationen geöffnet und {changements} geändert.",
         "desactivation": "{qui} hat {ecosysteme} für Organisationen geschlossen.",
+        "desactivation_et_modification": "{qui} hat {ecosysteme} für Organisationen geschlossen und {changements} geändert.",
         "visuel_depose": "{qui} hat {visuel} für {ecosysteme} hochgeladen.",
         "visuel_retire": "{qui} hat {visuel} für {ecosysteme} entfernt.",
         "adresse": "{qui} hat die Webadresse für {ecosysteme} geändert: „{avant}“ wird zu „{apres}“.",
@@ -6089,7 +6101,7 @@
       "in_discussion": "Bewerbungen, für die das Unternehmen einen Austausch mit Ihnen eröffnet hat.",
       "awaiting": "Gesendete Bewerbungen, die das Unternehmen noch nicht bearbeitet hat.",
       "retained": "Bewerbungen, die das Unternehmen angenommen hat.",
-      "daily_rate": "Ihr Tagessatz als Spanne. Er wird Unternehmen angezeigt und dient dazu, Ihnen Aufträge in Ihrem Budget vorzuschlagen.",
+      "daily_rate": "Ihr Tagessatz als Spanne. Organisationen sehen ihn bei jeder Ihrer Bewerbungen; er dient nicht dazu, die Ihnen vorgeschlagenen Projekte auszuwählen.",
       "availability": "Zeigt, ob Sie neue Aufträge erhalten. „Nicht stören“ pausiert Vorschläge, ohne Ihr Profil auszublenden.",
       "completion": "Der Anteil der ausgefüllten Angaben Ihres Profils. Ein vollständiges Profil erhält passendere Aufträge.",
       "recommended_missions": "Aufträge, die unsere Engine als nah an Ihrem Profil einstuft: Bereich, Spezialisierungen, Arbeitsgebiete und Erfahrungsstufe.",

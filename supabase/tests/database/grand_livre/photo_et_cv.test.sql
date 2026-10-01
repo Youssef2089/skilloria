@@ -2,13 +2,14 @@
 -- journaliser() (fusion de la recette S1, décisions de Youssef du 01/10/2026). Le test rejoue la forme EXACTE des deux
 -- écrivains : la photo de l'expert sur son profil, avec le seul fait « remplacement » ; le CV ouvert par un
 -- administrateur, détail vide. UNE ligne sous la pièce de chaque geste ; une clé hors liste (un chemin de fichier) est
--- refusée ; le statut est imposé.
+-- refusée ; le statut est imposé. Relecture du 01/10/2026, point 21 : REJOUÉS sous la même pièce (une requête
+-- reprise), les deux sont refusés (GL005) — la ligne reste UNE.
 -- Colonnes lues dans les migrations (§G.10) : grand_livre (acteur_si_humain, statut, origine), grand_livre_actions
 -- (statut_impose, cles_detail).
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(6);
+select plan(8);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -27,6 +28,9 @@ begin
                    and g.type_action = 'photo_deposee' and g.sujet_id = v_profil and g.acteur_id = v_user
                    and g.detail = '{"remplacement": true}'::jsonb),
                  'photo déposée : UNE ligne, sujet le profil, le seul fait « remplacement »');
+  return next throws_ok(format($q$select public.journaliser(%L, 'photo_deposee', 'reussi', 'utilisateur', %L, 'expert_freelance', %L, 'profiles', %L, '{"remplacement": true}'::jsonb, null, null, null)$q$,
+                               v_p1, v_user, pg_temp.fab_domaine(), v_profil),
+                        'GL005', null, 'photo déposée, rejouée sous la même pièce : refusée (GL005), la ligne reste UNE');
   return next throws_ok(format($q$select public.journaliser(%L, 'photo_deposee', 'reussi', 'utilisateur', %L, 'expert_freelance', null, 'profiles', %L, '{"chemin":"x/avatar.jpg"}'::jsonb, null, null, null)$q$,
                                gen_random_uuid(), v_user, v_profil),
                         'GL004', null, 'photo déposée : le chemin du fichier est refusé (hors liste)');
@@ -44,6 +48,9 @@ begin
   return next throws_ok(format($q$select public.journaliser(%L, 'cv_consulte', 'reussi', 'administrateur', %L, 'admin', null, 'profiles', %L, '{"cv_file_path":"x.pdf"}'::jsonb, null, null, null)$q$,
                                gen_random_uuid(), v_admin, v_profil),
                         'GL004', null, 'CV consulté : aucun chemin de fichier au grand livre');
+  return next throws_ok(format($q$select public.journaliser(%L, 'cv_consulte', 'reussi', 'administrateur', %L, 'admin', null, 'profiles', %L, '{}'::jsonb, null, null, null)$q$,
+                               v_p2, v_admin, v_profil),
+                        'GL005', null, 'CV consulté, rejoué sous la même pièce : refusé (GL005), la ligne reste UNE');
   return next is((select famille from public.grand_livre_actions where code = 'cv_consulte'), 'rgpd',
                  'CV consulté : rangé avec les données personnelles (famille rgpd)');
 end $$;

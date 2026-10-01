@@ -476,6 +476,7 @@
         "photo_contenu_non_conforme": "Este archivo no es una imagen legible. Elige otra imagen.",
         "photo_type_incoherent": "Este archivo no corresponde al formato que indica. Elige otra imagen.",
         "pas_expert": "La foto de perfil está reservada a las cuentas de experto.",
+        "photo_compte_illisible": "No se ha podido leer su perfil: su foto no se ha guardado. Inténtelo de nuevo en unos minutos.",
         "photo_stockage_indisponible": "El almacenamiento de fotos no responde. Tu foto no se ha guardado: inténtalo de nuevo en unos minutos.",
         "drapeau_refuse": "La foto se ha subido, pero tu perfil no se ha podido actualizar (código {code}). Inténtalo de nuevo; si persiste, envía este código al soporte.",
         "inattendu": "El guardado ha sido rechazado (código {code}). Inténtalo de nuevo; si persiste, envía este código al soporte.",
@@ -3477,6 +3478,7 @@
       "ecosysteme_aucun": "Ningún ecosistema",
       "ouvrir_objet": "Abrir la ficha",
       "cout_ia": "Coste de IA: {montant}",
+      "cout_ia_estime": "Coste de IA estimado al mínimo facturable: {montant}",
       "voir_piece": "Ver las entradas relacionadas",
       "piece_titre": "Entradas de una misma acción",
       "piece_intro": "Una misma acción puede dejar varias entradas; por ejemplo, una cuenta creada y el registro del experto. Aquí están todas, con lo que los registros detallados guardan para esta acción.",
@@ -4372,7 +4374,9 @@
     "deja_couvert": "Ya cubierto por {zone}",
     "deja_choisi": "Ya elegido",
     "selection_label": "Tu selección",
-    "retirer": "Quitar {zone}"
+    "retirer": "Quitar {zone}",
+    "zone_retiree": "Zona que ya no se ofrece",
+    "aucun_pays_couvert": "Ningún país cubierto: retire la zona que ya no se ofrece y elija dónde trabaja"
   },
   "matching_badge": {
     "strong": "Coincidencia alta",
@@ -5154,6 +5158,12 @@
       "expert": "(cuenta borrada)",
       "membre": "(cuenta borrada)"
     },
+    "designe_sans_nom": {
+      "users": "una cuenta sin nombre indicado",
+      "profiles": "un perfil sin nombre indicado",
+      "expert": "(nombre no indicado)",
+      "membre": "(nombre no indicado)"
+    },
     "designe_inconnu": {
       "users": "una cuenta",
       "profiles": "un perfil",
@@ -5249,8 +5259,8 @@
       },
       "travail_ia_relance": "{qui} ha relanzado {nature} para {profil}, que había fallado: {code}.",
       "recherche_terminee": {
-        "ok_annonces": "{qui} ha lanzado {recherche}: {examinees, plural, =0 {ningún anuncio examinado} one {# anuncio examinado} other {# anuncios examinados}}, {retenues, plural, =0 {ninguno seleccionado} one {# seleccionado} other {# seleccionados}}, {nouvelles, plural, =0 {ninguno nuevo} one {# nuevo} other {# nuevos}}; {notifiees, plural, =0 {ninguna notificación enviada} one {# notificación enviada} other {# notificaciones enviadas}}.",
-        "ok_profils": "{qui} ha lanzado {recherche}: {examinees, plural, =0 {ningún perfil examinado} one {# perfil examinado} other {# perfiles examinados}}, {retenues, plural, =0 {ninguno seleccionado} one {# seleccionado} other {# seleccionados}}, {nouvelles, plural, =0 {ninguno nuevo} one {# nuevo} other {# nuevos}}; {notifiees, plural, =0 {ninguna notificación enviada} one {# notificación enviada} other {# notificaciones enviadas}}.",
+        "ok_annonces": "{qui} ha lanzado {recherche}: {examinees, plural, =0 {ningún anuncio examinado} one {# anuncio examinado} other {# anuncios examinados}}, {retenues, plural, =0 {ninguno seleccionado} one {# seleccionado} other {# seleccionados}}, de ellos {fortes, plural, =0 {ninguno fuerte} one {# fuerte} other {# fuertes}}; {notifiees, plural, =0 {ninguna notificación enviada} one {# notificación enviada} other {# notificaciones enviadas}}.",
+        "ok_profils": "{qui} ha lanzado {recherche}: {examinees, plural, =0 {ningún perfil examinado} one {# perfil examinado} other {# perfiles examinados}}, {retenues, plural, =0 {ninguno seleccionado} one {# seleccionado} other {# seleccionados}}, de ellos {fortes, plural, =0 {ninguno fuerte} one {# fuerte} other {# fuertes}}; {notifiees, plural, =0 {ninguna notificación enviada} one {# notificación enviada} other {# notificaciones enviadas}}.",
         "ok_simple": "{qui} ha lanzado {recherche}, que ha terminado con normalidad.",
         "vivier_vide_annonces": "{qui} ha lanzado {recherche}: ningún anuncio abierto podía corresponder.",
         "vivier_vide_profils": "{qui} ha lanzado {recherche}: ningún perfil disponible podía corresponder.",
@@ -5404,7 +5414,9 @@
         "modification": "{qui} ha modificado {ecosysteme}: {changements}.",
         "simple": "{qui} ha modificado {ecosysteme}.",
         "activation": "{qui} ha abierto {ecosysteme}: las organizaciones ya pueden entrar.",
+        "activation_et_modification": "{qui} ha abierto {ecosysteme} a las organizaciones, y ha modificado {changements}.",
         "desactivation": "{qui} ha cerrado {ecosysteme} a las organizaciones.",
+        "desactivation_et_modification": "{qui} ha cerrado {ecosysteme} a las organizaciones, y ha modificado {changements}.",
         "visuel_depose": "{qui} ha subido {visuel} para {ecosysteme}.",
         "visuel_retire": "{qui} ha quitado {visuel} para {ecosysteme}.",
         "adresse": "{qui} ha cambiado la dirección web para {ecosysteme}: «{avant}» pasa a ser «{apres}».",
@@ -6089,7 +6101,7 @@
       "in_discussion": "Las candidaturas en las que la empresa ha abierto una conversación contigo.",
       "awaiting": "Las candidaturas enviadas que la empresa aún no ha tratado.",
       "retained": "Las candidaturas que la empresa ha aceptado.",
-      "daily_rate": "Tu tarifa diaria, en una horquilla. Se muestra a las empresas y sirve para proponerte misiones dentro de tu presupuesto.",
+      "daily_rate": "Su tarifa diaria, en una horquilla. Las organizaciones la ven con cada una de sus candidaturas; no sirve para elegir las misiones que se le proponen.",
       "availability": "Indica si recibes nuevas misiones. «No molestar» suspende las propuestas sin ocultar tu perfil.",
       "completion": "La parte de la información de tu perfil que está completada. Un perfil completo recibe misiones que le corresponden mejor.",
       "recommended_missions": "Las misiones que nuestro motor considera cercanas a tu perfil: rama, especialidades, zonas de trabajo y seniority.",

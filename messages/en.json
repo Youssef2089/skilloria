@@ -476,6 +476,7 @@
         "photo_contenu_non_conforme": "This file is not a readable image. Choose another image.",
         "photo_type_incoherent": "This file does not match the format it claims. Choose another image.",
         "pas_expert": "Profile photos are reserved for expert accounts.",
+        "photo_compte_illisible": "Your profile could not be read: your photo was not saved. Try again in a few minutes.",
         "photo_stockage_indisponible": "Photo storage is not responding. Your photo was not saved: try again in a few minutes.",
         "drapeau_refuse": "The photo was uploaded, but your profile could not be updated (code {code}). Try again; if it persists, send this code to support.",
         "inattendu": "Saving was refused (code {code}). Try again; if it persists, send this code to support.",
@@ -3477,6 +3478,7 @@
       "ecosysteme_aucun": "No ecosystem",
       "ouvrir_objet": "Open the page",
       "cout_ia": "AI cost: {montant}",
+      "cout_ia_estime": "AI cost, estimated at the minimum billable: {montant}",
       "voir_piece": "See related entries",
       "piece_titre": "Entries of one action",
       "piece_intro": "One action can leave several entries — for example, an account created and the expert’s sign-up. Here they all are, with what the detailed logs keep for this action.",
@@ -4372,7 +4374,9 @@
     "deja_couvert": "Already covered by {zone}",
     "deja_choisi": "Already chosen",
     "selection_label": "Your selection",
-    "retirer": "Remove {zone}"
+    "retirer": "Remove {zone}",
+    "zone_retiree": "Zone no longer offered",
+    "aucun_pays_couvert": "No country covered: remove the zone that is no longer offered and choose where you work"
   },
   "matching_badge": {
     "strong": "Strong match",
@@ -5154,6 +5158,12 @@
       "expert": "(account deleted)",
       "membre": "(account deleted)"
     },
+    "designe_sans_nom": {
+      "users": "an account with no name given",
+      "profiles": "a profile with no name given",
+      "expert": "(no name given)",
+      "membre": "(no name given)"
+    },
     "designe_inconnu": {
       "users": "an account",
       "profiles": "a profile",
@@ -5249,8 +5259,8 @@
       },
       "travail_ia_relance": "{qui} restarted {nature} for {profil}, which had failed: {code}.",
       "recherche_terminee": {
-        "ok_annonces": "{qui} ran {recherche}: {examinees, plural, =0 {no posting examined} one {# posting examined} other {# postings examined}}, {retenues, plural, =0 {none kept} one {# kept} other {# kept}}, {nouvelles, plural, =0 {none of them new} one {# of them new} other {# of them new}}; {notifiees, plural, =0 {no notification sent} one {# notification sent} other {# notifications sent}}.",
-        "ok_profils": "{qui} ran {recherche}: {examinees, plural, =0 {no profile examined} one {# profile examined} other {# profiles examined}}, {retenues, plural, =0 {none kept} one {# kept} other {# kept}}, {nouvelles, plural, =0 {none of them new} one {# of them new} other {# of them new}}; {notifiees, plural, =0 {no notification sent} one {# notification sent} other {# notifications sent}}.",
+        "ok_annonces": "{qui} ran {recherche}: {examinees, plural, =0 {no posting examined} one {# posting examined} other {# postings examined}}, {retenues, plural, =0 {none kept} one {# kept} other {# kept}}, {fortes, plural, =0 {none of them strong} one {# of them strong} other {# of them strong}}; {notifiees, plural, =0 {no notification sent} one {# notification sent} other {# notifications sent}}.",
+        "ok_profils": "{qui} ran {recherche}: {examinees, plural, =0 {no profile examined} one {# profile examined} other {# profiles examined}}, {retenues, plural, =0 {none kept} one {# kept} other {# kept}}, {fortes, plural, =0 {none of them strong} one {# of them strong} other {# of them strong}}; {notifiees, plural, =0 {no notification sent} one {# notification sent} other {# notifications sent}}.",
         "ok_simple": "{qui} ran {recherche}, which ended normally.",
         "vivier_vide_annonces": "{qui} ran {recherche}: no open posting could match.",
         "vivier_vide_profils": "{qui} ran {recherche}: no available profile could match.",
@@ -5404,7 +5414,9 @@
         "modification": "{qui} edited {ecosysteme}: {changements}.",
         "simple": "{qui} edited {ecosysteme}.",
         "activation": "{qui} opened {ecosysteme}: organisations can now join it.",
+        "activation_et_modification": "{qui} opened {ecosysteme} to organisations, and edited {changements}.",
         "desactivation": "{qui} closed {ecosysteme} to organisations.",
+        "desactivation_et_modification": "{qui} closed {ecosysteme} to organisations, and edited {changements}.",
         "visuel_depose": "{qui} uploaded {visuel} for {ecosysteme}.",
         "visuel_retire": "{qui} removed {visuel} for {ecosysteme}.",
         "adresse": "{qui} changed the web address of {ecosysteme}: “{avant}” becomes “{apres}”.",
@@ -6089,7 +6101,7 @@
       "in_discussion": "Applications for which the company has opened a discussion with you.",
       "awaiting": "Applications you sent that the company has not handled yet.",
       "retained": "Applications the company has accepted.",
-      "daily_rate": "Your daily rate, as a range. It is shown to companies and used to offer you missions within your budget.",
+      "daily_rate": "Your daily rate, as a range. Organisations see it with each of your applications; it is not used to choose the missions suggested to you.",
       "availability": "Shows whether you receive new missions. “Do not disturb” pauses offers without hiding your profile.",
       "completion": "The share of your profile information that is filled in. A complete profile receives missions that match it better.",
       "recommended_missions": "Missions our engine considers close to your profile: branch, specialities, work zones and seniority.",

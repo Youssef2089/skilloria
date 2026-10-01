@@ -8,13 +8,16 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(14);
+select plan(20);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
   v_admin uuid := pg_temp.fab_admin();
+  -- Un SECOND administrateur pour le cas « à l'identique » : la preuve que le réglage est écrit ne peut pas venir des
+  -- cas précédents (relecture du 01/10/2026, point 22 — elle passait même si l'appel n'écrivait rien).
+  v_admin2 uuid := pg_temp.fab_admin();
   v_dom   uuid := pg_temp.fab_domaine();
-  v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 12));
+  v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 20));
   v_d     record;
   v_t     record;
   v_c     record;
@@ -100,13 +103,13 @@ begin
 
   -- ══ À L'IDENTIQUE : AUCUNE LIGNE (ARRÊT 22) ══
   select * into v_d from public.duree_reglages where ligne_unique;
-  perform public.regler_durees_place(v_p[9], v_admin, v_dom, gen_random_uuid(), v_d.vie_annonce_jours, v_d.fenetre_echange_jours,
+  perform public.regler_durees_place(v_p[9], v_admin2, v_dom, gen_random_uuid(), v_d.vie_annonce_jours, v_d.fenetre_echange_jours,
                                      v_d.invitation_jours, v_d.conservation_ip_mois,
                                      jsonb_build_object('avant', jsonb_build_object('vie_annonce_jours', v_d.vie_annonce_jours),
                                                         'apres', jsonb_build_object('vie_annonce_jours', v_d.vie_annonce_jours), 'retroactivite', null));
   return next is(pg_temp.lignes(v_p[9]), 0::bigint, 'durées réenregistrées à l''identique : AUCUNE ligne');
-  return next ok(exists (select 1 from public.duree_reglages d where d.ligne_unique and d.updated_by = v_admin),
-                 'et le réglage est pourtant écrit (l''identique n''est pas un refus)');
+  return next ok(exists (select 1 from public.duree_reglages d where d.ligne_unique and d.updated_by = v_admin2),
+                 'et le réglage est pourtant écrit, par CET administrateur (l''identique n''est pas un refus)');
   select * into v_q from public.ai_quotas where quota = 'cv_parsing';
   perform public.regler_quota_ia(v_p[10], v_admin, v_dom, gen_random_uuid(), 'cv_parsing', v_q.max_per_window, v_q.window_hours,
                                  jsonb_build_object('max_per_window', v_q.max_per_window, 'window_hours', v_q.window_hours));
@@ -115,6 +118,28 @@ begin
   perform public.journaliser_reglage(v_p[11], v_admin, null, 'packages_stripe', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
                                      jsonb_build_object('mode', 'test', 'cause', 'sonde'), 'echoue');
   return next is(pg_temp.lignes(v_p[11]), 1::bigint, 'un échec identique s''écrit toujours : UNE ligne');
+
+  -- ══ LES EXCEPTIONS : avant = après, mais le COMPLÉMENT porte un changement → UNE ligne (relecture, point 6) ══
+  --    Chaque clé de l'exception est une clé de la liste blanche de reglage_modifie.
+  perform public.journaliser_reglage(v_p[13], v_admin, null, 'packages', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
+    jsonb_build_object('features', jsonb_build_array(jsonb_build_object('feature_code', 'sonde', 'value', '5', 'avant', '3'))));
+  return next is(pg_temp.lignes(v_p[13]), 1::bigint, 'une offre dont seules les LIMITES changent : UNE ligne');
+  perform public.journaliser_reglage(v_p[14], v_admin, null, 'packages', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
+    jsonb_build_object('package_fields', jsonb_build_array('name')));
+  return next is(pg_temp.lignes(v_p[14]), 1::bigint, 'des champs d''offre nommés : UNE ligne');
+  perform public.journaliser_reglage(v_p[15], v_admin, null, 'packages_stripe', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
+    jsonb_build_object('mode', 'test', 'synchronisees', jsonb_build_array(gen_random_uuid()::text), 'refusees', '[]'::jsonb, 'en_echec', '[]'::jsonb));
+  return next is(pg_temp.lignes(v_p[15]), 1::bigint, 'un catalogue relié (synchronisées) : UNE ligne');
+  perform public.journaliser_reglage(v_p[16], v_admin, null, 'organizations', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
+    jsonb_build_object('count', 2));
+  return next is(pg_temp.lignes(v_p[16]), 1::bigint, 'des organisations comptées (count > 0) : UNE ligne');
+  perform public.journaliser_reglage(v_p[17], v_admin, null, 'packages_default', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
+    jsonb_build_object('default_applied', true));
+  return next is(pg_temp.lignes(v_p[17]), 1::bigint, 'une offre par défaut appliquée : UNE ligne');
+  -- … et le même complément VIDE ne change rien : aucune ligne.
+  perform public.journaliser_reglage(v_p[18], v_admin, null, 'packages', gen_random_uuid(), '{}'::jsonb, '{}'::jsonb,
+    jsonb_build_object('features', '[]'::jsonb, 'package_fields', '[]'::jsonb, 'count', 0, 'default_applied', false));
+  return next is(pg_temp.lignes(v_p[18]), 0::bigint, 'un complément sans changement (listes vides, zéro, faux) : AUCUNE ligne');
 end $$;
 
 select * from pg_temp.essai();

@@ -54,6 +54,42 @@ function migration(suffixe) {
   return sansCommentairesSql(lire(`supabase/migrations/${f[0]}`))
 }
 
+/**
+ * LES DEUX TEMPS (relecture indépendante du 01/10/2026, §E.72) : ce qui REFUSE un geste du code en ligne — la garde des
+ * langues, la contrainte « Autre », le retrait de l'écriture des photos par le navigateur — part dans un lot déployé
+ * APRÈS. Sur le lot A, la migration est ABSENTE ; sur le lot B, elle est là, et son en-tête dit APRÈS. Rend le texte
+ * (sans commentaires) ou null ; refuse deux correspondances ; vérifie l'en-tête quand elle existe.
+ */
+// LA LISTE DE LA BASE, lue dans la migration qui la sème : le rattachement EXÉCUTÉ ici est celui des lignes réelles
+// (relecture du 01/10/2026, point 20 — une seule liste).
+function listeDesLanguesSemee() {
+  const sql = migration('langues_liste_fermee')
+  const bloc = (debut) => { const i = sql.indexOf(debut); return sql.slice(i, sql.indexOf('on conflict', i)) }
+  const codes = [...bloc('insert into public.langues (code)').matchAll(/\('([a-z]{2})'\)/g)].map((m) => m[1])
+  const noms = [...bloc('insert into public.langues_noms (nom, code)').matchAll(/\('((?:[^']|'')+)', '([a-z]{2})'\)/g)]
+    .map((m) => ({ nom: m[1].replace(/''/g, "'"), code: m[2] }))
+  return { codes, noms }
+}
+function fichiersTs(d) {
+  const out = []
+  for (const e of readdirSync(join(ROOT, d))) {
+    const p = d + '/' + e
+    if (statSync(join(ROOT, p)).isDirectory()) { if (e !== 'node_modules') out.push(...fichiersTs(p)) }
+    else if (/\.(ts|tsx)$/.test(e)) out.push(p)
+  }
+  return out
+}
+
+function migrationDuSecondTemps(suffixe) {
+  const f = readdirSync(join(ROOT, 'supabase', 'migrations')).filter((x) => x.endsWith(`_${suffixe}.sql`))
+  if (f.length > 1) { console.error(`✘ migration *_${suffixe}.sql : ${f.length} correspondances`); process.exit(2) }
+  if (f.length === 0) return null
+  const brut = lire(`supabase/migrations/${f[0]}`)
+  ok(/ORDRE DE PASSAGE : APRÈS le déploiement/.test(brut.slice(0, 2500)) && f[0] > '20261002000000',
+    `${suffixe} : migration du SECOND temps — en-tête APRÈS, horodatée après le lot A`)
+  return sansCommentairesSql(brut)
+}
+
 let modules
 try {
   modules = {
@@ -90,13 +126,51 @@ section('1. « Autre » : une seule notion, jamais une ligne du référentiel')
   for (const r of ['app', 'components', 'lib']) balayer(r)
   ok(copies.length === 0, 'la sentinelle « Autre » n’est écrite qu’une fois (lib/taxonomie/specialite-autre.ts)', copies.join(', '))
   ok(SURFACES.every((p) => /from '@\/lib\/taxonomie\/specialite-autre'/.test(lire(p))), 'les quatre écrans l’importent')
-  const sql = migration('specialite_autre_hors_referentiel')
-  ok(/add constraint specialities_autre_hors_referentiel\s+check \(not active or not public\.est_specialite_autre\(name, slug\)\)/.test(sql),
-    'la base refuse une spécialité ACTIVE « Autre »')
-  ok(/perform|retirer_specialites_autre\(\)/.test(sql) && /v_bilan := public\.retirer_specialites_autre\(\)/.test(sql),
-    'la migration reprend les lignes existantes (profils, annonces) avant de poser la contrainte')
-  ok(sql.indexOf('retirer_specialites_autre();') < sql.indexOf('add constraint specialities_autre_hors_referentiel'),
-    'la reprise PRÉCÈDE la contrainte — sinon la contrainte échouerait sur la ligne semée')
+  // La DÉFINITION, une seule, en base (premier temps) ; l'administration la DEMANDE avant d'écrire (point 11).
+  ok(/create or replace function public\.est_specialite_autre\(p_nom text, p_slug text\)/.test(migration('specialite_autre_hors_referentiel')),
+    'la définition de « Autre » (est_specialite_autre) est en base, dès le premier temps')
+  for (const [route, appel] of [
+    ['app/api/admin/create-speciality/route.ts', /contientAutre\(auth\.supabaseAdmin, \[name, \.\.\.Object\.values\(translations\)\], slug\)/],
+    ['app/api/admin/update-speciality/route.ts', /contientAutre\(auth\.supabaseAdmin, \[updates\.name as string \| undefined, \.\.\.trToUpsert\.map\(\(t\) => t\.value\)\], \(updates\.slug as string \| undefined\) \?\? null\)/],
+  ]) {
+    const r = sansCommentaires(lire(route))
+    const i = r.search(appel)
+    ok(i >= 0 && i < r.search(/\.from\('specialities'\)\s*\.(insert|update)\(/) && i < r.indexOf("from('translations')"),
+      `${route.split('/')[3]} : le nom, le slug ET chaque traduction se demandent à la base AVANT toute écriture (« Other », « Otra » refusés)`)
+  }
+  ok(!/function contientAutre[\s\S]*?(autres\?|others\?)/.test(lire('lib/taxonomie/specialite-autre.ts')),
+    'le code ne recopie pas la règle : il demande est_specialite_autre (une définition, §E.20)')
+  // LA FENÊTRE DU SECOND TEMPS (§E.72) : entre son push et le déploiement suivant, le code de CE lot reçoit encore
+  // « Autre » d'une page chargée avant. Il ne refuse plus une spécialité INACTIVE : il la sort, et garde « Autre » en
+  // précision — seul un slug INCONNU rend 400.
+  {
+    const p = sansCommentaires(lire('app/api/profile/route.ts'))
+    const bloc = p.slice(p.indexOf("if ('speciality_slugs' in body)"), p.indexOf("if ('work_zone_codes' in body)") > 0 ? p.indexOf("if ('work_zone_codes' in body)") : undefined)
+    const lecture = bloc.slice(bloc.indexOf(".from('specialities')"), bloc.indexOf('if (spsErr)'))
+    ok(lecture.includes('.from(') && !/\.eq\('active', true\)/.test(lecture) && /active/.test(lecture),
+      '/api/profile lit les spécialités SANS filtrer sur active — une spécialité retirée n’est pas « inconnue »')
+    ok(/\.filter\(\(t\) => t\.active\)/.test(bloc) && /contientAutre\(supabaseAdmin, \[r\.name\], r\.slug\)/.test(bloc)
+       && /patch\.speciality_other = r\.name/.test(bloc),
+      '/api/profile : une spécialité inactive sort des spécialités, « Autre » devient la précision (comme la reprise)')
+    ok(/patch\.speciality_other = raw\.length > 0 \? raw : \(patch\.speciality_other \?\? null\)/.test(p),
+      '/api/profile : une précision VIDE n’efface pas le « Autre » repris d’une spécialité retirée')
+  }
+  const sql = migrationDuSecondTemps('specialite_autre_garde')
+  if (sql === null) {
+    // TEMPS 1 : la ligne « Autre » reste active — le code en ligne (13d1524) rend 400 bad_speciality sur une spécialité
+    // inactive qu'une page chargée avant le push enverrait encore.
+    ok(!readdirSync(join(ROOT, 'supabase', 'migrations')).some((f) => /specialities_autre_hors_referentiel|retirer_specialites_autre/.test(lire(`supabase/migrations/${f}`))),
+      'TEMPS 1 : ni la reprise « Autre » ni sa contrainte ne sont dans le lot A — elles partent au lot B')
+  } else {
+    ok(/add constraint specialities_autre_hors_referentiel\s+check \(not active or not public\.est_specialite_autre\(name, slug\)\)/.test(sql),
+      'la base refuse une spécialité ACTIVE « Autre »')
+    ok(/perform|retirer_specialites_autre\(\)/.test(sql) && /v_bilan := public\.retirer_specialites_autre\(\)/.test(sql),
+      'la migration reprend les lignes existantes (profils, annonces) avant de poser la contrainte')
+    ok(sql.indexOf('retirer_specialites_autre();') < sql.indexOf('add constraint specialities_autre_hors_referentiel'),
+      'la reprise PRÉCÈDE la contrainte — sinon la contrainte échouerait sur la ligne semée')
+    ok(/before insert or update of value on public\.translations/.test(sql) && /est_specialite_autre\(new\.value, null\)/.test(sql),
+      'TEMPS 2 : la base refuse aussi une TRADUCTION « Autre » d’une spécialité active (« Other », « Otra »)')
+  }
   ok(modules.autre.estRefusAutre({ code: '23514', message: 'new row violates check constraint "specialities_autre_hors_referentiel"' })
     && !modules.autre.estRefusAutre({ code: '23514', message: 'autre contrainte' }) && !modules.autre.estRefusAutre(null),
     'le refus « Autre » se reconnaît (exécuté), et seulement lui')
@@ -134,6 +208,19 @@ section('2. Zones de travail : deux temps, aucun clic absorbé')
   ok(/\{mode === 'zones' \?/.test(sel) && !/basculer\(monde\.id\)/.test(sel),
     'le monde n’est plus un bouton parmi les continents : continents et recherche n’existent qu’en « certaines zones »')
   ok(/ajouterZone\(liste, selected, id\)/.test(sel) && /role="combobox"/.test(sel), 'les ajouts passent par ajouterZone ; la recherche est un combobox')
+  // Point 13 de la relecture : le clavier, la fermeture, la zone retirée.
+  ok(/role="radiogroup"[^>]*onKeyDown=\{clavierRadio\}/.test(sel) && /'ArrowRight'/.test(sel) && /'ArrowLeft'/.test(sel)
+     && (sel.match(/tabIndex=\{rangChoisi === /g) ?? []).length === 2,
+    'point 13 : la question fermée se joue aux flèches, une seule tabulation pour le groupe (motif radio)')
+  ok(/aria-activedescendant=\{listeOuverte && resultats\[actif\] \? idOption\(actif\) : undefined\}/.test(sel) && /id=\{idOption\(i\)\}/.test(sel),
+    'point 13 : l’option active de la recherche est annoncée (aria-activedescendant, chaque option a son id)')
+  ok(/onBlur=\{\(\) => setOuverte\(false\)\}/.test(sel) && /\{listeOuverte \? \(\s*<ul/.test(sel) && /aria-expanded=\{listeOuverte\}/.test(sel),
+    'point 13 : la liste des pays se ferme quand le champ perd le focus')
+  ok(/if \(!z\) \{[\s\S]{0,200}t\('zone_retiree'\)/.test(sel) && !/if \(!z\) return null/.test(sel)
+     && /paysCouverts\.length === 0\s*\?\s*t\(selected\.length === 0 \? 'none_selected' : 'aucun_pays_couvert'\)/.test(sel),
+    'point 13 : une zone retirée reste visible et retirable, et « 0 pays couverts » ne s’affiche jamais')
+  ok(/continentsOf\(liste\)\.filter\(\(c\) => countryCountOf\(liste, c\.id\) > 0\)/.test(sel),
+    'point 13 : un continent sans aucun pays proposé n’est pas offert (il ne couvrirait rien)')
   const cles = clesCitees(sel, 't', 'work_zones')
   const manquantes = cles.filter((c) => !dans4(c))
   ok(cles.length >= 15 && manquantes.length === 0, `les ${cles.length} textes du sélecteur existent dans les quatre langues`, manquantes.join(', '))
@@ -144,9 +231,37 @@ section('3. Langues : une liste fermée, aucun niveau d’office, le CV rattach�
 // ══════════════════════════════════════════════════════════════════════════
 {
   const L = modules.lang
-  ok(['French', 'Français', 'francais', 'Francés', 'Französisch', 'FR'].every((x) => L.codeDeLangue(x) === 'fr')
-    && L.codeDeLangue('English') === 'en' && L.codeDeLangue('Arabic') === 'ar' && L.codeDeLangue('Klingon') === null,
-    'le cas de la recette : « French, English, Arabic » se rattachent à fr, en, ar (exécuté)')
+  const semee = listeDesLanguesSemee()
+  const rattacher = L.rattacheurDeLangues(semee.codes, semee.noms)
+  ok(semee.codes.length === 92 && semee.noms.length > 300, `la liste semée est lue (${semee.codes.length} langues, ${semee.noms.length} noms)`)
+  ok(['French', 'Français', 'francais', 'Francés', 'Französisch', 'FR'].every((x) => rattacher(x) === 'fr')
+    && rattacher('English') === 'en' && rattacher('Arabic') === 'ar' && rattacher('Klingon') === null,
+    'le cas de la recette : « French, English, Arabic » se rattachent à fr, en, ar — par la liste de la BASE (exécuté)')
+  ok(rattacher('Latin') === null && rattacher('la') === null && rattacher('Mandarin') === 'zh',
+    'point 20 : une langue HORS de la liste fermée ne se rattache pas (« Latin » ≠ « la ») — la même réponse qu’en base')
+  // La RÈGLE est la même texte pour texte : un code de la liste d'abord, puis un nom connu, en minuscules sans espaces autour.
+  {
+    const corpsSql = migration('langues_liste_fermee').match(/function public\.code_de_langue\(p_texte text\)[\s\S]*?\$fn\$([\s\S]*?)\$fn\$/)?.[1] ?? ''
+    const ts = sansCommentaires(lire('lib/profil/langues.ts'))
+    const corpsTs = ts.slice(ts.indexOf('export function rattacheurDeLangues'), ts.indexOf('export function', ts.indexOf('export function rattacheurDeLangues') + 10))
+    ok(/l\.code = lower\(btrim\(p_texte\)\)/.test(corpsSql) && /n\.nom = lower\(btrim\(p_texte\)\)/.test(corpsSql)
+       && corpsSql.indexOf('public.langues l') < corpsSql.indexOf('public.langues_noms n')
+       && /texte\.trim\(\)\.toLowerCase\(\)/.test(corpsTs) && corpsTs.indexOf('lesCodes.has(cle)') < corpsTs.indexOf('parNom.get(cle)')
+       && !/Intl/.test(corpsTs),
+      'point 20 : rattacheurDeLangues applique la règle de code_de_langue (code, puis nom ; minuscules) — sans Intl')
+    const tout = ['lib', 'app', 'components'].flatMap((d) => fichiersTs(d))
+    const autres = tout.filter((f) => /\bcodeDeLangue\b|indexDesNoms/.test(lire(f)))
+    ok(autres.length === 0, 'point 20 : plus aucune seconde liste de rattachement dans le code (codeDeLangue, indexDesNoms)', autres.join(', '))
+    const ex = sansCommentaires(lire('lib/travaux-ia/executer-analyse.ts'))
+    ok(/from\('langues'\)/.test(ex) && /from\('langues_noms'\)/.test(ex) && ex.indexOf("from('langues_noms')") < ex.search(/await parseC(dc)?V\(|parseCdiCV\(buffer/)
+       && /normaliserAnalyse\(brut, rattacher\)/.test(ex),
+      'point 20 : l’analyse du CV lit la liste de la base AVANT l’appel au modèle, et la passe à la normalisation')
+    const choix = sansCommentaires(lire('components/profile/ChoixLangue.tsx'))
+    ok(/t\('heritee', \{ valeur: nomDeLangue\(valeur, locale\) \}\)/.test(choix),
+      'point 12 : une ligne héritée qui est un CODE hors liste se NOMME dans la langue de l’écran (« la » → « Latin »)')
+    ok(L.nomDeLangue('la', 'fr') === 'Latin' && L.nomDeLangue('Wolof ancien', 'fr') === 'Wolof ancien',
+      'point 12 : « la » s’affiche « Latin », un texte libre tel qu’il est écrit (exécuté)')
+  }
   ok(L.nomDeLangue('en', 'fr') === 'Anglais' && L.nomDeLangue('ar', 'de') === 'Arabisch' && L.nomDeLangue('Wolof ancien', 'fr') === 'Wolof ancien',
     'le nom s’affiche dans la langue de l’écran ; une ligne héritée s’affiche telle quelle')
   const codes = new Set(['fr', 'en'])
@@ -161,19 +276,26 @@ section('3. Langues : une liste fermée, aucun niveau d’office, le CV rattach�
     ok(!/level: 'B2'/.test(s) && /level: ''/.test(s), `${p.includes('cdi') ? 'CDI' : 'freelance'} : aucun niveau choisi d’office`)
     ok(/<ChoixLangue\b/.test(s) && !/LONGUEURS_SAISIE\.language/.test(s), `${p.includes('cdi') ? 'CDI' : 'freelance'} : la langue se choisit dans la liste, plus de saisie libre`)
     ok(/languesAEnvoyer\(languagesStructured/.test(s) && /&avec=langues/.test(s), `${p.includes('cdi') ? 'CDI' : 'freelance'} : la liste est demandée, la saisie contrôlée avant l’envoi`)
-    ok(/codeDeLangue\(l\.language\)/.test(s), `${p.includes('cdi') ? 'CDI' : 'freelance'} : une ligne héritée est rattachée au chargement`)
+    ok(/language: l\.language \?\? ''/.test(s) && !/codeDeLangue/.test(s), `${p.includes('cdi') ? 'CDI' : 'freelance'} : une ligne héritée arrive telle que la base l’a laissée — rattachée EN BASE, jamais par une seconde liste`)
   }
   const n = modules.norm.normaliserAnalyse({ languages_structured: [
     { language: 'French', level: 'native', is_primary: true }, { language: 'English', level: 'C1', is_primary: false },
     { language: 'Arabic', level: 'B2', is_primary: false }, { language: 'Klingon', level: 'A1', is_primary: false },
-  ], languages: ['French', 'Français', 'Klingon'] })
+  ], languages: ['French', 'Français', 'Klingon'] }, rattacher)
   ok(n.langues?.map((x) => x.language).join() === 'fr,en,ar' && n.ecarts.some((e) => e.bloc === 'langues' && e.rang === 4 && e.code === 'langue_inconnue')
     && n.profil.languages?.join() === 'fr',
     'l’analyse du CV écrit des codes, et dit la langue qu’elle n’a pas reconnue (exécuté)')
   ok(dans4('ecarts_analyse.codes.langue_inconnue') && dans4('profil_refus.causes.langue_hors_liste'), 'les deux nouveaux motifs existent dans les quatre langues')
   const sql = migration('langues_liste_fermee')
-  ok(/before insert or update of language on public\.profile_languages/.test(sql) && /errcode = 'LG001'/.test(sql),
-    'la base refuse une langue hors liste (LG001), à l’insertion comme au changement')
+  ok(!/create trigger|errcode = 'LG001'/.test(sql),
+    'TEMPS 1 : la liste des langues ne pose AUCUNE garde — le code en ligne envoie du texte libre, la base l’accepte')
+  const garde = migrationDuSecondTemps('langues_garde')
+  if (garde !== null) {
+    ok(/before insert or update of language on public\.profile_languages/.test(garde) && /errcode = 'LG001'/.test(garde),
+      'TEMPS 2 : la base refuse une langue hors liste (LG001), à l’insertion comme au changement')
+    ok(garde.indexOf('rattacher_langues_heritees()') >= 0 && garde.indexOf('rattacher_langues_heritees()') < garde.indexOf('create trigger'),
+      'TEMPS 2 : la reprise est RELANCÉE (les lignes écrites entre-temps) AVANT que la garde ne se pose')
+  }
   ok(/when v_etat = 'LG001' then 'langue_hors_liste'/.test(sql), 'remplacer_listes_profil nomme ce refus')
   ok(/v_bilan := public\.rattacher_langues_heritees\(\)/.test(sql) && !/delete from public\.profile_languages pl\s+where/.test(sql),
     'les lignes héritées sont rattachées, jamais effacées en bloc (seuls les doublons fondus)')
@@ -206,6 +328,13 @@ section('5. Le statut : un libellé et une couleur par état réel, le même par
     && E.deriveVerificationUiState({ visible: true, verificationStatus: 'requires_more_info' }) === 'admin_review',
     'les états réels se déduisent (exécuté)')
   ok(etats.every((s) => E.verificationDotColor(s) === E.verificationChipColors(s).fg), 'la couleur du point est celle du libellé : une couleur constante par état')
+  // Relecture du 01/10/2026 (point 10) : admin_review et approved_masque partageaient l'ambre.
+  ok(new Set(etats.map((s) => JSON.stringify(E.verificationChipColors(s)))).size === etats.length, 'chaque état a SA couleur — deux états ne se confondent ni par le libellé ni par la couleur')
+  // Point 5 : l'en-tête de « Mon profil » lit l'état AFFICHÉ (masqué compris), pas l'état brut.
+  const monProfil = sansCommentaires(lire('app/[locale]/dashboard/freelance/mon-profil/page.tsx'))
+  ok(/etatAffiche\(verifState, profilMasque\) === 'approved' \?/.test(monProfil) && !/\{verifState === 'approved' \? \(/.test(monProfil)
+     && /verificationChipColors\(etatAffiche\(verifState, profilMasque\)\)/.test(monProfil),
+    'l’en-tête de « Mon profil » dit le même état que la pastille — jamais « vérifié » sur un profil masqué')
   const manquantes = []
   for (const s of etats) {
     if (!dans4(`statut_profil.${E.cleLibelleStatut(s)}`)) manquantes.push(s)
@@ -271,6 +400,14 @@ section('6. Une icône « i » sur chaque case et chaque bloc ; « Modifier » q
     && dans4('dashboard_freelance.stats.daily_rate_edit'), '« Modifier » quand le TJM est renseigné, « Définir » sinon')
 }
 
+{
+  // Relecture du 01/10/2026, point 9 : l'info-bulle du TJM disait qu'il « sert à vous proposer des missions dans votre
+  // budget » — le moteur ne lit pas le TJM (lib/matching/document.ts : ni budget, ni tarif). Elle ne doit plus le dire.
+  const dit = LANGUES.map((lg) => cle(MSG[lg], 'infobulles.freelance.daily_rate') ?? '')
+  ok(dit.every((x) => x && !/dans votre budget|within your budget|dentro de tu presupuesto|in Ihrem Budget|sert à vous proposer|used to offer you|sirve para proponer|dient dazu, Ihnen/i.test(x)),
+    'l’info-bulle du TJM ne prétend plus qu’il choisit les missions proposées (le moteur ne le lit pas)')
+  ok(/Ni budget, ni durée, ni mode de travail, ni zone/.test(lire('lib/matching/document.ts')), 'et le moteur, lui, l’exclut toujours de ce qu’il compare')
+}
 // ══════════════════════════════════════════════════════════════════════════
 section('7. Publier : retour au tableau de bord ; la notification part à la publication')
 // ══════════════════════════════════════════════════════════════════════════
@@ -304,9 +441,22 @@ section('8. La photo : le serveur dépose, chaque refus dit sa raison')
   const codesRoute = [...new Set([...route.matchAll(/'(photo_[a-z_]+|pas_expert)'/g)].map((m) => m[1]))]
   const sansMessage = codesRoute.filter((c) => !dans4(`dashboard_freelance.avatar_modal.errors.${c}`) || !modal.includes(`'${c}'`))
   ok(codesRoute.length >= 7 && sansMessage.length === 0, `les ${codesRoute.length} codes de la route ont leur message, dans les quatre langues`, sansMessage.join(', '))
-  const sql = migration('photo_par_le_serveur')
-  ok(['avatars_auth_upload', 'avatars_auth_update', 'avatars_auth_delete'].every((p) => sql.includes(`drop policy if exists ${p} on storage.objects`)),
-    'les trois politiques d’écriture du navigateur sur avatars sont retirées')
+  const sql = migrationDuSecondTemps('photo_par_le_serveur')
+  if (sql === null) {
+    // L'ÉTAT FINAL de chaque politique, migration après migration : la dernière instruction qui la nomme décide
+    // (storage_buckets_policies la retire PUIS la recrée — une simple présence de « drop » ne dit rien).
+    const etat = {}
+    for (const f of readdirSync(join(ROOT, 'supabase', 'migrations')).filter((x) => x.endsWith('.sql')).sort()) {
+      for (const m of sansCommentairesSql(lire(`supabase/migrations/${f}`)).matchAll(/(drop policy if exists|create policy)\s+"?(avatars_auth_(?:upload|update|delete))"?/g)) {
+        etat[m[2]] = m[1] === 'create policy' ? 'créée' : 'retirée'
+      }
+    }
+    ok(['avatars_auth_upload', 'avatars_auth_update', 'avatars_auth_delete'].every((p) => etat[p] === 'créée'),
+      'TEMPS 1 : le navigateur garde son écriture sur avatars — le code en ligne dépose encore depuis le navigateur', JSON.stringify(etat))
+  } else {
+    ok(['avatars_auth_upload', 'avatars_auth_update', 'avatars_auth_delete'].every((p) => sql.includes(`drop policy if exists ${p} on storage.objects`)),
+      'TEMPS 2 : les trois politiques d’écriture du navigateur sur avatars sont retirées')
+  }
   const ecritures = []
   const balayer = (d) => {
     for (const e of readdirSync(join(ROOT, d))) {
@@ -322,6 +472,16 @@ section('8. La photo : le serveur dépose, chaque refus dit sa raison')
   ok(ecritures.length === 0, 'aucun composant client n’écrit dans le bucket avatars', ecritures.join(', '))
 }
 
+{
+  // Relecture du 01/10/2026, points 7 et 8.
+  const modalP = sansCommentaires(lire('components/AvatarUploadModal.tsx'))
+  ok(/const deposee = !!recu\.chemin && \(depot\.ok \|\| recu\.code === 'journal_error'\)/.test(modalP) && /if \(!deposee\) \{/.test(modalP),
+    'une photo DÉPOSÉE dont seule la ligne du grand livre est refusée est quand même rattachée au profil')
+  const routeP = sansCommentaires(lire('app/api/profile/photo/route.ts'))
+  const lectures = [...routeP.matchAll(/code: '(photo_[a-z_]+)' \}, 503\)/g)].map((m) => m[1])
+  ok(lectures.length === 3 && lectures[0] === 'photo_compte_illisible' && lectures[1] === 'photo_compte_illisible' && lectures[2] === 'photo_stockage_indisponible',
+    'une lecture du compte ou du profil en panne dit SA cause — « stockage indisponible » n’est dit que du stockage (§E.22)', lectures.join(', '))
+}
 // ══════════════════════════════════════════════════════════════════════════
 section('9. Paramètres > Notifications : la phrase claire')
 // ══════════════════════════════════════════════════════════════════════════

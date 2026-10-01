@@ -125,7 +125,11 @@ celles de S1 (`20261001100000`–`…100020`) et après `journal_photo_et_cv` (`
    `npx supabase db reset --local`, `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local`
    — **599 tests, tous verts**.
 2. La requête de staging (éditeur SQL de staging) : aucun ÉCART.
-3. `npx supabase db push`, puis `git push` — le lot A (ARRÊT 22 bis + S1 + ARRÊT 23). Aucun geste en ligne n'échoue.
+3. `npx supabase db push`, puis `git push` — le lot A (ARRÊT 22 bis + S1 + ARRÊT 23). ~~Aucun geste en ligne n'échoue.~~
+   **FAUX — relevé par la relecture indépendante (FEU ROUGE), corrigé à l'ARRÊT 24 (§E.91)** : trois migrations de S1
+   restreignaient ce que le code en ligne écrit (le déclencheur `LG001`, le retrait de l'écriture des photos, la
+   désactivation de « Autre ») ; la phrase avait été écrite sans les relire contre la règle. Ces étapes sont remplacées
+   par celles de l'ARRÊT 24.
 4. Sur staging : les vérifications de S1 (docs/reprise-s1.md, étape 9) et de l'ARRÊT 22 ; changer la photo deux fois → deux
    lignes « … a remplacé sa photo de profil » ; ouvrir un CV depuis la fiche admin → une ligne « … a ouvert, en lecture
    seule, le CV … ».

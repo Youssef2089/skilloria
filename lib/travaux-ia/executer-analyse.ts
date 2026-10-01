@@ -3,6 +3,7 @@ import { parseCV } from '@/lib/cv-parser'
 import { parseCdiCV } from '@/lib/cv-parser-cdi'
 import { estRejouable, type CauseEchecModele } from '@/lib/profil/cause-echec-modele'
 import { normaliserAnalyse } from '@/lib/profil/normaliser-analyse'
+import { rattacheurDeLangues, type NomDeLangueConnu } from '@/lib/profil/langues'
 import { loadCvParsingQuota, QuotaConfigMissing } from '@/lib/ai-quotas'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 import { cvTeleverse } from '@/lib/profil/journal-profil'
@@ -93,12 +94,20 @@ export async function executerAnalyseCv(admin: SupabaseClient, t: Travail): Prom
   const buffer = Buffer.from(await blob.arrayBuffer())
 
   // ── 3. Le référentiel de l'écosystème — sans lui, l'analyse serait payée puis inclassable ──
-  const [branchRes, specialityRes, configRes] = await Promise.all([
+  // La liste FERMÉE des langues et leurs noms connus : la règle de `code_de_langue()`, sur les mêmes lignes
+  // (relecture du 01/10/2026, point 20 — plus de seconde liste dans le code).
+  const [branchRes, specialityRes, configRes, codesRes, nomsRes] = await Promise.all([
     admin.from('branches').select('id, slug').eq('domain_id', profil.domain_id),
     admin.from('specialities').select('id, slug, active').eq('domain_id', profil.domain_id),
     admin.from('domain_configs').select('tags').eq('domain_id', profil.domain_id).maybeSingle(),
+    admin.from('langues').select('code'),
+    admin.from('langues_noms').select('nom, code'),
   ])
-  if (branchRes.error || specialityRes.error || configRes.error) return echouer('referentiel_illisible', true)
+  if (branchRes.error || specialityRes.error || configRes.error || codesRes.error || nomsRes.error) return echouer('referentiel_illisible', true)
+  const rattacher = rattacheurDeLangues(
+    ((codesRes.data ?? []) as Array<{ code: string }>).map((l) => l.code),
+    (nomsRes.data ?? []) as NomDeLangueConnu[],
+  )
   const branches = (branchRes.data ?? []) as Array<{ id: string; slug: string }>
   const specialites = (specialityRes.data ?? []) as Array<{ id: string; slug: string; active: boolean }>
   const ctx = {
@@ -137,7 +146,7 @@ export async function executerAnalyseCv(admin: SupabaseClient, t: Travail): Prom
   const brut = resultat.data as unknown as Record<string, unknown>
 
   // ── 7. Les formes (ici) ; les bornes, en base ────────────────────────────
-  const n = normaliserAnalyse(brut)
+  const n = normaliserAnalyse(brut, rattacher)
   const branchSlug = typeof brut.branch_slug === 'string' ? brut.branch_slug : null
   const slugs = Array.isArray(brut.speciality_slugs) ? (brut.speciality_slugs as unknown[]).filter((s): s is string => typeof s === 'string') : []
   const propose: Record<string, unknown> = {

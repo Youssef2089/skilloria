@@ -2,11 +2,13 @@
 -- l'anonymisation et la ligne, ensemble, le code dérivé du motif ; déjà purgé → rien ; motif inconnu refusé.
 -- constater_avertissement_inactivite() : parti → marqueur ET ligne ; pas parti → ligne échouée, sans marqueur.
 -- Depuis l'ARRÊT 22 (décision de Youssef, 01/10/2026) : un échec déjà écrit depuis la dernière connexion ne
--- s'écrit plus — l'envoi retenté chaque nuit n'ajoute pas une ligne par nuit.
+-- s'écrit plus — l'envoi retenté chaque nuit n'ajoute pas une ligne par nuit. Relecture du 01/10/2026, point 21 :
+-- après une RECONNEXION, la période d'inactivité est nouvelle — un échec s'écrit de nouveau, une fois. (Dans une
+-- transaction, horodatage = now() pour toutes les lignes : la reconnexion se pose donc APRÈS, à now() + 1 s.)
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(11);
+select plan(12);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -16,7 +18,7 @@ declare
   v_c     uuid := pg_temp.fab_compte('entreprise');
   v_u     uuid := pg_temp.fab_compte('expert');
   v_email text;
-  v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
+  v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 10));
   v_ok    boolean;
 begin
   select u.email into v_email from public.users u where u.id = v_a;
@@ -53,6 +55,11 @@ begin
   v_ok := public.constater_avertissement_inactivite(v_p[8], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', false, null, 'resend_refuse');
   return next ok(v_ok and pg_temp.lignes(v_p[8]) = 0,
                  'le même échec, retenté : true, et AUCUNE nouvelle ligne (un échec s''écrit une fois)');
+  update public.users set last_login_at = now() + interval '1 second' where id = v_u;
+  v_ok := public.constater_avertissement_inactivite(v_p[9], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', false, null, 'resend_refuse');
+  return next ok(v_ok and pg_temp.lignes(v_p[9]) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p[9]
+                   and g.type_action = 'inactivite_avertie' and g.statut = 'echoue'),
+                 'après une reconnexion, un nouvel échec s''écrit — UNE ligne (une nouvelle période d''inactivité)');
   v_ok := public.constater_avertissement_inactivite(v_p[6], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', true, 'msg_sonde', null);
   return next ok(v_ok
                  and exists (select 1 from public.users u where u.id = v_u and u.inactivity_warning_sent_at is not null)

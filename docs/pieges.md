@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **180** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
-01/10/2026 après la fusion du lot S1 — `journal_photo_et_cv` sème deux actions ; sur 179, à la fusion : 78, 65, 3346 ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
+Sur les **179** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
+01/10/2026 à la relecture indépendante — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
+fusion du lot S1 : les mêmes — `journal_photo_et_cv` sème deux actions ; sur 179, à la fusion : 78, 65, 3346 ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
 l'action `desabonnement_email`, les propositions de conservation leurs douze lignes ; sur 175, côté S1 : 76, 63, 3306 —
 `langues_liste_fermee` sème les 92 langues et leurs 467 noms ; sur 172 : 74, 61, 2280, mesuré le 30/09/2026 à la
 recette staging — ses trois migrations ne sèment rien ; sur 169 : les mêmes,
@@ -3672,7 +3673,8 @@ s'élargir, mesuré clé par clé). **Gardé par** `diag-journal-lisible` sectio
 migration séparée n'est pas là, présent seulement dans elle et marquée APRÈS) et section 4 (les tests attendent ce que
 la base fait à chaque temps). **Ce qu'il ne voit pas** : toute AUTRE restriction (une contrainte, une clé retirée d'une
 liste blanche) — la question se pose à chaque migration qui interdit quelque chose : « le code en ligne l'écrit-il
-encore ? »
+encore ? » — **gardée depuis la relecture du 01/10/2026 par [`diag-deux-temps`](../scripts/diag-deux-temps.mjs)**,
+qui la pose à chaque migration en attente, schéma ET données (§E.91 : trois migrations fusionnées y échappaient).
 
 ---
 
@@ -4310,6 +4312,45 @@ langues — un échantillon par action suffit, le repli compris.
 > **Numérotation.** Les pièges du worktree S1 commencent à **§E.100** (consigne du 01/10/2026) : le principal écrit
 > les siens en même temps, à la suite de §E.89. §E.90 à §E.99 restent au principal.
 
+---
+
+<a id="e91"></a>
+### E.91 — LA RÈGLE DES DEUX TEMPS NE VISAIT QUE LES VALEURS : un déclencheur, une politique retirée, une ligne désactivée RESTREIGNENT aussi — et l'ARRÊT 23 écrivait « aucun geste en ligne n'échoue ».
+
+**Le cas (relecture indépendante du 01/10/2026, points 1 et 2 — FEU ROUGE).** La règle de §E.72 avait été appliquée
+aux ACTIONS du grand livre (GL006 au lot suivant), puis vérifiée clé par clé pour les listes blanches. Les trois
+migrations de S1 fusionnées à l'ARRÊT 23 n'avaient pas été relues contre elle — et toutes trois RESTREIGNAIENT ce que
+le code en ligne (13d1524) écrit encore, dans le lot passé AVANT le déploiement :
+① `langues_liste_fermee` posait le déclencheur `LG001` — le code en ligne écrit les langues en TEXTE LIBRE (« Anglais »)
+  ⇒ chaque enregistrement de profil portant une langue aurait échoué entre le `db push` et le `git push` ;
+② `photo_par_le_serveur` retirait l'écriture du navigateur sur `avatars` — le code en ligne dépose la photo DEPUIS le
+  navigateur ⇒ chaque dépôt aurait échoué ;
+③ `specialite_autre_hors_referentiel` DÉSACTIVAIT la ligne « Autre » du référentiel — le code en ligne rend 400
+  `bad_speciality` sur une spécialité inactive ⇒ une page chargée avant le push, « Autre » coché, ne s'enregistrait
+  plus. Celui-là, le relecteur ne l'avait pas vu : il est apparu en relisant la route en ligne contre la reprise.
+Le rapport de l'ARRÊT 23 disait le contraire, sans l'avoir vérifié — une affirmation, pas une mesure (§E.16).
+
+**La leçon.** « Restreindre » ne veut pas dire seulement « retirer une valeur d'une liste ». Est une restriction tout
+ce qui fait échouer un geste qui passait : un déclencheur, une contrainte, un `not null`, une politique ou une fonction
+retirée, un droit retiré, et une DONNÉE désactivée ou supprimée qu'une route en ligne relit. La question de §E.72 —
+« le code en ligne l'écrit-il encore ? » — se pose à CHAQUE migration du lot d'avant, à ses données comme à son schéma,
+et à celles qu'on fusionne autant qu'aux siennes.
+
+**La parade.** Le lot A garde ce qui AJOUTE (tables, `code_de_langue`, la reprise des langues, la définition
+`est_specialite_autre`) ; le lot B, déployé APRÈS, pose ce qui restreint (`langues_garde` — qui RELANCE la reprise
+avant le déclencheur, pour les lignes écrites entre-temps —, `specialite_autre_garde`, `photo_par_le_serveur`,
+`grand_livre_refus_des_retirees`). Et le code du lot A tolère déjà ce que le lot B fera (`/api/profile` sort une
+spécialité inactive au lieu de refuser, et garde « Autre » en précision) : entre le push du lot B et son déploiement,
+c'est LUI qui est en ligne. **Gardé par** [`diag-deux-temps`](../scripts/diag-deux-temps.mjs) : pour chaque migration
+en attente (après la ligne ⓪ de la requête de staging), marquée AVANT ou INDIFFÉRENT, il refuse — sur un objet que
+le fichier ne crée pas lui-même — un déclencheur, une contrainte ajoutée, un `set not null`, une politique ou une
+fonction retirée, un `revoke`, une désactivation ou une suppression de lignes au push (corps des fonctions appelées
+compris, chaînes retirées avant : une mention n'est pas un appel, §E.78), un GL006 et une clé retirée d'une liste
+blanche ; deux exceptions écrites avec leur raison. Éprouvé par mutation. **Ce qu'il ne voit pas** : une restriction
+faite par le CODE (une route nouvelle qui refuse ce que l'ancienne page envoie) — celle-là se relit route par route.
+
+---
+
 <a id="e100"></a>
 ### E.100 — UNE LIGNE DE DONNÉES PORTAIT LE NOM D'UNE OPTION D'ÉCRAN : deux « Autre », deux comportements, un mot.
 
@@ -4340,7 +4381,8 @@ remplacement échouait**. Un défaut qui ne se voit qu'au second essai, avec un 
 **La leçon.** Retirer un droit sur un objet, c'est relire CHAQUE geste qui l'utilisait — pas seulement celui qu'on
 vise (§E.65). Et un message unique pour toutes les causes cache la seule information utile. **La parade** : le dépôt
 passe par le serveur (`POST /api/profile/photo`, contenu vérifié, chemin dérivé du compte), les politiques d'écriture
-du navigateur sont retirées (`photo_par_le_serveur`), chaque refus a son code et son message. **Gardé par**
+du navigateur sont retirées (`photo_par_le_serveur` — au LOT B, déployé après : le code en ligne dépose encore depuis
+le navigateur, §E.91), chaque refus a son code et son message. **Gardé par**
 `diag-recette-s1` 8. **Ce qu'il ne voit pas** : Storage lui-même — la règle « upsert exige la lecture » est
 documentée par Supabase, NON MESURÉE ici.
 
@@ -4374,6 +4416,13 @@ reprise appelle), la reprise de la liste plate (sans garde), l'idempotence. La r
 `profile_languages` reste NON PROUVÉE par un test : elle ne l'est que par sa lecture, et par le compte qu'elle rend à
 la migration (« N rattachée(s), N non reconnue(s) »). **La question à se poser à la prochaine garde en base** : la
 reprise doit-elle passer AVANT la garde, dans une migration séparée, pour rester testable ?
+
+**RÉSOLU par la relecture du 01/10/2026 (§E.91).** La garde est partie au lot suivant (`langues_garde`, déployé
+après) pour une autre raison — le code en ligne écrit du texte libre — et la réponse à la question est venue avec :
+sans déclencheur, le test fabrique les lignes héritées par le chemin normal, et la reprise est PROUVÉE
+(`profil/langues_liste_fermee.test.sql`, C : « French » et « Français » d'un même profil fondus en un `fr`, la
+principale gardée ; « Klingon » laissé ; une liste plate convertie ; un second passage ne fait rien). Le lot B
+relance la même reprise AVANT de poser la garde, pour les lignes écrites entre-temps.
 
 ---
 

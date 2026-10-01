@@ -97,10 +97,12 @@ export function verificationChipColors(state: EtatAffiche): {
     case 'pending':
       return { bg: 'var(--sk-accent-soft)', border: 'var(--sk-accent-soft)', fg: 'var(--sk-accent)' }
     case 'admin_review':
-    // Un profil validé mais masqué n'est plus une bonne nouvelle : l'ambre de l'attente,
-    // pas le vert de la réussite — le vert est réservé à « tout est en ordre ».
-    case 'approved_masque':
       return { bg: 'var(--sk-amber-soft)', border: 'var(--sk-amber)', fg: 'var(--sk-amber)' }
+    // Validé mais MASQUÉ : la vérification est acquise (le vert, en trait) mais le profil ne se montre pas (le fond
+    // neutre) — ni le vert plein de « tout est en ordre », ni l'ambre d'une attente qu'il n'est pas. UNE couleur par
+    // état (§D.42 ; relecture du 01/10/2026 : admin_review et approved_masque partageaient l'ambre).
+    case 'approved_masque':
+      return { bg: 'var(--sk-surface-2)', border: 'var(--sk-success)', fg: 'var(--sk-success)' }
     case 'rejected':
       return { bg: 'var(--sk-red-soft)', border: 'var(--sk-red-soft)', fg: 'var(--sk-red)' }
     default:

@@ -98,7 +98,7 @@ import {
 } from '@/lib/profile-visibility'
 import SectionHeader from '@/components/dashboard/SectionHeader'
 import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
-import { codeDeLangue, languesAEnvoyer, listeDesLangues, nomDeLangue, type LangueProposee } from '@/lib/profil/langues'
+import { languesAEnvoyer, listeDesLangues, nomDeLangue, type LangueProposee } from '@/lib/profil/langues'
 import { ChoixLangue, ChoixNiveauLangue } from '@/components/profile/ChoixLangue'
 
 const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
@@ -603,8 +603,9 @@ export default function ValiderProfilPage() {
       setLanguagesStructured(
         lignesOuVide(langsLu).map((l: any) => ({
           _uid: uid(),
-          // Une ligne héritée en texte libre (« French ») est RATTACHÉE à son code quand c'est possible.
-          language: codeDeLangue(l.language) ?? l.language ?? '',
+          // Une ligne héritée a été RATTACHÉE en base par la reprise (`rattacher_langues_heritees`, une seule
+          // liste — point 20) ; ce qu'elle n'a pas reconnu arrive tel quel, et l'écran demande de le choisir.
+          language: l.language ?? '',
           level: (l.level ?? '') as CefrLevel | '',
           is_primary: !!l.is_primary,
         })),

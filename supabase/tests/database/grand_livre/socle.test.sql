@@ -1,11 +1,15 @@
 -- Le socle — le verrou grand_livre_ajout_seul() (GL001 sur UPDATE, DELETE, TRUNCATE), identifiant_derive()
 -- (stable, distinct par espace), et ip_effacees — effacer_adresses_ip() : l'effacement et sa ligne,
 -- ensemble, sous la pièce qu'elle rend ; l'adresse n'entre pas dans la ligne. Depuis l'ARRÊT 22 : un passage
--- qui n'a RIEN à effacer n'écrit pas de ligne.
+-- qui n'a RIEN à effacer n'écrit pas de ligne. Relecture du 01/10/2026, point 21 : l'ÉCHEC, lui, s'écrit toujours —
+-- la durée de conservation absente (la ligne unique de duree_reglages retirée, dans la transaction annulée) rend
+-- l'erreur, n'efface rien, et laisse UNE ligne échouée avec la classe de la panne.
+-- Contraintes lues (§G.10) : duree_reglages.conservation_ip_mois NOT NULL, 1..60 — l'absence ne se fabrique qu'en
+-- retirant la ligne ; aucune clé étrangère ni déclencheur sur duree_reglages.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(12);
+select plan(14);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -41,6 +45,19 @@ begin
   v_r := public.effacer_adresses_ip();
   return next ok(v_r ? 'piece' and not v_r ? 'erreur' and pg_temp.lignes((v_r ->> 'piece')::uuid) = 0,
                  'rien à effacer : la pièce est rendue, AUCUNE ligne');
+  -- ── l'échec : la durée de conservation introuvable — rien d'effacé, UNE ligne échouée ──
+  insert into public.audit_logs (user_id, domain_id, action, entity_type, entity_id, ip_address, user_agent, created_at)
+  select v_user, u.domain_id, 'sonde', 'user', v_user, '203.0.113.10', 'sonde', now() - interval '20 years'
+    from public.users u where u.id = v_user
+  returning id into v_audit;
+  delete from public.duree_reglages;
+  v_r := public.effacer_adresses_ip();
+  return next ok(v_r ? 'erreur' and exists (select 1 from public.audit_logs a where a.id = v_audit and a.ip_address = '203.0.113.10'),
+                 'la durée de conservation introuvable : l''erreur est rendue, et RIEN n''est effacé');
+  return next ok(pg_temp.lignes((v_r ->> 'piece')::uuid) = 1 and exists (select 1 from public.grand_livre g
+                   where g.piece = (v_r ->> 'piece')::uuid and g.type_action = 'ip_effacees' and g.statut = 'echoue'
+                     and g.detail ->> 'cause' like '%conservation_ip_mois%' and g.detail ? 'sqlstate'),
+                 'l''échec s''écrit TOUJOURS : UNE ligne échouée, la cause et sa classe');
   -- ── le verrou : la ligne qu'on vient d'écrire ne se modifie ni ne se supprime ──
   return next throws_ok(format('update public.grand_livre set statut = %L where id = %s', 'echoue', v_id),
                         'GL001', null, 'UPDATE interdit (GL001)');

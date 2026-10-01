@@ -716,7 +716,10 @@ deux produits.
 >   dans le second cas, des continents en un clic, une recherche de pays, et la sélection en étiquettes qu'une croix
 >   retire ; **les langues dans une liste fermée**, nommées dans la langue de l'écran, sans niveau choisi d'office
 >   (« Choisir le niveau ») ; une langue héritée en texte libre est montrée et à choisir. « Publier » ramène au
->   tableau de bord.
+>   tableau de bord. **Relecture du 01/10/2026** : le choix des zones se joue entièrement au clavier (flèches sur
+>   « partout / certaines zones », pays annoncé par le lecteur d'écran, liste refermée en quittant le champ) ; une zone
+>   que le référentiel ne propose plus reste visible, nommée, retirable — jamais « 0 pays couverts » ; une langue
+>   héritée qui serait un code hors liste se nomme (« Latin »), jamais un code brut.
 > · **Accueil** — « Statut de votre profil : … » et la phrase qui dit la suite (un libellé et une couleur par état :
 >   brouillon, vérification par l'IA en cours, en attente d'un administrateur, validé, refusé) ; l'étape 3 du guide
 >   mène à la validation ; une icône « i » sur chaque case et chaque bloc (survol, toucher, clavier) ; la case TJM dit
@@ -956,7 +959,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Bucket | Public ? | Contenu | Écriture | Lecture |
 |---|---|---|---|---|
 | `cv` | **non** | CV PDF, 5 Mo | serveur, service-role | serveur |
-| `avatars` | **non** | photo d'expert, 2 Mo | **client-direct** sous policy `auth.uid()` | serveur, URL signée 300 s |
+| `avatars` | **non** | photo d'expert, 2 Mo | **serveur** (`POST /api/profile/photo`) depuis la recette S1 ; les policies client-direct `auth.uid()` restent jusqu'au LOT B (`photo_par_le_serveur`, après le déploiement — le code en ligne dépose encore depuis le navigateur) | serveur, URL signée 300 s |
 | `org-logos` | **non** | logo d'organisation, 2 Mo | **serveur** ; policies scopées **`organization_id`**, jamais `auth.uid()` | serveur, URL signée 300 s |
 | `ecosysteme` | **OUI, assumé** | logo + favicon d'écosystème | serveur (admin plateforme), aucune policy | **publique, dérivée** |
 

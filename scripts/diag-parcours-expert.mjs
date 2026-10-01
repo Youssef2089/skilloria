@@ -68,6 +68,7 @@ try {
   modules = {
     types: await importer('lib/profil/types-experience.ts'),
     norm: await importer('lib/profil/normaliser-analyse.ts'),
+    lang: await importer('lib/profil/langues.ts'),
     vis: await importer('lib/profile-visibility.ts'),
     verdict: await importer('lib/identite/verdict.ts'),
     refusProfil: await importer('lib/profil/refus-profil.ts'),
@@ -220,7 +221,7 @@ section('F. Point 5 — une valeur fautive ne rejette plus l’analyse (normalis
       { language: 'Anglais', level: 'Z9' },
     ],
     first_name: 'Autre', photo_url: 'https://mouchard.invalid/x.png',
-  })
+  }, modules.lang.rattacheurDeLangues(['fr', 'en'], [{ nom: 'français', code: 'fr' }, { nom: 'anglais', code: 'en' }]))
   const a = (code) => n.ecarts.some((e) => e.code === code)
   ok(n.experiences?.[0]?.start_date === '2020-01-01' && n.experiences?.[0]?.end_date === '2021-01-01' && a('date_completee'), '« 2020-01 » et « 2021 » sont COMPLÉTÉS, et c’est dit')
   ok(n.experiences?.[0]?.experience_type === 'project' && a('type_ramene'), 'le type « mission » est ramené à la liste (project), et c’est dit')

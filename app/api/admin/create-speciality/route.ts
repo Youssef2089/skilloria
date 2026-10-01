@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
-import { estRefusAutre } from '@/lib/taxonomie/specialite-autre'
+import { contientAutre, estRefusAutre } from '@/lib/taxonomie/specialite-autre'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -120,6 +120,12 @@ export async function POST(request: NextRequest): Promise<Response> {
   for (let i = 2; takenSet.has(slug) && i < 200; i++) {
     slug = `${base.slice(0, 46)}-${i}`
   }
+
+  // « Autre » — le nom, le slug ET chaque traduction — se DEMANDE à la base AVANT toute écriture (point 11) : rien n'est
+  // écrit à moitié, et le refus est nommé.
+  const autre = await contientAutre(auth.supabaseAdmin, [name, ...Object.values(translations)], slug)
+  if (autre === 'illisible') return json({ error: 'Rule unreadable', code: 'lecture_indisponible' }, 503)
+  if (autre === 'autre') return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
 
   const { data: created, error: insErr } = await auth.supabaseAdmin
     .from('specialities')

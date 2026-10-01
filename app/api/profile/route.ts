@@ -9,6 +9,7 @@ import { deposerVerificationExpert } from '@/lib/travaux-ia/travail'
 import { langueDeNotification, notifyExpertResult } from '@/lib/verification/expert-verification'
 import { LISTES_DE_PROFIL, estListeDeProfil, type ListeDeProfil } from '@/lib/lecture/liste'
 import { clesModifiees, listeModifiee } from '@/lib/profil/changements'
+import { contientAutre } from '@/lib/taxonomie/specialite-autre'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -314,22 +315,36 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     } else {
       const { data: sps, error: spsErr } = await supabaseAdmin
         .from('specialities')
-        .select('id, slug')
+        .select('id, slug, name, active')
         .eq('domain_id', user.domain_id)
-        .eq('active', true)
         .in('slug', slugs)
       // Même chose, en pire : la comparaison de longueur transforme une
       // lecture vide en « TOUTES vos spécialités sont inconnues ».
       if (spsErr) return referentielIndisponible(spsErr.message, 'specialities')
-      const trouves = (sps ?? []) as Array<{ id: string; slug: string }>
-      if (trouves.length !== slugs.length) {
-        const inconnus = slugs.filter((s) => !trouves.some((t) => t.slug === s))
+      const lues = (sps ?? []) as Array<{ id: string; slug: string; name: string; active: boolean }>
+      if (lues.length !== slugs.length) {
+        const inconnus = slugs.filter((s) => !lues.some((t) => t.slug === s))
         return json(
           { error: 'Unknown speciality', code: 'bad_speciality', unknown: inconnus },
           400,
         )
       }
-      patch.speciality_ids = trouves.map((t) => t.id)
+      // UNE SPÉCIALITÉ DÉSACTIVÉE PENDANT QUE L'ÉCRAN ÉTAIT OUVERT n'empêche pas d'enregistrer (relecture du 01/10/2026,
+      // §E.72) : le lot suivant désactive la ligne « Autre » du référentiel ; une page chargée avant son push l'envoie
+      // encore. Elle ne rentre pas dans les spécialités ; si c'est « Autre » (la base le DIT, une définition), son NOM
+      // devient la précision quand l'écran n'en envoie aucune — exactement ce que fait la reprise
+      // (`retirer_specialites_autre`). Toute autre spécialité désactivée sort simplement. Un slug INCONNU reste refusé.
+      const actives = lues.filter((t) => t.active)
+      const retirees = lues.filter((t) => !t.active)
+      const precisionEnvoyee = typeof body.speciality_other === 'string' && body.speciality_other.trim() !== ''
+      if (!precisionEnvoyee) {
+        for (const r of retirees) {
+          const autre = await contientAutre(supabaseAdmin, [r.name], r.slug)
+          if (autre === 'illisible') return referentielIndisponible('est_specialite_autre', 'specialities')
+          if (autre === 'autre') { patch.speciality_other = r.name; break }
+        }
+      }
+      patch.speciality_ids = actives.map((t) => t.id)
     }
   }
 
@@ -368,7 +383,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     if (raw.length > 100) {
       return json({ error: 'speciality_other too long', code: 'bad_speciality_other' }, 400)
     }
-    patch.speciality_other = raw.length > 0 ? raw : null
+    // Vide, il garde le nom d'une spécialité retirée posé plus haut (une page d'avant le lot suivant, « Autre » coché).
+    patch.speciality_other = raw.length > 0 ? raw : (patch.speciality_other ?? null)
   }
 
   // Validation pour publication
@@ -640,7 +656,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     for (const [cle, table, nouvelles] of envoyees) {
       if (nouvelles === null) continue
       const { data: lues, error: luesErr } = await supabaseAdmin.from(table).select('*').eq('profile_id', cp.id)
-      if (luesErr || listeModifiee((lues ?? []) as Array<Record<string, unknown>>, nouvelles as Array<Record<string, unknown>>)) {
+      // Les EXPÉRIENCES gardent leur rang (sort_order) : les réordonner est une modification (décision de Youssef).
+      if (luesErr || listeModifiee((lues ?? []) as Array<Record<string, unknown>>, nouvelles as Array<Record<string, unknown>>, cle === 'experiences')) {
         blocsModifies.push(cle)
       }
     }

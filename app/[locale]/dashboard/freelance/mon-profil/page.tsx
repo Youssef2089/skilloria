@@ -12,7 +12,7 @@ import { sessionDuCompteAffiche } from '@/lib/identite/compte-affiche'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { messageRefusProfil } from '@/lib/profil/refus-profil'
 import EmptyState from '@/components/ui/EmptyState'
-import { cleLibelleStatut, deriveVerificationUiState, verificationChipColors } from '@/lib/verification-state'
+import { cleLibelleStatut, deriveVerificationUiState, etatAffiche, verificationChipColors } from '@/lib/verification-state'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
 import AvatarUploadModal from '@/components/AvatarUploadModal'
 import AvatarEditOverlay from '@/components/dashboard/AvatarEditOverlay'
@@ -1039,7 +1039,9 @@ export default function MonProfilPage() {
                   <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.4px' }}>
                     {fullName}
                   </h2>
-                  {verifState === 'approved' ? (
+                  {/* L'en-tête lit le MÊME état que la pastille — masqué compris (§D.42 ; relecture du 01/10/2026 : il disait
+                      « Profil vérifié » pendant que la pastille disait « validé, mais masqué »). */}
+                  {etatAffiche(verifState, profilMasque) === 'approved' ? (
                     <span
                       style={{
                         display: 'inline-flex',
@@ -1062,7 +1064,7 @@ export default function MonProfilPage() {
                     </span>
                   ) : (
                     (() => {
-                      const c = verificationChipColors(verifState)
+                      const c = verificationChipColors(etatAffiche(verifState, profilMasque))
                       return (
                         <span
                           style={{
@@ -1079,7 +1081,7 @@ export default function MonProfilPage() {
                           }}
                         >
                           {/* Le libellé s'écrit en minuscule pour suivre « Statut de votre profil : » ; seul, il prend sa majuscule. */}
-                          {(() => { const s = tStatut(cleLibelleStatut(verifState)); return s.charAt(0).toUpperCase() + s.slice(1) })()}
+                          {(() => { const s = tStatut(cleLibelleStatut(etatAffiche(verifState, profilMasque))); return s.charAt(0).toUpperCase() + s.slice(1) })()}
                         </span>
                       )
                     })()

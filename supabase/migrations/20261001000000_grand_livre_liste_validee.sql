@@ -37,9 +37,9 @@ insert into public.grand_livre_actions (code, famille, statut_impose, libelle_ke
 on conflict (code) do nothing;
 update public.grand_livre_actions set cles_detail = array['evenement', 'canal']::text[] where code = 'desabonnement_email';
 
-update public.grand_livre_actions set cles_detail = array['issue', 'raison', 'tentative', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees']::text[] where code = 'recherche_terminee';
-update public.grand_livre_actions set cles_detail = array['etape', 'cause', 'tentative', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'lots_en_echec']::text[] where code = 'recherche_echouee';
-update public.grand_livre_actions set cles_detail = array['tentatives', 'plafond', 'cause', 'etape', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees']::text[] where code = 'recherche_abandonnee';
+update public.grand_livre_actions set cles_detail = array['issue', 'raison', 'tentative', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'recherches', 'unites_source']::text[] where code = 'recherche_terminee';
+update public.grand_livre_actions set cles_detail = array['etape', 'cause', 'tentative', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'lots_en_echec', 'recherches', 'unites_source']::text[] where code = 'recherche_echouee';
+update public.grand_livre_actions set cles_detail = array['tentatives', 'plafond', 'cause', 'etape', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'recherches', 'unites_source']::text[] where code = 'recherche_abandonnee';
 update public.grand_livre_actions set cles_detail = array['approuve', 'motif', 'de', 'note']::text[] where code = 'verification_conclue';
 
 
@@ -70,14 +70,15 @@ begin
   end if;
   -- RIEN N'A CHANGÉ, RIEN NE S'ÉCRIT (décision de Youssef, 01/10/2026) : un écran de réglage réenregistré à
   -- l'identique écrivait une ligne à chaque clic. Une écriture RÉUSSIE dont l'avant et l'après sont égaux, et dont
-  -- le complément ne porte aucun changement (des fonctionnalités, des champs d'offre, des offres migrées, un
-  -- catalogue relié, une offre par défaut appliquée), n'est pas un changement d'état : on rend NULL, sans ligne.
+  -- le complément ne porte aucun changement (des fonctionnalités, des champs d'offre, un catalogue relié — synchronisées,
+  -- refusées, en échec —, des organisations comptées, une offre par défaut appliquée ; chaque clé est une clé d'une liste
+  -- blanche, et chacune est prouvée par tests/database/grand_livre/reglages.test.sql), n'est pas un changement d'état : on rend NULL, sans ligne.
   -- Un ÉCHEC s'écrit toujours. Un seul endroit, pour les douze écrans qui passent par ici.
   if p_statut = 'reussi'
      and coalesce(p_avant, '{}'::jsonb) = coalesce(p_apres, '{}'::jsonb)
      and not exists (
        select 1 from jsonb_each(coalesce(p_complement, '{}'::jsonb)) e
-        where (e.key in ('features', 'package_fields', 'offres', 'synchronisees', 'refusees', 'en_echec')
+        where (e.key in ('features', 'package_fields', 'synchronisees', 'refusees', 'en_echec')
                and jsonb_typeof(e.value) = 'array' and jsonb_array_length(e.value) > 0)
            or (e.key = 'count' and jsonb_typeof(e.value) = 'number' and (e.value)::text::numeric > 0)
            or (e.key = 'default_applied' and e.value = 'true'::jsonb)) then
@@ -110,6 +111,6 @@ begin
   if (select cles_detail from public.grand_livre_actions where code = 'verification_conclue') is distinct from array['approuve', 'motif', 'de', 'note']::text[] then
     raise exception 'postcondition NON TENUE : verification_conclue ne porte pas sa note';
   end if;
-  raise notice 'postcondition tenue : onze actions retirees, desabonnement_email declaree, la ligne de fin d une recherche et la verification elargies ; l acceptation des retirees pendant la fenetre et le reglage inchange sont prouves par tests/database/grand_livre/liste_validee.test.sql';
+  raise notice 'postcondition tenue : onze actions retirees, desabonnement_email declaree, la ligne de fin d une recherche et la verification elargies ; l acceptation des retirees pendant la fenetre et la ligne de fin d une recherche sont prouvees par tests/database/grand_livre/liste_validee.test.sql, le reglage inchange et ses exceptions par tests/database/grand_livre/reglages.test.sql';
 end
 $post$;

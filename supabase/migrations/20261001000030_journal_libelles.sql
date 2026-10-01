@@ -8,7 +8,9 @@
 --  nom écrit) ; la phrase les relit ICI, au moment de l'affichage, pour l'administrateur seulement : le nom du compte,
 --  du profil (son titulaire), de l'organisation, l'intitulé de l'annonce — et un CONTEXTE quand l'objet en a un (la
 --  candidature : l'expert ; l'annonce : son organisation ; un membre : son nom). Un compte effacé n'a plus de nom
---  (NULL) : l'écran dit « compte supprimé ».
+--  (NULL) : l'écran dit « données effacées ». Un compte EXISTANT qui n'a jamais donné de nom rend une chaîne VIDE
+--  (relecture du 01/10/2026, point 18) : l'écran dit « sans nom renseigné » — jamais « données effacées » d'un compte
+--  qui vit.
 --  Colonnes lues dans les migrations (§G.10) : users (first_name, last_name, anonymized_at), profiles (user_id),
 --  organizations (company_name), publications (title, organization_id), candidatures / matches / candidature_depots
 --  (publication_id, profile_id), organization_invitations / organization_members (organization_id ; user_id),
@@ -37,8 +39,8 @@ begin
      where x ->> 'id' ~ '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
   ),
   personne as (
-    -- Le nom d'un compte, s'il n'est pas effacé.
-    select u.id, nullif(btrim(coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), '') as nom
+    -- Le nom d'un compte, s'il n'est pas effacé ; '' s'il vit sans nom (un compte effacé, lui, n'est pas ici : NULL).
+    select u.id, btrim(coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')) as nom
       from public.users u where u.anonymized_at is null
   )
   select s.t, s.i,
@@ -80,6 +82,6 @@ begin
   if has_function_privilege('authenticated', 'public.libelles_journal(uuid, jsonb)', 'execute') then
     raise exception 'postcondition NON TENUE : libelles_journal ouverte au navigateur';
   end if;
-  raise notice 'postcondition tenue : libelles_journal presente, reservee a la cle de service ; les noms rendus par sujet sont prouves par tests/database/grand_livre/liste_validee.test.sql';
+  raise notice 'postcondition tenue : libelles_journal presente, reservee a la cle de service ; les noms rendus pour les treize types d objet, le compte sans nom et le compte efface sont prouves par tests/database/grand_livre/liste_validee.test.sql';
 end
 $post$;

@@ -4,10 +4,10 @@
 --  décision de Youssef : jamais de saisie libre).
 -- ════════════════════════════════════════════════════════════════════════════
 --
---  ORDRE DE PASSAGE : AVANT le déploiement. Le code qui suit envoie des codes ; le code
---  en ligne envoie du texte libre — tant qu'il tourne (la fenêtre entre db push et
---  git push, §G.4 ter), une langue TAPÉE à la main qui n'est pas un code serait refusée
---  par le déclencheur, nommément (LP001, cause `langue_hors_liste`). Rejouable.
+--  ORDRE DE PASSAGE : AVANT le déploiement. RIEN ICI NE REFUSE CE QUE LE CODE EN LIGNE ÉCRIT (§E.72, relecture
+--  indépendante du 01/10/2026) : le code en ligne envoie du TEXTE LIBRE (« Anglais »), le code qui suit envoie des
+--  codes — la base accepte les deux. LA GARDE (le déclencheur LG001) PART DANS LE LOT SUIVANT
+--  (`langues_garde`), déployé APRÈS, qui RELANCE la reprise pour les lignes écrites entre-temps. Rejouable.
 --
 --  LE DÉFAUT : `profile_languages.language` (varchar 50) recevait ce que l'expert tapait
 --  ou ce que l'analyseur du CV écrivait. Un CV en anglais donnait « French, English,
@@ -21,10 +21,9 @@
 --    2. `langues_noms` — les noms connus de chaque langue (français, anglais, espagnol,
 --       allemand, et son nom natif ; avec et sans accents), qui servent à RATTACHER un
 --       texte libre à son code : la reprise ci-dessous, et `code_de_langue()` ;
---    3. un DÉCLENCHEUR refuse, à l'insertion comme au changement de langue, tout code
---       hors de la liste active (LG001) — `remplacer_listes_profil` le rend sous la cause
---       `langue_hors_liste` ; `ecrire_analyse_cv` l'écarte et le dit, comme toute ligne
---       refusée ;
+--    3. la GARDE — un déclencheur qui refuse tout code hors de la liste active (LG001) — vit
+--       dans le lot suivant (`langues_garde`) ; `remplacer_listes_profil` sait déjà nommer son
+--       refus (cause `langue_hors_liste`), `ecrire_analyse_cv` l'écartera et le dira ;
 --    4. LA REPRISE rattache les lignes HÉRITÉES (« French », « Français ») à leur code.
 --       Ce qu'aucun nom ne reconnaît RESTE tel quel, jamais effacé : l'écran de validation
 --       le montre et demande de le choisir dans la liste. Deux lignes qui deviennent la
@@ -641,25 +640,6 @@ $fn$;
 comment on function public.code_de_langue(text) is
   'Le code de la liste fermée qu''un texte désigne (un code, ou un nom connu en fr/en/es/de/natif), ou null.';
 
--- ── LA GARDE ─────────────────────────────────────────────────────────────────
-create or replace function public.profile_languages_langue_de_la_liste()
-  returns trigger
-  language plpgsql
-  set search_path to 'public'
-as $fn$
-begin
-  if not exists (select 1 from public.langues l where l.code = new.language and l.active) then
-    raise exception 'langue hors de la liste fermée : %', new.language using errcode = 'LG001';
-  end if;
-  return new;
-end
-$fn$;
-
-drop trigger if exists profile_languages_langue_de_la_liste on public.profile_languages;
-create trigger profile_languages_langue_de_la_liste
-  before insert or update of language on public.profile_languages
-  for each row execute function public.profile_languages_langue_de_la_liste();
-
 -- ── LA REPRISE DES LIGNES HÉRITÉES ───────────────────────────────────────────
 create or replace function public.rattacher_langues_heritees()
   returns jsonb
@@ -846,17 +826,8 @@ begin
     raise exception 'postcondition NON TENUE : la liste fermée des langues manque';
   end if;
   if to_regprocedure('public.code_de_langue(text)') is null
-     or to_regprocedure('public.rattacher_langues_heritees()') is null
-     or to_regprocedure('public.profile_languages_langue_de_la_liste()') is null then
+     or to_regprocedure('public.rattacher_langues_heritees()') is null then
     raise exception 'postcondition NON TENUE : une fonction de la liste fermée manque';
-  end if;
-  if not exists (
-    select 1 from pg_trigger t
-     where t.tgrelid = 'public.profile_languages'::regclass
-       and t.tgname = 'profile_languages_langue_de_la_liste'
-       and not t.tgisinternal
-  ) then
-    raise exception 'postcondition NON TENUE : le déclencheur de la liste fermée manque';
   end if;
   -- Filet §E.37 : `pg_get_functiondef` est STRICTE — sans `coalesce`, une définition absente rendrait NULL,
   -- `position(… in NULL) = 0` vaudrait NULL et le `if` ne s'exécuterait pas.
@@ -867,6 +838,6 @@ begin
      or has_table_privilege('authenticated', 'public.langues', 'insert') then
     raise exception 'postcondition NON TENUE : la liste ou sa reprise est ouverte au navigateur';
   end if;
-  raise notice 'postcondition tenue : liste fermée, garde et reprise en place ; le comportement est prouvé par tests/database/profil/langues_liste_fermee.test.sql';
+  raise notice 'postcondition tenue : liste fermée et reprise en place, SANS garde (elle part au lot suivant) ; le comportement est prouvé par tests/database/profil/langues_liste_fermee.test.sql';
 end
 $post$;

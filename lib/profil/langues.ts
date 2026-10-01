@@ -12,26 +12,26 @@
 //
 // LA RÈGLE :
 //   · la base garde un CODE ISO 639-1 (`fr`, `en`, `ar`) — la liste fermée vit dans la
-//     table `langues`, et un déclencheur refuse tout code hors liste (migration
-//     `langues_liste_fermee`) ;
+//     table `langues` (migration `langues_liste_fermee`) ; le déclencheur qui refuse tout code
+//     hors liste vient au lot suivant (`langues_garde`, après le déploiement — §E.72) ;
 //   · le NOM s'affiche dans la langue de l'écran, par `Intl.DisplayNames` — les quatre
 //     langues du produit sans une traduction écrite à la main ;
 //   · un nom lu dans un CV (« French », « Français », « Francés », « Französisch »,
-//     « français ») est RATTACHÉ à son code ici, avant l'écriture.
+//     « français ») est RATTACHÉ à son code par UNE règle et UNE liste : celles de la base
+//     (`code_de_langue()` sur `langues` et `langues_noms`). Relecture du 01/10/2026, point 20 :
+//     le rattachement passait ici par `Intl` — tout code ISO, 180 langues — et en base par la
+//     liste fermée de 92 ; « Latin » devenait `la` à l'écran, hors liste, montré brut (point 12).
+//     `rattacheurDeLangues` applique la règle de `code_de_langue` aux lignes LUES de ces deux
+//     tables — `diag-recette-s1` compare les deux textes.
 //
 // ⚠️ MODULE PUR : aucun import, aucun accès à la base — `diag-recette-s1` l'exécute.
 //    Une ligne HÉRITÉE (texte libre écrit avant la liste fermée) n'est jamais effacée :
 //    `nomDeLangue` la rend telle quelle, et l'écran de validation demande de la choisir.
 
-const LOCALES_DU_PRODUIT = ['fr', 'en', 'es', 'de'] as const
-
 /** Un code ISO 639-1 : deux lettres minuscules. */
 export function estCodeLangue(v: unknown): v is string {
   return typeof v === 'string' && /^[a-z]{2}$/.test(v)
 }
-
-const sansAccents = (s: string): string =>
-  s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()
 
 function nomsIntl(locale: string): Intl.DisplayNames | null {
   try {
@@ -51,35 +51,6 @@ export function nomDeLangue(valeur: string, locale: string): string {
   const nom = nomsIntl(locale)?.of(valeur)
   if (!nom || nom === valeur) return valeur
   return nom.charAt(0).toUpperCase() + nom.slice(1)
-}
-
-/** Les noms courants qu'`Intl` ne porte pas (il dit « Chinese », pas « Mandarin »). */
-const ALIAS: Readonly<Record<string, string>> = { mandarin: 'zh', farsi: 'fa' }
-
-let index: Map<string, string> | null = null
-
-/** Tous les noms connus d'une langue → son code : dans les quatre langues du produit ET dans la sienne. */
-function indexDesNoms(): Map<string, string> {
-  if (index) return index
-  const m = new Map<string, string>()
-  const lecteurs = LOCALES_DU_PRODUIT.map((l) => nomsIntl(l)).filter((x): x is Intl.DisplayNames => x !== null)
-  const a = 'a'.charCodeAt(0)
-  for (let i = 0; i < 26; i++) {
-    for (let j = 0; j < 26; j++) {
-      const code = String.fromCharCode(a + i) + String.fromCharCode(a + j)
-      const noms = lecteurs.map((d) => d.of(code)).filter((n): n is string => typeof n === 'string' && n !== code)
-      if (noms.length === 0) continue
-      const natif = nomsIntl(code)?.of(code)
-      if (natif && natif !== code) noms.push(natif)
-      for (const n of noms) {
-        const cle = sansAccents(n)
-        if (!m.has(cle)) m.set(cle, code)
-      }
-    }
-  }
-  for (const [nom, code] of Object.entries(ALIAS)) if (!m.has(nom)) m.set(nom, code)
-  index = m
-  return m
 }
 
 /** Une langue de la liste fermée, avec son nom dans la langue de l'écran. */
@@ -123,19 +94,25 @@ export function languesAEnvoyer(
   return { ok: true, lignes: retenues }
 }
 
+/** Un nom connu d'une langue, tel que la base le garde (`langues_noms` : minuscules, sans espaces autour). */
+export type NomDeLangueConnu = { nom: string; code: string }
+
+/** Le code qu'un texte désigne dans la liste fermée, ou `null` — l'appelant l'écarte et le DIT. */
+export type Rattacheur = (texte: string) => string | null
+
 /**
- * Le code d'une langue écrite par un CV ou par une ancienne saisie : un code ISO
- * (« FR », « fr ») ou un nom dans l'une des quatre langues du produit ou dans la
- * sienne. `null` si rien ne s'y rattache — l'appelant l'écarte et le DIT.
+ * LA RÈGLE DE `code_de_langue()` (migration `langues_liste_fermee`), appliquée aux lignes LUES
+ * de `langues` et `langues_noms` : le texte, en minuscules et sans espaces autour, est un code
+ * de la liste — ou un nom connu d'une langue de la liste. Rien d'autre : aucun `Intl`, aucun
+ * alias écrit ici. Une langue manque ? Elle s'ajoute EN BASE, et les deux chemins la voient.
  */
-export function codeDeLangue(texte: unknown): string | null {
-  if (typeof texte !== 'string') return null
-  const t = texte.trim()
-  if (t.length === 0) return null
-  const minuscule = t.toLowerCase()
-  if (estCodeLangue(minuscule)) {
-    const nom = nomsIntl('en')?.of(minuscule)
-    if (nom && nom !== minuscule) return minuscule
+export function rattacheurDeLangues(codes: readonly string[], noms: readonly NomDeLangueConnu[]): Rattacheur {
+  const lesCodes = new Set(codes)
+  const parNom = new Map(noms.map((n) => [n.nom, n.code] as const))
+  return (texte) => {
+    const cle = texte.trim().toLowerCase()
+    if (cle === '') return null
+    if (lesCodes.has(cle)) return cle
+    return parNom.get(cle) ?? null
   }
-  return indexDesNoms().get(sansAccents(t)) ?? null
 }

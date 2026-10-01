@@ -385,8 +385,10 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   `grand_livre/liste_validee`.
 > - **`journal_libelles`** — `libelles_journal(admin, sujets)` : le nom de chaque objet cité (compte, profil,
 >   organisation, annonce ; candidature → son annonce et son expert ; membre → son organisation et son nom), relu à
->   l'AFFICHAGE, réservée à l'administrateur (AD002), 500 sujets au plus. Un compte effacé n'a plus de nom. Test :
->   `grand_livre/liste_validee`.
+>   l'AFFICHAGE, réservée à l'administrateur (AD002), 500 sujets au plus. Un compte effacé n'a plus de nom (NULL) ; un
+>   compte qui VIT sans nom rend `''` — l'écran dit « sans nom renseigné », pas « données effacées » (relecture du
+>   01/10/2026, point 18). Test : `grand_livre/liste_validee` — les treize types d'objet, le compte sans nom, le compte
+>   effacé.
 >
 > **LA MIGRATION DE LA FUSION S1 (01/10/2026, suffixe du tronc, horodatée après la plage S1).**
 > - **`journal_photo_et_cv`** (AVANT ; deux lignes de la liste fermée, rien de restreint) — `photo_deposee` (famille
@@ -396,28 +398,32 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   administrateur ouvre le CV d'un expert. Décisions de Youssef ; les deux reprises de S1 (« Autre », langues)
 >   n'écrivent rien. Test : `grand_livre/photo_et_cv.test.sql` (6).
 >
-> **LES TROIS MIGRATIONS DE LA RECETTE S1 DU PARCOURS EXPERT (01/10/2026, plage S1 `20261001100000`–`…199999`).**
-> - **`specialite_autre_hors_referentiel`** (AVANT) — `est_specialite_autre(nom, slug)` (immuable : le mot en quatre
->   langues, seul ou avec parenthèse, ou un slug de cette forme) ; la reprise `retirer_specialites_autre()` (sort la
->   ligne « Autre » de `profiles.speciality_ids` et `publications.speciality_ids`, garde « Autre » en
->   `speciality_other` quand elle était vide, DÉSACTIVE la ligne — jamais supprimée, `profile_alerts.speciality_id`
->   peut la citer — rend ses comptes, rejouable, fermée au navigateur), appelée dans son propre bloc AVANT la
->   contrainte `specialities_autre_hors_referentiel` (`not active or not est_specialite_autre(name, slug)`). §D.40.
->   Test : `taxonomie/autre_hors_referentiel.test.sql` (14).
-> - **`langues_liste_fermee`** (AVANT) — tables `langues` (code ISO 639-1, `active`) et `langues_noms` (nom en
->   minuscules → code ; fr, en, es, de, natif, avec et sans accents ; 92 langues, 467 noms, générés depuis
->   `Intl.DisplayNames`), RLS sans politique, fermées au navigateur ; `code_de_langue(texte)` ; le déclencheur
->   `profile_languages_langue_de_la_liste` (avant insertion ou changement de `language` : hors liste active ⇒
->   `LG001`) ; la reprise `rattacher_langues_heritees()` (fond les doublons — la principale d'abord —, rattache le
->   texte libre reconnu, convertit la liste plate `profiles.languages` ; ce qu'aucun nom ne reconnaît RESTE) ;
->   `remplacer_listes_profil` remplacée à signature identique, UNE cause de plus (`LG001` → `langue_hors_liste`).
->   §D.41. Test : `profil/langues_liste_fermee.test.sql` (12) ; `listes_profil` et `analyse_cv_tolerante` passent aux
->   codes (`fr`, `en`). ⚠️ La reprise des lignes HÉRITÉES de `profile_languages` n'est prouvée par aucun test : le
->   déclencheur rend la donnée de départ infabricable par un chemin normal (§E.103).
-> - **`photo_par_le_serveur`** (INDIFFÉRENT, raison dans l'en-tête) — retire `avatars_auth_upload`, `_update`,
->   `_delete` : le bucket `avatars` ne s'écrit plus depuis le navigateur (POST /api/profile/photo, clé de service).
->   La cause du défaut (§E.101) : `avatars_private` avait retiré la LECTURE et laissé l'écriture ; un `upsert` exige
->   les deux. Contrôlé par `diag-recette-s1` 8.
+> **LES MIGRATIONS DE LA RECETTE S1 DU PARCOURS EXPERT (01/10/2026, plage S1 `20261001100000`–`…199999`) — REDÉCOUPÉES
+> PAR LA RELECTURE INDÉPENDANTE DU 01/10/2026 (§E.91).** Ce qui restreignait le code en ligne (13d1524) est parti au
+> LOT B, déployé APRÈS : le déclencheur des langues, la reprise et la contrainte « Autre », le retrait de l'écriture
+> des photos par le navigateur. Il en reste deux au lot A, qui n'ajoutent que du nouveau.
+> - **`specialite_autre_hors_referentiel`** (AVANT) — la DÉFINITION seule : `est_specialite_autre(nom, slug)` (immuable :
+>   le mot en quatre langues — « Autre », « Other », « Otra/Otro », « Andere/Sonstiges » —, seul ou avec parenthèse, ou
+>   un slug de cette forme, suffixe numérique compris). L'administration la DEMANDE avant d'écrire un nom, un slug ou
+>   une TRADUCTION (`contientAutre`, `lib/taxonomie/specialite-autre.ts` : 400 `specialite_autre_reservee`, 503
+>   `lecture_indisponible`). §D.40. Test : `taxonomie/autre_definition.test.sql` (4).
+> - **`langues_liste_fermee`** (AVANT, SANS garde) — tables `langues` (code ISO 639-1, `active`) et `langues_noms` (nom
+>   en minuscules → code ; fr, en, es, de, natif, avec et sans accents ; 92 langues, 467 noms, générés depuis
+>   `Intl.DisplayNames`), RLS sans politique, fermées au navigateur ; `code_de_langue(texte)` ; la reprise
+>   `rattacher_langues_heritees()` (fond les doublons — la principale d'abord —, rattache le texte libre reconnu,
+>   convertit la liste plate `profiles.languages` ; ce qu'aucun nom ne reconnaît RESTE) ; `remplacer_listes_profil`
+>   remplacée à signature identique, UNE cause de plus (`LG001` → `langue_hors_liste`, prête pour le lot B). La liste
+>   est AUSSI celle que lit l'analyse d'un CV (`rattacheurDeLangues`, la règle de `code_de_langue` sur les mêmes
+>   lignes — point 20 : plus de seconde liste par `Intl`). §D.41. Test : `profil/langues_liste_fermee.test.sql` (11) —
+>   la reprise des lignes HÉRITÉES y est désormais PROUVÉE, fabriquées sans déclencheur (§E.103, résolu).
+> - **`photo_par_le_serveur`** — RETIRÉE DU LOT A (relecture, point 2) : elle retire `avatars_auth_upload`, `_update`,
+>   `_delete`, et le code en ligne dépose encore la photo depuis le navigateur. Elle revient au LOT B, renumérotée
+>   après `20261002000000`, marquée APRÈS. La cause du défaut qu'elle ferme (§E.101) : `avatars_private` avait retiré la
+>   LECTURE et laissé l'écriture ; un `upsert` exige les deux. Contrôlé par `diag-recette-s1` 8 (l'état FINAL des
+>   politiques, calculé dans l'ordre des migrations : au temps 1, les trois restent).
+>
+> **LE LOT B — branche `lot/grand-livre-refus-retirees`, horodaté après `20261002000000`, TOUT marqué APRÈS.** Il se
+> pousse une fois le lot A EN LIGNE ; son contenu et ses tests sont décrits dans sa propre branche (§E.91).
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -3758,11 +3764,16 @@ son champ, et une SPÉCIALITÉ du référentiel nommée « Autre » (semée dans
 **La décision de Youssef** : une seule notion « Autre », la même à l'inscription, à la validation, dans une annonce et
 en base. **En base, « Autre » est `speciality_other`** — une précision non vide. **À l'écran, c'est l'option « Autre
 (préciser) »**, une sentinelle unique (`lib/taxonomie/specialite-autre.ts`) que les quatre écrans importent au lieu
-d'en recopier une chacun (§E.20). **Jamais une ligne du référentiel** : la migration `specialite_autre_hors_referentiel`
-reprend les profils et annonces qui en portaient une (la précision garde « Autre » si elle était vide), désactive la
-ligne, et la contrainte `specialities_autre_hors_referentiel` refuse toute spécialité ACTIVE « Autre » (création,
-renommage, réactivation) ; l'administration rend `specialite_autre_reservee` (400), dans les quatre langues.
-**Gardé par** `diag-recette-s1` 1 et `taxonomie/autre_hors_referentiel.test.sql`. **Ce qu'ils ne voient pas** : un
+d'en recopier une chacun (§E.20). **Jamais une ligne du référentiel** : UNE définition en base, `est_specialite_autre` (le
+mot en quatre langues, ou un slug de cette forme) ; l'administration la DEMANDE avant toute écriture, pour le nom, le
+slug ET chaque traduction — une traduction « Other » ou « Otra » passait (relecture du 01/10/2026, point 11) — et rend
+`specialite_autre_reservee` (400), dans les quatre langues. **EN DEUX TEMPS (§E.91)** : la reprise des profils et
+annonces qui en portaient une (la précision garde « Autre » si elle était vide), la désactivation de la ligne, la
+contrainte `specialities_autre_hors_referentiel` et la garde des traductions partent au LOT B (`specialite_autre_garde`,
+après le déploiement) — le code en ligne (13d1524) refuse une spécialité inactive. Le code du lot A, lui, la tolère :
+`/api/profile` sort une spécialité désactivée au lieu de rendre 400, et garde « Autre » en précision quand l'écran n'en
+envoie pas (la règle de la reprise). **Gardé par** `diag-recette-s1` 1 et `taxonomie/autre_definition.test.sql` (lot A),
+`taxonomie/autre_hors_referentiel.test.sql` (lot B). **Ce qu'ils ne voient pas** : un
 « Autre » écrit autrement que les mots reconnus (« Divers », « Hors catégorie ») — `est_specialite_autre` reconnaît
 le mot dans les quatre langues, pas un synonyme.
 
@@ -3774,16 +3785,23 @@ affichés tels quels sur un écran en français ; « Ajouter une langue » montr
 coché d'office.
 
 **La décision de Youssef** : le choix se fait dans une liste fermée, jamais par saisie libre. **La base garde un code
-ISO 639-1** (table `langues`, 92 langues ; un déclencheur refuse tout code hors liste, `LG001`) ; **le nom s'affiche
-dans la langue de l'écran** par `Intl.DisplayNames` (`lib/profil/langues.ts`) — les quatre langues sans une
+ISO 639-1** (table `langues`, 92 langues ; le déclencheur `LG001` qui refuse tout code hors liste part au LOT B,
+`langues_garde`, qui relance la reprise avant de le poser — le code en ligne écrit du texte libre, §E.91) ; **le nom
+s'affiche dans la langue de l'écran** par `Intl.DisplayNames` (`lib/profil/langues.ts`) — les quatre langues sans une
 traduction écrite à la main ; **un nom lu dans un CV est rattaché à son code** avant l'écriture (« French »,
 « Français », « Francés », « Französisch » → `fr`), ce qui ne se rattache pas est écarté et DIT (`langue_inconnue`).
+**UNE liste de rattachement, celle de la base** (relecture du 01/10/2026, point 20) : l'analyse lit `langues` et
+`langues_noms` avant l'appel au modèle et applique la règle de `code_de_langue()` (`rattacheurDeLangues`) — le code
+rattachait par `Intl` (tout code ISO) et la base par sa liste de 92 : « Latin » devenait `la` à l'écran, hors liste,
+montré brut (point 12). `Intl` ne sert plus qu'à NOMMER ; une ligne héritée qui serait un code hors liste se nomme
+(« la » → « Latin »).
 **Aucun niveau d'office** : « Choisir le niveau » tant que l'expert n'a rien choisi ; une langue hors liste ou sans
 niveau bloque l'enregistrement, avec son rang. **Une ligne HÉRITÉE n'est jamais effacée** : la reprise rattache ce
 qu'elle reconnaît, le reste est montré tel qu'écrit, avec la demande de le choisir. La liste vient de
 `/api/taxonomy?avec=langues`, SUR DEMANDE — l'inscription n'en dépend pas. **Gardé par** `diag-recette-s1` 3 et
-`profil/langues_liste_fermee.test.sql`. **Ce qu'ils ne voient pas** : la reprise des lignes héritées de
-`profile_languages` (§E.103) ; et ce que rend `Intl` sur le serveur de Vercel (ICU complet, NON VÉRIFIÉ).
+`profil/langues_liste_fermee.test.sql` (la reprise des lignes héritées comprise, §E.103 résolu). **Ce qu'ils ne voient
+pas** : ce que rend `Intl` sur le serveur de Vercel pour NOMMER (ICU complet, NON VÉRIFIÉ) ; une page restée ouverte
+depuis le code d'avant le lot A qui enverrait du texte libre après le lot B — refusée, nommément (`langue_hors_liste`).
 
 <a id="d42"></a>
 ### D.42 — LE STATUT DU PROFIL : UN LIBELLÉ PAR ÉTAT RÉEL, UNE COULEUR PAR ÉTAT, LE MÊME TEXTE PARTOUT (recette S1)

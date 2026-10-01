@@ -110,6 +110,13 @@ type BilanDeRecherche = {
   notifications_manquees?: number
   /** Le coût du classement ; `null` : un lot sans tarif — un coût partiel est faux (§D.24), il ne s'écrit pas. */
   cout_usd?: number | null
+  /**
+   * Les unités facturées et leur SOURCE (§D.24) : `fournisseur`, lues dans la réponse ; `plancher`, estimées au minimum
+   * facturable parce que la réponse ne les disait pas. Le coût d'une ligne se lit avec elles — relecture du 01/10/2026,
+   * point 15 : depuis que la ligne `recherche_classee` est fondue dans la fin, le coût ne disait plus s'il était mesuré.
+   */
+  recherches?: number
+  unites_source?: 'fournisseur' | 'plancher'
 }
 
 export class JournalDeRecherche {
@@ -166,6 +173,8 @@ export class JournalDeRecherche {
     this.bilan.reprises = d.reprises
     this.bilan.lots_en_echec = d.lots_en_echec
     this.bilan.cout_usd = d.facture.cout_usd
+    this.bilan.recherches = d.facture.recherches
+    this.bilan.unites_source = d.facture.source
   }
 
   /** Les correspondances : retenues, fortes, et celles qui sont NOUVELLES. */
@@ -212,6 +221,7 @@ export class JournalDeRecherche {
         issue: d.issue, raison: d.raison, tentative: b.tentative, tache: this.journal.tache,
         eligibles: b.eligibles, examinees: b.examinees, notees: b.notees, reprises: b.reprises, lots_en_echec: b.lots_en_echec,
         retenues: b.retenues, fortes: b.fortes, nouvelles: b.nouvelles, notifiees: b.notifiees, notifications_manquees: b.notifications_manquees,
+        recherches: b.recherches, unites_source: b.unites_source,
       },
       cout: this.cout(),
     })
@@ -245,6 +255,7 @@ export class JournalDeRecherche {
           tentatives: d.tentative, plafond, cause: d.cause, etape: d.etape, arret: d.arret, tache: this.journal.tache,
           eligibles: b.eligibles, examinees: b.examinees, notees: b.notees, reprises: b.reprises, lots_en_echec: lotsEnEchec,
           retenues: b.retenues, fortes: b.fortes, nouvelles: b.nouvelles, notifiees: b.notifiees, notifications_manquees: b.notifications_manquees,
+          recherches: b.recherches, unites_source: b.unites_source,
         },
         cout: this.cout(),
       })
@@ -259,6 +270,7 @@ export class JournalDeRecherche {
         etape: d.etape, cause: d.cause, tentative: d.tentative, arret: d.arret, tache: this.journal.tache,
         eligibles: b.eligibles, examinees: b.examinees, notees: b.notees, reprises: b.reprises, lots_en_echec: lotsEnEchec,
         retenues: b.retenues, fortes: b.fortes, nouvelles: b.nouvelles, notifiees: b.notifiees, notifications_manquees: b.notifications_manquees,
+        recherches: b.recherches, unites_source: b.unites_source,
       },
       cout: this.cout(),
     })

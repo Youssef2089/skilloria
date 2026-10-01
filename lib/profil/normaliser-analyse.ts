@@ -22,7 +22,7 @@
 
 import { TYPES_EXPERIENCE, estTypeExperience, type TypeExperience } from './types-experience.ts'
 import { RESUME_MAX, RESUME_MIN } from '../profile-visibility.ts'
-import { codeDeLangue } from './langues.ts'
+import type { Rattacheur } from './langues.ts'
 
 /** Un écart : ce qui a été ramené ou écarté, jamais la valeur (elle peut être personnelle). */
 export type Ecart = {
@@ -192,8 +192,11 @@ const textesDistincts = (v: unknown): string[] => {
  * LE CŒUR : l'analyse brute d'un CV (freelance ou CDI) → les formes attendues,
  * et la liste des écarts. Les champs de GOUVERNANCE et d'IDENTITÉ ne passent pas :
  * seule la liste ci-dessous sort d'ici, et la base en tient une seconde (§E.87).
+ *
+ * `rattacher` : le nom d'une langue → son code, par la liste de la BASE (`rattacheurDeLangues`,
+ * lu par l'appelant) — jamais par une seconde liste (relecture du 01/10/2026, point 20).
  */
-export function normaliserAnalyse(brut: Brut): AnalyseNormalisee {
+export function normaliserAnalyse(brut: Brut, rattacher: Rattacheur): AnalyseNormalisee {
   const ecarts: Ecart[] = []
   const profil: Record<string, unknown> = {}
 
@@ -245,7 +248,7 @@ export function normaliserAnalyse(brut: Brut): AnalyseNormalisee {
   // La liste plate suit la liste structurée : des CODES (recette du 01/10/2026, point 3). Un nom
   // que rien ne rattache n'y entre pas — l'écart est dit sur la liste structurée.
   if ('languages' in brut) {
-    profil.languages = [...new Set(textesDistincts(brut.languages).map((x) => codeDeLangue(x)).filter((c): c is string => c !== null))]
+    profil.languages = [...new Set(textesDistincts(brut.languages).map((x) => rattacher(x)).filter((c): c is string => c !== null))]
   }
   if ('certifications' in brut) profil.certifications = Array.isArray(brut.certifications) ? brut.certifications : []
   // Les codes CDI : passés tels quels ; la base écarte un code hors de sa liste (valeur_refusee).
@@ -345,7 +348,7 @@ export function normaliserAnalyse(brut: Brut): AnalyseNormalisee {
       // « Francés » deviennent `fr`, que l'écran nomme dans sa langue. Ce que rien ne
       // rattache est ÉCARTÉ et DIT — jamais écrit en texte libre. La base, elle, refuse un
       // code hors de la liste fermée (déclencheur de `profile_languages`).
-      const code = codeDeLangue(nom)
+      const code = rattacher(nom)
       if (!code) {
         ecarts.push({ bloc: 'langues', rang, champ: 'language', code: 'langue_inconnue' })
         return

@@ -9,6 +9,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 /** Les codes de POST /api/profile/photo, chacun avec son message (quatre langues). */
 const CODES_PHOTO: ReadonlySet<string> = new Set([
   'photo_absente',
+  'photo_compte_illisible',
   'photo_trop_volumineuse',
   'photo_format_refuse',
   'photo_contenu_non_conforme',
@@ -174,7 +175,12 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
       corps.append('photo', blob, 'avatar.jpg')
       const depot = await secureFetch('/api/profile/photo', { method: 'POST', body: corps })
       const recu = (await depot.json().catch(() => ({}))) as { chemin?: string; code?: string }
-      if (!depot.ok || !recu.chemin) {
+      // `journal_error` : le fichier EST déposé (la route rend son chemin), seule la ligne « photo déposée » du grand
+      // livre a été refusée. Ce n'est pas un échec pour l'expert : le rattachement au profil continue (relecture du
+      // 01/10/2026, point 7 — la fenêtre s'arrêtait là, la photo restait stockée sans être rattachée).
+      const deposee = !!recu.chemin && (depot.ok || recu.code === 'journal_error')
+      if (recu.code === 'journal_error') console.error('[avatar] photo déposée, ligne du grand livre refusée')
+      if (!deposee) {
         const code = recu.code ?? `HTTP ${depot.status}`
         console.error('[avatar] dépôt refusé', { code })
         setError(CODES_PHOTO.has(code) ? t(`errors.${code}`) : t('errors.inattendu', { code }))

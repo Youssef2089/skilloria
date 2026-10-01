@@ -1,7 +1,7 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
-import { NIVEAUX_LANGUE, type LangueProposee } from '@/lib/profil/langues'
+import { useLocale, useTranslations } from 'next-intl'
+import { NIVEAUX_LANGUE, nomDeLangue, type LangueProposee } from '@/lib/profil/langues'
 
 /**
  * LE CHOIX D'UNE LANGUE ET DE SON NIVEAU — une LISTE FERMÉE, jamais une saisie libre
@@ -13,8 +13,9 @@ import { NIVEAUX_LANGUE, type LangueProposee } from '@/lib/profil/langues'
  *    proposée deux fois ;
  *  · AUCUN niveau n'est choisi d'office : « Choisir le niveau » tant que l'expert n'a rien dit ;
  *  · une ligne HÉRITÉE (texte libre d'avant la liste fermée, qu'aucun code ne reconnaît) est
- *    montrée telle qu'elle est écrite, avec la demande de la choisir dans la liste — elle
- *    n'est jamais effacée en silence.
+ *    montrée avec la demande de la choisir dans la liste — elle n'est jamais effacée en silence.
+ *    Un CODE hors de la liste (« la ») est NOMMÉ dans la langue de l'écran (« Latin »), jamais
+ *    montré brut (relecture du 01/10/2026, point 12) ; un texte libre l'est tel qu'il est écrit.
  */
 export function ChoixLangue({
   valeur,
@@ -31,6 +32,7 @@ export function ChoixLangue({
   style: React.CSSProperties
 }) {
   const t = useTranslations('langues')
+  const locale = useLocale()
   const connue = langues.some((l) => l.code === valeur)
   const heritee = valeur.trim() !== '' && !connue
   return (
@@ -52,7 +54,7 @@ export function ChoixLangue({
       </select>
       {heritee ? (
         <span role="note" style={{ fontSize: 12, color: 'var(--sk-amber)' }}>
-          {t('heritee', { valeur })}
+          {t('heritee', { valeur: nomDeLangue(valeur, locale) })}
         </span>
       ) : null}
     </div>

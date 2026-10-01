@@ -151,9 +151,9 @@ export const CLES_DETAIL = {
   recherche_notifiee: ['demandees', 'deja_notifiees', 'posees', 'paquets_en_echec', 'renonce'],
   // LA LIGNE DE FIN D'UNE RECHERCHE porte ce que les cinq étapes fondues portaient (ARRÊT 22) : combien examinés,
   // notés, retenus, forts, nouveaux, combien de personnes prévenues — le coût est dans les colonnes de coût.
-  recherche_terminee: ['issue', 'raison', 'tentative', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees'],
-  recherche_echouee: ['etape', 'cause', 'tentative', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'lots_en_echec'],
-  recherche_abandonnee: ['tentatives', 'plafond', 'cause', 'etape', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees'],
+  recherche_terminee: ['issue', 'raison', 'tentative', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'recherches', 'unites_source'],
+  recherche_echouee: ['etape', 'cause', 'tentative', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'lots_en_echec', 'recherches', 'unites_source'],
+  recherche_abandonnee: ['tentatives', 'plafond', 'cause', 'etape', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'recherches', 'unites_source'],
   candidature_deposee: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   candidature_declinee: ['publication_id', 'has_reason'],
   candidature_retenue: ['publication_id', 'publication_type', 'profile_id'],

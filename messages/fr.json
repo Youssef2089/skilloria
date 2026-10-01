@@ -476,6 +476,7 @@
         "photo_contenu_non_conforme": "Ce fichier n’est pas une image lisible. Choisissez une autre image.",
         "photo_type_incoherent": "Ce fichier ne correspond pas au format qu’il annonce. Choisissez une autre image.",
         "pas_expert": "La photo de profil est réservée aux comptes experts.",
+        "photo_compte_illisible": "Votre profil n’a pas pu être lu : votre photo n’a pas été enregistrée. Réessayez dans quelques minutes.",
         "photo_stockage_indisponible": "Le stockage des photos ne répond pas. Votre photo n’a pas été enregistrée : réessayez dans quelques minutes.",
         "drapeau_refuse": "La photo a été déposée, mais votre profil n’a pas pu être mis à jour (code {code}). Réessayez ; si cela persiste, transmettez ce code au support.",
         "inattendu": "L’enregistrement a été refusé (code {code}). Réessayez ; si cela persiste, transmettez ce code au support.",
@@ -3477,6 +3478,7 @@
       "ecosysteme_aucun": "Aucun écosystème",
       "ouvrir_objet": "Ouvrir la fiche",
       "cout_ia": "Coût d’IA : {montant}",
+      "cout_ia_estime": "Coût d’IA estimé au minimum facturable : {montant}",
       "voir_piece": "Voir les écritures liées",
       "piece_titre": "Écritures d’un même geste",
       "piece_intro": "Un même geste peut laisser plusieurs écritures — par exemple, un compte créé et l’inscription de l’expert. Les voici toutes, avec ce que les journaux détaillés gardent pour ce geste.",
@@ -4372,7 +4374,9 @@
     "deja_couvert": "Déjà couvert par {zone}",
     "deja_choisi": "Déjà choisi",
     "selection_label": "Votre sélection",
-    "retirer": "Retirer {zone}"
+    "retirer": "Retirer {zone}",
+    "zone_retiree": "Zone qui n’est plus proposée",
+    "aucun_pays_couvert": "Aucun pays couvert : retirez la zone qui n’est plus proposée et choisissez où vous travaillez"
   },
   "matching_badge": {
     "strong": "Correspondance forte",
@@ -5154,6 +5158,12 @@
       "expert": "(compte effacé)",
       "membre": "(compte effacé)"
     },
+    "designe_sans_nom": {
+      "users": "un compte sans nom renseigné",
+      "profiles": "un profil sans nom renseigné",
+      "expert": "(nom non renseigné)",
+      "membre": "(nom non renseigné)"
+    },
     "designe_inconnu": {
       "users": "un compte",
       "profiles": "un profil",
@@ -5249,8 +5259,8 @@
       },
       "travail_ia_relance": "{qui} a relancé {nature} pour {profil}, qui avait échoué : {code}.",
       "recherche_terminee": {
-        "ok_annonces": "{qui} a lancé {recherche} : {examinees, plural, =0 {aucune annonce examinée} one {# annonce examinée} other {# annonces examinées}}, {retenues, plural, =0 {aucune retenue} one {# retenue} other {# retenues}}, dont {nouvelles, plural, =0 {aucune nouvelle} one {# nouvelle} other {# nouvelles}} ; {notifiees, plural, =0 {aucune notification envoyée} one {# notification envoyée} other {# notifications envoyées}}.",
-        "ok_profils": "{qui} a lancé {recherche} : {examinees, plural, =0 {aucun profil examiné} one {# profil examiné} other {# profils examinés}}, {retenues, plural, =0 {aucun retenu} one {# retenu} other {# retenus}}, dont {nouvelles, plural, =0 {aucun nouveau} one {# nouveau} other {# nouveaux}} ; {notifiees, plural, =0 {aucune notification envoyée} one {# notification envoyée} other {# notifications envoyées}}.",
+        "ok_annonces": "{qui} a lancé {recherche} : {examinees, plural, =0 {aucune annonce examinée} one {# annonce examinée} other {# annonces examinées}}, {retenues, plural, =0 {aucune retenue} one {# retenue} other {# retenues}}, dont {fortes, plural, =0 {aucune forte} one {# forte} other {# fortes}} ; {notifiees, plural, =0 {aucune notification envoyée} one {# notification envoyée} other {# notifications envoyées}}.",
+        "ok_profils": "{qui} a lancé {recherche} : {examinees, plural, =0 {aucun profil examiné} one {# profil examiné} other {# profils examinés}}, {retenues, plural, =0 {aucun retenu} one {# retenu} other {# retenus}}, dont {fortes, plural, =0 {aucun fort} one {# fort} other {# forts}} ; {notifiees, plural, =0 {aucune notification envoyée} one {# notification envoyée} other {# notifications envoyées}}.",
         "ok_simple": "{qui} a lancé {recherche}, qui s’est terminée normalement.",
         "vivier_vide_annonces": "{qui} a lancé {recherche} : aucune annonce ouverte ne pouvait lui correspondre.",
         "vivier_vide_profils": "{qui} a lancé {recherche} : aucun profil disponible ne pouvait lui correspondre.",
@@ -5404,7 +5414,9 @@
         "modification": "{qui} a modifié {ecosysteme} : {changements}.",
         "simple": "{qui} a modifié {ecosysteme}.",
         "activation": "{qui} a ouvert {ecosysteme} : les organisations peuvent y entrer.",
+        "activation_et_modification": "{qui} a ouvert {ecosysteme} aux organisations, et a modifié {changements}.",
         "desactivation": "{qui} a fermé {ecosysteme} aux organisations.",
+        "desactivation_et_modification": "{qui} a fermé {ecosysteme} aux organisations, et a modifié {changements}.",
         "visuel_depose": "{qui} a déposé {visuel} pour {ecosysteme}.",
         "visuel_retire": "{qui} a retiré {visuel} pour {ecosysteme}.",
         "adresse": "{qui} a changé l’adresse web pour {ecosysteme} : « {avant} » devient « {apres} ».",
@@ -6089,7 +6101,7 @@
       "in_discussion": "Les candidatures pour lesquelles l’entreprise a ouvert un échange avec vous.",
       "awaiting": "Les candidatures envoyées que l’entreprise n’a pas encore traitées.",
       "retained": "Les candidatures que l’entreprise a acceptées.",
-      "daily_rate": "Votre taux journalier, en fourchette. Il est montré aux entreprises et sert à vous proposer des missions dans votre budget.",
+      "daily_rate": "Votre taux journalier, en fourchette. Les organisations le voient avec chacune de vos candidatures ; il ne sert pas à choisir les missions qui vous sont proposées.",
       "availability": "Indique si vous recevez de nouvelles missions. « Ne pas déranger » suspend les propositions sans masquer votre profil.",
       "completion": "La part des informations de votre profil qui sont renseignées. Un profil complet reçoit des missions qui lui correspondent mieux.",
       "recommended_missions": "Les missions que notre moteur juge proches de votre profil : branche, spécialités, zones de travail et séniorité.",

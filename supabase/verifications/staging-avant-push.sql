@@ -37,33 +37,21 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- Ce push (la recette staging, 30/09/2026) : TROIS migrations — journal_inscription_distincte (remplace
-  -- handle_new_user À SIGNATURE IDENTIQUE, élargit deux listes blanches : rien de « créé »), appliquer_analyse_cv_retiree
-  -- (la troisième étape de §E.72 : le code déployé depuis dbd028e ne l'appelle plus), joignabilite_du_site.
+  -- CE PUSH, LE LOT A (relecture du 01/10/2026) : staging est à jour jusqu'à joignabilite_du_site (ARRÊT 20, déployé le
+  -- 01/10). Six migrations — grand_livre_liste_validee, ecritures_sur_vrai_changement, conservation_propositions,
+  -- journal_libelles (ARRÊT 22), langues_liste_fermee SANS sa garde (recette S1), journal_photo_et_cv (fusion S1). AUCUNE
+  -- ne supprime de signature, AUCUNE ne refuse un geste du code en ligne (diag-deux-temps). Ce qui refuse part au lot B
+  -- (le refus GL006, la garde des langues, la contrainte « Autre », l'écriture des photos par le navigateur), après.
   prochain_push_retire(signature) as (
-    select unnest(array['public.appliquer_analyse_cv(uuid, jsonb, jsonb, jsonb, jsonb)']::text[])
+    select unnest(array[]::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
-  -- + les TROIS migrations de la recette S1 (01/10/2026, plage S1) : specialite_autre_hors_referentiel,
-  -- langues_liste_fermee (remplace aussi remplacer_listes_profil À SIGNATURE IDENTIQUE : rien de « créé »),
-  -- photo_par_le_serveur (ne retire que des politiques de storage.objects : rien de « créé »).
-  -- + les QUATRE migrations du grand livre lisible (ARRÊT 22 / 22 bis, plage du tronc) : grand_livre_liste_validee (une
-  -- colonne, des lignes, journaliser_reglage À SIGNATURE IDENTIQUE : rien de « créé » au sens de cette liste),
-  -- ecritures_sur_vrai_changement (+ se_desabonner_email), conservation_propositions, journal_libelles ; et
-  -- journal_photo_et_cv (fusion S1 : deux lignes de la liste fermée, rien de « créé »). Ajoutées par le lot fusionné
-  -- en second (la fusion de S1, 01/10/2026).
+  -- Des fonctions REDÉFINIES à signature identique (journaliser_reglage, envoyer_message, verifier_telephone,
+  -- effacer_adresses_ip, constater_avertissement_inactivite, poser_verdict_verification, remplacer_listes_profil) et des
+  -- lignes (actions, propositions, langues) ne sont pas « créées » au sens de cette liste.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'cron_joignabilite'),
-      ('fonction', 'est_specialite_autre'),
-      ('fonction', 'retirer_specialites_autre'),
-      ('contrainte', 'specialities_autre_hors_referentiel'),
-      ('table', 'langues'),
-      ('table', 'langues_noms'),
-      ('fonction', 'code_de_langue'),
-      ('fonction', 'profile_languages_langue_de_la_liste'),
-      ('fonction', 'rattacher_langues_heritees'),
       ('fonction', 'se_desabonner_email'),
       ('fonction', 'appliquer_proposition_conservation'),
       ('fonction', 'libelles_journal'),
@@ -71,7 +59,12 @@ with
       ('contrainte', 'gl_conservation_proposee_plancher'),
       ('contrainte', 'gl_conservation_proposee_duree'),
       ('contrainte', 'gl_conservation_proposee_au_dessus'),
-      ('contrainte', 'gl_conservation_proposee_journal')
+      ('contrainte', 'gl_conservation_proposee_journal'),
+      ('table', 'langues'),
+      ('table', 'langues_noms'),
+      ('fonction', 'code_de_langue'),
+      ('fonction', 'rattacher_langues_heritees'),
+      ('fonction', 'est_specialite_autre')
     ) v(genre, nom)
   )
 
@@ -84,7 +77,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'listes_profil_atomiques',
+   'joignabilite_du_site',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 
