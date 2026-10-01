@@ -4420,7 +4420,9 @@ reprise doit-elle passer AVANT la garde, dans une migration séparée, pour rest
 
 **RÉSOLU par la relecture du 01/10/2026 (§E.91).** La garde est partie au lot suivant (`langues_garde`, déployé
 après) pour une autre raison — le code en ligne écrit du texte libre — et la réponse à la question est venue avec :
-sans déclencheur, le test fabrique les lignes héritées par le chemin normal, et la reprise est PROUVÉE
+sans déclencheur, les lignes héritées se fabriquent — au rejeu du lot B (ARRÊT 25), la garde présente, le test les
+fabrique en reproduisant la fenêtre : la garde désactivée pour cette seule insertion, dans la transaction annulée,
+rétablie et vérifiée aussitôt (exception NOMMÉE à §G.4 ter, décision de Youssef) — et la reprise est PROUVÉE
 (`profil/langues_liste_fermee.test.sql`, C : « French » et « Français » d'un même profil fondus en un `fr`, la
 principale gardée ; « Klingon » laissé ; une liste plate convertie ; un second passage ne fait rien). Le lot B
 relance la même reprise AVANT de poser la garde, pour les lignes écrites entre-temps.

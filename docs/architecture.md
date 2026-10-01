@@ -416,8 +416,9 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   convertit la liste plate `profiles.languages` ; ce qu'aucun nom ne reconnaît RESTE) ; `remplacer_listes_profil`
 >   remplacée à signature identique, UNE cause de plus (`LG001` → `langue_hors_liste`, prête pour le lot B). La liste
 >   est AUSSI celle que lit l'analyse d'un CV (`rattacheurDeLangues`, la règle de `code_de_langue` sur les mêmes
->   lignes — point 20 : plus de seconde liste par `Intl`). §D.41. Test : `profil/langues_liste_fermee.test.sql` (11) —
->   la reprise des lignes HÉRITÉES y est désormais PROUVÉE, fabriquées sans déclencheur (§E.103, résolu).
+>   lignes — point 20 : plus de seconde liste par `Intl`). §D.41. Test : `profil/langues_liste_fermee.test.sql` (12, état
+>   final) — la reprise des lignes HÉRITÉES y est PROUVÉE, fabriquées comme pendant la fenêtre du lot A : la garde
+>   désactivée pour cette seule insertion, puis rétablie et vérifiée (exception nommée à §G.4 ter, §E.103).
 > - **`photo_par_le_serveur`** — RETIRÉE DU LOT A (relecture, point 2) : elle retire `avatars_auth_upload`, `_update`,
 >   `_delete`, et le code en ligne dépose encore la photo depuis le navigateur. Elle revient au LOT B, renumérotée
 >   après `20261002000000`, marquée APRÈS. La cause du défaut qu'elle ferme (§E.101) : `avatars_private` avait retiré la

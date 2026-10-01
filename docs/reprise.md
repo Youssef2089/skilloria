@@ -57,6 +57,56 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
+## ⛔ ARRÊT 25 — LE REJEU LOCAL DU LOT B : CINQ ROUGES DANS UN SEUL TEST, CORRIGÉ (01/10/2026)
+
+Le lot B est fusionné en local dans `feat/sprint-archi-orga` (tête `2450c6f`), rien n'est poussé. `db reset` et `db lint`
+passent ; `test db` : 637 tests, **5 rouges, tous dans `profil/langues_liste_fermee.test.sql`** (4 et 5 meurent sur
+`LG001` / `LP001 langue_hors_liste`, 6, 7 et 10 tombent à leur suite). Déploiement du lot B suspendu.
+
+**Lu** : le test ; `langues_garde` ; les contraintes réelles de `profile_languages` (baseline : `language` varchar 50 NOT
+NULL, `level` A1–C2 ou native, unique `(profile_id, language)`, clé vers `profiles` en cascade ; un seul déclencheur,
+celui du lot B) ; CHAQUE écrivain de `profile_languages` dans le code du lot A (`cf2fdd3`, en ligne) ;
+`diag-tests-grand-livre` (la règle « jamais un trigger désactivé » et son périmètre).
+
+### 1. La cause — confirmée : le test décrivait la fenêtre du lot A, pas un geste du code en ligne
+Le fichier prouvait l'état du LOT A : sa section B AFFIRMAIT que le texte libre est accepté (insertion directe, et
+`remplacer_listes_profil` avec « English »), et sa section C fabriquait ses lignes héritées par ce même chemin. Le lot B
+pose la garde : ces insertions meurent, et la reprise n'a plus rien à reprendre. Le lot B avait mis à jour les trois
+tests du grand livre pour la même raison (GL006), pas celui-ci — §E.91, à l'envers : le second temps qui oublie un test
+du premier.
+
+**La garde ne refuse RIEN de ce que le code du lot A écrit** — vérifié écrivain par écrivain :
+- `/api/profile` → `remplacer_listes_profil` : seuls les deux écrans de validation envoient `languages_structured`, et
+  ils l'ont passé par `languesAEnvoyer(…, codes de la liste ACTIVE servie par /api/taxonomy)` — une ligne hors liste
+  BLOQUE l'envoi, avec son rang (lot A) ;
+- l'analyse d'un CV (`terminer_analyse_cv` → `ecrire_analyse_cv`) : les langues sont rattachées par
+  `rattacheurDeLangues` sur les lignes LUES de `langues` et `langues_noms` — un code de la table, ou rien ; les 92
+  codes sont actifs et aucune migration n'en désactive (angle étroit, dit : un code DÉSACTIVÉ à la main serait encore
+  proposé par l'analyse et refusé par la garde) ;
+- tout le reste (« Mon profil », `useCdiProfile`, réactivation, visibilité, fiche admin, vérification) LIT ; la
+  réinitialisation du CV SUPPRIME. La liste plate `profiles.languages` n'est pas gardée.
+**Pas de bloquant** : c'est le test, pas le déploiement.
+
+### 2. Le test, avant et après (`profil/langues_liste_fermee.test.sql`, 11 → 12 assertions)
+| Avant (état du lot A) | Après (état final, lot B compris) |
+|---|---|
+| A. 1 à 3 — la liste, le rattachement, l'inconnu | **inchangées** |
+| B4. « un nom en texte libre est ACCEPTÉ à l'insertion » | **remplacée** : « un nom en texte libre est REFUSÉ à l'insertion (LG001) » |
+| B5. « remplacer_listes_profil accepte le texte libre (« English ») » | **remplacée** : « remplacer_listes_profil écrit les CODES de la liste (en, fr) — ce que le code du lot A envoie passe la garde » (troisième profil, pour ne pas toucher la section C) |
+| C. lignes héritées fabriquées par une insertion libre | fabriquées **comme pendant la fenêtre** : la garde DÉSACTIVÉE pour cette seule insertion, dans la transaction annulée, RÉACTIVÉE aussitôt |
+| — | **ajoutée** : « la garde est RÉTABLIE : le texte libre est de nouveau refusé » (LG001) — la preuve que la parenthèse est refermée |
+| C6 à C11 — fonte French/Français en un `fr` principal, « Klingon » laissé, « English » → `en`, liste plate, rejeu nul, `non_reconnues`, fermeture au navigateur | **inchangées**, mêmes valeurs attendues |
+Aucune assertion n'est affaiblie ; aucune migration, aucun code de l'application ne change.
+
+**L'exception à §G.4 ter (« jamais un trigger désactivé ») est NOMMÉE dans l'en-tête du test** — décision de Youssef
+(01/10/2026) : une ligne héritée est par définition ce que la garde refuse, et ne se fabrique qu'en reproduisant la
+fenêtre ; sans cela, §E.103 revient. `diag-tests-grand-livre` ne vérifie la forme que des tests de `grand_livre/`
+(mesuré) : ce fichier n'y entre pas, et la règle n'est pas assouplie pour eux.
+
+### 3. Le nombre de tests attendu
+**638** (60 fichiers) sur `feat/sprint-archi-orga` fusionnée : 637 + 1. Les étapes de l'ARRÊT 24 (étape 5) valent avec
+ce nombre.
+
 ## ⛔ ARRÊT 24 — LA RELECTURE INDÉPENDANTE : FEU ROUGE, LES 22 POINTS CORRIGÉS, LE LOT A ET LE LOT B REBÂTIS (01/10/2026)
 
 Tag local `sauvegarde-avant-relecture` sur `8e68599` (tête de l'ARRÊT 23) ; l'ancien lot B gardé sous
