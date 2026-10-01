@@ -70,6 +70,43 @@ export async function cvTeleverse(
  * (approuvé, ou déféré à un humain), `compte_valide` / `compte_refuse` quand un
  * administrateur arbitre.
  */
+/**
+ * LA PHOTO DÉPOSÉE (fusion de la recette S1, décision de Youssef, 01/10/2026) — à CHAQUE dépôt, remplacement compris.
+ * Le chemin du fichier est dérivé du compte et ne change jamais : « Profil modifié » ne verrait pas un remplacement
+ * (ARRÊT 22 : une ligne seulement si une valeur change). Or une photo remplacée change ce qu'une organisation voit après
+ * dévoilement (§D.4, §D.5). Le détail dit seulement si une photo existait déjà.
+ */
+export async function photoDeposee(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string; remplacement: boolean },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'photo_deposee',
+    statut: 'reussi',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: { remplacement: args.remplacement },
+  })
+}
+
+/**
+ * LE CV CONSULTÉ PAR UN ADMINISTRATEUR (fusion de la recette S1, décision de Youssef, 01/10/2026) — LA SEULE
+ * consultation qui s'écrit : un accès du personnel à une donnée personnelle. Écrite quand le lien est signé ; l'appelant
+ * ne rend aucun lien si elle échoue. Détail vide : ni chemin, ni nom de fichier.
+ */
+export async function cvConsulte(
+  admin: SupabaseClient,
+  journal: ContexteJournal,
+  args: { profileId: string },
+): Promise<void> {
+  await journaliserDans(admin, journal, {
+    type: 'cv_consulte',
+    statut: 'reussi',
+    sujet: { type: 'profiles', id: args.profileId },
+    detail: {},
+  })
+}
+
 export async function profilPublie(
   admin: SupabaseClient,
   journal: ContexteJournal,

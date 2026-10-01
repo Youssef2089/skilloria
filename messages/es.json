@@ -5052,7 +5052,9 @@
       "verification_conclue": "Verificación concluida",
       "travail_ia_echoue": "Trabajo de IA abandonado",
       "travail_ia_relance": "Trabajo de IA relanzado",
-      "desabonnement_email": "Baja de un correo"
+      "desabonnement_email": "Baja de un correo",
+      "photo_deposee": "Foto de perfil subida",
+      "cv_consulte": "CV abierto por un administrador"
     },
     "familles": {
       "annonce": "Anuncios",
@@ -5098,7 +5100,7 @@
       "organisation": "Las invitaciones, los miembros, sus funciones y la ficha de las organizaciones.",
       "commerce": "Los pagos recibidos, los eventos de pago y los límites de gasto alcanzados.",
       "administration": "Los ajustes modificados por un administrador, las tareas lanzadas a mano, los espacios y las listas de oficios.",
-      "rgpd": "Los borrados de datos personales: cuentas borradas, direcciones IP borradas, bajas de correos.",
+      "rgpd": "Los borrados de datos personales (cuentas, direcciones IP), las bajas de correos y cada apertura del CV de un experto por un administrador.",
       "journal": "Las limpiezas del propio registro.",
       "refus": "Las acciones rechazadas por la plataforma y el motivo."
     },
@@ -5450,7 +5452,14 @@
       "refus_expert_inapte": "{qui} no ha podido presentar una candidatura: {raison} (entrada antigua).",
       "refus_garde_eligibilite": "{qui} no ha podido presentar una candidatura: no se cumplían las condiciones (entrada antigua).",
       "refus_quota_cv": "{qui} no ha podido hacer analizar su CV: se había alcanzado el número de análisis permitido (entrada antigua).",
-      "refus_recherche_en_cours": "{qui}: una búsqueda se ha descartado porque ya había otra en curso para el mismo perfil (entrada antigua)."
+      "refus_recherche_en_cours": "{qui}: una búsqueda se ha descartado porque ya había otra en curso para el mismo perfil (entrada antigua).",
+      "photo_deposee": {
+        "depot_soi": "{qui} ha subido su foto de perfil.",
+        "remplacement_soi": "{qui} ha sustituido su foto de perfil: las organizaciones con acceso a sus datos de contacto ven la nueva.",
+        "depot_autre": "{qui} ha subido una foto de perfil para {profil}.",
+        "remplacement_autre": "{qui} ha sustituido la foto de perfil para {profil}."
+      },
+      "cv_consulte": "{qui} ha abierto, en solo lectura, el CV subido para {profil}."
     },
     "valeurs": {
       "inconnu": "otro dato",

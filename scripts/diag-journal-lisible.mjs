@@ -153,6 +153,7 @@ function valeursDe(action, cle) {
     case 'model': return ['claude-haiku-4-5', 'rerank-v3.5']
     case 'target_role': return [...D.valeur_reglage]
     case 'origine_depot': return ['expert', 'relance_admin']
+    case 'remplacement': return [true, false]
     case 'avant': case 'apres': return reglagesFabriques(cle)
     case 'echeance': case 'echeance_purge': case 'recu_le': case 'expires_at': case 'published_at': return ['2026-11-30T10:00:00Z']
     case 'publication_id': return [PUB]
@@ -184,7 +185,7 @@ const SUJETS = {
   administration: ['duree_reglages', 'ai_model_tarifs', 'ai_spend_caps', 'ai_spend_seuils_acteur', 'ai_quotas', 'matching_settings',
     'verification_providers', 'packages_default', 'grand_livre_conservation', 'blocked_email_domains', 'public_email_domains',
     'packages', 'organizations', 'packages_stripe', 'branches', 'specialities', 'domains', 'users', 'cron_job', 'profiles'],
-  rgpd: ['users', 'cron_job'], journal: [null], refus: ['candidature_depots', 'profiles', 'publications', null],
+  rgpd: ['users', 'cron_job', 'profiles'], journal: [null], refus: ['candidature_depots', 'profiles', 'publications', null],
 }
 const FAMILLE_DE = (() => {
   // La famille de chaque action, lue dans la migration du socle (la base fait foi).

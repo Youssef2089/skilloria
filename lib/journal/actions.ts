@@ -93,6 +93,9 @@ export const ACTIONS_JOURNAL = [
   'refus_recherche_en_cours',
   // le désabonnement d'un e-mail — un changement de consentement (ARRÊT 22, migration grand_livre_liste_validee)
   'desabonnement_email',
+  // Fusion de la recette S1 (01/10/2026, décisions de Youssef) : le dépôt d'une photo, et la consultation d'un CV par un
+  // administrateur — la seule consultation qui s'écrit (un accès du personnel à une donnée personnelle).
+  'photo_deposee', 'cv_consulte',
 ] as const
 
 export type TypeAction = (typeof ACTIONS_JOURNAL)[number]
@@ -264,4 +267,6 @@ export const CLES_DETAIL = {
   refus_recherche_en_cours: ['tache'],
   // L'événement dont l'e-mail est coupé, et le canal — jamais l'adresse (ARRÊT 22).
   desabonnement_email: ['evenement', 'canal'],
+  photo_deposee: ['remplacement'],
+  cv_consulte: [], // AUCUN détail : ni chemin, ni nom de fichier — le fait, l'administrateur, le profil.
 } as const satisfies Record<TypeAction, readonly string[]>

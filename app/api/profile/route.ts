@@ -727,7 +727,9 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // `visible` (la publication a sa ligne) et hors le champ de disponibilité (la
   // bascule a la sienne). Rien à écrire si le geste n'était que l'un des deux.
   const champDispo = CHAMP_DISPONIBILITE[isCdi ? 'expert_cdi' : 'expert_freelance']
-  const champsModifies = champsReellementModifies.filter((k) => k !== 'visible' && k !== champDispo)
+  // Une photo DÉPOSÉE a sa propre ligne, `photo_deposee` (POST /api/profile/photo, remplacement compris) : `photo_url`
+  // n'est nommée ici que si la photo est RETIRÉE (null) — une ligne lisible par geste, pas deux (fusion S1, 01/10/2026).
+  const champsModifies = champsReellementModifies.filter((k) => k !== 'visible' && k !== champDispo && !(k === 'photo_url' && patch.photo_url != null))
   if (champsModifies.length > 0 || blocsModifies.length > 0) {
     try {
       await profilModifie(supabaseAdmin, journal, { profileId: cp.id, champs: champsModifies, blocs: blocsModifies })

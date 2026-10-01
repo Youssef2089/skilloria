@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 01/10/2026 (ARRÊT 22 bis — le refus des actions retirées découpé en deux déploiements).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 01/10/2026 (ARRÊT 23 — la fusion du lot S1, avec les décisions de Youssef).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,56 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 23 — LA FUSION DU LOT S1 DANS `feat/sprint-archi-orga`, AVEC LES DÉCISIONS DE YOUSSEF (01/10/2026)
+
+Tag local `sauvegarde-avant-fusion-s1` sur `4f951cf` (tête de l'ARRÊT 22 bis), arbre propre (hormis `supabase/snippets/`).
+**Lu** : `docs/reprise-s1.md` sur `s1/corrections-recette` (`27c666e`, `fe539dd`) — ses consignes de fusion ; les deux routes
+de S1 qui touchent le grand livre (`POST /api/profile/photo`, `POST /api/admin/lien-cv/[id]`) ; les contraintes de
+`grand_livre_actions` (forme du code, famille, `libelle_key` non nul, `cles_detail`) et de `notification_preferences`
+(RLS active, AUCUNE politique) dans les migrations.
+
+### 1. La fusion — refaite contre la tête actuelle (`4f951cf`), pas contre `7f5ce13`
+Quatre conflits, ceux qu'annonçait S1, tous résolus en gardant les deux côtés (commit `bfc04e2`) :
+| Fichier | Résolution |
+|---|---|
+| `app/api/admin/update-speciality/route.ts` | les DEUX imports (`changementsTaxonomie` de l'ARRÊT 22, `estRefusAutre` de S1) ; le corps fusionne seul : la relecture avant l'écriture, puis le refus « Autre » sur l'erreur de mise à jour |
+| `CLAUDE.md` | D.31 de S1 (l'amendement du 01/10), D.32 et D.33 du principal, « D.34 à D.39 réservées », D.40 à D.44 de S1 ; l'index E.90 puis E.100 à E.105 ; le nombre de migrations (179, puis 180 avec la migration ci-dessous) |
+| `docs/architecture.md` | les quatre migrations du grand livre lisible PUIS les trois de S1 ; D.33 PUIS la note de numérotation et D.40 à D.44 |
+| `docs/pieges.md` | E.90 PUIS la note de numérotation et E.100 à E.105 ; le décompte des migrations de données MESURÉ (79 vues, 66 analysées, 3 354 valeurs sur 180) |
+`messages/*.json` (union, JSON valides), `app/api/profile/route.ts`, `docs/produit.md`, `scripts/diag-tests-grand-livre.mjs` :
+fusionnés seuls.
+
+### 2. Les décisions de Youssef — deux actions ajoutées (migration `journal_photo_et_cv`, AVANT)
+- **`photo_deposee`** (famille profil, clé `remplacement`) : `POST /api/profile/photo` l'écrit à CHAQUE dépôt, remplacement
+  compris, après le fichier posé ; un refus du journal se dit (`journal_error`). « Profil modifié » ne nomme plus `photo_url`
+  quand une photo est déposée — une ligne lisible, pas deux ; un retrait de photo y reste. Phrase : « Mehdi Ben ayed a
+  remplacé sa photo de profil : les organisations qui ont accès à ses coordonnées voient la nouvelle. »
+  **`diag-routes-tracees` repasse au vert** (67 routes qui écrivent, 59 tracées, 8 exclues).
+- **`cv_consulte`** (famille rgpd, détail vide) : `POST /api/admin/lien-cv/[id]` l'écrit APRÈS la signature et AVANT le lien ;
+  un journal qui refuse ne rend AUCUN lien ; un CV absent ou un stockage en panne n'écrit rien. La seule consultation qui
+  s'écrit. Phrase : « Youssef Cherif a ouvert, en lecture seule, le CV déposé pour le profil de Mehdi Ben ayed. »
+- Les deux reprises de données de S1 (« Autre », langues) **n'écrivent rien** (aucune ligne ajoutée).
+- **La liste des 92 langues** : acceptée comme point de départ. **Elle ne se règle PAS dans l'admin** aujourd'hui : seul
+  `/api/taxonomy` la LIT ; une langue s'ajoute ou se désactive en base (`langues`, ses noms dans `langues_noms`). Rien
+  construit dans ce lot.
+- Gardé par : `diag-grand-livre` (D bis : un écrivain chacune ; D ter : trois ancres neuves), `diag-journal-lisible` (les
+  phrases dans les quatre langues), `diag-recette-s1` (sa garde de la route photo, précisée : la route LIT le profil, ne
+  l'écrit pas, et écrit « photo déposée »), test pgTAP `grand_livre/photo_et_cv.test.sql` (6).
+
+### 3. La requête d'avant-push — mise à jour par ce lot, fusionné en second
+`prochain_push_cree` : les neuf objets de S1 + les huit de l'ARRÊT 22 (`se_desabonner_email`, `appliquer_proposition_conservation`,
+`libelles_journal`, `grand_livre_conservation_proposee`, ses quatre contraintes). `journal_photo_et_cv` ne crée rien de cette
+liste (deux lignes). Invariant ⑧ : `notification_preferences` ajoutée (aucune politique dans les migrations : attendu 0).
+⓪ inchangé (`listes_profil_atomiques`). **`diag-requete-staging` et `diag-portes-laterales` : verts.**
+
+### 4. Le lot B
+Rebasé sur la branche fusionnée ; sa migration **renumérotée** `20261002000010_grand_livre_refus_des_retirees` — après toutes
+celles de S1 (`20261001100000`–`…100020`) et après `journal_photo_et_cv` (`20261002000000`). Toujours à déployer APRÈS le lot A.
+
+### Le nombre de tests de base attendu
+**599** sur la branche fusionnée (58 fichiers) : 567 du principal + 26 de S1 + 6 de `photo_et_cv`. Le lot B n'en ajoute pas
+(il change trois attentes) : **599** aussi.
 
 ## ⛔ ARRÊT 22 bis — LE REFUS DES ACTIONS RETIRÉES, EN DEUX DÉPLOIEMENTS (01/10/2026)
 

@@ -48,6 +48,11 @@ with
   -- + les TROIS migrations de la recette S1 (01/10/2026, plage S1) : specialite_autre_hors_referentiel,
   -- langues_liste_fermee (remplace aussi remplacer_listes_profil À SIGNATURE IDENTIQUE : rien de « créé »),
   -- photo_par_le_serveur (ne retire que des politiques de storage.objects : rien de « créé »).
+  -- + les QUATRE migrations du grand livre lisible (ARRÊT 22 / 22 bis, plage du tronc) : grand_livre_liste_validee (une
+  -- colonne, des lignes, journaliser_reglage À SIGNATURE IDENTIQUE : rien de « créé » au sens de cette liste),
+  -- ecritures_sur_vrai_changement (+ se_desabonner_email), conservation_propositions, journal_libelles ; et
+  -- journal_photo_et_cv (fusion S1 : deux lignes de la liste fermée, rien de « créé »). Ajoutées par le lot fusionné
+  -- en second (la fusion de S1, 01/10/2026).
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
       ('fonction', 'cron_joignabilite'),
@@ -58,7 +63,15 @@ with
       ('table', 'langues_noms'),
       ('fonction', 'code_de_langue'),
       ('fonction', 'profile_languages_langue_de_la_liste'),
-      ('fonction', 'rattacher_langues_heritees')
+      ('fonction', 'rattacher_langues_heritees'),
+      ('fonction', 'se_desabonner_email'),
+      ('fonction', 'appliquer_proposition_conservation'),
+      ('fonction', 'libelles_journal'),
+      ('table', 'grand_livre_conservation_proposee'),
+      ('contrainte', 'gl_conservation_proposee_plancher'),
+      ('contrainte', 'gl_conservation_proposee_duree'),
+      ('contrainte', 'gl_conservation_proposee_au_dessus'),
+      ('contrainte', 'gl_conservation_proposee_journal')
     ) v(genre, nom)
   )
 
@@ -148,7 +161,7 @@ from (values
        and p.tablename in ('ai_model_tarifs', 'ai_quotas', 'ai_spend_caps', 'ai_spend_seuils_acteur', 'audit_logs', 'blocked_email_domains',
                            'candidature_depots', 'candidatures', 'conversations', 'cron_run_log', 'duree_reglages',
                            'grand_livre', 'grand_livre_actions', 'grand_livre_conservation', 'matches',
-                           'matching_settings', 'messages', 'organization_invitations', 'organization_members',
+                           'matching_settings', 'messages', 'notification_preferences', 'organization_invitations', 'organization_members',
                            'organizations', 'packages', 'profiles', 'public_email_domains', 'publications', 'session_logs', 'stripe_events',
                            'transactions', 'travaux_ia', 'users', 'verification_providers'))),
 

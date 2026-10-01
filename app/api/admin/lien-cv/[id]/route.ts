@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { signerLienCv, DUREE_LIEN_CV_SECONDES } from '@/lib/profil/lien-cv'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { cvConsulte } from '@/lib/profil/journal-profil'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -23,9 +26,12 @@ export const dynamic = 'force-dynamic'
  *   404 { code: 'not_found' }   aucun profil sous cet identifiant
  *   503 { code: 'lien_cv_indisponible' }  le stockage ou la base n'a pas répondu — à réessayer
  *
- * ⚠️ AUCUNE ÉCRITURE ICI. Une consultation de CV par un administrateur n'est pas
- *    journalisée : le grand livre appartient à un autre lot, et l'écriture qu'elle
- *    mériterait est signalée dans le livrable de la recette (docs/reprise-s1.md).
+ *   500 { code: 'journal_error' }         la ligne du grand livre a été refusée — AUCUN lien rendu
+ *
+ * LE GRAND LIVRE (fusion de la recette S1, décision de Youssef, 01/10/2026) : ouvrir le CV d'un expert est LA SEULE
+ * consultation qui s'écrit — un accès du personnel à une donnée personnelle (`cv_consulte`, détail vide). La ligne
+ * s'écrit quand le lien est signé ; si elle est refusée, le lien n'est pas rendu (il expire seul en une minute) :
+ * pas de lecture sans trace. Un CV absent ou un stockage en panne n'est pas une consultation : rien ne s'écrit.
  */
 
 function json(data: unknown, status = 200): Response {
@@ -47,6 +53,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     throw err
   }
 
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
   const { id } = await ctx.params
   if (!id || !UUID_REGEX.test(id)) {
     return json({ error: 'Invalid id', code: 'invalid_id' }, 400)
@@ -67,5 +75,12 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   const lien = await signerLienCv(auth.supabaseAdmin, (data as { cv_file_path: string | null }).cv_file_path)
   if (lien.etat === 'absent') return json({ error: 'No CV', code: 'cv_absent' }, 404)
   if (lien.etat === 'indisponible') return json({ error: 'Storage unavailable', code: 'lien_cv_indisponible' }, 503)
+  try {
+    await cvConsulte(auth.supabaseAdmin, journal, { profileId: id })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[admin:lien-cv] grand livre en échec — aucun lien rendu', { id, message: err.message })
+    return json({ error: 'Journal failed', code: 'journal_error' }, 500)
+  }
   return json({ url: lien.url, expire_dans: DUREE_LIEN_CV_SECONDES }, 200)
 }

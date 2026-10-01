@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { requireAuth, AuthError } from '@/lib/auth-guard'
 import { avatarStoragePath } from '@/lib/avatar'
 import { verifierFichierLogo, LOGO_TAILLE_MAX_OCTETS, LOGO_TYPES_ACCEPTES, type RefusLogo } from '@/lib/org-logo'
+import { contexteDepuisAuth } from '@/lib/journal/contexte'
+import { JournalError } from '@/lib/journal/journaliser'
+import { photoDeposee } from '@/lib/profil/journal-profil'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -29,9 +32,11 @@ export const maxDuration = 60
  * les dépose au chemin dérivé du compte. Les politiques d'écriture du navigateur
  * sur `avatars` sont retirées par la migration `photo_par_le_serveur`.
  *
- * AUCUNE ÉCRITURE EN BASE ICI : le drapeau `profiles.photo_url` est posé ensuite
- * par PATCH /api/profile, qui porte déjà sa ligne du grand livre (`profil_modifie`).
- * Un second écrivain de la même action serait refusé par le contrôle du grand livre.
+ * LE GRAND LIVRE (fusion de la recette S1, décision de Youssef, 01/10/2026) : chaque dépôt écrit `photo_deposee`,
+ * REMPLACEMENT compris — le chemin ne change jamais, « Profil modifié » ne le verrait pas. Le drapeau
+ * `profiles.photo_url` est posé ensuite par PATCH /api/profile, qui ne nomme plus `photo_url` quand une photo est
+ * déposée : une ligne lisible, pas deux. Le fichier est déjà en place si la ligne est refusée : la réponse le dit
+ * (`journal_error`, 500), comme pour le logo d'une organisation.
  *
  * Codes : `photo_absente`, `photo_trop_volumineuse`, `photo_format_refuse`,
  * `photo_contenu_non_conforme`, `photo_type_incoherent` (400) ; `pas_expert` (403) ;
@@ -62,6 +67,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // La pièce du geste naît à son entrée, avant toute écriture (§D.26).
+  const journal = contexteDepuisAuth(auth)
 
   // La photo de profil est celle d'un EXPERT : la fenêtre n'existe que sur « Mon profil ».
   const { data: compte, error: compteErr } = await auth.supabaseAdmin
@@ -103,6 +110,18 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   // Le chemin est DÉRIVÉ du compte (lib/avatar.ts) : rien de ce que le client envoie ne le choisit.
+  // Le profil, sujet de la ligne, et le FAIT qu'une photo existait déjà (un remplacement) — lus avant le dépôt.
+  const { data: profil, error: profilErr } = await auth.supabaseAdmin
+    .from('profiles')
+    .select('id, photo_url')
+    .eq('user_id', auth.user.id)
+    .maybeSingle()
+  if (profilErr || !profil) {
+    console.error('[profile/photo] profil illisible', { userId: auth.user.id, message: profilErr?.message ?? 'absent' })
+    return json({ error: 'Profile unavailable', code: 'photo_stockage_indisponible' }, 503)
+  }
+  const p = profil as { id: string; photo_url: string | null }
+
   const chemin = avatarStoragePath(auth.user.id)
   const { error: storageErr } = await auth.supabaseAdmin.storage
     .from('avatars')
@@ -110,6 +129,14 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (storageErr) {
     console.error('[profile/photo] dépôt impossible', { userId: auth.user.id, message: storageErr.message })
     return json({ error: 'Storage unavailable', code: 'photo_stockage_indisponible' }, 503)
+  }
+
+  try {
+    await photoDeposee(auth.supabaseAdmin, journal, { profileId: p.id, remplacement: !!p.photo_url })
+  } catch (err) {
+    if (!(err instanceof JournalError)) throw err
+    console.error('[profile/photo] grand livre en échec après le dépôt', { profileId: p.id, message: err.message })
+    return json({ error: 'Journal failed', code: 'journal_error', chemin }, 500)
   }
 
   return json({ chemin }, 200)

@@ -302,6 +302,12 @@ export function phraseDe(l: LignePhrase): Phrase {
         de: code('valeur_dispo', v(d.de)), vers: code('valeur_dispo', v(d.vers)),
       } }
     }
+    case 'photo_deposee': {
+      const quoi = vrai(d.remplacement) ? 'remplacement' : 'depot'
+      return { cle: `photo_deposee.${quoi}_${surSoi(l) ? 'soi' : 'autre'}`, args: { qui, profil: sujet(l, 'profiles') } }
+    }
+    case 'cv_consulte':
+      return { cle: 'cv_consulte', args: { qui, profil: sujet(l, 'profiles') } }
     case 'cv_reinitialise':
       return { cle: vrai(d.retire_de_la_vitrine) ? 'cv_reinitialise.vitrine' : 'cv_reinitialise.simple', args: { qui, profil: sujet(l, 'profiles') } }
     case 'travail_ia_echoue': {

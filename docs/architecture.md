@@ -388,6 +388,14 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   l'AFFICHAGE, réservée à l'administrateur (AD002), 500 sujets au plus. Un compte effacé n'a plus de nom. Test :
 >   `grand_livre/liste_validee`.
 >
+> **LA MIGRATION DE LA FUSION S1 (01/10/2026, suffixe du tronc, horodatée après la plage S1).**
+> - **`journal_photo_et_cv`** (AVANT ; deux lignes de la liste fermée, rien de restreint) — `photo_deposee` (famille
+>   profil, clé `remplacement`) : chaque dépôt de photo, remplacement compris — le chemin, dérivé du compte, ne change
+>   jamais, et depuis l'ARRÊT 22 « Profil modifié » ne verrait pas un remplacement ; `profil_modifie` ne nomme plus
+>   `photo_url` quand une photo est déposée (un retrait y reste). `cv_consulte` (famille rgpd, détail vide) : un
+>   administrateur ouvre le CV d'un expert. Décisions de Youssef ; les deux reprises de S1 (« Autre », langues)
+>   n'écrivent rien. Test : `grand_livre/photo_et_cv.test.sql` (6).
+>
 > **LES TROIS MIGRATIONS DE LA RECETTE S1 DU PARCOURS EXPERT (01/10/2026, plage S1 `20261001100000`–`…199999`).**
 > - **`specialite_autre_hors_referentiel`** (AVANT) — `est_specialite_autre(nom, slug)` (immuable : le mot en quatre
 >   langues, seul ou avec parenthèse, ou un slug de cette forme) ; la reprise `retirer_specialites_autre()` (sort la
@@ -3828,8 +3836,11 @@ service-role uniquement, jamais d'URL ». Le bucket RESTE privé et aucune polit
 URL qui existe est signée PAR LE SERVEUR, pour un administrateur, AU CLIC (`POST /api/admin/lien-cv/[id]`), valable
 **une minute** (`lib/profil/lien-cv.ts`). La fiche ne reçoit que le FAIT qu'un CV existe (`cv_depose`), jamais le
 chemin. Trois issues, jamais deux : aucun CV · lien impossible à créer (à réessayer) · lien. **Ce qui n'est pas
-fait, et signalé** : une consultation de CV par un administrateur n'est pas journalisée — le grand livre appartient au
-lot du principal ; l'écriture qu'elle mériterait est dans docs/reprise-s1.md. **Gardé par** `diag-recette-s1` 14.
+fait, et signalé** : ~~une consultation de CV par un administrateur n'est pas journalisée~~ — **FAIT à la fusion (décision
+de Youssef, 01/10/2026)** : chaque ouverture écrit `cv_consulte` (famille rgpd, détail vide), APRÈS la signature et AVANT
+le lien ; un journal qui refuse ne rend AUCUN lien (`journal_error`) ; un CV absent ou un stockage en panne n'écrit rien.
+C'est la SEULE consultation qui s'écrit : un accès du personnel à une donnée personnelle. **Gardé par**
+`diag-recette-s1` 14, `diag-grand-livre` D ter, `grand_livre/photo_et_cv.test.sql`.
 
 ---
 

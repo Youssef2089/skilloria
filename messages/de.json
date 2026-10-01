@@ -5052,7 +5052,9 @@
       "verification_conclue": "Prüfung abgeschlossen",
       "travail_ia_echoue": "KI-Arbeit aufgegeben",
       "travail_ia_relance": "KI-Arbeit neu gestartet",
-      "desabonnement_email": "Abmeldung von einer E-Mail"
+      "desabonnement_email": "Abmeldung von einer E-Mail",
+      "photo_deposee": "Profilfoto hochgeladen",
+      "cv_consulte": "Lebenslauf von einem Administrator geöffnet"
     },
     "familles": {
       "annonce": "Anzeigen",
@@ -5098,7 +5100,7 @@
       "organisation": "Einladungen, Mitglieder, ihre Rollen und die Angaben der Organisationen.",
       "commerce": "Eingegangene Zahlungen, Zahlungsereignisse und erreichte Ausgabengrenzen.",
       "administration": "Von einem Administrator geänderte Einstellungen, manuell gestartete Aufgaben, Bereiche und Berufslisten.",
-      "rgpd": "Löschungen personenbezogener Daten: gelöschte Konten, gelöschte IP-Adressen, E-Mail-Abmeldungen.",
+      "rgpd": "Löschungen personenbezogener Daten (Konten, IP-Adressen), E-Mail-Abmeldungen und jedes Öffnen des Lebenslaufs eines Experten durch einen Administrator.",
       "journal": "Die Bereinigungen des Protokolls selbst.",
       "refus": "Von der Plattform abgelehnte Aktionen und der Grund."
     },
@@ -5450,7 +5452,14 @@
       "refus_expert_inapte": "{qui} konnte sich nicht bewerben: {raison} (älterer Eintrag).",
       "refus_garde_eligibilite": "{qui} konnte sich nicht bewerben: Die Bedingungen für eine Bewerbung waren nicht erfüllt (älterer Eintrag).",
       "refus_quota_cv": "{qui} konnte den Lebenslauf nicht analysieren lassen: Die erlaubte Anzahl an Analysen war erreicht (älterer Eintrag).",
-      "refus_recherche_en_cours": "{qui}: Eine Suche wurde zurückgestellt, weil für dasselbe Profil bereits eine andere lief (älterer Eintrag)."
+      "refus_recherche_en_cours": "{qui}: Eine Suche wurde zurückgestellt, weil für dasselbe Profil bereits eine andere lief (älterer Eintrag).",
+      "photo_deposee": {
+        "depot_soi": "{qui} hat das eigene Profilfoto hochgeladen.",
+        "remplacement_soi": "{qui} hat das eigene Profilfoto ersetzt: Organisationen mit Zugang zu den Kontaktdaten sehen das neue.",
+        "depot_autre": "{qui} hat ein Profilfoto für {profil} hochgeladen.",
+        "remplacement_autre": "{qui} hat das Profilfoto für {profil} ersetzt."
+      },
+      "cv_consulte": "{qui} hat den für {profil} hochgeladenen Lebenslauf schreibgeschützt geöffnet."
     },
     "valeurs": {
       "inconnu": "eine weitere Angabe",

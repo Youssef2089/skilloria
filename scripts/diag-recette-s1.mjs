@@ -296,8 +296,11 @@ section('8. La photo : le serveur dépose, chaque refus dit sa raison')
     'la fenêtre n’écrit plus dans le stockage : elle envoie le fichier au serveur')
   ok(!/t\('error_save'\)/.test(modal), 'plus de message unique « Erreur lors de l’enregistrement »')
   const route = sansCommentaires(lire('app/api/profile/photo/route.ts'))
-  ok(/verifierFichierLogo\(/.test(route) && /avatarStoragePath\(auth\.user\.id\)/.test(route) && !/\.from\('profiles'\)/.test(route),
-    'la route vérifie le CONTENU, dépose au chemin dérivé du compte, et n’écrit pas le profil (PATCH /api/profile le fait, avec sa ligne)')
+  // Fusion (01/10/2026, décision de Youssef) : la route LIT le profil (sujet et « remplacement ») et écrit `photo_deposee`
+  // à chaque dépôt ; elle n'ÉCRIT toujours pas le profil — PATCH /api/profile pose `photo_url`.
+  ok(/verifierFichierLogo\(/.test(route) && /avatarStoragePath\(auth\.user\.id\)/.test(route)
+     && !/\.from\('profiles'\)[\s\S]{0,120}?\.(update|insert|upsert)\(/.test(route) && /await photoDeposee\(/.test(route),
+    'la route vérifie le CONTENU, dépose au chemin dérivé du compte, n’écrit pas le profil (PATCH /api/profile le fait) et écrit « photo déposée » à chaque dépôt')
   const codesRoute = [...new Set([...route.matchAll(/'(photo_[a-z_]+|pas_expert)'/g)].map((m) => m[1]))]
   const sansMessage = codesRoute.filter((c) => !dans4(`dashboard_freelance.avatar_modal.errors.${c}`) || !modal.includes(`'${c}'`))
   ok(codesRoute.length >= 7 && sansMessage.length === 0, `les ${codesRoute.length} codes de la route ont leur message, dans les quatre langues`, sansMessage.join(', '))

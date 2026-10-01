@@ -5052,7 +5052,9 @@
       "verification_conclue": "Vérification conclue",
       "travail_ia_echoue": "Travail d’IA abandonné",
       "travail_ia_relance": "Travail d’IA relancé",
-      "desabonnement_email": "Désabonnement d’un e-mail"
+      "desabonnement_email": "Désabonnement d’un e-mail",
+      "photo_deposee": "Photo de profil déposée",
+      "cv_consulte": "CV consulté par un administrateur"
     },
     "familles": {
       "annonce": "Annonces",
@@ -5098,7 +5100,7 @@
       "organisation": "Les invitations, les membres, leurs rôles et la fiche des organisations.",
       "commerce": "Les paiements reçus et les événements de paiement, les plafonds de dépense atteints.",
       "administration": "Les réglages modifiés par un administrateur, les tâches lancées à la main, les espaces et listes de métiers.",
-      "rgpd": "Les effacements de données personnelles : comptes effacés, adresses IP effacées, désabonnements d’e-mails.",
+      "rgpd": "Les effacements de données personnelles (comptes, adresses IP), les désabonnements d’e-mails, et chaque ouverture du CV d’un expert par un administrateur.",
       "journal": "Les nettoyages du journal lui-même.",
       "refus": "Les actions refusées par la plateforme et la raison du refus."
     },
@@ -5450,7 +5452,14 @@
       "refus_expert_inapte": "{qui} n’a pas pu candidater : {raison} (ancienne écriture).",
       "refus_garde_eligibilite": "{qui} n’a pas pu candidater : les conditions de dépôt n’étaient pas remplies (ancienne écriture).",
       "refus_quota_cv": "{qui} n’a pas pu faire analyser son CV : le nombre d’analyses permis était atteint (ancienne écriture).",
-      "refus_recherche_en_cours": "{qui} : une recherche a été écartée, une autre était déjà en cours pour le même profil (ancienne écriture)."
+      "refus_recherche_en_cours": "{qui} : une recherche a été écartée, une autre était déjà en cours pour le même profil (ancienne écriture).",
+      "photo_deposee": {
+        "depot_soi": "{qui} a déposé sa photo de profil.",
+        "remplacement_soi": "{qui} a remplacé sa photo de profil : les organisations qui ont accès à ses coordonnées voient la nouvelle.",
+        "depot_autre": "{qui} a déposé une photo de profil pour {profil}.",
+        "remplacement_autre": "{qui} a remplacé la photo de profil pour {profil}."
+      },
+      "cv_consulte": "{qui} a ouvert, en lecture seule, le CV déposé pour {profil}."
     },
     "valeurs": {
       "inconnu": "une autre information",

@@ -5052,7 +5052,9 @@
       "verification_conclue": "Verification concluded",
       "travail_ia_echoue": "AI work given up",
       "travail_ia_relance": "AI work restarted",
-      "desabonnement_email": "E-mail unsubscribe"
+      "desabonnement_email": "E-mail unsubscribe",
+      "photo_deposee": "Profile photo uploaded",
+      "cv_consulte": "CV opened by an administrator"
     },
     "familles": {
       "annonce": "Listings",
@@ -5098,7 +5100,7 @@
       "organisation": "Invitations, members, their roles and organisation details.",
       "commerce": "Payments received, payment events, and spending limits reached.",
       "administration": "Settings changed by an administrator, tasks started by hand, spaces and lists of trades.",
-      "rgpd": "Erasures of personal data: deleted accounts, erased IP addresses, e-mail unsubscribes.",
+      "rgpd": "Erasures of personal data (accounts, IP addresses), e-mail unsubscribes, and every time an administrator opens an expert’s CV.",
       "journal": "Clean-ups of the log itself.",
       "refus": "Actions the platform refused, and why."
     },
@@ -5450,7 +5452,14 @@
       "refus_expert_inapte": "{qui} could not apply: {raison} (older entry).",
       "refus_garde_eligibilite": "{qui} could not apply: the conditions for applying were not met (older entry).",
       "refus_quota_cv": "{qui} could not have their CV analysed: the number of analyses allowed was reached (older entry).",
-      "refus_recherche_en_cours": "{qui}: a search was set aside because another one was already running for the same profile (older entry)."
+      "refus_recherche_en_cours": "{qui}: a search was set aside because another one was already running for the same profile (older entry).",
+      "photo_deposee": {
+        "depot_soi": "{qui} uploaded their profile photo.",
+        "remplacement_soi": "{qui} replaced their profile photo: organisations with access to their contact details now see the new one.",
+        "depot_autre": "{qui} uploaded a profile photo for {profil}.",
+        "remplacement_autre": "{qui} replaced the profile photo for {profil}."
+      },
+      "cv_consulte": "{qui} opened, read-only, the CV uploaded for {profil}."
     },
     "valeurs": {
       "inconnu": "another piece of information",
