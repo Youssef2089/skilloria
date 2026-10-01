@@ -3658,6 +3658,20 @@ le test pgTAP global (`supabase/tests/database/`) : pendant l'étape 1 de la rè
 y figurer comme **exception écrite avec sa raison**, et disparaître de l'exception à l'étape 3. La **fenêtre**
 elle-même n'est gardée par rien : c'est l'ordre du déploiement (CLAUDE.md, §G.4 ter).
 
+**La même règle vaut pour une VALEUR (ARRÊT 22, 01/10/2026).** Le lot de la liste validée cessait d'écrire onze
+actions ET, dans la même migration, les faisait refuser par `journaliser()` (GL006). Entre le `db push` et le
+`git push`, le code en ligne les écrit encore : un message, une étape de recherche, un refus de dépôt auraient
+ÉCHOUÉ quelques minutes — et le rapport le présentait comme acceptable. **Ce ne l'est pas** (décision de Youssef) :
+aucun déploiement ne fait échouer un geste en ligne, même une minute. Une action, une clé, un statut, un code que le
+code EN LIGNE écrit encore ne devient interdit en base qu'au déploiement SUIVANT : ① le lot qui cesse de l'écrire
+laisse la base l'accepter ; ② le refus part dans un lot séparé, déployé une fois le premier en ligne. Même vérification
+pour tout ce qui RESTREINT : une liste blanche ne perd une clé qu'au lot suivant (celle de l'ARRÊT 22 ne fait que
+s'élargir, mesuré clé par clé). **Gardé par** `diag-journal-lisible` section 3 (le refus GL006 absent tant que sa
+migration séparée n'est pas là, présent seulement dans elle et marquée APRÈS) et section 4 (les tests attendent ce que
+la base fait à chaque temps). **Ce qu'il ne voit pas** : toute AUTRE restriction (une contrainte, une clé retirée d'une
+liste blanche) — la question se pose à chaque migration qui interdit quelque chose : « le code en ligne l'écrit-il
+encore ? »
+
 ---
 
 <a id="e73"></a>

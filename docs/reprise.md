@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 01/10/2026 (ARRÊT 22 — le grand livre, phase 2 : la liste validée, des écritures lisibles par tous).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 01/10/2026 (ARRÊT 22 bis — le refus des actions retirées découpé en deux déploiements).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -57,6 +57,62 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
+## ⛔ ARRÊT 22 bis — LE REFUS DES ACTIONS RETIRÉES, EN DEUX DÉPLOIEMENTS (01/10/2026)
+
+**Le point corrigé (Youssef).** L'ARRÊT 22 faisait refuser par la base (GL006) les onze actions retirées DANS LE MÊME
+lot qui cesse de les écrire : entre `db push` et `git push`, un message, une étape de recherche, un refus de dépôt
+écrits par le code encore en ligne auraient ÉCHOUÉ. C'est contraire à la règle (§E.72) : une valeur que le code en
+ligne écrit encore ne s'interdit qu'au déploiement suivant. Tag local `sauvegarde-avant-decoupage-gl006` sur `7f5ce13`.
+
+**Ce qui change.**
+- **Lot A** (cette branche, `feat/sprint-archi-orga`) : le CODE n'écrit plus les onze codes ; la base les MARQUE
+  (`retiree_le`) mais les ACCEPTE encore. `journaliser()` n'est plus redéfinie par `grand_livre_liste_validee`.
+  Les tests disent ce temps-là : les onze sont acceptées (`liste_validee`), le message et le refus de recherche écrits
+  par le code en ligne passent (`message_envoye`, `refus_recherche_en_cours`, `lives_ok`).
+- **Lot B** (branche locale `lot/grand-livre-refus-retirees`, un commit au-dessus du lot A) : UNE migration,
+  `grand_livre_refus_des_retirees` — `journaliser()` redéfinie à signature identique, qui refuse une action retirée
+  (GL006) ; ORDRE DE PASSAGE : APRÈS le déploiement du lot A. Les trois tests y attendent GL006.
+- **Le contrôle** (`diag-journal-lisible`, sections 3 et 4) suit le temps : sans la migration du lot B, aucune
+  définition de `journaliser()` ne doit refuser et les tests doivent attendre l'écriture ACCEPTÉE ; avec elle, le refus
+  doit vivre dans elle SEULE, marquée APRÈS, et les tests doivent attendre GL006. La mémoire : §E.72 (la règle vaut pour
+  une VALEUR), §D.26, §D.33.
+
+**Le même risque, vérifié pour les trois autres migrations (et le reste de la première).**
+- `grand_livre_liste_validee` : les listes blanches ne font que S'ÉLARGIR — mesuré clé par clé contre leur dernière
+  définition : `recherche_terminee` 2 → 14, `recherche_echouee` 5 → 15, `recherche_abandonnee` 3 → 16,
+  `verification_conclue` 3 → 4, AUCUNE clé perdue ; `journaliser_reglage()` rend NULL sur un réglage inchangé — le code
+  en ligne ignore la valeur rendue (`Number(null)`, aucune exception), les RPC de réglage la rendent sans la tester.
+- `ecritures_sur_vrai_changement` : cinq fonctions redéfinies à signature et forme de retour IDENTIQUES (`envoyer_message`
+  rend les mêmes clés ; les autres rendent le même booléen ou objet) — elles écrivent MOINS de lignes, ne refusent
+  rien de plus ; `se_desabonner_email` est nouvelle (seul le code nouveau l'appelle).
+- `conservation_propositions`, `journal_libelles` : uniquement des ajouts (une table, deux fonctions) — rien que le code
+  en ligne appelle ne change.
+- Et dans l'autre sens : le code NOUVEAU n'appelle que ce que les migrations du lot A créent, et la séquence est
+  `db push` puis `git push` — il ne tourne jamais sur une base qui ne les a pas.
+
+**Les migrations de chaque lot.**
+- **Lot A** : `grand_livre_liste_validee` (sans le refus), `ecritures_sur_vrai_changement`, `conservation_propositions`,
+  `journal_libelles` — toutes AVANT le déploiement du lot A.
+- **Lot B** : `grand_livre_refus_des_retirees` — APRÈS le déploiement du lot A.
+
+### Pour Youssef — dans l'ordre, chaque étape verte avant la suivante
+**Lot A**
+1. Sur votre poste, Docker lancé : `npx supabase link --project-ref wnayuerhakekxccgimeg`, puis
+   `node scripts/verifier-version-postgres.mjs` ; `npx supabase db reset --local` ; `npx supabase db lint -s public --level error`
+   (sortie vide) ; `npx supabase test db --local` — **567 tests, tous verts**.
+2. La requête de staging, mise à jour par le lot fusionné en second (ARRÊT 22, plus bas) : un seul ÉCART, on s'arrête.
+3. `npx supabase db push`, puis `git push` — **aucun geste en ligne n'échoue entre les deux**.
+4. Sur staging, les vérifications de l'ARRÊT 22 (étape 4, plus bas).
+
+**Lot B — seulement quand le lot A est en ligne sur staging (et, plus tard, en production)**
+5. `git merge lot/grand-livre-refus-retirees` dans `feat/sprint-archi-orga`.
+6. Sur votre poste : `npx supabase db reset --local` ; `npx supabase db lint -s public --level error` ; `npx supabase test db --local`
+   — **567 tests, tous verts** (les trois tests attendent désormais GL006).
+7. La requête de staging : la migration du lot B à déclarer dans `prochain_push` (rien n'y est créé ni retiré : une
+   fonction redéfinie à signature identique).
+8. `npx supabase db push`, puis `git push` — aucun code en ligne n'écrit plus les onze codes, aucun geste n'échoue.
+**En production, la même chose : le lot A déployé d'abord ; le lot B au déploiement suivant, jamais ensemble.**
+
 ## ⛔ ARRÊT 22 — LE GRAND LIVRE, PHASE 2 : LA LISTE VALIDÉE, DES ÉCRITURES LISIBLES PAR TOUS (01/10/2026)
 
 Décision de Youssef : les recommandations de l'ARRÊT 21 (phase 1, ci-dessous) sont validées telles quelles — GARDER 48,
@@ -67,7 +123,8 @@ consentement). Tag local `sauvegarde-avant-grand-livre-lisible` sur `0fb9f1d`, a
 ① **§D.26 « chaque action a exactement un écrivain — ni deux, ni zéro » ↔ retirer onze actions** (6 retirées, 5 fondues
   dans la ligne de fin d'une recherche). Leurs lignes passées existent et la liste fermée en est la clé étrangère : elles
   RESTENT dans la liste, marquées retirées (`retiree_le`), avec zéro écrivain ; `journaliser()` refuse de les écrire
-  (GL006). La règle devient : une action active a exactement un écrivain, une action retirée n'en a aucun.
+  (GL006 — **au déploiement SUIVANT**, cf. ARRÊT 22 bis). La règle devient : une action active a exactement un écrivain,
+  une action retirée n'en a aucun.
 ② **§D.22 « une recherche écartée parce qu'une autre tient le bail s'écrit »** : Youssef la retire. §D.22 est mis à jour.
 ③ **« Aucune route n'écrit sans ligne » (diag-routes-tracees)** : l'envoi d'un message écrit la messagerie sans ligne au
   grand livre — exclusion NOMMÉE, avec sa raison (décision de Youssef : la messagerie garde déjà chaque message daté).
@@ -88,21 +145,21 @@ consentement). Tag local `sauvegarde-avant-grand-livre-lisible` sur `0fb9f1d`, a
 
 | Point | Ce qui est fait | Compte |
 |---|---|---|
-| **1. Les 6 retirées** | `message_envoye`, `refus_recherche_en_cours`, `refus_expert_inapte`, `refus_garde_eligibilite`, `refus_plafond_atteint`, `refus_quota_cv` : plus aucun écrivain (SQL : `envoyer_message` redéfinie sans ligne ; TS : les quatre écritures supprimées, `refusRechercheEnCours` supprimée) ; `journaliser()` les refuse (GL006) ; `ActionActive` les exclut à la compilation. Le refus reste RENDU à l'écran comme avant. | **6/6** |
+| **1. Les 6 retirées** | `message_envoye`, `refus_recherche_en_cours`, `refus_expert_inapte`, `refus_garde_eligibilite`, `refus_plafond_atteint`, `refus_quota_cv` : plus aucun écrivain (SQL : `envoyer_message` redéfinie sans ligne ; TS : les quatre écritures supprimées, `refusRechercheEnCours` supprimée) ; `ActionActive` les exclut à la compilation ; le refus en base (GL006) au lot suivant (ARRÊT 22 bis). Le refus reste RENDU à l'écran comme avant. | **6/6** |
 | **1. Les 5 fondues** | Les étapes d'une recherche (`recherche_lancee/filtree/classee/correspondances/notifiee`) NOTENT dans un bilan partagé ; UNE ligne à la fin : `recherche_terminee` (l'issue, examinées, notées, retenues, fortes, nouvelles, notifiées, manquées, le coût), `recherche_echouee` (l'étape, la cause, le bilan) ou, au plafond, `recherche_abandonnee` AU LIEU de l'échec. Le détail par lot reste dans les dépenses d'IA. | **5/5** (11 codes retirés en tout) |
 | **1. Les 15 « mieux »** | Réglages (`journaliser_reglage` : 12 écrans, une règle — avant = après → aucune ligne) ; « Profil modifié » (relu avant, seules les vraies différences, pas deux fois dans la séance de 10 min) ; « Profil publié » (quand il DEVIENT visible) ; « Annonce modifiée », « Fiche d'organisation modifiée », « Nom modifié », « Liste des métiers modifiée », « Écosystème modifié » (relus avant, seuls les champs qui changent, rien sinon) ; « Téléphone vérifié » (le même numéro revérifié : rien) ; « Adresses IP effacées » (rien à effacer : rien) ; « Avertissement d'inactivité » en échec (une fois depuis la dernière connexion) ; « Vérification conclue » (avec la note). | **15/15** (dont les 12 écrans de réglage en une règle) |
 | **2. Le désabonnement** | `se_desabonner_email` : la préférence coupée ET `desabonnement_email` (l'événement, le canal), une transaction, une fois ; second clic « déjà », rien ; compte inconnu, rien ; événement hors catalogue refusé par la route. | **fait** |
 | **3. Les phrases** | `lib/journal/phrase.ts` : 75 actions (64 actives + 11 retirées, pour l'historique), 184 gabarits, 40 dimensions de codes, 15 désignations d'objets, × 4 langues ; noms relus par `libelles_journal` ; « Système Système » disparu ; glossaire à l'écran (« écosystème » expliqué) ; la page d'un geste en phrases, ses journaux détaillés en mots. Codes en base inchangés. | **75/75 actions** |
 | **4. La conservation** | Écran à part `/admin/journal/conservation` (menu « Conservation du journal ») : « Comment ça marche » ; par famille « Ces écritures sont gardées X mois, puis effacées. La loi impose au moins Y mois », la référence (texte de loi sans nombre), « Appliquer la proposition » ; le nettoyage dit simplement. Nombres EN BASE (`grand_livre_conservation_proposee`), valeurs appliquées toujours nées vides. | **12 familles + le journal** |
-| **5. La preuve** | `diag-journal-lisible` (nouveau, exécuté : 38 796 lignes fabriquées, 43 728 phrases distinctes, 4 langues, grammaire des désignations, dimensions recoupées avec le code, retirées SQL = TS, tests, écrans) ; `diag-grand-livre` D bis/D ter ; `diag-tests-grand-livre` (gel 22 → 11) ; pgTAP `liste_validee` (19), `reglages` (10 → 14), `telephone_verifie`, `socle`, `purges`, `verification_conclue`, `message_envoye`, `refus_recherche_en_cours` réécrits. **Tous les tests qui citent une retirée** : balayés (54 → 55 fichiers) — chacun attend GL006 ou zéro ligne. | **543 → 567 tests pgTAP** |
+| **5. La preuve** | `diag-journal-lisible` (nouveau, exécuté : 38 796 lignes fabriquées, 43 728 phrases distinctes, 4 langues, grammaire des désignations, dimensions recoupées avec le code, retirées SQL = TS, tests, écrans) ; `diag-grand-livre` D bis/D ter ; `diag-tests-grand-livre` (gel 22 → 11) ; pgTAP `liste_validee` (19), `reglages` (10 → 14), `telephone_verifie`, `socle`, `purges`, `verification_conclue`, `message_envoye`, `refus_recherche_en_cours` réécrits. **Tous les tests qui citent une retirée** : balayés (54 → 55 fichiers) — chacun attend ce que la base fait à son temps (ARRÊT 22 bis). | **543 → 567 tests pgTAP** |
 | **Mise en page** | Pleine largeur, alignée à gauche, marge de l'admin (24 px) ; jamais centrée ni limitée (`maxWidth` retiré). | **fait** |
 
 ### Les migrations nouvelles (plage 20261001000000–20261001099999, toutes AVANT le déploiement)
-- `grand_livre_liste_validee` — `retiree_le`, les onze retirées, `desabonnement_email`, les listes blanches élargies, GL006, le réglage inchangé sans ligne.
+- `grand_livre_liste_validee` — `retiree_le`, les onze retirées, `desabonnement_email`, les listes blanches élargies, le réglage inchangé sans ligne (le refus GL006 : lot B, ARRÊT 22 bis).
 - `ecritures_sur_vrai_changement` — cinq fonctions à signature identique, `se_desabonner_email` ajoutée.
 - `conservation_propositions` — la table des propositions (12 lignes) et `appliquer_proposition_conservation`.
 - `journal_libelles` — `libelles_journal`.
-⚠️ **Fenêtre de déploiement (§E.72)** : entre `db push` et `git push`, le code en ligne écrit encore les actions retirées ; chaque geste concerné (un message, un refus de dépôt, une étape de recherche) est REFUSÉ (GL006) — la fenêtre se compte en minutes, comme d'habitude.
+~~⚠️ Fenêtre de déploiement : chaque geste concerné est REFUSÉ (GL006) pendant quelques minutes~~ — **CORRIGÉ (ARRÊT 22 bis)** : le refus part dans un lot séparé, déployé après ; aucun geste en ligne n'échoue.
 
 ### La requête d'avant-push — À METTRE À JOUR PAR LE LOT FUSIONNÉ EN SECOND (consigne du mandat)
 Je ne l'ai PAS touchée. Deux contrôles le disent, et resteront rouges jusqu'à cette mise à jour :
@@ -118,7 +175,7 @@ Je ne l'ai PAS touchée. Deux contrôles le disent, et resteront rouges jusqu'à
    (sortie vide) ; `npx supabase test db --local` — **567 tests, tous verts** (sinon envoyez-moi le fichier et le numéro).
 2. **La requête de staging**, une fois mise à jour par le lot fusionné en second (ci-dessus) : collée dans l'éditeur SQL de
    staging ; un seul ÉCART, on s'arrête.
-3. `npx supabase db push`, puis **aussitôt** `git push` (la fenêtre GL006 se compte en minutes).
+3. `npx supabase db push`, puis `git push` — ~~la fenêtre GL006~~ remplacé par les étapes de l'ARRÊT 22 bis (ci-dessus).
 4. **Sur staging, après le déploiement** :
    - `/admin/journal` : chaque ligne est une phrase (qui, quoi, sur quoi, le résultat) ; plus aucun « Système Système » ;
      « Les mots de ce journal » s'ouvre et explique les quatre mots ; « Voir les écritures liées » ouvre un geste en phrases.

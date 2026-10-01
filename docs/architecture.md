@@ -359,12 +359,17 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > - **`grand_livre_liste_validee`** — `grand_livre_actions.retiree_le` (timestamptz) : ONZE actions retirées
 >   (`message_envoye`, `refus_recherche_en_cours`, `refus_expert_inapte`, `refus_garde_eligibilite`,
 >   `refus_plafond_atteint`, `refus_quota_cv`, et les cinq étapes `recherche_lancee/filtree/classee/correspondances/notifiee`) —
->   leurs lignes passées restent, `journaliser()` les refuse (**GL006**) ; l'action `desabonnement_email` (famille rgpd, clés
+>   leurs lignes passées restent ; la base les ACCEPTE encore (le refus GL006 part au lot suivant) ; l'action `desabonnement_email` (famille rgpd, clés
 >   `evenement`, `canal`) ; les listes blanches de la ligne de fin d'une recherche élargies à ses compteurs
 >   (`recherche_terminee`, `_echouee`, `_abandonnee`) et de `verification_conclue` à `note` ; `journaliser_reglage()`
 >   rend NULL, sans ligne, quand un réglage réussi a l'avant égal à l'après et un complément sans changement.
->   ⚠️ FENÊTRE DE DÉPLOIEMENT (§E.72) : entre le `db push` et le `git push`, le code en ligne écrit encore les actions
->   retirées — chaque geste concerné est refusé (GL006) ; la fenêtre se compte en minutes. Test : `grand_livre/liste_validee`.
+>   AUCUN GESTE EN LIGNE N'ÉCHOUE (§E.72) : entre le `db push` et le `git push`, le code en ligne écrit encore les actions
+>   retirées, et la base les accepte ; les listes blanches ne font que s'élargir (aucune clé retirée, vérifié) ; un réglage
+>   inchangé rend NULL, pas une erreur. Test : `grand_livre/liste_validee` (les onze encore acceptées).
+> - **`grand_livre_refus_des_retirees`** — **LOT SÉPARÉ, APRÈS le déploiement du précédent** (branche locale
+>   `lot/grand-livre-refus-retirees`, à fusionner une fois le code qui n'écrit plus les retirées en ligne) : `journaliser()`
+>   refuse une action retirée, nommément (**GL006**). Le seul changement : la fonction redéfinie à signature identique.
+>   Tests : `grand_livre/liste_validee`, `message_envoye`, `refus_recherche_en_cours` y attendent GL006.
 > - **`ecritures_sur_vrai_changement`** — à signature identique : `envoyer_message` n'écrit plus de ligne ;
 >   `verifier_telephone` n'écrit pas quand le MÊME numéro est revérifié ; `effacer_adresses_ip` n'écrit que s'il a
 >   effacé quelque chose (un échec toujours) ; `constater_avertissement_inactivite` écrit un échec UNE fois depuis la
@@ -3658,8 +3663,10 @@ s'écrit. Et chaque écriture se lit comme une phrase, comprise par une personne
 par le bail ; l'expert inapte, la garde du dépôt, le refus par plafond, le refus par quota — des refus qui ne disent
 rien que la réponse ne dise déjà) et les cinq étapes d'une recherche, FONDUES dans sa ligne de fin. Une action retirée
 reste dans la liste fermée (ses lignes passées se lisent : `grand_livre_actions.retiree_le`), n'a PLUS d'écrivain
-(`diag-grand-livre` D bis), est refusée par `journaliser()` (GL006) et ne compile plus en TypeScript
-(`EcritureJournal<A extends ActionActive>`).
+(`diag-grand-livre` D bis) et ne compile plus en TypeScript (`EcritureJournal<A extends ActionActive>`). **Le refus en
+base (GL006) vient en DEUX TEMPS** (décision de Youssef, 01/10/2026, §E.72) : le lot qui cesse de l'écrire ne la refuse
+pas — le code en ligne l'écrit encore entre le `db push` et le `git push`, et aucun geste ne doit échouer, même une
+minute ; le refus vit dans une migration à part (`grand_livre_refus_des_retirees`), déployée APRÈS.
 
 **② La recherche, une ligne.** `JournalDeRecherche` NOTE à chaque étape (éligibles, examinés, notés, reprises,
 lots en échec, retenus, forts, nouveaux, prévenus, manqués, coût) dans un bilan partagé par `dansEcosysteme()`, et
@@ -3694,7 +3701,7 @@ la table des valeurs appliquées reste née vide. Le nettoyage, dit simplement, 
 **Gardé par** `diag-journal-lisible` (38 796 lignes fabriquées, 43 728 phrases distinctes rendues dans les quatre
 langues — aucun code, nom de champ, identifiant, accolade ni jargon non expliqué ; la grammaire des désignations, §E.90 ; chaque action a SA phrase ; chaque gabarit est produit ; les dimensions
 recoupées avec leur source dans le code ; les retirées identiques en SQL et en TS ; tout test qui cite une retirée
-attend GL006 ou zéro ligne ; les écrans), `diag-grand-livre` (D bis : aucun écrivain pour une retirée ; D ter : les
+attend ce que la base fait à son temps — ACCEPTÉE avant le refus, GL006 après — ou zéro ligne ; le refus en deux temps ; les écrans), `diag-grand-livre` (D bis : aucun écrivain pour une retirée ; D ter : les
 nouvelles formes), `diag-tests-grand-livre`, et les tests pgTAP `grand_livre/liste_validee`, `reglages`. **Ce qu'ils
 ne voient pas** : la JUSTESSE d'une traduction ; une valeur que la base inventerait hors des dimensions (elle
 s'affiche « une autre information ») ; le comportement « rien ne change, rien ne s'écrit » côté routes TypeScript

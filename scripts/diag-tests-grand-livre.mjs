@@ -79,7 +79,7 @@ const GEL = {
   profil_modifie: `${TS} — app/api/profile/route.ts`,
   profil_publie: `${TS} — lib/profil/journal-profil.ts`,
   // ARRÊT 22 (01/10/2026) : les onze actions RETIRÉES ont quitté le gel — grand_livre/liste_validee.test.sql les
-  // nomme et prouve que journaliser() les refuse (GL006) ; recherche_terminee et recherche_abandonnee y sont écrites
+  // nomme, et prouve qu'elles sont encore ACCEPTÉES tant que le refus (GL006, lot suivant) n'est pas là ; recherche_terminee et recherche_abandonnee y sont écrites
   // sous leur forme nouvelle (les étapes fondues en une ligne, avec leurs compteurs).
   recherche_echouee: `${TS} — lib/matching/journal-de-recherche.ts`,
   session_revoquee: `${TS} — lib/comptes/journal-compte.ts`,

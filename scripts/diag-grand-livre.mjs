@@ -726,7 +726,8 @@ section('D bis. Chaque action branchée a UN écrivain, et un seul')
   // écrivain rougit : une action qu'on ne peut pas écrire est une étiquette sans rien dessous.
   //
   // LES ACTIONS RETIRÉES (décision de Youssef, 01/10/2026, ARRÊT 22) : elles restent dans la liste fermée — leurs
-  // lignes passées se lisent — mais n'ont PLUS AUCUN écrivain, et journaliser() les refuse (GL006). Leur liste se lit
+  // lignes passées se lisent — mais n'ont PLUS AUCUN écrivain ; journaliser() les refuse (GL006) au déploiement SUIVANT
+  // seulement (§E.72, diag-journal-lisible section 3). Leur liste se lit
   // dans `lib/journal/actions.ts` (ACTIONS_RETIREES) ; diag-journal-lisible vérifie qu'elle est la même qu'en SQL.
   const retirees = new Set([...(read('lib/journal/actions.ts').match(/export const ACTIONS_RETIREES = \[([\s\S]*?)\] as const/)?.[1] ?? '')
     .matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]))

@@ -1,5 +1,7 @@
 -- La liste validée par Youssef (01/10/2026, ARRÊT 22, §D.33) :
---   · les onze actions RETIRÉES ne s'écrivent plus — journaliser() les refuse, nommément (GL006) ;
+--   · les onze actions RETIRÉES : le code ne les écrit plus, mais la base les ACCEPTE encore — entre le db push et le
+--     git push, le code en ligne les écrit, et aucun geste ne doit échouer (§E.72) ; le refus (GL006) part au lot
+--     suivant, et ce test le dira alors ;
 --   · desabonnement_email — se_desabonner_email() : la préférence coupée ET sa ligne, ensemble, une fois ; un second
 --     clic ne change rien et n'écrit rien ; un compte inconnu n'écrit rien ; un code invalide est refusé ;
 --   · la ligne de fin d'une recherche porte ses compteurs (les étapes fondues en une ligne) ;
@@ -26,20 +28,19 @@ declare
   v_cand    uuid;
   v_p       uuid[] := array(select gen_random_uuid() from generate_series(1, 10));
   v_code    text;
-  v_refus   integer := 0;
+  v_acceptees integer := 0;
   v_r       jsonb;
   v_n       record;
 begin
-  -- ══ LES ACTIONS RETIRÉES ══
+  -- ══ LES ACTIONS RETIRÉES : ENCORE ACCEPTÉES PENDANT LA FENÊTRE ══
   for v_code in select a.code from public.grand_livre_actions a where a.retiree_le is not null loop
-    begin
-      perform public.journaliser(gen_random_uuid(), v_code, 'reussi', 'systeme', null, null, null, null, null,
-                                 '{}'::jsonb, null::uuid, null::numeric, null::text);
-    exception when sqlstate 'GL006' then
-      v_refus := v_refus + 1;
-    end;
+    perform public.journaliser(v_p[10], v_code,
+                               coalesce((select a.statut_impose from public.grand_livre_actions a where a.code = v_code), 'reussi'),
+                               'systeme', null, null, null, null, null, '{}'::jsonb, null::uuid, null::numeric, null::text);
+    v_acceptees := v_acceptees + 1;
   end loop;
-  return next is(v_refus, 11, 'les onze actions retirées sont refusées par journaliser(), nommément (GL006)');
+  return next ok(v_acceptees = 11 and pg_temp.lignes(v_p[10]) = 11,
+                 'les onze actions retirées sont encore ACCEPTÉES : le code en ligne qui les écrit n''échoue pas pendant la fenêtre (le refus GL006 part au lot suivant)');
   return next is(array(select a.code::text from public.grand_livre_actions a where a.retiree_le is not null order by 1),
                  array['message_envoye', 'recherche_classee', 'recherche_correspondances', 'recherche_filtree', 'recherche_lancee',
                        'recherche_notifiee', 'refus_expert_inapte', 'refus_garde_eligibilite', 'refus_plafond_atteint', 'refus_quota_cv',

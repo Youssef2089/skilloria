@@ -19,9 +19,12 @@
  *   2. Chaque code de chaque dimension a son libellé dans les quatre langues ; plusieurs dimensions sont RECOUPÉES avec
  *      leur source dans le code (champs d'annonce, de profil, d'organisation, d'écosystème, de la liste des métiers ;
  *      tâches planifiées ; événements de notification ; types de compte ; actions d'IA ; familles).
- *   3. Les actions retirées : la même liste en TypeScript et en SQL, `journaliser()` refuse (GL006), le type
+ *   3. Les actions retirées : la même liste en TypeScript et en SQL ; le refus en base (GL006) en DEUX TEMPS (§E.72) —
+ *      absent tant que la migration `grand_livre_refus_des_retirees` n'est pas là, présent seulement dans elle,
+ *      marquée APRÈS le déploiement ; le type
  *      `ActionActive` les exclut, aucun appel TypeScript ne les écrit.
- *   4. Les tests pgTAP : toute instruction qui cite une action retirée attend GL006 ou un compte nul.
+ *   4. Les tests pgTAP : toute instruction qui cite une action retirée attend ce que la base fait À CE TEMPS — l'écriture
+ *      ACCEPTÉE (lives_ok) avant le refus, GL006 après — ou un compte nul.
  *   5. Les écrans : plus de détail « clé par clé », l'origine n'est plus montrée à côté de l'acteur (« Système
  *      Système »), la conservation a son écran, pleine largeur, aligné à gauche, jamais centré ni limité.
  *
@@ -414,11 +417,27 @@ section('3. Les actions retirées n’écrivent plus')
   ok(sqlRetirees.length > 0 && JSON.stringify(sqlRetirees) === JSON.stringify(tsRetirees),
     `les ${tsRetirees.length} actions retirées sont les mêmes en SQL (retiree_le) et en TypeScript (ACTIONS_RETIREES)`,
     `SQL ${sqlRetirees.join(',')} · TS ${tsRetirees.join(',')}`)
-  // journaliser() : sa DERNIÈRE définition refuse une action retirée, nommément.
-  const defs = readdirSync(dossier).sort().map((f) => readFileSync(join(dossier, f), 'utf8').split('\r\n').join('\n'))
-    .flatMap((s) => [...s.matchAll(/create or replace function public\.journaliser\(\s*p_piece[\s\S]*?\n\$fn\$;/g)].map((m) => m[0]))
-  const derniere = defs.at(-1) ?? ''
-  ok(/retiree_le/.test(derniere) && /errcode = 'GL006'/.test(derniere), 'la dernière définition de journaliser() refuse une action retirée (GL006)')
+  // LE REFUS EN DEUX TEMPS (décision de Youssef, 01/10/2026 — §E.72) : une action que le code EN LIGNE écrit encore ne
+  // devient interdite en base qu'au déploiement SUIVANT. Le lot qui cesse de l'écrire ne la refuse pas ; le refus (GL006)
+  // vit dans une migration à part, `grand_livre_refus_des_retirees`, déployée APRÈS — et nulle part ailleurs.
+  const defsPar = readdirSync(dossier).filter((f) => f.endsWith('.sql')).sort().flatMap((f) =>
+    [...readFileSync(join(dossier, f), 'utf8').split('\r\n').join('\n').matchAll(/create or replace function public\.journaliser\(\s*p_piece[\s\S]*?\n\$fn\$;/g)]
+      .map((m) => ({ f, corps: m[0] })))
+  const avecRefus = defsPar.filter((d) => /errcode = 'GL006'/.test(d.corps))
+  const migRefus = readdirSync(dossier).filter((f) => f.endsWith('_grand_livre_refus_des_retirees.sql'))
+  if (migRefus.length === 0) {
+    ok(avecRefus.length === 0,
+      'TEMPS 1 : aucune définition de journaliser() ne refuse encore une action retirée — le code en ligne les écrit jusqu’au déploiement de ce lot, aucun geste n’échoue (le refus part au lot suivant)',
+      avecRefus.map((d) => d.f).join(', '))
+  } else {
+    const entete = readFileSync(join(dossier, migRefus[0]), 'utf8').split('\r\n').join('\n').slice(0, 1500)
+    ok(migRefus.length === 1 && avecRefus.length > 0 && avecRefus.every((d) => d.f === migRefus[0]) && defsPar.at(-1)?.f === migRefus[0],
+      'TEMPS 2 : le refus GL006 vit dans la SEULE migration grand_livre_refus_des_retirees, et c’est la dernière définition de journaliser()',
+      avecRefus.map((d) => d.f).join(', '))
+    ok(/ORDRE DE PASSAGE : APRÈS le déploiement/.test(entete) && /retiree_le/.test(defsPar.at(-1)?.corps ?? ''),
+      'TEMPS 2 : sa migration se passe APRÈS le déploiement du lot qui a cessé d’écrire (en-tête lu, §G.4)')
+  }
+  const refusEnPlace = migRefus.length > 0
   const jtx = sansCommentaires(lire('lib/journal/journaliser.ts'))
   ok(/A extends ActionActive/.test(jtx) && !/A extends TypeAction\b/.test(jtx), 'en TypeScript, écrire une action retirée ne compile pas (EcritureJournal<A extends ActionActive>)')
   // Aucun appel TypeScript n'écrit une action retirée.
@@ -437,8 +456,9 @@ section('3. Les actions retirées n’écrivent plus')
 }
 
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════
-section('4. Les tests pgTAP : une action retirée n’y est attendue qu’en refus ou en absence')
+section('4. Les tests pgTAP : une action retirée y est attendue comme la base la traite À CE TEMPS')
 {
+  const refusEnPlace = readdirSync(join(ROOT, 'supabase/migrations')).some((f) => f.endsWith('_grand_livre_refus_des_retirees.sql'))
   const racine = join(ROOT, 'supabase/tests/database')
   const tests = []
   const parcourir = (d) => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) parcourir(p); else if (n.endsWith('.sql')) tests.push(p) } }
@@ -451,13 +471,17 @@ section('4. Les tests pgTAP : une action retirée n’y est attendue qu’en ref
       for (const r of A.ACTIONS_RETIREES) {
         if (!new RegExp(`'${r}'`).test(instr)) continue
         citations++
-        const attendRefus = /GL006/.test(instr)
+        // Une ATTENTE, pas une mention : throws_ok(…, 'GL006', …) — un libellé qui parle du refus n'attend rien.
+        const attendRefus = /\bthrows_ok\(/.test(instr) && /'GL006'/.test(instr)
+        const attendAcceptee = /\blives_ok\(/.test(instr)
         const attendRien = /\b0\s*(::\w+)?\s*,\s*\n?\s*'/.test(instr) || /\bis_empty\(/.test(instr) || /not exists/.test(instr) || /retiree_le/.test(instr)
-        if (!attendRefus && !attendRien) fautives.push(`${f.slice(ROOT.length + 1)} → ${r}`)
+        // Avant le refus, un test qui attend GL006 échouerait ; après, un test qui l'attend acceptée échouerait.
+        const juste = refusEnPlace ? (attendRefus || attendRien) && !attendAcceptee : (attendAcceptee || attendRien) && !attendRefus
+        if (!juste) fautives.push(`${f.slice(ROOT.length + 1)} → ${r}`)
       }
     }
   }
-  ok(fautives.length === 0, `${tests.length} fichiers de test balayés, ${citations} citations d’une action retirée : chacune attend GL006 ou un compte nul`, fautives.join(' · '))
+  ok(fautives.length === 0, `${tests.length} fichiers de test balayés, ${citations} citations d’une action retirée : chacune attend ${refusEnPlace ? 'GL006 (temps 2)' : 'l’écriture ACCEPTÉE (temps 1)'} ou un compte nul`, fautives.join(' · '))
 }
 
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════

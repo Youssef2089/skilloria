@@ -99,8 +99,9 @@ export type TypeAction = (typeof ACTIONS_JOURNAL)[number]
 
 /**
  * LES ACTIONS RETIRÉES (décision de Youssef, 01/10/2026 — ARRÊT 21 → ARRÊT 22). Elles restent dans la liste fermée :
- * leurs lignes passées la citent, et l'écran les affiche. Mais elles NE S'ÉCRIVENT PLUS — la base les refuse (GL006),
- * et l'écrivain TypeScript ne les accepte pas : `journaliser()` est typé sur `ActionActive`, un appel oublié ne
+ * leurs lignes passées la citent, et l'écran les affiche. Mais elles NE S'ÉCRIVENT PLUS — la base les refusera (GL006)
+ * au déploiement SUIVANT (§E.72 : le code en ligne les écrit encore pendant la fenêtre), et l'écrivain TypeScript ne
+ * les accepte déjà plus : `journaliser()` est typé sur `ActionActive`, un appel oublié ne
  * compile pas. Miroir de `grand_livre_actions.retiree_le` ; `diag-grand-livre` tient les deux égaux.
  *   · six RETIRÉES : pas un changement d'état (un clic refusé, un message que la messagerie garde déjà) ;
  *   · cinq FONDUES dans la ligne de fin d'une recherche, qui porte désormais leurs compteurs et le coût.
