@@ -113,6 +113,18 @@ ligne écrit encore ne s'interdit qu'au déploiement suivant. Tag local `sauvega
 8. `npx supabase db push`, puis `git push` — aucun code en ligne n'écrit plus les onze codes, aucun geste n'échoue.
 **En production, la même chose : le lot A déployé d'abord ; le lot B au déploiement suivant, jamais ensemble.**
 
+### L'épreuve de l'ARRÊT 22 bis (lot A `7b07589`, lot B : le commit au-dessus, branche `lot/grand-livre-refus-retirees`)
+- **Lot A** : tsc 0 erreur ; next build réussi ; lint 50 / 24 (vert, 81 s) ; parité i18n 4 856 clés ; série complète
+  **116 verts, 2 rouges, 1 n'a pas tourné** — les 2 rouges sont ceux de la requête d'avant-push laissée au lot fusionné
+  en second (ARRÊT 22) ; le délai est `diag-lint-cliquet` (2 min 33 dans la série, vert seul). Une constante inutilisée
+  avait fait monter le lint à 25 : retirée (`7b07589`).
+- **Lot B** : `diag-journal-lisible` (TEMPS 2), `diag-tests-grand-livre`, `diag-grand-livre`, `diag-postconditions-structure`,
+  `diag-migration-donnees`, `diag-memoire-exacte`, `diag-memoire-a-jour` : verts. Aucun code TypeScript ne change.
+- **Mutations : 5 sur 5 rougissent**, arbre restauré — lot A : le refus GL006 remis dans sa migration, un test qui attend
+  GL006 alors que la base accepte ; lot B : la migration du refus marquée AVANT, le refus aussi dans la migration du
+  lot A, un test qui attend encore l'écriture acceptée.
+- **pgTAP** : 567 tests sur chaque lot, NON exécutés ici (ni Docker ni base) — vos étapes 1 et 6.
+
 ## ⛔ ARRÊT 22 — LE GRAND LIVRE, PHASE 2 : LA LISTE VALIDÉE, DES ÉCRITURES LISIBLES PAR TOUS (01/10/2026)
 
 Décision de Youssef : les recommandations de l'ARRÊT 21 (phase 1, ci-dessous) sont validées telles quelles — GARDER 48,
