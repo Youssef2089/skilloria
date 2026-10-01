@@ -7,6 +7,7 @@ import { logAudit } from '@/lib/audit'
 import { missingForVisibility } from '@/lib/profile-visibility'
 import { deposerVerificationExpert } from '@/lib/travaux-ia/travail'
 import { LISTES_DE_PROFIL, estListeDeProfil, type ListeDeProfil } from '@/lib/lecture/liste'
+import { clesModifiees, listeModifiee } from '@/lib/profil/changements'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -505,6 +506,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
 
   const touchedBlocks: string[] = []
+  // Les listes dont le CONTENU change (relues avant d'être remplacées) — celles qu'écrit « Profil modifié ».
+  const blocsModifies: ListeDeProfil[] = []
   const shouldUpdateScalars = Object.keys(patch).length > 0
 
   // Empty body check: must have either scalars or at least one block
@@ -618,14 +621,31 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         langues.push({ language: nom, level: l.level, is_primary: estPrincipale })
       }
     }
+    const pExperiences = experiences
+      ? (experiences as ExperienceInput[]).filter((e) => typeof e?.role === 'string' && e.role.trim())
+      : null
+    const pFormations = formations
+      ? (formations as EducationInput[]).filter((e) => typeof e?.school === 'string' && e.school.trim() && typeof e?.degree === 'string' && e.degree.trim())
+      : null
+    // CE QUI CHANGE VRAIMENT (décision de Youssef, 01/10/2026, ARRÊT 22) : chaque liste envoyée est relue AVANT d'être
+    // remplacée ; une liste renvoyée à l'identique n'est pas « modifiée ». Une relecture en panne compte comme un
+    // changement (le doute écrit, il ne tait rien).
+    const envoyees: Array<[ListeDeProfil, string, unknown[] | null]> = [
+      ['experiences', 'profile_experiences', pExperiences],
+      ['educations', 'profile_educations', pFormations],
+      ['languages_structured', 'profile_languages', langues],
+    ]
+    for (const [cle, table, nouvelles] of envoyees) {
+      if (nouvelles === null) continue
+      const { data: lues, error: luesErr } = await supabaseAdmin.from(table).select('*').eq('profile_id', cp.id)
+      if (luesErr || listeModifiee((lues ?? []) as Array<Record<string, unknown>>, nouvelles as Array<Record<string, unknown>>)) {
+        blocsModifies.push(cle)
+      }
+    }
     const { error: listesErr } = await supabaseAdmin.rpc('remplacer_listes_profil', {
       p_profile_id: cp.id,
-      p_experiences: experiences
-        ? (experiences as ExperienceInput[]).filter((e) => typeof e?.role === 'string' && e.role.trim())
-        : null,
-      p_formations: formations
-        ? (formations as EducationInput[]).filter((e) => typeof e?.school === 'string' && e.school.trim() && typeof e?.degree === 'string' && e.degree.trim())
-        : null,
+      p_experiences: pExperiences,
+      p_formations: pFormations,
       p_langues: langues,
     })
     if (listesErr) {
@@ -643,6 +663,18 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       return json({ error: 'Lists could not be saved', code: 'listes_non_ecrites' }, 503)
     }
     for (const cle of LISTES_DE_PROFIL) if (cle in body) touchedBlocks.push(cle)
+  }
+
+  // ② Les champs simples : la valeur envoyée contre la valeur LUE avant l'écriture — seules les vraies différences
+  //    entrent dans « Profil modifié ». Une lecture en panne compte tout comme modifié (le doute écrit).
+  let champsReellementModifies: string[] = Object.keys(patch)
+  if (shouldUpdateScalars) {
+    const { data: avant, error: avantErr } = await supabaseAdmin
+      .from('profiles')
+      .select(Object.keys(patch).join(', '))
+      .eq('id', cp.id)
+      .maybeSingle()
+    if (!avantErr && avant) champsReellementModifies = clesModifiees(patch, avant as unknown as Record<string, unknown>)
   }
 
   let updatedProfile: unknown = null
@@ -693,10 +725,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   // `visible` (la publication a sa ligne) et hors le champ de disponibilité (la
   // bascule a la sienne). Rien à écrire si le geste n'était que l'un des deux.
   const champDispo = CHAMP_DISPONIBILITE[isCdi ? 'expert_cdi' : 'expert_freelance']
-  const champsModifies = Object.keys(patch).filter((k) => k !== 'visible' && k !== champDispo)
-  if (champsModifies.length > 0 || touchedBlocks.length > 0) {
+  const champsModifies = champsReellementModifies.filter((k) => k !== 'visible' && k !== champDispo)
+  if (champsModifies.length > 0 || blocsModifies.length > 0) {
     try {
-      await profilModifie(supabaseAdmin, journal, { profileId: cp.id, champs: champsModifies, blocs: touchedBlocks })
+      await profilModifie(supabaseAdmin, journal, { profileId: cp.id, champs: champsModifies, blocs: blocsModifies })
     } catch (err) {
       if (!(err instanceof JournalError)) throw err
       journalRefuse = err
@@ -730,8 +762,12 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     // LA LIGNE DU GRAND LIVRE — la (re)publication, AVANT la vérification qui
     // en découle et avant l'audit best-effort (§E.68). Première fois ou
     // republication : `visible` a été LU avant l'écriture.
+    // « Profil publié » s'écrit quand le profil DEVIENT visible (décision de Youssef, 01/10/2026, ARRÊT 22) ; une
+    // republication d'un profil déjà visible n'en écrit plus — la vérification qu'elle relance a sa propre ligne.
     try {
-      await profilPublie(supabaseAdmin, journal, { profileId: cp.id, dejaVisible: cp.visible === true, verificationAvant: (cp.verification_status as string | null) ?? null })
+      if (cp.visible !== true) {
+        await profilPublie(supabaseAdmin, journal, { profileId: cp.id, dejaVisible: false, verificationAvant: (cp.verification_status as string | null) ?? null })
+      }
     } catch (err) {
       if (!(err instanceof JournalError)) throw err
       journalRefuse = err

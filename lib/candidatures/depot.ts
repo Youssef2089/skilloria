@@ -57,7 +57,6 @@ import { after } from 'next/server'
 import { randomUUID } from 'node:crypto'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { logAudit } from '@/lib/audit'
-import { journaliserDans } from '@/lib/journal/journaliser'
 import { dispatchNotificationsForUsers } from '@/lib/notifications/dispatch'
 import { newCandidatureInappLabels } from '@/lib/notifications/inapp-labels'
 import { getOrgEntitlements } from '@/lib/entitlements'
@@ -180,53 +179,36 @@ function buildPreview(profile: Record<string, unknown>): Record<string, unknown>
 }
 
 /**
- * LE REFUS POUR L'ÉTAT DE L'EXPERT — écrit au grand livre, sujet le PROFIL
- * (§D.21, §D.26). Le SEUL écrivain de `refus_expert_inapte`.
+ * LE REFUS POUR L'ÉTAT DE L'EXPERT (§D.21) — posé avant toute dépense ; la raison est l'une des valeurs fermées de
+ * la règle d'éligibilité.
  *
- * Posé avant toute dépense ; la raison est l'une des valeurs fermées de la
- * règle d'éligibilité. L'écosystème est celui du DÉPÔT (le profil), pas celui
- * du geste : un administrateur qui rejoue agit depuis le sien. Un journal qui
- * refuse LÈVE — un refus qu'on n'a pas pu écrire reste un refus, mais on le sait.
+ * IL N'ÉCRIT PLUS AU GRAND LIVRE (décision de Youssef, 01/10/2026, ARRÊT 22) : un dépôt refusé ne change aucun état,
+ * et un double clic en écrivait deux. L'écran le dit à l'expert, avec la raison. La signature reste celle de ses
+ * appelants : le contexte du geste n'a plus rien à porter ici.
  */
 async function refuserInapte(
   admin: SupabaseClient,
   journal: ContexteJournal,
   args: { profileId: string; publicationId: string; domainId: string; raison: RaisonIneligible },
 ): Promise<IssueDepot> {
-  await journaliserDans(admin, journal, {
-    type: 'refus_expert_inapte',
-    statut: 'refuse',
-    sujet: { type: 'profiles', id: args.profileId },
-    detail: { raison: args.raison, publication_id: args.publicationId },
-    ecosystemeId: args.domainId,
-  })
+  void admin
+  void journal
   return { issue: 'inapte', raison: args.raison }
 }
 
 /**
- * LE REFUS DE GARDE — l'annonce ou le couple : pas mis en relation, déjà
- * postulé, annonce fermée, son propre besoin… Le SEUL écrivain de
- * `refus_garde_eligibilite` (§D.26).
+ * LE REFUS DE GARDE — l'annonce ou le couple : pas mis en relation, déjà postulé, annonce fermée, son propre besoin…
  *
- * SEULS LES REFUS DE RÈGLE S'ÉCRIVENT (statut HTTP < 500) : une panne de
- * lecture (5xx) ne refuse rien, elle se réessaie — la journaliser comme un
- * refus dirait une décision qui n'a pas été prise (§E.22). Sujet l'ANNONCE
- * visée, l'expert dans le détail, écosystème celui du dépôt quand il est connu.
+ * IL N'ÉCRIT PLUS AU GRAND LIVRE (décision de Youssef, 01/10/2026, ARRÊT 22) : un clic refusé ne change aucun état.
+ * La réponse porte le code, l'écran le dit.
  */
 async function refuserGarde(
   admin: SupabaseClient,
   journal: ContexteJournal,
   args: { code: CodeRefus; profileId: string; publicationId: string; domainId: string | null },
 ): Promise<IssueDepot> {
-  if (REFUS_DEPOT[args.code] < 500) {
-    await journaliserDans(admin, journal, {
-      type: 'refus_garde_eligibilite',
-      statut: 'refuse',
-      sujet: { type: 'publications', id: args.publicationId },
-      detail: { code: args.code, profile_id: args.profileId },
-      ecosystemeId: args.domainId ?? journal.ecosystemeId,
-    })
-  }
+  void admin
+  void journal
   return { issue: 'refusee', code: args.code }
 }
 

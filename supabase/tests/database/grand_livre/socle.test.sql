@@ -1,10 +1,11 @@
 -- Le socle — le verrou grand_livre_ajout_seul() (GL001 sur UPDATE, DELETE, TRUNCATE), identifiant_derive()
 -- (stable, distinct par espace), et ip_effacees — effacer_adresses_ip() : l'effacement et sa ligne,
--- ensemble, sous la pièce qu'elle rend ; l'adresse n'entre pas dans la ligne.
+-- ensemble, sous la pièce qu'elle rend ; l'adresse n'entre pas dans la ligne. Depuis l'ARRÊT 22 : un passage
+-- qui n'a RIEN à effacer n'écrit pas de ligne.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(11);
+select plan(12);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -36,6 +37,10 @@ begin
      and g.sujet_id = public.identifiant_derive('cron_job', 'ip_retention_purge')
      and (g.detail ->> 'audit_logs')::int >= 1 and g.detail::text not like '%203.0.113.9%';
   return next ok(v_id is not null, 'la ligne compte l''effacement, sans l''adresse, sur le sujet dérivé de la tâche');
+  -- Le passage suivant n'a plus rien à effacer : il rend sa pièce, et n'écrit rien.
+  v_r := public.effacer_adresses_ip();
+  return next ok(v_r ? 'piece' and not v_r ? 'erreur' and pg_temp.lignes((v_r ->> 'piece')::uuid) = 0,
+                 'rien à effacer : la pièce est rendue, AUCUNE ligne');
   -- ── le verrou : la ligne qu'on vient d'écrire ne se modifie ni ne se supprime ──
   return next throws_ok(format('update public.grand_livre set statut = %L where id = %s', 'echoue', v_id),
                         'GL001', null, 'UPDATE interdit (GL001)');

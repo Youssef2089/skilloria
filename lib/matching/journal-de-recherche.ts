@@ -8,8 +8,12 @@ import type { RaisonIneligible } from './eligibilite'
 import { RELANCE_MAX_TENTATIVES, RUN_MAX_TENTATIVES } from './run-abouti'
 
 /**
- * LE JOURNAL D'UNE RECHERCHE — l'histoire d'un run, écrite au grand livre,
- * UNE LIGNE PAR ÉTAPE, jamais par lot ni par profil (§D.26).
+ * LE JOURNAL D'UNE RECHERCHE — UNE LIGNE PAR RECHERCHE, écrite à sa fin (décision de Youssef, 01/10/2026,
+ * ARRÊT 22). Les cinq étapes (lancée, vivier filtré, profils notés, correspondances, notifications) écrivaient
+ * chacune leur ligne : cinq à six lignes par recherche, recherches automatiques comprises. Elles NOTENT désormais
+ * leur bilan en mémoire, et la ligne de fin (terminée, en échec ou abandonnée) le porte, avec le coût. Le détail
+ * lot par lot reste dans le journal des dépenses d'IA. Le texte ci-dessous décrit encore les étapes : elles
+ * existent toujours, elles n'écrivent plus.
  *
  * ═══ CE QUE C'EST ═══════════════════════════════════════════════════════════
  *   Le SEUL module qui porte les huit littéraux `recherche_*` du dépôt — un
@@ -89,27 +93,23 @@ export type CauseDEchec =
   | 'reconciliation_en_panne'
 
 /**
- * LE REFUS D'UNE RECHERCHE QUI N'A PAS COMMENCÉ — une autre tient déjà le bail
- * de cet expert (§D.22). L'écrivain UNIQUE de `refus_recherche_en_cours`.
- *
- * Ce n'est ni un échec (rien n'a échoué) ni une fin (aucune recherche n'a
- * commencé) : c'est un REFUS nommé, au statut que la base impose, sous la PIÈCE
- * du geste qui a déclenché le passage (clic ou tâche). Sujet : le profil.
- * L'écosystème est celui du geste — le profil n'est pas lu, et un refus ne le
- * lit pas. Seul `occupe` s'écrit : un bail illisible est une PANNE (§E.22).
- * Un journal qui refuse LÈVE, comme toute étape du moteur.
+ * LE BILAN D'UNE RECHERCHE — ce que les étapes ont vu, accumulé EN MÉMOIRE, écrit UNE fois à la fin.
+ * Chaque clé est un nombre (ou absente : l'étape n'a pas eu lieu — `undefined` ne s'écrit pas).
  */
-export async function refusRechercheEnCours(
-  admin: SupabaseClient,
-  journal: ContexteJournal,
-  profileId: string,
-): Promise<void> {
-  await journaliserDans(admin, journal, {
-    type: 'refus_recherche_en_cours',
-    statut: 'refuse',
-    sujet: { type: 'profiles', id: profileId },
-    detail: { tache: journal.tache },
-  })
+type BilanDeRecherche = {
+  tentative?: number | null
+  eligibles?: number
+  examinees?: number
+  notees?: number
+  reprises?: number
+  lots_en_echec?: number
+  retenues?: number
+  fortes?: number
+  nouvelles?: number
+  notifiees?: number
+  notifications_manquees?: number
+  /** Le coût du classement ; `null` : un lot sans tarif — un coût partiel est faux (§D.24), il ne s'écrit pas. */
+  cout_usd?: number | null
 }
 
 export class JournalDeRecherche {
@@ -123,38 +123,24 @@ export class JournalDeRecherche {
      * `dansEcosysteme()` rend l'instance de l'objet dès qu'il est lu.
      */
     private readonly ecosystemeId: string | null,
+    /** Le bilan PARTAGÉ par les instances d'une même recherche (`dansEcosysteme` le transmet). */
+    private readonly bilan: BilanDeRecherche = {},
   ) {}
 
-  /** La même recherche, sous l'écosystème de l'objet lu. Immuable : une nouvelle instance. */
+  /** La même recherche, sous l'écosystème de l'objet lu. Le bilan est le MÊME objet : rien ne se perd. */
   dansEcosysteme(ecosystemeId: string): JournalDeRecherche {
-    return new JournalDeRecherche(this.admin, this.journal, this.sujet, ecosystemeId)
+    return new JournalDeRecherche(this.admin, this.journal, this.sujet, ecosystemeId, this.bilan)
   }
 
-  /**
-   * LE LANCEMENT — après que la tentative a été comptée (annonce :
-   * `marquerTentative`, le compteur lu + 1 ; expert : le compteur de relance
-   * tel que lu sur le profil, incrémenté AVANT le run par l'appelant qui
-   * relance). L'origine est déjà sur la ligne (`origine`, acteur) ; le nom de
-   * la tâche planifiée, lui, ne vit que dans le contexte : on l'écrit.
-   */
+  // ── LES ÉTAPES : elles n'écrivent plus, elles NOTENT (ARRÊT 22) ─────────────
+  //  Les appelants les appellent comme avant (`await` compris) : la forme ne change pas, seule l'écriture disparaît.
+
+  /** Le point de non-retour : la tentative est comptée. */
   async lancee(d: { tentative: number | null }): Promise<void> {
-    await journaliserDans(this.admin, this.journal, {
-      type: 'recherche_lancee',
-      statut: 'reussi',
-      sujet: this.sujet,
-      ecosystemeId: this.ecosystemeId,
-      detail: { tentative: d.tentative, tache: this.journal.tache },
-    })
+    this.bilan.tentative = d.tentative
   }
 
-  /**
-   * LE FILTRAGE — ce que les critères DÉCLARÉS ont laissé passer, et ce qu'ils
-   * ont écarté. `eligibles` est le vivier après filtres ; `sans_matiere`, ceux
-   * qu'on ne peut pas noter (rien à lire) ; `a_noter`, ce qui part au classeur.
-   * Annonce : les écartés pour décision déjà prise (décliné, déjà postulé) ;
-   * expert : le nombre d'annonces CHARGÉES avant le recoupement en mémoire.
-   * Une clé absente n'est pas envoyée (`undefined`) — le sens ne se répète pas.
-   */
+  /** Le filtrage : combien d'éligibles, et combien partent à la notation (les examinés). */
   async filtree(d: {
     eligibles: number
     sans_matiere: number
@@ -163,31 +149,11 @@ export class JournalDeRecherche {
     ecartes_deja_postule?: number
     chargees?: number
   }): Promise<void> {
-    await journaliserDans(this.admin, this.journal, {
-      type: 'recherche_filtree',
-      statut: 'reussi',
-      sujet: this.sujet,
-      ecosystemeId: this.ecosystemeId,
-      detail: {
-        eligibles: d.eligibles,
-        sans_matiere: d.sans_matiere,
-        a_noter: d.a_noter,
-        ecartes_deja_decline: d.ecartes_deja_decline,
-        ecartes_deja_postule: d.ecartes_deja_postule,
-        chargees: d.chargees,
-      },
-    })
+    this.bilan.eligibles = d.eligibles
+    this.bilan.examinees = d.a_noter
   }
 
-  /**
-   * LE CLASSEMENT — notés (payés ce run), reprises (acquises d'un run
-   * interrompu, non repayées), lots en échec, l'arrêt en CODE ; et ce que le
-   * run a PAYÉ : les unités dans l'unité facturée, leur source, le coût dans
-   * les colonnes de coût du grand livre (§D.24, §D.26). Un coût inconnu
-   * (`null` : un lot sans tarif) ne s'écrit pas — un coût partiel est faux.
-   * Le statut est celui de l'ÉTAPE : `echoue` si un lot a manqué ou si la
-   * notation a été arrêtée — sauf `aucun_document`, qui n'est pas une panne.
-   */
+  /** Le classement : notés, reprises, lots en échec, et ce que la recherche a COÛTÉ. */
   async classee(d: {
     model: string
     notes: number
@@ -196,31 +162,13 @@ export class JournalDeRecherche {
     arret: ArretDeNotation | null
     facture: { recherches: number; source: 'fournisseur' | 'plancher'; cout_usd: number | null }
   }): Promise<void> {
-    await journaliserDans(this.admin, this.journal, {
-      type: 'recherche_classee',
-      statut: d.lots_en_echec > 0 || (d.arret !== null && d.arret !== 'aucun_document') ? 'echoue' : 'reussi',
-      sujet: this.sujet,
-      ecosystemeId: this.ecosystemeId,
-      detail: {
-        model: d.model,
-        notes: d.notes,
-        reprises: d.reprises,
-        lots_en_echec: d.lots_en_echec,
-        arret: d.arret,
-        recherches: d.facture.recherches,
-        unites_source: d.facture.source,
-      },
-      cout: d.facture.cout_usd === null ? null : { usd: d.facture.cout_usd, unite: 'recherches' },
-    })
+    this.bilan.notees = d.notes
+    this.bilan.reprises = d.reprises
+    this.bilan.lots_en_echec = d.lots_en_echec
+    this.bilan.cout_usd = d.facture.cout_usd
   }
 
-  /**
-   * LES CORRESPONDANCES — ce que le filtre du flux a retenu parmi les notés,
-   * combien sont fortes (le palier figé ce jour-là), et ce que la
-   * réconciliation a FAIT : insérées, mises à jour, supprimées. Les deux
-   * valeurs de réglage qui ont trié sont écrites avec — un réglage qui change
-   * ne réécrit pas l'histoire. Jamais une note individuelle (§D.6).
-   */
+  /** Les correspondances : retenues, fortes, et celles qui sont NOUVELLES. */
   async correspondances(d: {
     retenues: number
     fortes: number
@@ -230,78 +178,52 @@ export class JournalDeRecherche {
     filtre_flux: number
     palier_fort: number
   }): Promise<void> {
-    await journaliserDans(this.admin, this.journal, {
-      type: 'recherche_correspondances',
-      statut: 'reussi',
-      sujet: this.sujet,
-      ecosystemeId: this.ecosystemeId,
-      detail: {
-        retenues: d.retenues,
-        fortes: d.fortes,
-        inserees: d.inserees,
-        mises_a_jour: d.mises_a_jour,
-        supprimees: d.supprimees,
-        filtre_flux: d.filtre_flux,
-        palier_fort: d.palier_fort,
-      },
-    })
+    this.bilan.retenues = d.retenues
+    this.bilan.fortes = d.fortes
+    this.bilan.nouvelles = d.inserees
   }
 
-  /**
-   * LES NOTIFICATIONS — ce que l'envoi a FAIT, tel qu'il l'a rendu : le
-   * nombre demandé n'est pas le nombre parti. Écrite seulement quand un envoi
-   * a été tenté ; son absence dit « rien à envoyer » (notifications éteintes,
-   * aucune forte fraîche), et la ligne des correspondances dit pourquoi.
-   * Statut de l'ÉTAPE : `echoue` si l'envoi a renoncé ou si un paquet a été
-   * refusé — les destinataires manqués se rattrapent au run suivant, mais on
-   * ne l'écrit pas comme réussi.
-   */
+  /** Les notifications : combien de personnes ont été PRÉVENUES, combien ne l'ont pas été (paquet refusé, renoncement). */
   async notifiee(b: BilanNotifications): Promise<void> {
-    await journaliserDans(this.admin, this.journal, {
-      type: 'recherche_notifiee',
-      statut: b.renonce || b.paquets_en_echec > 0 ? 'echoue' : 'reussi',
-      sujet: this.sujet,
-      ecosystemeId: this.ecosystemeId,
-      detail: {
-        demandees: b.demandees,
-        deja_notifiees: b.deja_notifiees,
-        posees: b.posees,
-        paquets_en_echec: b.paquets_en_echec,
-        renonce: b.renonce,
-      },
-    })
+    this.bilan.notifiees = b.posees
+    this.bilan.notifications_manquees = b.renonce || b.paquets_en_echec > 0
+      ? Math.max(0, b.demandees - b.deja_notifiees - b.posees)
+      : 0
+  }
+
+  private cout(): { usd: number; unite: 'recherches' } | null {
+    return typeof this.bilan.cout_usd === 'number' ? { usd: this.bilan.cout_usd, unite: 'recherches' } : null
   }
 
   /**
-   * LA FIN — l'issue, fermée. Statut `reussi` imposé par la base : une
-   * recherche terminée sur un refus légitime (annonce expirée, expert
-   * inéligible, profil sans matière) ou sur un vivier vide s'est bien
-   * TERMINÉE ; ce qui a échoué s'écrit `echouee`. La raison n'accompagne
-   * que l'inéligibilité, en code (§D.20).
+   * LA FIN — UNE ligne pour toute la recherche (décision de Youssef, 01/10/2026) : l'issue, fermée, et le bilan
+   * (examinés, notés, retenus, forts, nouveaux, prévenus) avec le coût. Statut `reussi` imposé par la base : une
+   * recherche terminée sur un refus légitime ou un vivier vide s'est bien TERMINÉE. La raison n'accompagne que
+   * l'inéligibilité, en code (§D.20). Clé par clé, jamais par étalement (§E.38) : le type vérifie ce qui part.
    */
   async terminee(d: { issue: IssueDeRecherche; raison?: RaisonIneligible }): Promise<void> {
+    const b = this.bilan
     await journaliserDans(this.admin, this.journal, {
       type: 'recherche_terminee',
       statut: 'reussi',
       sujet: this.sujet,
       ecosystemeId: this.ecosystemeId,
-      detail: { issue: d.issue, raison: d.raison },
+      detail: {
+        issue: d.issue, raison: d.raison, tentative: b.tentative, tache: this.journal.tache,
+        eligibles: b.eligibles, examinees: b.examinees, notees: b.notees, reprises: b.reprises, lots_en_echec: b.lots_en_echec,
+        retenues: b.retenues, fortes: b.fortes, nouvelles: b.nouvelles, notifiees: b.notifiees, notifications_manquees: b.notifications_manquees,
+      },
+      cout: this.cout(),
     })
   }
 
   /**
-   * L'ÉCHEC — l'étape et la cause, en codes ; la tentative consommée (`null`
-   * quand aucune ne l'a été : une lecture en panne avant le point de
-   * non-retour) ; pour la notation, l'arrêt en code et les lots manqués.
-   * Statut `echoue` imposé par la base. Une recherche échouée côté annonce
-   * reste INACHEVÉE (rejouable) ; côté expert, la relance n'est pas soldée.
+   * L'ÉCHEC — UNE ligne : l'étape et la cause en codes, la tentative consommée (`null` quand aucune ne l'a été),
+   * et le bilan de ce qui a eu lieu avant la panne. Statut `echoue` imposé par la base.
    *
-   * ET C'EST ICI QUE L'ABANDON SE DÉCIDE : la tentative consommée a atteint
-   * le plafond du sens, plus rien ne rejouera — le rattrapage (annonce) et la
-   * file de relance (expert) excluent l'un et l'autre au-delà du plafond. Le
-   * moteur est le seul à voir TOUTES les tentatives, les déclenchements
-   * directs compris : il est le seul à pouvoir l'écrire. Même pièce que
-   * l'échec — deux types, un sujet, l'index d'unicité ne les confond pas.
+   * ET C'EST ICI QUE L'ABANDON SE DÉCIDE : la tentative a atteint le plafond du sens, plus rien ne rejouera. Une
+   * seule ligne alors aussi — `recherche_abandonnee` AU LIEU de l'échec, qui porte l'étape et la cause : deux lignes
+   * pour un même fait, c'est ce que la décision a fermé.
    */
   async echouee(d: {
     etape: EtapeDeRecherche
@@ -310,31 +232,35 @@ export class JournalDeRecherche {
     arret?: ArretDeNotation | null
     lots_en_echec?: number
   }): Promise<void> {
+    const b = this.bilan
+    const plafond = this.sujet.type === 'publications' ? RUN_MAX_TENTATIVES : RELANCE_MAX_TENTATIVES
+    const lotsEnEchec = d.lots_en_echec ?? b.lots_en_echec
+    if (d.tentative !== null && d.tentative >= plafond) {
+      await journaliserDans(this.admin, this.journal, {
+        type: 'recherche_abandonnee',
+        statut: 'echoue',
+        sujet: this.sujet,
+        ecosystemeId: this.ecosystemeId,
+        detail: {
+          tentatives: d.tentative, plafond, cause: d.cause, etape: d.etape, arret: d.arret, tache: this.journal.tache,
+          eligibles: b.eligibles, examinees: b.examinees, notees: b.notees, reprises: b.reprises, lots_en_echec: lotsEnEchec,
+          retenues: b.retenues, fortes: b.fortes, nouvelles: b.nouvelles, notifiees: b.notifiees, notifications_manquees: b.notifications_manquees,
+        },
+        cout: this.cout(),
+      })
+      return
+    }
     await journaliserDans(this.admin, this.journal, {
       type: 'recherche_echouee',
       statut: 'echoue',
       sujet: this.sujet,
       ecosystemeId: this.ecosystemeId,
-      detail: { etape: d.etape, cause: d.cause, tentative: d.tentative, arret: d.arret, lots_en_echec: d.lots_en_echec },
-    })
-    const plafond = this.sujet.type === 'publications' ? RUN_MAX_TENTATIVES : RELANCE_MAX_TENTATIVES
-    if (d.tentative !== null && d.tentative >= plafond) {
-      await this.abandonnee({ tentatives: d.tentative, plafond, cause: d.cause })
-    }
-  }
-
-  /**
-   * L'ABANDON — après la dernière tentative. Privé : seul l'échec le décide,
-   * un appelant ne peut pas « abandonner » de lui-même. Le plafond est écrit
-   * avec la ligne : un plafond qui change ne réécrit pas l'histoire.
-   */
-  private async abandonnee(d: { tentatives: number; plafond: number; cause: CauseDEchec }): Promise<void> {
-    await journaliserDans(this.admin, this.journal, {
-      type: 'recherche_abandonnee',
-      statut: 'echoue',
-      sujet: this.sujet,
-      ecosystemeId: this.ecosystemeId,
-      detail: { tentatives: d.tentatives, plafond: d.plafond, cause: d.cause },
+      detail: {
+        etape: d.etape, cause: d.cause, tentative: d.tentative, arret: d.arret, tache: this.journal.tache,
+        eligibles: b.eligibles, examinees: b.examinees, notees: b.notees, reprises: b.reprises, lots_en_echec: lotsEnEchec,
+        retenues: b.retenues, fortes: b.fortes, nouvelles: b.nouvelles, notifiees: b.notifiees, notifications_manquees: b.notifications_manquees,
+      },
+      cout: this.cout(),
     })
   }
 }

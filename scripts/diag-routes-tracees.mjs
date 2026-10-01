@@ -85,6 +85,8 @@ for (let b = true; b;) { b = false; for (const fn of fonctions) if (!tracantes.h
 //  Les lectures sont hors périmètre du grand livre (§D.26) : il enregistre ce qui change un état MÉTIER.
 const EXCLUSIONS = {
   'auth/init-session': 'LÉGITIME — la session unique (jeton de session posé à la connexion) : un mécanisme, pas un geste métier ; la révocation, elle, a son action (session_revoquee)',
+  // ARRÊT 22 (décision de Youssef, 01/10/2026) : « message envoyé » est RETIRÉE de la liste validée.
+  'conversations/[id]/messages': 'LÉGITIME — envoyer un message ne s’écrit plus au grand livre (décision de Youssef, 01/10/2026, action retirée) : la messagerie garde chaque message, daté et attribué ; le fait métier est l’ouverture de l’échange (devoilement_ouvert). Le GET marque les messages LUS : une lecture',
   'cron/stripe-reconcile': 'LÉGITIME — la vérification nocturne ne change aucun état métier : elle CONSTATE les écarts avec Stripe et écrit son propre journal de tâche (stripe_reconciliation_runs, un sous-journal)',
   'me/candidatures/[id]/view': 'LÉGITIME — une CONSULTATION (candidature_views) : les lectures sont hors périmètre du grand livre',
   'me/locale': 'LÉGITIME — une préférence d’AFFICHAGE (users.locale) : elle choisit la langue des écrans et des e-mails, elle ne change aucun état métier',

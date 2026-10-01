@@ -1,5 +1,6 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
+import { clesModifiees } from '@/lib/profil/changements'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -304,7 +305,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   // ── Pré-check ownership + status éditable ───────────────────────────────
   const { data: pub, error: fetchErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, organization_id, status')
+    // Les champs envoyés sont relus avec l'annonce : la ligne du grand livre ne nommera que ceux qui CHANGENT (ARRÊT 22).
+    .select(['id', 'organization_id', 'status', ...Object.keys(u.updates)].join(', '))
     // CLOISONNEMENT DANS LA RECHERCHE, pas après : une annonce d'un autre
     // écosystème devient INTROUVABLE, et la route emprunte son 404 existant.
     .eq('id', id)
@@ -318,10 +320,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   if (!pub) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
-  if ((pub.organization_id as string) !== orgId) {
+  const avantAnnonce = pub as unknown as Record<string, unknown>
+  if ((avantAnnonce.organization_id as string) !== orgId) {
     return json({ error: 'Forbidden', code: 'forbidden' }, 403)
   }
-  const currentStatus = pub.status as string
+  const currentStatus = avantAnnonce.status as string
   if (!(EDITABLE_STATUSES as readonly string[]).includes(currentStatus)) {
     return json(
       { error: 'Status not editable', code: 'wrong_status', current_status: currentStatus },
@@ -350,13 +353,18 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   //  jamais leur contenu (un titre est un texte libre). Un journal qui refuse
   //  le DIT, avec l'identifiant de ce qui a été écrit : l'annonce est modifiée,
   //  la trace manque, et l'organisation le sait plutôt qu'un 200 qui ment.
+  //  CE QUI CHANGE VRAIMENT (décision de Youssef, 01/10/2026, ARRÊT 22) : un brouillon réenregistré à l'identique
+  //  n'écrit plus de ligne ; seuls les champs dont la valeur change sont nommés.
+  const champsChanges = clesModifiees(u.updates as Record<string, unknown>, avantAnnonce)
   try {
-    await journaliserDans(auth.supabaseAdmin, journal, {
-      type: 'annonce_modifiee',
-      statut: 'reussi',
-      sujet: { type: 'publications', id },
-      detail: { champs: Object.keys(u.updates), statut_annonce: updated.status, organization_id: orgId },
-    })
+    if (champsChanges.length > 0) {
+      await journaliserDans(auth.supabaseAdmin, journal, {
+        type: 'annonce_modifiee',
+        statut: 'reussi',
+        sujet: { type: 'publications', id },
+        detail: { champs: champsChanges, statut_annonce: updated.status, organization_id: orgId },
+      })
+    }
   } catch (err) {
     if (!(err instanceof JournalError)) throw err
     console.error('[publications:PATCH] grand livre en échec après écriture', { id, message: err.message })

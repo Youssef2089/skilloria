@@ -11,6 +11,7 @@ import {
   type LigneJournal,
   type PageJournal,
 } from '@/lib/journal/lecture'
+import { nomsDesLignes } from '@/lib/journal/libelles'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -111,10 +112,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     return json({ error: 'Journal unreadable', code: 'journal_illisible' }, 503)
   }
   const brut = data as { lignes: LigneJournal[]; limite: number; suivant: { horodatage: string; id: number } | null }
+  // Les noms des objets, relus pour que chaque écriture se lise comme une phrase (ARRÊT 22, §D.33).
+  const { noms, indisponibles } = await nomsDesLignes(auth.supabaseAdmin, auth.user.id, brut.lignes)
   const page: PageJournal = {
     lignes: brut.lignes,
     limite: brut.limite,
     suivant: brut.suivant ? encoderCurseur(brut.suivant) : null,
+    noms,
+    noms_indisponibles: indisponibles,
   }
   return json(page, 200)
 }

@@ -59,6 +59,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 
 let echecs = 0
+// LES MODULES QUI NOMMENT LE CODE SANS LIRE LA VALEUR — exemptions, une raison chacune (§G.8).
+const NOMMENT_SEULEMENT = {
+  'lib/journal/phrase.ts': 'LÉGITIME : traduit le TYPE de sujet d’une écriture du grand livre (« le plafond de dépense d’IA par compte ») en phrase pour l’écran d’administration du journal (ARRÊT 22) ; il ne lit ni n’écrit aucune valeur de seuil',
+}
 const ok = (cond, libelle, indice) => {
   if (cond) console.log(`  ok   ${libelle}`)
   else { echecs++; console.log(`  KO   ${libelle}${indice ? `\n       → ${indice}` : ''}`) }
@@ -420,7 +424,7 @@ section('G. L’alerte par acteur ALERTE — elle ne bloque rien')
     'aucun refus, aucun arret ne depend de l alerte',
     'une alerte SIGNALE, elle ne bloque pas (§D.9) : ' + bloqueurs.join(', '))
 
-  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/'))
+  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/') && !(f in NOMMENT_SEULEMENT))
   const contamines = METIER.filter((f) => /\ben_alerte\b|ai_spend_seuils_acteur/.test(sansCommentaires(read(f))))
   ok(contamines.length === 0,
     'le seuil par acteur ne sort pas de l’ecran d’administration',
@@ -546,7 +550,7 @@ section('I. Les deux reglages d’ARGENT se reglent — et l’ecran dit lequel 
 
   // LE SEUIL NE DOIT TOUJOURS RIEN BLOQUER. Le rendre reglable ne change pas
   // la decision produit : un depassement alerte, il ne bloque pas.
-  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/'))
+  const METIER = fichiers.filter((f) => !f.startsWith('app/api/admin/') && !f.includes('admin/') && !(f in NOMMENT_SEULEMENT))
   const contamines = METIER.filter((f) => /ai_spend_seuils_acteur/.test(sansCommentaires(read(f))))
   ok(contamines.length === 0,
     'le seuil d’alerte ne sort toujours pas de l’ecran d’administration',

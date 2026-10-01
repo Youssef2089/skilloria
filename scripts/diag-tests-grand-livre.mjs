@@ -78,18 +78,10 @@ const GEL = {
   plafond_atteint: `${TS} — lib/ai-budget.ts`,
   profil_modifie: `${TS} — app/api/profile/route.ts`,
   profil_publie: `${TS} — lib/profil/journal-profil.ts`,
-  recherche_abandonnee: `${TS} — lib/matching/journal-de-recherche.ts`,
-  recherche_classee: `${TS} — lib/matching/journal-de-recherche.ts`,
-  recherche_correspondances: `${TS} — lib/matching/journal-de-recherche.ts`,
+  // ARRÊT 22 (01/10/2026) : les onze actions RETIRÉES ont quitté le gel — grand_livre/liste_validee.test.sql les
+  // nomme et prouve que journaliser() les refuse (GL006) ; recherche_terminee et recherche_abandonnee y sont écrites
+  // sous leur forme nouvelle (les étapes fondues en une ligne, avec leurs compteurs).
   recherche_echouee: `${TS} — lib/matching/journal-de-recherche.ts`,
-  recherche_filtree: `${TS} — lib/matching/journal-de-recherche.ts`,
-  recherche_lancee: `${TS} — lib/matching/journal-de-recherche.ts`,
-  recherche_notifiee: `${TS} — lib/matching/journal-de-recherche.ts`,
-  recherche_terminee: `${TS} — lib/matching/journal-de-recherche.ts`,
-  refus_expert_inapte: `${TS} — lib/candidatures/depot.ts`,
-  refus_garde_eligibilite: `${TS} — lib/candidatures/depot.ts`,
-  refus_plafond_atteint: `${TS} — lib/ai-budget.ts`,
-  refus_quota_cv: `${TS} — lib/ai-quotas.ts`,
   session_revoquee: `${TS} — lib/comptes/journal-compte.ts`,
   suppression_annulee: `${TS} — lib/comptes/journal-compte.ts`,
 }

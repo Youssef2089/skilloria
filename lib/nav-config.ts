@@ -357,6 +357,15 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         iconKey: 'ledger',
       },
       {
+        // LA CONSERVATION DU JOURNAL, sur un écran à part (décision de Youssef, 01/10/2026, ARRÊT 22) : combien de
+        // temps chaque famille d'écritures est gardée, ce que la loi impose, la proposition à appliquer, et le
+        // nettoyage — annoncé avant d'agir. Séparé de la lecture : on n'efface pas là où l'on enquête.
+        key: 'journal-conservation',
+        href: '/admin/journal/conservation',
+        labelKey: 'nav_journal_conservation',
+        iconKey: 'clock',
+      },
+      {
         // LE RACCORDEMENT STRIPE, rangé dans « Exploitation » et non dans
         // « Commerce » : on n'y vend rien et on n'y règle rien. On y CONSTATE
         // que ce qui a été encaissé correspond à ce qui a été ouvert — et

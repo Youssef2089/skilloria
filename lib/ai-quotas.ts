@@ -1,6 +1,4 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { ContexteJournal } from '@/lib/journal/contexte'
-import { journaliserDans } from '@/lib/journal/journaliser'
 
 /**
  * lib/ai-quotas.ts — LES QUOTAS ANTI-ABUS DES FONCTIONNALITÉS IA.
@@ -82,35 +80,3 @@ export function windowEndsAt(quota: AiQuota, now: Date): string {
   return new Date(now.getTime() + quota.windowHours * 60 * 60 * 1000).toISOString()
 }
 
-/**
- * LE REFUS PAR QUOTA — écrit au grand livre, sujet le PROFIL (§D.26). Le SEUL
- * écrivain de `refus_quota_cv` : les DEUX routes d'analyse de CV (freelance,
- * CDI) l'appellent avant de répondre 429 — deux écrivains divergeraient
- * (§E.20). Le détail porte la limite et la fenêtre LUES au moment du refus :
- * un réglage qui change ne réécrit pas l'histoire. Un journal qui refuse LÈVE.
- */
-export async function refuserParQuota(
-  admin: SupabaseClient,
-  journal: ContexteJournal,
-  args: {
-    profileId: string
-    quota: 'cv_parsing'
-    maxPerWindow: number
-    windowHours: number
-    resetAt: string
-    count: number
-  },
-): Promise<void> {
-  await journaliserDans(admin, journal, {
-    type: 'refus_quota_cv',
-    statut: 'refuse',
-    sujet: { type: 'profiles', id: args.profileId },
-    detail: {
-      quota: args.quota,
-      limite: args.maxPerWindow,
-      fenetre_heures: args.windowHours,
-      reset_at: args.resetAt,
-      compte: args.count,
-    },
-  })
-}

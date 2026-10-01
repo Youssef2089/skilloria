@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { AuthError, requireAuth } from '@/lib/auth-guard'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { capaciteActive } from '@/lib/interrupteurs'
-import { loadCvParsingQuota, QuotaConfigMissing, refuserParQuota } from '@/lib/ai-quotas'
+import { loadCvParsingQuota, QuotaConfigMissing } from '@/lib/ai-quotas'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { logAudit } from '@/lib/audit'
 import { deposerAnalyseCv } from '@/lib/travaux-ia/travail'
@@ -118,15 +118,8 @@ export async function deposerCv(request: NextRequest, voie: Voie): Promise<Respo
   const resetAt = profile.cv_parsing_reset_at ? new Date(profile.cv_parsing_reset_at) : null
   const count = profile.cv_parsing_count_24h ?? 0
   if (resetAt !== null && resetAt > now && count >= quota.maxPerWindow) {
-    // LE REFUS S'ÉCRIT (§D.26) — par le seul écrivain de `refus_quota_cv`.
-    await refuserParQuota(supabaseAdmin, journal, {
-      profileId: profile.id,
-      quota: 'cv_parsing',
-      maxPerWindow: quota.maxPerWindow,
-      windowHours: quota.windowHours,
-      resetAt: resetAt.toISOString(),
-      count,
-    })
+    // Le refus n'écrit plus au grand livre (décision de Youssef, 01/10/2026) : un dépôt refusé ne change aucun état ;
+    // l'écran le dit à l'expert, avec la limite et l'heure de remise à zéro.
     return json(
       {
         error: `Rate limit: ${quota.maxPerWindow} parsings / ${quota.windowHours}h`,

@@ -1,4 +1,5 @@
 import { ACTIONS_JOURNAL } from './actions'
+import type { NomsJournal } from './phrase'
 
 /**
  * LA LECTURE DU GRAND LIVRE — ce que l'écran /admin/journal et ses deux routes
@@ -52,6 +53,10 @@ export type PageJournal = {
   limite: number
   /** Le curseur de la page suivante, opaque — `null` : il n'y a pas de suite. */
   suivant: string | null
+  /** Les noms des objets que les phrases citent (`libelles_journal`), par `type:id`. */
+  noms: NomsJournal
+  /** La relecture des noms a échoué : l'écran le dit (les phrases retombent sur « un profil », « une annonce »). */
+  noms_indisponibles: boolean
 }
 
 export type PieceJournal = {
@@ -66,6 +71,8 @@ export type PieceJournal = {
     cron_run_log: Array<{ job_name: string; trigger_source: string; http_status: number | null; horodatage: string }>
     notifications: Array<{ type: string; channel: string; status: string; horodatage: string }>
   }
+  noms: NomsJournal
+  noms_indisponibles: boolean
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i

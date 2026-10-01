@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { estUuid, type PieceJournal } from '@/lib/journal/lecture'
+import { nomsDesLignes } from '@/lib/journal/libelles'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -43,9 +44,12 @@ export async function GET(request: NextRequest, ctx: Ctx): Promise<Response> {
     console.error('[admin:journal/piece] lecture en panne', error.message)
     return json({ error: 'Journal unreadable', code: 'journal_illisible' }, 503)
   }
-  const p = data as PieceJournal
+  const p = data as Omit<PieceJournal, 'noms' | 'noms_indisponibles'>
   if (p.lignes.length === 0) {
     return json({ error: 'Unknown piece', code: 'piece_inconnue' }, 404)
   }
-  return json(p, 200)
+  // Les noms des objets, relus pour que chaque écriture se lise comme une phrase (ARRÊT 22, §D.33).
+  const { noms, indisponibles } = await nomsDesLignes(auth.supabaseAdmin, auth.user.id, p.lignes)
+  const corps: PieceJournal = { ...p, noms, noms_indisponibles: indisponibles }
+  return json(corps, 200)
 }

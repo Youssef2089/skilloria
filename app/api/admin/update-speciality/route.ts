@@ -3,7 +3,7 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
-import { taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
+import { changementsTaxonomie, taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -150,6 +150,11 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Nothing to update', code: 'no_changes' }, 400)
   }
 
+  // Relu AVANT l'écriture : la ligne du grand livre ne nommera que ce qui change (ARRÊT 22).
+  const changements = await changementsTaxonomie(auth.supabaseAdmin, {
+    table: 'specialities', id, updates, aEcrire: trToUpsert, aEffacer: trToDelete,
+  })
+
   if (Object.keys(updates).length > 0) {
     updates.updated_at = new Date().toISOString()
     const { error: updErr } = await auth.supabaseAdmin.from('specialities').update(updates).eq('id', id)
@@ -183,8 +188,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     id,
     ecosystemeId: sp.domain_id,
     branchId: sp.branch_id,
-    champs: Object.keys(updates).filter((k) => k !== 'updated_at'),
-    traductions: [...trToUpsert.map((t) => t.locale), ...trToDelete],
+    champs: changements.champs,
+    traductions: changements.traductions,
+    // Rien n'a changé : aucune ligne (décision de Youssef, 01/10/2026).
+    rienNeChange: changements.champs.length === 0 && changements.traductions.length === 0,
   })
   if (!ligne.ok) {
     console.error('[admin:taxonomie] grand livre en échec après écriture', { id: id, message: ligne.message })

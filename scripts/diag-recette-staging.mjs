@@ -52,10 +52,12 @@ section('1. Le grand livre : deux écritures d’un geste se distinguent, et l�
   const pres = sansCommentaires(lire('components/admin/journal/presentation.tsx'))
   const liste = sansCommentaires(lire('app/[locale]/admin/journal/page.tsx'))
   const piece = sansCommentaires(lire('app/[locale]/admin/journal/[piece]/page.tsx'))
-  ok(/export function DetailEcriture\(/.test(pres) && /export function ResumeEcriture\(/.test(pres), 'le détail et le résumé d’une écriture sont rendus par UN module partagé (§E.20)')
-  ok(/<ResumeEcriture ligne=\{l\} \/>/.test(liste), 'la LISTE montre, pour chaque écriture, son objet et ses premiers détails')
-  ok(/<DetailEcriture detail=\{l\.detail\} \/>/.test(piece) && /<ResumeEcriture ligne=\{x\} max=\{2\} \/>/.test(piece) && !/JSON\.stringify\(l\.detail/.test(piece),
-    'la PIÈCE montre le détail clé par clé (plus de JSON brut), et chaque ligne de sa colonne se distingue sans être ouverte')
+  // Depuis l'ARRÊT 22 (§D.33), le détail « clé par clé » est remplacé par une PHRASE — rendue par UN module partagé ;
+  // diag-journal-lisible l'exécute dans les quatre langues.
+  ok(/export function PhraseEcriture\(/.test(pres) && !/export function (DetailEcriture|ResumeEcriture)\(/.test(pres), 'la phrase d’une écriture est rendue par UN module partagé (§E.20)')
+  ok(/<PhraseEcriture ligne=\{l\} noms=\{noms\}/.test(liste), 'la LISTE montre, pour chaque écriture, sa phrase — qui, quoi, sur quoi, le résultat')
+  ok(/<PhraseEcriture ligne=\{l\} noms=\{data\.noms\}/.test(piece) && /<PhraseEcriture ligne=\{x\} noms=\{data\.noms\}/.test(piece) && !/JSON\.stringify\(l\.detail/.test(piece),
+    'les écritures d’un geste : chacune sa phrase, dans la colonne comme dans le détail — elles se distinguent sans être ouvertes')
   const mig = lire('supabase/migrations/' + readdirSync(join(ROOT, 'supabase/migrations')).find((f) => f.endsWith('_journal_inscription_distincte.sql')))
   ok(/v_piece, 'expert_inscrit', 'reussi', 'utilisateur',\s*new\.id, v_user_type, v_domain_id, 'profiles', v_profil,/.test(mig)
      && /'type_de_compte', case when v_voie = 'administrateur' then 'admin' else v_user_type end/.test(mig),

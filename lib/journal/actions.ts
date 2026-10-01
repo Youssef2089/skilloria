@@ -91,9 +91,29 @@ export const ACTIONS_JOURNAL = [
   'refus_plafond_atteint', 'refus_expert_inapte', 'refus_garde_eligibilite', 'refus_quota_cv', 'refus_depot_sans_jugement',
   // une recherche écartée parce qu'une autre tient le bail de l'expert (§D.22) — migration `journal_refus_recherche_en_cours`
   'refus_recherche_en_cours',
+  // le désabonnement d'un e-mail — un changement de consentement (ARRÊT 22, migration grand_livre_liste_validee)
+  'desabonnement_email',
 ] as const
 
 export type TypeAction = (typeof ACTIONS_JOURNAL)[number]
+
+/**
+ * LES ACTIONS RETIRÉES (décision de Youssef, 01/10/2026 — ARRÊT 21 → ARRÊT 22). Elles restent dans la liste fermée :
+ * leurs lignes passées la citent, et l'écran les affiche. Mais elles NE S'ÉCRIVENT PLUS — la base les refuse (GL006),
+ * et l'écrivain TypeScript ne les accepte pas : `journaliser()` est typé sur `ActionActive`, un appel oublié ne
+ * compile pas. Miroir de `grand_livre_actions.retiree_le` ; `diag-grand-livre` tient les deux égaux.
+ *   · six RETIRÉES : pas un changement d'état (un clic refusé, un message que la messagerie garde déjà) ;
+ *   · cinq FONDUES dans la ligne de fin d'une recherche, qui porte désormais leurs compteurs et le coût.
+ */
+export const ACTIONS_RETIREES = [
+  'message_envoye', 'refus_recherche_en_cours', 'refus_expert_inapte', 'refus_garde_eligibilite',
+  'refus_plafond_atteint', 'refus_quota_cv',
+  'recherche_lancee', 'recherche_filtree', 'recherche_classee', 'recherche_correspondances', 'recherche_notifiee',
+] as const satisfies readonly TypeAction[]
+
+export type ActionRetiree = (typeof ACTIONS_RETIREES)[number]
+/** Une action qu'un geste peut encore écrire. */
+export type ActionActive = Exclude<TypeAction, ActionRetiree>
 
 export function estTypeAction(x: unknown): x is TypeAction {
   return typeof x === 'string' && (ACTIONS_JOURNAL as readonly string[]).includes(x)
@@ -125,9 +145,11 @@ export const CLES_DETAIL = {
   recherche_classee: ['model', 'notes', 'reprises', 'lots_en_echec', 'arret', 'recherches', 'unites_source'],
   recherche_correspondances: ['retenues', 'fortes', 'inserees', 'mises_a_jour', 'supprimees', 'filtre_flux', 'palier_fort'],
   recherche_notifiee: ['demandees', 'deja_notifiees', 'posees', 'paquets_en_echec', 'renonce'],
-  recherche_terminee: ['issue', 'raison'],
-  recherche_echouee: ['etape', 'cause', 'tentative', 'arret', 'lots_en_echec'],
-  recherche_abandonnee: ['tentatives', 'plafond', 'cause'],
+  // LA LIGNE DE FIN D'UNE RECHERCHE porte ce que les cinq étapes fondues portaient (ARRÊT 22) : combien examinés,
+  // notés, retenus, forts, nouveaux, combien de personnes prévenues — le coût est dans les colonnes de coût.
+  recherche_terminee: ['issue', 'raison', 'tentative', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees'],
+  recherche_echouee: ['etape', 'cause', 'tentative', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees', 'lots_en_echec'],
+  recherche_abandonnee: ['tentatives', 'plafond', 'cause', 'etape', 'arret', 'tache', 'eligibles', 'examinees', 'notees', 'reprises', 'lots_en_echec', 'retenues', 'fortes', 'nouvelles', 'notifiees', 'notifications_manquees'],
   candidature_deposee: ['publication_id', 'profile_id', 'match_id', 'ai_match_score', 'origine_depot', 'tentative'],
   candidature_declinee: ['publication_id', 'has_reason'],
   candidature_retenue: ['publication_id', 'publication_type', 'profile_id'],
@@ -142,7 +164,7 @@ export const CLES_DETAIL = {
   organisation_preinscrite: ['org_type', 'domaine_public'],
   compte_valide: ['has_reason', 'de'],
   // Le verdict de la MACHINE (approuvé, ou déféré à un humain), son motif nommé — migration verification_conclue.
-  verification_conclue: ['approuve', 'motif', 'de'],
+  verification_conclue: ['approuve', 'motif', 'de', 'note'],
   compte_refuse: ['has_reason', 'de'],
   compte_suspendu: ['de', 'vers', 'type_de_compte'],
   compte_reactive: ['de', 'vers', 'type_de_compte'],
@@ -239,4 +261,6 @@ export const CLES_DETAIL = {
   refus_quota_cv: ['quota', 'limite', 'fenetre_heures', 'reset_at', 'compte'],
   refus_depot_sans_jugement: ['publication_id', 'profile_id', 'cause', 'tentative'],
   refus_recherche_en_cours: ['tache'],
+  // L'événement dont l'e-mail est coupé, et le canal — jamais l'adresse (ARRÊT 22).
+  desabonnement_email: ['evenement', 'canal'],
 } as const satisfies Record<TypeAction, readonly string[]>

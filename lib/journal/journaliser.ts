@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Piece } from './piece'
-import type { TypeAction } from './actions'
+import type { ActionActive } from './actions'
 import type { ContexteJournal } from './contexte'
 import type { DetailDe } from './detail'
 
@@ -35,7 +35,7 @@ export type OrigineJournal = 'utilisateur' | 'tache_planifiee' | 'administrateur
 /** Les valeurs de `users.user_type` — l'acteur est un compte, jamais un nom. */
 export type TypeActeur = 'expert_freelance' | 'expert_cdi' | 'client' | 'cabinet' | 'admin'
 
-export type EcritureJournal<A extends TypeAction = TypeAction> = {
+export type EcritureJournal<A extends ActionActive = ActionActive> = {
   piece: Piece
   type: A
   statut: StatutJournal
@@ -58,7 +58,7 @@ export class JournalError extends Error {
   }
 }
 
-export async function journaliser<A extends TypeAction>(admin: SupabaseClient, e: EcritureJournal<A>): Promise<number> {
+export async function journaliser<A extends ActionActive>(admin: SupabaseClient, e: EcritureJournal<A>): Promise<number> {
   const { data, error } = await admin.rpc('journaliser', {
     p_piece: e.piece,
     p_type_action: e.type,
@@ -86,7 +86,7 @@ export async function journaliser<A extends TypeAction>(admin: SupabaseClient, e
  * ne donne que ce qui est propre à SA ligne — le type, le statut, le sujet,
  * le détail, le coût.
  */
-export async function journaliserDans<A extends TypeAction>(
+export async function journaliserDans<A extends ActionActive>(
   admin: SupabaseClient,
   journal: ContexteJournal,
   e: Pick<EcritureJournal<A>, 'type' | 'statut' | 'sujet' | 'detail' | 'cout'> & {

@@ -1,9 +1,10 @@
 -- telephone_verifie — verifier_telephone() : le drapeau, le numéro sur le COMPTE et la ligne, ensemble ;
--- le numéro n'entre jamais dans la ligne ; un compte inconnu n'écrit rien.
+-- le numéro n'entre jamais dans la ligne ; un compte inconnu n'écrit rien. Depuis l'ARRÊT 22 (décision de Youssef,
+-- 01/10/2026) : le MÊME numéro, déjà vérifié, revérifié, ne change rien et n'écrit rien.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(4);
+select plan(5);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -12,6 +13,7 @@ declare
   v_tel  text := '+999' || lpad((floor(random() * 1e10))::bigint::text, 10, '0');
   v_p1   uuid := gen_random_uuid();
   v_p2   uuid := gen_random_uuid();
+  v_p3   uuid := gen_random_uuid();
 begin
   return next ok(public.verifier_telephone(v_p1, null, 'utilisateur', v_user, 'expert_freelance', v_user, v_tel, 'otp_sms'),
                  'le téléphone est vérifié');
@@ -23,6 +25,9 @@ begin
   return next ok(not public.verifier_telephone(v_p2, null, 'utilisateur', v_user, 'expert_freelance', gen_random_uuid(), v_tel || '9', 'otp_sms')
                  and pg_temp.lignes(v_p2) = 0,
                  'un compte inconnu rend false et n''écrit rien');
+  return next ok(public.verifier_telephone(v_p3, null, 'utilisateur', v_user, 'expert_freelance', v_user, v_tel, 'otp_sms')
+                 and pg_temp.lignes(v_p3) = 0,
+                 'le même numéro, déjà vérifié : true, et AUCUNE ligne');
 end $$;
 
 select * from pg_temp.essai();

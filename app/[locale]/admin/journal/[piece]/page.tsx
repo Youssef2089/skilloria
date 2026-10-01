@@ -1,24 +1,25 @@
 'use client'
 
 import { use, useEffect, useState } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import MasterDetail from '@/components/ui/MasterDetail'
 import { estUuid, type PieceJournal } from '@/lib/journal/lecture'
-import { Acteur, DetailEcriture, Montant, PastilleStatut, Quand, ResumeEcriture, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
+import { Acteur, Montant, PastilleStatut, PhraseEcriture, Quand, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
 
 /**
- * /admin/journal/[piece] — LA PIÈCE COMPLÈTE depuis une de ses lignes (§D.26,
- * phase B 2.6). Page de DÉTAIL : le bouton Retour est celui de la coquille
- * (GlobalBackButton), aucun autre.
+ * /admin/journal/[piece] — LES ÉCRITURES D'UN MÊME GESTE (§D.26, phase B 2.6). Page de DÉTAIL : le bouton Retour est
+ * celui de la coquille (GlobalBackButton), aucun autre.
  *
- * Toutes les écritures du geste, la pièce qu'il reprend (rejeu, contrepassation)
- * et celles qui le reprennent, et ce que les cinq journaux détaillés portent sous
- * la même pièce. Lecture EN BASE (`lire_piece`, bornée, AD002) ; une troncature
- * se dit, une panne aussi.
+ * Toutes les écritures du geste, le geste qu'il reprend (rejeu, contrepassation) et ceux qui le reprennent, et ce que
+ * les journaux détaillés gardent pour lui. Lecture EN BASE (`lire_piece`, bornée, AD002) ; une troncature se dit, une
+ * panne aussi.
+ *
+ * CHAQUE ÉCRITURE SE LIT COMME UNE PHRASE (ARRÊT 22, §D.33) : plus de détail « clé par clé », plus d'identifiant de
+ * pièce ni de code dans les journaux détaillés — des phrases, des nombres et des noms.
  */
 
 type Props = { params: Promise<{ piece: string }> }
@@ -28,13 +29,13 @@ const carte: React.CSSProperties = {
 }
 const etiquette: React.CSSProperties = { fontSize: 12, color: 'var(--sk-muted)', margin: 0 }
 const valeur: React.CSSProperties = { fontSize: 13, color: 'var(--sk-text)', margin: '2px 0 0', overflowWrap: 'anywhere' }
-const mono: React.CSSProperties = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12 }
 
 export default function PiecePage({ params }: Props) {
   const { piece } = use(params)
   const t = useTranslations('admin_back_office.journal')
   const tA = useTranslations('journal.actions')
-  const tO = useTranslations('journal.origines')
+  const tJ = useTranslations('journal')
+  const locale = useLocale()
   const secureFetch = useSecureFetch()
 
   const [data, setData] = useState<PieceJournal | null>(null)
@@ -56,13 +57,7 @@ export default function PiecePage({ params }: Props) {
     })()
   }, [piece, secureFetch])
 
-  const titre = (
-    <PageHeader
-      flush
-      title={t('piece_titre')}
-      subtitle={<>{t('piece_intro')} <span style={mono}>{piece}</span></>}
-    />
-  )
+  const titre = <PageHeader flush title={t('piece_titre')} subtitle={t('piece_intro')} />
 
   if (etat !== 'pret' || !data) {
     return (
@@ -81,23 +76,31 @@ export default function PiecePage({ params }: Props) {
   const lignes = data.lignes as Ligne[]
   const l = lignes[Math.min(choisie, lignes.length - 1)]
   const objet = l ? lienObjet(l) : null
+  const nomsDisponibles = !data.noms_indisponibles
   const sj = data.sous_journaux
+  // Un code des journaux détaillés se traduit par sa dimension ; inconnu : « une autre information » — jamais le code.
+  const libelle = (dim: string, v: string | null) =>
+    v && tJ.has(`valeurs.${dim}.${v}` as 'valeurs.inconnu') ? tJ(`valeurs.${dim}.${v}` as 'valeurs.inconnu') : tJ('valeurs.inconnu')
+  const argent = (v: number | string) => new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(Number(v))
   const sousJournaux: Array<{ cle: string; titre: string; rangs: string[] }> = [
-    { cle: 'audit', titre: t('sj_audit'), rangs: sj.audit_logs.map((x) => `${x.action} · ${x.entity_type}`) },
-    { cle: 'ia', titre: t('sj_ia'), rangs: sj.ai_spend_events.map((x) => `${x.provider} · ${x.action ?? '—'} · ${Number(x.cost_usd).toFixed(4)} $`) },
-    { cle: 'stripe', titre: t('sj_stripe'), rangs: sj.stripe_events.map((x) => `${x.type} · ${x.status}`) },
-    { cle: 'taches', titre: t('sj_taches'), rangs: sj.cron_run_log.map((x) => `${x.job_name} · ${x.trigger_source}${x.http_status ? ` · ${x.http_status}` : ''}`) },
-    { cle: 'notifications', titre: t('sj_notifications'), rangs: sj.notifications.map((x) => `${x.type} · ${x.channel} · ${x.status}`) },
+    { cle: 'audit', titre: t('sj_audit'), rangs: sj.audit_logs.length ? [t('sj_audit_n', { count: sj.audit_logs.length })] : [] },
+    { cle: 'ia', titre: t('sj_ia'), rangs: sj.ai_spend_events.map((x) => t('sj_ia_ligne', { action: libelle('action_ia', x.action), montant: argent(x.cost_usd) })) },
+    { cle: 'stripe', titre: t('sj_stripe'), rangs: sj.stripe_events.length ? [t('sj_stripe_n', { count: sj.stripe_events.length })] : [] },
+    { cle: 'taches', titre: t('sj_taches'), rangs: sj.cron_run_log.map((x) => t('sj_tache_ligne', { tache: libelle('tache', x.job_name) })) },
+    { cle: 'notifications', titre: t('sj_notifications'), rangs: sj.notifications.map((x) => t('sj_notification_ligne', {
+      evenement: libelle('evenement', x.type), canal: libelle('canal_notification', x.channel), statut: libelle('statut_notification', x.status),
+    })) },
   ]
 
   return (
     <div style={{ width: '100%', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 16 }}>
       {titre}
       {data.tronquee && <p role="status" style={{ fontSize: 13, color: 'var(--sk-amber)', margin: 0 }}>{t('piece_tronquee')}</p>}
+      {!nomsDisponibles && <p role="status" style={{ fontSize: 13, color: 'var(--sk-amber)', margin: 0 }}>{t('noms_indisponibles')}</p>}
 
       <MasterDetail
         noPadding
-        listWidth={340}
+        listWidth={360}
         detailVisible
         list={
           <div style={{ ...carte, padding: 8 }}>
@@ -115,12 +118,12 @@ export default function PiecePage({ params }: Props) {
                       background: i === choisie ? 'var(--sk-accent-soft)' : 'transparent', color: 'var(--sk-text)',
                     }}
                   >
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{tA(x.type_action)}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)' }}>{tA(x.type_action)}</span>
+                    {/* Deux écritures d'un même geste se distinguent ICI, par leur phrase, sans être ouvertes. */}
+                    <span style={{ fontSize: 13 }}><PhraseEcriture ligne={x} noms={data.noms} nomsDisponibles={nomsDisponibles} /></span>
                     <span style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 12, color: 'var(--sk-muted)' }}>
                       <PastilleStatut statut={x.statut} /> <Quand iso={x.horodatage} />
                     </span>
-                    {/* Deux écritures d'un même geste se distinguent ICI, sans être ouvertes (recette staging). */}
-                    <ResumeEcriture ligne={x} max={2} />
                   </button>
                 </li>
               ))}
@@ -143,30 +146,24 @@ export default function PiecePage({ params }: Props) {
                 </select>
               </label>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 15, color: 'var(--sk-text)' }}>{tA(l.type_action)}</strong>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)' }}>{tA(l.type_action)}</span>
                 <PastilleStatut statut={l.statut} />
               </div>
+              <p style={{ fontSize: 15, color: 'var(--sk-text)', margin: 0, lineHeight: 1.55 }}>
+                <PhraseEcriture ligne={l} noms={data.noms} nomsDisponibles={nomsDisponibles} />
+              </p>
               <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, margin: 0 }}>
                 <div><dt style={etiquette}>{t('ligne_quand')}</dt><dd style={valeur}><Quand iso={l.horodatage} /></dd></div>
                 <div><dt style={etiquette}>{t('ligne_acteur')}</dt><dd style={valeur}><Acteur ligne={l} /></dd></div>
-                <div><dt style={etiquette}>{t('ligne_origine')}</dt><dd style={valeur}>{tO(l.origine)}</dd></div>
                 <div><dt style={etiquette}>{t('ligne_ecosysteme')}</dt><dd style={valeur}>{l.ecosysteme_nom ?? t('ecosysteme_aucun')}</dd></div>
-                <div>
-                  <dt style={etiquette}>{t('ligne_objet')}</dt>
-                  <dd style={valeur}>
-                    {l.sujet_type ? (
-                      <>
-                        <span style={mono}>{l.sujet_type}</span>
-                        {objet && <> · <Link href={objet} style={{ color: 'var(--sk-accent)' }}>{t('ouvrir_objet')}</Link></>}
-                      </>
-                    ) : '—'}
-                  </dd>
-                </div>
                 {(l.cout_usd != null || l.type_action === 'paiement_recu') && (
                   <div>
                     <dt style={etiquette}>{l.cout_usd != null ? t('ligne_cout') : t('ligne_montant')}</dt>
                     <dd style={valeur}><Montant ligne={l} /></dd>
                   </div>
+                )}
+                {objet && (
+                  <div><dt style={etiquette}>{t('ligne_fiche')}</dt><dd style={valeur}><Link href={objet} style={{ color: 'var(--sk-accent)' }}>{t('ouvrir_objet')}</Link></dd></div>
                 )}
               </dl>
               {(l.piece_origine || data.referencee_par.length > 0) && (
@@ -174,21 +171,17 @@ export default function PiecePage({ params }: Props) {
                   {l.piece_origine && (
                     <p style={{ ...valeur, margin: 0 }}>
                       {t('piece_origine')}{' '}
-                      <Link href={`/admin/journal/${l.piece_origine}`} style={{ ...mono, color: 'var(--sk-accent)' }}>{l.piece_origine}</Link>
+                      <Link href={`/admin/journal/${l.piece_origine}`} style={{ color: 'var(--sk-accent)' }}>{t('piece_voir')}</Link>
                     </p>
                   )}
                   {data.referencee_par.map((p) => (
                     <p key={p} style={{ ...valeur, margin: 0 }}>
                       {t('piece_referencee')}{' '}
-                      <Link href={`/admin/journal/${p}`} style={{ ...mono, color: 'var(--sk-accent)' }}>{p}</Link>
+                      <Link href={`/admin/journal/${p}`} style={{ color: 'var(--sk-accent)' }}>{t('piece_voir')}</Link>
                     </p>
                   ))}
                 </div>
               )}
-              <div>
-                <p style={etiquette}>{t('detail_titre')}</p>
-                <DetailEcriture detail={l.detail} />
-              </div>
             </div>
           ) : (
             <EmptyState title={t('choisir_ligne')} />
@@ -196,9 +189,10 @@ export default function PiecePage({ params }: Props) {
         }
       />
 
-      {/* ─── CE QUE LES JOURNAUX DÉTAILLÉS PORTENT SOUS LA MÊME PIÈCE ────── */}
+      {/* ─── CE QUE LES JOURNAUX DÉTAILLÉS GARDENT POUR CE GESTE ────────────── */}
       <section style={{ ...carte, display: 'grid', gap: 12 }}>
         <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: 'var(--sk-text)' }}>{t('sous_journaux')}</h2>
+        <p style={{ ...etiquette, margin: 0 }}>{t('sous_journaux_intro')}</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           {sousJournaux.map((s) => (
             <div key={s.cle}>
@@ -207,7 +201,7 @@ export default function PiecePage({ params }: Props) {
                 <p style={{ ...valeur, color: 'var(--sk-muted)' }}>{t('sj_aucun')}</p>
               ) : (
                 <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>
-                  {s.rangs.map((r, i) => <li key={i} style={{ ...valeur, ...mono }}>{r}</li>)}
+                  {s.rangs.map((r, i) => <li key={i} style={valeur}>{r}</li>)}
                 </ul>
               )}
             </div>

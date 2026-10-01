@@ -1,5 +1,7 @@
--- message_envoye — envoyer_message() : le message, la date du fil et la ligne, ensemble ; le contenu
--- n'entre pas dans la ligne ; un fil hors des statuts admis ne reçoit rien.
+-- message_envoye — RETIRÉE du grand livre (décision de Youssef, 01/10/2026, ARRÊT 22) : la messagerie garde chaque
+-- message, daté et attribué ; le fait métier est l'ouverture de l'échange (« Coordonnées dévoilées »).
+-- envoyer_message() : le message et la date du fil, ensemble, SANS ligne au grand livre ; un fil hors des statuts
+-- admis ne reçoit rien ; écrire l'action retirée est refusé, nommément (GL006).
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
@@ -27,10 +29,10 @@ begin
   return next ok(exists (select 1 from public.messages m where m.id = (v_r ->> 'id')::uuid and m.sender_id = v_admin)
                  and exists (select 1 from public.conversations c where c.id = v_conv and c.last_message_at = (v_r ->> 'created_at')::timestamptz),
                  'le message ET la date du fil sont relus');
-  return next is(pg_temp.lignes(v_p1), 1::bigint, 'exactement UNE ligne sous la pièce');
-  return next ok(exists (select 1 from public.grand_livre g where g.piece = v_p1 and g.type_action = 'message_envoye'
-                          and g.detail ->> 'conversation_id' = v_conv::text and g.detail::text not like '%contenu de sonde%'),
-                 'la ligne porte la conversation, jamais le contenu');
+  return next is(pg_temp.lignes(v_p1), 0::bigint, 'AUCUNE ligne au grand livre : l''action est retirée');
+  return next throws_ok(format($q$select public.journaliser(%L, 'message_envoye', 'reussi', 'utilisateur', %L, 'client', null, 'messages', %L, '{}'::jsonb, null, null, null)$q$,
+                               gen_random_uuid(), v_admin, gen_random_uuid()),
+                        'GL006', null, 'écrire message_envoye est refusé, nommément (GL006)');
 end $$;
 
 select * from pg_temp.essai();

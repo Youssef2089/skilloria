@@ -2569,7 +2569,8 @@
       "nav_consommation": "Consommation",
       "nav_journal": "Grand livre",
       "nav_depots_echec": "Dépôts en échec",
-      "nav_travaux_ia": "Travaux d'IA"
+      "nav_travaux_ia": "Travaux d'IA",
+      "nav_journal_conservation": "Conservation du journal"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -3430,7 +3431,7 @@
     },
     "journal": {
       "title": "Grand livre",
-      "intro": "Chaque action qui change un état laisse ici une écriture, avec sa pièce : le numéro qui relie toutes les écritures d’un même geste. Rien ne s’y modifie ; un nettoyage, quand il a lieu, laisse sa propre écriture.",
+      "intro": "Chaque action qui change quelque chose sur la plateforme laisse ici une écriture, lisible comme une phrase : qui, quoi, sur quoi, et le résultat. Rien ne s’y modifie ; un nettoyage, quand il a lieu, laisse sa propre écriture.",
       "f_famille": "Famille",
       "f_action": "Action",
       "f_statut": "Statut",
@@ -3456,100 +3457,46 @@
       "suite_chargement": "Chargement…",
       "fin": "Fin du journal pour ces filtres.",
       "tronque": "{count} écritures affichées — il en existe d’autres.",
-      "acteur_systeme": "Système",
-      "acteur_supprime": "Compte supprimé",
-      "acteur_sans_nom": "Compte sans nom",
       "filtrer_acteur": "Filtrer sur ce compte",
       "ecosysteme_aucun": "Aucun écosystème",
-      "ouvrir_objet": "Ouvrir",
-      "cout_ia": "{montant} $ · {unite}",
-      "voir_piece": "Voir la pièce",
-      "piece_titre": "Pièce",
-      "piece_intro": "Toutes les écritures d’un même geste, et ce que les journaux détaillés portent sous la même pièce.",
-      "piece_lignes": "Écritures de la pièce",
-      "piece_tronquee": "Cette pièce compte plus de 500 écritures : seules les 500 premières sont affichées.",
-      "piece_origine": "Reprend la pièce",
-      "piece_referencee": "Reprise par",
-      "piece_inconnue": "Cette pièce n’existe pas dans le journal.",
-      "piece_invalide": "Cet identifiant de pièce n’est pas valide.",
+      "ouvrir_objet": "Ouvrir la fiche",
+      "cout_ia": "Coût d’IA : {montant}",
+      "voir_piece": "Voir les écritures liées",
+      "piece_titre": "Écritures d’un même geste",
+      "piece_intro": "Un même geste peut laisser plusieurs écritures — par exemple, un compte créé et l’inscription de l’expert. Les voici toutes, avec ce que les journaux détaillés gardent pour ce geste.",
+      "piece_lignes": "Écritures du geste",
+      "piece_tronquee": "Ce geste compte plus de 500 écritures : seules les 500 premières sont affichées.",
+      "piece_origine": "Ce geste en reprend un précédent :",
+      "piece_referencee": "Ce geste a été repris par un autre :",
+      "piece_inconnue": "Ce geste n’existe pas dans le journal.",
+      "piece_invalide": "Ce lien ne désigne aucun geste du journal.",
       "choisir_ligne": "Choisissez une écriture pour voir son détail.",
       "ligne_quand": "Quand",
-      "ligne_acteur": "Qui",
-      "ligne_origine": "Origine",
-      "ligne_statut": "Statut",
+      "ligne_acteur": "Par",
       "ligne_ecosysteme": "Écosystème",
-      "ligne_objet": "Objet",
       "ligne_cout": "Coût",
       "ligne_montant": "Montant",
-      "detail_titre": "Détail",
-      "detail_vide": "Aucun détail.",
       "sous_journaux": "Journaux détaillés",
-      "sj_audit": "Audit",
+      "sj_audit": "Journal d’audit",
       "sj_ia": "Dépenses d’IA",
       "sj_stripe": "Événements de paiement",
-      "sj_taches": "Passages de tâches",
+      "sj_taches": "Passages de tâches automatiques",
       "sj_notifications": "Notifications",
       "sj_aucun": "Rien sous cette pièce.",
-      "sj_note": "Les écritures antérieures au 28/09/2026 n’ont pas de pièce dans les journaux détaillés.",
-      "nettoyage": {
-        "titre": "Conservation et nettoyage",
-        "intro": "Pour chaque famille : le plancher légal et la durée de conservation, que vous saisissez, et ce qu’un nettoyage effacerait. Tant qu’une des deux valeurs est vide, la famille n’est jamais nettoyée. Le nettoyage est manuel, annoncé avant d’agir, et laisse sa propre écriture.",
-        "chargement": "Calcul de l’annonce…",
-        "erreur": "L’annonce n’a pas pu être calculée.",
-        "reessayer": "Réessayer",
-        "col_famille": "Famille",
-        "col_plancher": "Plancher légal",
-        "col_conservation": "Conservation",
-        "col_efface": "Un nettoyage effacerait",
-        "unite_mois": "mois",
-        "mois_label": "Conservation de la famille {famille}, en mois",
-        "enregistrer": "Enregistrer",
-        "enregistre": "Enregistré.",
-        "inchange": "Déjà réglé ainsi.",
-        "err_duree_invalide": "Indiquez un nombre entier de mois (plancher : 0 à 1200, conservation : 1 à 1200), ou laissez vide.",
-        "err_sous_le_plancher": "La conservation ne peut pas être inférieure au plancher légal ({plancher} mois).",
-        "err_generique": "Le réglage n’a pas pu être enregistré. Réessayez.",
-        "raison_journal_conserve": "Rien — toujours conservée",
-        "efface_famille": "{count, plural, one {# écriture} other {# écritures}} antérieures au {date}",
-        "rien_famille": "Rien",
-        "note_plancher": "Rien n’est pré-rempli : la référence sous chaque famille est une aide, pas une valeur. Tout changement s’écrit au grand livre.",
-        "rien": "Rien à nettoyer.",
-        "annonce_total": "Un nettoyage effacerait {count, plural, one {# écriture} other {# écritures}}.",
-        "nettoyer": "Nettoyer le journal",
-        "confirmer_corps": "{count, plural, one {# écriture sera effacée} other {# écritures seront effacées}} définitivement. Le nettoyage laisse sa propre écriture, qui ne s’efface jamais.",
-        "confirmer": "Effacer définitivement",
-        "annuler": "Annuler",
-        "en_cours": "Nettoyage…",
-        "resultat": "{count, plural, one {# écriture effacée.} other {# écritures effacées.}}",
-        "perimee": "Le journal a changé depuis l’annonce : rien n’a été effacé. Vérifiez le nouveau total avant de confirmer.",
-        "err_nettoyage": "Le nettoyage n’a pas abouti : rien n’a été effacé. Réessayez.",
-        "col_reglage": "Plancher légal et conservation",
-        "vide": "Vide",
-        "plancher_label": "Plancher légal de la famille {famille}, en mois",
-        "err_plancher_manquant": "Saisissez d’abord le plancher légal de cette famille (0 si aucun) : une conservation ne se règle pas sans lui.",
-        "journal_non_reglable": "Toujours conservée : ce sont les traces des nettoyages.",
-        "raison_plancher_non_saisi": "Rien — plancher légal non saisi",
-        "raison_conservation_non_saisie": "Rien — conservation non saisie",
-        "reference": {
-          "commerce": "Référence proposée : Code de commerce, art. L123-22 — pièces comptables conservées 10 ans (120 mois).",
-          "compte": "Référence proposée : Code civil, art. 2224 — prescription de 5 ans (60 mois). Minimum strict : décret n° 2021-1362, 1 an après la fermeture du compte.",
-          "organisation": "Référence proposée : Code civil, art. 2224 — prescription de 5 ans (60 mois).",
-          "rgpd": "Référence proposée : RGPD, art. 5.2 (preuve des effacements) et Code civil, art. 2224 — 60 mois, par prudence : aucun texte ne fixe ce chiffre.",
-          "administration": "Référence proposée : CNIL, délibération n° 2021-122 (journalisation) — 6 mois à 1 an (12 mois).",
-          "refus": "Référence proposée : CNIL, délibération n° 2021-122 (journalisation) — 6 mois à 1 an (12 mois).",
-          "candidature": "Aucun plancher légal trouvé (0). Pour pouvoir répondre d’une sélection : Code du travail, art. L1134-5 — 5 ans (60 mois).",
-          "annonce": "Aucun plancher légal trouvé (0).",
-          "profil": "Aucun plancher légal trouvé (0).",
-          "recherche": "Aucun plancher légal trouvé (0).",
-          "devoilement": "Aucun plancher légal trouvé (0).",
-          "messagerie": "Aucun plancher légal trouvé (0).",
-          "journal": "Les traces des nettoyages ne s’effacent jamais."
-        }
-      },
-      "oui": "oui",
-      "non": "non",
-      "resume_objet": "objet : {objet}",
-      "resume_plus": "+ {n} autre(s)"
+      "sj_note": "Les écritures antérieures au 28/09/2026 ne sont pas reliées aux journaux détaillés.",
+      "piece_voir": "voir ce geste",
+      "par": "Par",
+      "ecosysteme_nomme": "Écosystème : {nom}",
+      "noms_indisponibles": "Les noms des profils, organisations et annonces n’ont pas pu être relus : les phrases disent « un profil », « une annonce » à la place. Réessayez dans un instant.",
+      "conservation_ailleurs": "Combien de temps ces écritures sont gardées, et leur nettoyage :",
+      "conservation_lien": "Conservation du journal",
+      "ligne_fiche": "Fiche",
+      "sous_journaux_intro": "Ce que les autres journaux de la plateforme gardent pour ce même geste : le détail des dépenses d’IA, des tâches automatiques, des paiements et des notifications.",
+      "sj_audit_n": "{count, plural, one {# entrée} other {# entrées}}",
+      "sj_ia_ligne": "{action} : {montant}",
+      "sj_stripe_n": "{count, plural, one {# événement reçu du prestataire de paiement} other {# événements reçus du prestataire de paiement}}",
+      "sj_tache_ligne": "Tâche « {tache} »",
+      "sj_notification_ligne": "« {evenement} », {canal} : {statut}"
     },
     "travaux_ia": {
       "title": "Travaux d'IA à reprendre",
@@ -3606,6 +3553,81 @@
         "specialites_illisibles": "Les spécialités ne se lisaient pas."
       },
       "liste_coupee": "Seuls les {n} travaux les plus récents sont affichés : la liste complète est plus longue. Relancez ceux-ci, puis rechargez."
+    },
+    "conservation": {
+      "title": "Conservation du journal",
+      "intro": "Combien de temps le journal garde chaque type d’écriture, ce que la loi impose, et le nettoyage des écritures trop anciennes.",
+      "principe_titre": "Comment ça marche",
+      "principe_1": "Le journal garde une trace de chaque action faite sur la plateforme. Les écritures sont rangées par famille (les annonces, les comptes, les paiements…) et chaque famille a sa propre durée.",
+      "principe_2": "Pour chaque famille, vous choisissez combien de mois les écritures sont gardées. La plateforme propose une durée et indique le minimum que la loi impose, avec le texte de référence ; un bouton applique la proposition.",
+      "principe_3": "Rien ne s’efface tout seul. Les écritures plus anciennes que la durée choisie ne disparaissent que lorsque vous lancez un nettoyage, en bas de cette page, après avoir vu ce qu’il effacera. Une famille sans durée choisie n’est jamais nettoyée.",
+      "avertissement_juriste": "Les durées et les références proposées n’ont pas été vérifiées par un juriste.",
+      "chargement": "Lecture des durées…",
+      "erreur": "Les durées n’ont pas pu être lues.",
+      "reessayer": "Réessayer",
+      "propositions_illisibles": "Les propositions n’ont pas pu être lues : aucune n’est affichée. Vos durées, elles, sont à jour.",
+      "etat_garde": "Ces écritures sont gardées {mois, plural, one {# mois} other {# mois}}, puis effacées.",
+      "etat_minimum": "La loi impose au moins {mois, plural, one {# mois} other {# mois}}.",
+      "etat_aucun_minimum": "Aucune loi n’impose de durée minimale.",
+      "etat_minimum_non_saisi": "Le minimum légal n’est pas encore indiqué : rien ne sera effacé tant qu’il ne l’est pas.",
+      "etat_sans_duree": "Aucune durée n’est choisie : ces écritures sont gardées sans limite.",
+      "etat_journal": "Ces écritures sont toujours gardées : ce sont les traces des nettoyages.",
+      "proposition_duree": "Proposition : les garder {mois, plural, one {# mois} other {# mois}}.",
+      "proposition_sans_duree": "Aucune durée n’est proposée : c’est à vous de la choisir.",
+      "proposition_minimum": "La loi impose au moins {mois, plural, one {# mois} other {# mois}}.",
+      "proposition_aucun_minimum": "Aucune loi n’impose de minimum.",
+      "proposition_en_place": "La proposition est appliquée.",
+      "appliquer_proposition": "Appliquer la proposition",
+      "en_cours_reglage": "Enregistrement…",
+      "applique": "Proposition appliquée.",
+      "deja_applique": "C’était déjà la durée en place.",
+      "regler_soi_meme": "Choisir une autre durée",
+      "regler_soi_meme_fermer": "Fermer",
+      "champ_garde": "Gardées pendant (mois)",
+      "champ_minimum": "Minimum imposé par la loi (mois)",
+      "champ_garde_label": "Durée de conservation de la famille {famille}, en mois",
+      "champ_minimum_label": "Minimum légal de la famille {famille}, en mois",
+      "regler_aide": "Le minimum légal se renseigne d’abord (0 si aucune loi n’en impose) ; la durée choisie ne peut pas être plus courte que lui. Laissez vide pour garder sans limite.",
+      "vide": "Vide",
+      "enregistrer": "Enregistrer",
+      "enregistre": "Enregistré.",
+      "inchange": "C’était déjà réglé ainsi.",
+      "err_duree_invalide": "Indiquez un nombre entier de mois (minimum légal : 0 à 1200 ; durée : 1 à 1200), ou laissez vide.",
+      "err_sous_le_plancher": "La durée ne peut pas être plus courte que le minimum légal ({plancher, plural, one {# mois} other {# mois}}).",
+      "err_plancher_manquant": "Indiquez d’abord le minimum légal de cette famille (0 si aucune loi n’en impose).",
+      "err_sans_proposition": "Aucune proposition n’existe pour cette famille.",
+      "err_generique": "Le changement n’a pas pu être enregistré. Réessayez.",
+      "nettoyage_jamais": "Un nettoyage n’efface jamais ces écritures.",
+      "nettoyage_sans_duree": "Un nettoyage n’efface rien ici tant qu’aucune durée n’est choisie.",
+      "nettoyage_sans_minimum": "Un nettoyage n’efface rien ici tant que le minimum légal n’est pas indiqué.",
+      "nettoyage_effacerait": "Un nettoyage maintenant effacerait {count, plural, one {# écriture antérieure} other {# écritures antérieures}} au {date}.",
+      "nettoyage_rien": "Un nettoyage maintenant n’effacerait rien ici.",
+      "nettoyage_titre": "Nettoyer le journal",
+      "nettoyage_explication": "Un nettoyage efface définitivement, famille par famille, les écritures plus anciennes que la durée choisie. Il ne touche à aucune famille sans durée, ni aux traces des nettoyages. Il laisse lui-même une écriture, qui ne s’efface jamais. Il demande de confirmer votre identité.",
+      "rien": "Rien à nettoyer pour l’instant.",
+      "annonce_total": "Un nettoyage effacerait {count, plural, one {# écriture} other {# écritures}}.",
+      "nettoyer": "Nettoyer le journal",
+      "confirmer_corps": "{count, plural, one {# écriture sera effacée} other {# écritures seront effacées}} définitivement. Le nettoyage laisse sa propre écriture, qui ne s’efface jamais.",
+      "confirmer": "Effacer définitivement",
+      "annuler": "Annuler",
+      "en_cours": "Nettoyage…",
+      "resultat": "{count, plural, one {# écriture effacée.} other {# écritures effacées.}}",
+      "perimee": "Le journal a changé depuis l’annonce : rien n’a été effacé. Vérifiez le nouveau total avant de confirmer.",
+      "err_nettoyage": "Le nettoyage n’a pas abouti : rien n’a été effacé. Réessayez.",
+      "reference": {
+        "commerce": "Référence proposée : Code de commerce, article L123-22 (conservation des documents comptables).",
+        "compte": "Référence proposée : décret n° 2021-1362 (données d’identification des comptes) ; durée proposée : la prescription du Code civil, article 2224.",
+        "organisation": "Référence proposée : Code civil, article 2224 (délai de prescription). Aucun minimum légal trouvé.",
+        "rgpd": "Référence proposée : RGPD, article 5.2 (prouver qu’un effacement a eu lieu) et Code civil, article 2224 — par prudence : aucun texte ne fixe cette durée.",
+        "administration": "Référence proposée : CNIL, délibération n° 2021-122 (journalisation) — une recommandation, pas une obligation.",
+        "refus": "Référence proposée : CNIL, délibération n° 2021-122 (journalisation) — une recommandation, pas une obligation.",
+        "candidature": "Référence proposée : Code du travail, article L1134-5 (pouvoir répondre d’une sélection). Aucun minimum légal trouvé.",
+        "annonce": "Aucun texte trouvé qui impose ou propose une durée.",
+        "profil": "Aucun texte trouvé qui impose ou propose une durée.",
+        "recherche": "Aucun texte trouvé qui impose ou propose une durée.",
+        "devoilement": "Aucun texte trouvé qui impose ou propose une durée.",
+        "messagerie": "Aucun texte trouvé qui impose ou propose une durée."
+      }
     }
   },
   "expert_verification": {
@@ -4957,11 +4979,11 @@
       "profil_modifie": "Profil modifié",
       "disponibilite_basculee": "Disponibilité changée",
       "cv_reinitialise": "CV réinitialisé",
-      "recherche_lancee": "Recherche lancée",
-      "recherche_filtree": "Recherche : vivier filtré",
-      "recherche_classee": "Recherche : profils notés",
-      "recherche_correspondances": "Recherche : correspondances enregistrées",
-      "recherche_notifiee": "Recherche : notifications envoyées",
+      "recherche_lancee": "Recherche lancée (ancienne écriture)",
+      "recherche_filtree": "Recherche : tri des candidats (ancienne écriture)",
+      "recherche_classee": "Recherche : notation (ancienne écriture)",
+      "recherche_correspondances": "Recherche : résultats enregistrés (ancienne écriture)",
+      "recherche_notifiee": "Recherche : notifications envoyées (ancienne écriture)",
       "recherche_terminee": "Recherche terminée",
       "recherche_echouee": "Recherche en échec",
       "recherche_abandonnee": "Recherche abandonnée",
@@ -4970,8 +4992,8 @@
       "candidature_retenue": "Candidature retenue",
       "sous_traitance_candidature": "Candidature à un besoin de sous-traitance",
       "mission_ecartee": "Mission écartée par l’expert",
-      "devoilement_ouvert": "Coordonnées dévoilées",
-      "devoilement_ferme": "Dévoilement refermé",
+      "devoilement_ouvert": "Accès aux coordonnées ouvert",
+      "devoilement_ferme": "Accès aux coordonnées refermé",
       "message_envoye": "Message envoyé",
       "compte_cree": "Compte créé",
       "expert_inscrit": "Inscription d’un expert",
@@ -4999,7 +5021,7 @@
       "plafond_atteint": "Plafond de dépense atteint",
       "evenement_stripe_rouvert": "Événement de paiement rouvert",
       "reglage_modifie": "Réglage modifié",
-      "taxonomie_modifiee": "Taxonomie modifiée",
+      "taxonomie_modifiee": "Liste des métiers modifiée",
       "ecosysteme_cree": "Écosystème créé",
       "ecosysteme_modifie": "Écosystème modifié",
       "administrateur_cree": "Administrateur créé",
@@ -5017,15 +5039,16 @@
       "refus_depot_sans_jugement": "Refusé : candidature non évaluée",
       "refus_recherche_en_cours": "Refusé : une recherche est déjà en cours",
       "verification_conclue": "Vérification conclue",
-      "travail_ia_echoue": "Travail d'IA abandonné",
-      "travail_ia_relance": "Travail d'IA relancé"
+      "travail_ia_echoue": "Travail d’IA abandonné",
+      "travail_ia_relance": "Travail d’IA relancé",
+      "desabonnement_email": "Désabonnement d’un e-mail"
     },
     "familles": {
       "annonce": "Annonces",
       "profil": "Profils",
       "recherche": "Recherche",
       "candidature": "Candidatures",
-      "devoilement": "Dévoilement",
+      "devoilement": "Accès aux coordonnées",
       "messagerie": "Messagerie",
       "compte": "Comptes",
       "organisation": "Organisations",
@@ -5041,17 +5064,793 @@
       "refuse": "Refusé"
     },
     "origines": {
-      "utilisateur": "Utilisateur",
-      "tache_planifiee": "Tâche planifiée",
-      "administrateur": "Administrateur",
-      "systeme": "Système"
+      "utilisateur": "Action d’un utilisateur",
+      "tache_planifiee": "Tâche automatique",
+      "administrateur": "Action d’un administrateur",
+      "systeme": "La plateforme elle-même"
     },
     "acteurs": {
-      "expert_freelance": "Expert freelance",
-      "expert_cdi": "Expert CDI",
-      "client": "Client",
-      "cabinet": "Cabinet",
-      "admin": "Administrateur"
+      "expert_freelance": "expert indépendant",
+      "expert_cdi": "expert en recherche d’un poste salarié",
+      "client": "organisation cliente",
+      "cabinet": "cabinet de conseil",
+      "admin": "administrateur"
+    },
+    "familles_description": {
+      "annonce": "La création, la publication, la modification et la fin des annonces de mission ou d’emploi.",
+      "profil": "Les CV déposés, les profils publiés ou modifiés, les changements de disponibilité, les vérifications de profil.",
+      "recherche": "Les recherches automatiques de missions faites pour chaque expert, et leur résultat.",
+      "candidature": "Les candidatures déposées, retenues ou déclinées, et les missions écartées par un expert.",
+      "devoilement": "L’ouverture et la fermeture de l’accès aux coordonnées d’un expert par une organisation.",
+      "messagerie": "Les écritures liées aux échanges de messages (anciennes : les messages ne s’y écrivent plus).",
+      "compte": "La création, la validation, la suspension, la suppression des comptes ; les changements d’adresse, de mot de passe, de téléphone, de nom.",
+      "organisation": "Les invitations, les membres, leurs rôles et la fiche des organisations.",
+      "commerce": "Les paiements reçus et les événements de paiement, les plafonds de dépense atteints.",
+      "administration": "Les réglages modifiés par un administrateur, les tâches lancées à la main, les espaces et listes de métiers.",
+      "rgpd": "Les effacements de données personnelles : comptes effacés, adresses IP effacées, désabonnements d’e-mails.",
+      "journal": "Les nettoyages du journal lui-même.",
+      "refus": "Les actions refusées par la plateforme et la raison du refus."
+    },
+    "qui": {
+      "utilisateur": "Un utilisateur",
+      "tache_planifiee": "Une tâche automatique",
+      "administrateur": "Un administrateur",
+      "systeme": "La plateforme",
+      "supprime": "Un compte supprimé",
+      "sans_nom": "Un compte sans nom"
+    },
+    "qui_milieu": {
+      "utilisateur": "un utilisateur",
+      "tache_planifiee": "une tâche automatique",
+      "administrateur": "un administrateur",
+      "systeme": "la plateforme",
+      "supprime": "un compte supprimé",
+      "sans_nom": "un compte sans nom"
+    },
+    "designe": {
+      "users": "le compte de {nom}",
+      "profiles": "le profil de {nom}",
+      "organizations": "l’organisation « {nom} »",
+      "publications": "l’annonce « {nom} »",
+      "candidatures": "l’annonce « {nom} »",
+      "matches": "l’annonce « {nom} »",
+      "candidature_depots": "l’annonce « {nom} »",
+      "organization_invitations": "l’organisation « {nom} »",
+      "organization_members": "l’organisation « {nom} »",
+      "domains": "l’écosystème « {nom} »",
+      "packages": "l’offre « {nom} »",
+      "branches": "la branche de métiers « {nom} »",
+      "specialities": "la spécialité « {nom} »",
+      "expert": "{nom}",
+      "membre": "{nom}"
+    },
+    "designe_absent": {
+      "users": "un compte (données effacées)",
+      "profiles": "un profil (données effacées)",
+      "organizations": "une organisation supprimée",
+      "publications": "une annonce supprimée",
+      "candidatures": "une annonce supprimée",
+      "matches": "une annonce supprimée",
+      "candidature_depots": "une annonce supprimée",
+      "organization_invitations": "une organisation supprimée",
+      "organization_members": "une organisation supprimée",
+      "domains": "un écosystème supprimé",
+      "packages": "une offre supprimée",
+      "branches": "une branche de métiers supprimée",
+      "specialities": "une spécialité supprimée",
+      "expert": "(compte effacé)",
+      "membre": "(compte effacé)"
+    },
+    "designe_inconnu": {
+      "users": "un compte",
+      "profiles": "un profil",
+      "organizations": "une organisation",
+      "publications": "une annonce",
+      "candidatures": "une annonce",
+      "matches": "une annonce",
+      "candidature_depots": "une annonce",
+      "organization_invitations": "une organisation",
+      "organization_members": "une organisation",
+      "domains": "un écosystème",
+      "packages": "une offre",
+      "branches": "une branche de métiers",
+      "specialities": "une spécialité",
+      "expert": "(nom indisponible)",
+      "membre": "(nom indisponible)"
+    },
+    "phrases": {
+      "_generique": "{qui} a fait une action enregistrée au journal.",
+      "_recherche": {
+        "annonce": "une recherche d’experts pour {annonce}",
+        "profil_soi": "une recherche de missions sur son profil",
+        "profil": "une recherche de missions pour {profil}"
+      },
+      "_changement": "{champ} : {avant} → {apres}",
+      "_vide": "vide",
+      "_oui": "oui",
+      "_non": "non",
+      "_champ": "{champ}",
+      "_traduction": "{champ} en {langue}",
+      "_traduction_nom": "le nom en {langue}",
+      "_reglage": {
+        "ai_model_tarifs": "le tarif du modèle d’IA « {modele} »",
+        "ai_model_tarifs_simple": "le tarif d’un modèle d’IA",
+        "ai_spend_seuils_acteur": "{champ} de dépense d’IA par compte",
+        "verification_providers": "la note d’approbation automatique {de}",
+        "grand_livre_conservation": "la durée de conservation de la famille « {famille} » du journal",
+        "blocked_email_domains": "la liste des domaines d’adresse e-mail refusés à l’inscription",
+        "public_email_domains": "la liste des messageries publiques (adresses e-mail personnelles)",
+        "packages": "{offre}",
+        "organizations": "l’offre attribuée à {organisation}",
+        "packages_stripe": "la liaison des offres avec le prestataire de paiement Stripe ({mode})",
+        "packages_default": "l’offre attribuée par défaut aux comptes « {cible} »"
+      },
+      "annonce_creee": "{qui} a créé {annonce} en brouillon ({type}).",
+      "sous_traitance_creee": "{qui} a créé {annonce} en brouillon (besoin de sous-traitance).",
+      "annonce_publiee": {
+        "simple": "{qui} a publié {annonce}.",
+        "note": "{qui} a publié {annonce}, après une vérification automatique de sa qualité (note {note}/10)."
+      },
+      "sous_traitance_publiee": {
+        "simple": "{qui} a publié {annonce} (besoin de sous-traitance).",
+        "note": "{qui} a publié {annonce} (besoin de sous-traitance), après une vérification automatique de sa qualité (note {note}/10)."
+      },
+      "annonce_modifiee": {
+        "champs": "{qui} a modifié {annonce} : {champs}.",
+        "simple": "{qui} a modifié {annonce}."
+      },
+      "annonce_depubliee": "{qui} a clôturé {annonce} : elle n’est plus visible des experts.",
+      "annonce_expiree": {
+        "simple": "{qui} a clos {annonce}, arrivée au bout de sa durée de vie.",
+        "jours": "{qui} a clos {annonce}, arrivée au bout de sa durée de vie ({jours, plural, one {# jour} other {# jours}})."
+      },
+      "cv_televerse": {
+        "echec_soi": "{qui} a déposé son CV, mais son analyse n’a pas abouti.",
+        "echec_autre": "{qui} a déposé un CV pour {profil}, mais son analyse n’a pas abouti.",
+        "lu_soi": "{qui} a déposé son CV ; l’analyse y a lu {experiences, plural, one {# expérience} other {# expériences}}, {formations, plural, one {# formation} other {# formations}} et {langues, plural, one {# langue} other {# langues}}.",
+        "lu_autre": "{qui} a déposé un CV pour {profil} ; l’analyse y a lu {experiences, plural, one {# expérience} other {# expériences}}, {formations, plural, one {# formation} other {# formations}} et {langues, plural, one {# langue} other {# langues}}.",
+        "simple_soi": "{qui} a déposé son CV, qui a été analysé.",
+        "simple_autre": "{qui} a déposé un CV pour {profil}, qui a été analysé."
+      },
+      "profil_publie": {
+        "soi": "{qui} a publié son profil : il est visible des organisations et va être vérifié.",
+        "autre": "{qui} a publié {profil} : il est visible des organisations et va être vérifié."
+      },
+      "profil_modifie": {
+        "champs_soi": "{qui} a modifié son profil : {champs}.",
+        "champs_autre": "{qui} a modifié {profil} : {champs}.",
+        "simple_soi": "{qui} a modifié son profil.",
+        "simple_autre": "{qui} a modifié {profil}."
+      },
+      "disponibilite_basculee": {
+        "soi": "{qui} a changé sa disponibilité ({champ}) : de « {de} » à « {vers} ».",
+        "autre": "{qui} a changé, pour {profil}, la disponibilité ({champ}) : de « {de} » à « {vers} »."
+      },
+      "cv_reinitialise": {
+        "vitrine": "{qui} a retiré son CV : le profil est vidé de son analyse et n’est plus visible des organisations.",
+        "simple": "{qui} a retiré son CV : le profil est vidé de son analyse."
+      },
+      "travail_ia_echoue": {
+        "simple": "{qui} a abandonné {nature} pour {profil} : {code}.",
+        "tentatives": "{qui} a abandonné {nature} pour {profil} après {tentatives, plural, one {# tentative} other {# tentatives}} : {code}."
+      },
+      "travail_ia_relance": "{qui} a relancé {nature} pour {profil}, qui avait échoué : {code}.",
+      "recherche_terminee": {
+        "ok_annonces": "{qui} a lancé {recherche} : {examinees, plural, =0 {aucune annonce examinée} one {# annonce examinée} other {# annonces examinées}}, {retenues, plural, =0 {aucune retenue} one {# retenue} other {# retenues}}, dont {nouvelles, plural, =0 {aucune nouvelle} one {# nouvelle} other {# nouvelles}} ; {notifiees, plural, =0 {aucune notification envoyée} one {# notification envoyée} other {# notifications envoyées}}.",
+        "ok_profils": "{qui} a lancé {recherche} : {examinees, plural, =0 {aucun profil examiné} one {# profil examiné} other {# profils examinés}}, {retenues, plural, =0 {aucun retenu} one {# retenu} other {# retenus}}, dont {nouvelles, plural, =0 {aucun nouveau} one {# nouveau} other {# nouveaux}} ; {notifiees, plural, =0 {aucune notification envoyée} one {# notification envoyée} other {# notifications envoyées}}.",
+        "ok_simple": "{qui} a lancé {recherche}, qui s’est terminée normalement.",
+        "vivier_vide_annonces": "{qui} a lancé {recherche} : aucune annonce ouverte ne pouvait lui correspondre.",
+        "vivier_vide_profils": "{qui} a lancé {recherche} : aucun profil disponible ne pouvait lui correspondre.",
+        "annonce_expiree": "{qui} a lancé {recherche} : rien n’a été cherché, l’annonce avait expiré.",
+        "sans_matiere": "{qui} a lancé {recherche} : rien n’a été cherché, l’annonce ne contient pas assez d’informations.",
+        "ineligible": "{qui} a lancé {recherche} : rien n’a été cherché, car {raison}."
+      },
+      "recherche_echouee": {
+        "simple": "{qui} a lancé {recherche} : elle a échoué pendant {etape} — {pourquoi}.",
+        "tentatives": "{qui} a lancé {recherche} : elle a échoué pendant {etape} — {pourquoi} (essai n° {tentatives})."
+      },
+      "recherche_abandonnee": {
+        "simple": "{qui} a lancé {recherche} : elle a été abandonnée, en échec pendant {etape} — {pourquoi}.",
+        "tentatives": "{qui} a lancé {recherche} : elle a été abandonnée après {tentatives, plural, one {# essai} other {# essais}}, en échec pendant {etape} — {pourquoi}."
+      },
+      "recherche_lancee": "{qui} a lancé {recherche} (ancienne écriture : le début d’une recherche ne s’écrit plus à part).",
+      "recherche_filtree": "Ancienne écriture d’une étape — {recherche} : le tri des candidats possibles. Depuis le 1er octobre 2026, une recherche s’écrit en une seule ligne, à sa fin.",
+      "recherche_classee": "Ancienne écriture d’une étape — {recherche} : la notation par l’IA. Depuis le 1er octobre 2026, une recherche s’écrit en une seule ligne, à sa fin.",
+      "recherche_correspondances": "Ancienne écriture d’une étape — {recherche} : l’enregistrement des résultats. Depuis le 1er octobre 2026, une recherche s’écrit en une seule ligne, à sa fin.",
+      "recherche_notifiee": "Ancienne écriture d’une étape — {recherche} : l’envoi des notifications. Depuis le 1er octobre 2026, une recherche s’écrit en une seule ligne, à sa fin.",
+      "candidature_deposee": {
+        "expert_simple": "{qui} a candidaté à {annonce}.",
+        "expert_note": "{qui} a candidaté à {annonce} ; la candidature a reçu la note {note}/10.",
+        "relance_simple": "{qui} a redéposé la candidature de l’expert {expert} à {annonce}, qui n’avait pas pu être enregistrée.",
+        "relance_note": "{qui} a redéposé la candidature de l’expert {expert} à {annonce}, qui n’avait pas pu être enregistrée ; elle a reçu la note {note}/10."
+      },
+      "sous_traitance_candidature": {
+        "expert_simple": "{qui} a répondu à {annonce}, un besoin de sous-traitance.",
+        "expert_note": "{qui} a répondu à {annonce}, un besoin de sous-traitance ; la réponse a reçu la note {note}/10.",
+        "relance_simple": "{qui} a redéposé la réponse de l’expert {expert} à {annonce}, un besoin de sous-traitance, qui n’avait pas pu être enregistrée.",
+        "relance_note": "{qui} a redéposé la réponse de l’expert {expert} à {annonce}, un besoin de sous-traitance, qui n’avait pas pu être enregistrée ; elle a reçu la note {note}/10."
+      },
+      "candidature_declinee": {
+        "raison": "{qui} a décliné la candidature de l’expert {expert} à {annonce}, en donnant une raison.",
+        "simple": "{qui} a décliné la candidature de l’expert {expert} à {annonce}."
+      },
+      "candidature_retenue": "{qui} a retenu la candidature de l’expert {expert} à {annonce}.",
+      "mission_ecartee": "{qui} a écarté {annonce}, qui lui était proposée.",
+      "devoilement_ouvert": {
+        "auto": "{qui} a candidaté à {annonce} : l’organisation a eu accès aux coordonnées de l’expert {expert} automatiquement, l’échange peut commencer.",
+        "main": "{qui} a ouvert l’accès aux coordonnées de l’expert {expert} pour {annonce} : l’échange peut commencer."
+      },
+      "devoilement_ferme": "{qui} a refermé l’accès aux coordonnées de l’expert {expert} pour {annonce} : la durée de l’échange est écoulée.",
+      "message_envoye": "{qui} a envoyé un message (ancienne écriture : les messages ne s’écrivent plus au journal, la messagerie les garde).",
+      "compte_cree": {
+        "soi": "{qui} a créé son compte ({type}), {voie}.",
+        "soi_tel": "{qui} a créé son compte ({type}), {voie}, avec un numéro de téléphone vérifié.",
+        "soi_sans_tel": "{qui} a créé son compte ({type}), {voie}, sans numéro de téléphone vérifié.",
+        "autre": "{qui} a créé {compte} ({type})."
+      },
+      "expert_inscrit": {
+        "simple": "{qui} a terminé son inscription d’expert : son profil est créé.",
+        "specialites": "{qui} a terminé son inscription d’expert : son profil est créé avec {specialites, plural, =0 {aucune spécialité} one {# spécialité} other {# spécialités}}.",
+        "autre_specialite": "{qui} a terminé son inscription d’expert : son profil est créé avec {specialites, plural, =0 {aucune spécialité de la liste} one {# spécialité} other {# spécialités}}, et une spécialité proposée par l’expert."
+      },
+      "organisation_preinscrite": {
+        "simple": "{qui} a préinscrit {organisation} ({type}).",
+        "adresse_publique": "{qui} a préinscrit {organisation} ({type}) avec une adresse e-mail personnelle, et non celle de l’organisation."
+      },
+      "compte_valide": {
+        "simple": "{qui} a validé {objet}.",
+        "raison": "{qui} a validé {objet}, avec un commentaire."
+      },
+      "compte_refuse": {
+        "simple": "{qui} a refusé {objet}.",
+        "raison": "{qui} a refusé {objet}, avec un commentaire."
+      },
+      "verification_conclue": {
+        "approuve_note": "{qui} a vérifié {profil} : note {note}/10, {motif} ; profil approuvé.",
+        "approuve_simple": "{qui} a vérifié {profil} : {motif} ; profil approuvé.",
+        "revue_note": "{qui} a vérifié {profil} : note {note}/10, {motif} ; envoyé en revue manuelle.",
+        "revue_simple": "{qui} a vérifié {profil} : {motif} ; envoyé en revue manuelle."
+      },
+      "compte_suspendu": "{qui} a suspendu {compte}.",
+      "compte_reactive": "{qui} a réactivé {compte}.",
+      "session_revoquee": "{qui} a fermé toutes ses autres sessions ouvertes.",
+      "mot_de_passe_change": "{qui} a changé son mot de passe.",
+      "suppression_programmee": {
+        "date": "{qui} a demandé la suppression de son compte : effacement prévu le {date}.",
+        "simple": "{qui} a demandé la suppression de son compte."
+      },
+      "suppression_annulee": {
+        "visible": "{qui} a annulé la suppression de son compte : son profil est de nouveau visible.",
+        "simple": "{qui} a annulé la suppression de son compte."
+      },
+      "email_change": {
+        "demande": "{qui} a demandé à changer son adresse e-mail ; le changement attend la confirmation reçue sur la nouvelle adresse.",
+        "confirme": "{qui} a confirmé sa nouvelle adresse e-mail."
+      },
+      "telephone_verifie": "{qui} a vérifié son numéro de téléphone avec un code reçu par SMS.",
+      "identite_modifiee": {
+        "champs": "{qui} a modifié son nom : {champs}.",
+        "simple": "{qui} a modifié son nom."
+      },
+      "membre_invite": {
+        "simple": "{qui} a invité une personne à rejoindre {organisation} comme {role}.",
+        "compte_existant": "{qui} a invité une personne à rejoindre {organisation} comme {role} ; cette adresse a déjà un compte."
+      },
+      "invitation_renvoyee": "{qui} a renvoyé une invitation à rejoindre {organisation}.",
+      "invitation_revoquee": "{qui} a annulé une invitation à rejoindre {organisation}.",
+      "invitation_acceptee": {
+        "simple": "{qui} a accepté l’invitation à rejoindre {organisation} comme {role}.",
+        "deja": "{qui} a accepté l’invitation à rejoindre {organisation} comme {role} ; la personne en était déjà membre.",
+        "retour": "{qui} a accepté l’invitation à rejoindre {organisation} comme {role}, après l’avoir quittée."
+      },
+      "membre_retire": "{qui} a retiré le membre {membre} ({organisation}).",
+      "membre_parti": "{qui} a quitté {organisation}.",
+      "role_membre_change": "{qui} a changé le rôle du membre {membre} ({organisation}) : désormais {vers}, auparavant {de}.",
+      "organisation_modifiee": {
+        "champs": "{qui} a modifié la fiche de présentation pour {organisation} : {champs}.",
+        "simple": "{qui} a modifié la fiche de présentation pour {organisation}.",
+        "logo_depose": "{qui} a déposé un nouveau logo pour {organisation}.",
+        "logo_retire": "{qui} a supprimé le logo affiché pour {organisation}."
+      },
+      "paiement_recu": {
+        "montant": "{qui} a enregistré un paiement de {montant} versé par {organisation} ({periode}).",
+        "simple": "{qui} a enregistré un paiement versé par {organisation}."
+      },
+      "plafond_atteint": {
+        "compte_montants": "Plafond mensuel de dépense d’IA atteint pour {objet}, pendant {action} déclenchée par {qui} : {depense} dépensés pour un plafond de {plafond}.",
+        "compte_simple": "Plafond mensuel de dépense d’IA atteint pour {objet}, pendant {action} déclenchée par {qui}.",
+        "global_montants": "Plafond mensuel de dépense d’IA de toute la plateforme atteint, pendant {action} déclenchée par {qui} : {depense} dépensés pour un plafond de {plafond}.",
+        "global_simple": "Plafond mensuel de dépense d’IA de toute la plateforme atteint, pendant {action} déclenchée par {qui}."
+      },
+      "refus_plafond_atteint": {
+        "compte_montants": "Action refusée pour {objet} : {action}, déclenchée par {qui}, dépassait le plafond mensuel de dépense d’IA ({depense} dépensés pour un plafond de {plafond}).",
+        "compte_simple": "Action refusée pour {objet} : {action}, déclenchée par {qui}, dépassait le plafond mensuel de dépense d’IA.",
+        "global_montants": "Action refusée : {action}, déclenchée par {qui}, dépassait le plafond mensuel de dépense d’IA de la plateforme ({depense} dépensés pour un plafond de {plafond}).",
+        "global_simple": "Action refusée : {action}, déclenchée par {qui}, dépassait le plafond mensuel de dépense d’IA de la plateforme."
+      },
+      "evenement_stripe_rouvert": {
+        "date": "{qui} a rouvert un événement de paiement reçu le {date} du prestataire de paiement Stripe, pour qu’il soit traité de nouveau.",
+        "simple": "{qui} a rouvert un événement de paiement reçu du prestataire de paiement Stripe, pour qu’il soit traité de nouveau."
+      },
+      "reglage_modifie": {
+        "changements": "{qui} a modifié {reglage} : {changements}.",
+        "simple": "{qui} a modifié {reglage}.",
+        "echec": "{qui} a tenté de modifier {reglage}, sans succès."
+      },
+      "taxonomie_modifiee": {
+        "creee": "{qui} a créé {objet}.",
+        "supprimee": "{qui} a supprimé {objet}.",
+        "modifiee": "{qui} a modifié {objet} : {changements}.",
+        "simple": "{qui} a modifié {objet}."
+      },
+      "ecosysteme_cree": {
+        "adresse": "{qui} a créé {ecosysteme}, dont l’adresse commence par « {adresse} ».",
+        "simple": "{qui} a créé {ecosysteme}."
+      },
+      "ecosysteme_modifie": {
+        "modification": "{qui} a modifié {ecosysteme} : {changements}.",
+        "simple": "{qui} a modifié {ecosysteme}.",
+        "activation": "{qui} a ouvert {ecosysteme} : les organisations peuvent y entrer.",
+        "desactivation": "{qui} a fermé {ecosysteme} aux organisations.",
+        "visuel_depose": "{qui} a déposé {visuel} pour {ecosysteme}.",
+        "visuel_retire": "{qui} a retiré {visuel} pour {ecosysteme}.",
+        "adresse": "{qui} a changé l’adresse web pour {ecosysteme} : « {avant} » devient « {apres} ».",
+        "adresse_simple": "{qui} a changé l’adresse web pour {ecosysteme}."
+      },
+      "administrateur_cree": {
+        "simple": "{qui} a créé {compte}, avec les droits d’administrateur.",
+        "premier": "{qui} a créé le tout premier compte administrateur : {compte}.",
+        "echec": "{qui} n’a pas pu créer {compte} avec les droits d’administrateur (erreur technique)."
+      },
+      "tache_lancee_a_la_main": {
+        "simple": "{qui} a lancé à la main la tâche automatique « {tache} ».",
+        "inactive": "{qui} a lancé à la main la tâche automatique « {tache} », alors qu’elle était désactivée.",
+        "echec": "{qui} n’a pas pu lancer à la main la tâche automatique « {tache} » (erreur technique)."
+      },
+      "inactivite_avertie": {
+        "date": "{qui} a envoyé un e-mail d’avertissement pour {compte} : ce compte inactif sera effacé le {date}.",
+        "simple": "{qui} a envoyé un e-mail d’avertissement pour {compte} : ce compte inactif va être effacé.",
+        "echec": "{qui} n’a pas pu envoyer l’e-mail d’avertissement pour {compte}, inactif, avant son effacement : {cause}."
+      },
+      "compte_purge_inactivite": {
+        "detail": "{qui} a effacé {compte}, inactif depuis trop longtemps : {effacements}.",
+        "simple": "{qui} a effacé {compte}, inactif depuis trop longtemps."
+      },
+      "compte_purge_demande": {
+        "detail": "{qui} a effacé {compte}, à la demande de son titulaire : {effacements}.",
+        "simple": "{qui} a effacé {compte}, à la demande de son titulaire."
+      },
+      "compte_purge_admin": {
+        "detail": "{qui} a effacé {compte} : {effacements}.",
+        "simple": "{qui} a effacé {compte}."
+      },
+      "ip_effacees": {
+        "detail": "{qui} a effacé les adresses IP de plus de {mois, plural, one {# mois} other {# mois}} : {audit, plural, =0 {aucune} one {#} other {#}} dans le journal d’audit, {sessions, plural, =0 {aucune} one {#} other {#}} dans l’historique des connexions.",
+        "simple": "{qui} a effacé les anciennes adresses IP.",
+        "echec": "{qui} n’a pas pu effacer les anciennes adresses IP (erreur technique)."
+      },
+      "desabonnement_email": "{qui} ne veut plus recevoir par e-mail les avis « {evenement} » : coupé depuis le lien de désabonnement d’un e-mail.",
+      "journal_nettoye": {
+        "familles": "{qui} a nettoyé le journal : {lignes, plural, =0 {aucune écriture effacée} one {# écriture effacée} other {# écritures effacées}} ({familles}).",
+        "total": "{qui} a nettoyé le journal : {lignes, plural, =0 {aucune écriture effacée} one {# écriture effacée} other {# écritures effacées}}.",
+        "simple": "{qui} a nettoyé le journal."
+      },
+      "refus_depot_sans_jugement": "{qui} a voulu candidater à {annonce} : la candidature n’a pas été enregistrée, faute d’avoir pu être évaluée — {cause}.",
+      "refus_expert_inapte": "{qui} n’a pas pu candidater : {raison} (ancienne écriture).",
+      "refus_garde_eligibilite": "{qui} n’a pas pu candidater : les conditions de dépôt n’étaient pas remplies (ancienne écriture).",
+      "refus_quota_cv": "{qui} n’a pas pu faire analyser son CV : le nombre d’analyses permis était atteint (ancienne écriture).",
+      "refus_recherche_en_cours": "{qui} : une recherche a été écartée, une autre était déjà en cours pour le même profil (ancienne écriture)."
+    },
+    "valeurs": {
+      "inconnu": "une autre information",
+      "type_annonce": {
+        "mission": "mission",
+        "offre": "offre d’emploi",
+        "sous_traitance": "besoin de sous-traitance"
+      },
+      "champ_annonce": {
+        "title": "le titre",
+        "description": "la description",
+        "skills_required": "les compétences demandées",
+        "seniorities": "les niveaux d’expérience",
+        "work_mode": "le mode de travail",
+        "location_note": "le lieu",
+        "duration": "la durée",
+        "start_date": "la date de début",
+        "budget_min": "le budget minimum",
+        "budget_max": "le budget maximum",
+        "branch_id": "la branche de métiers",
+        "speciality_ids": "les spécialités",
+        "speciality_other": "la spécialité proposée",
+        "confidential": "la confidentialité",
+        "work_zone_ids": "les zones de travail"
+      },
+      "champ_profil": {
+        "title": "le titre",
+        "summary": "le résumé",
+        "seniorities": "les niveaux d’expérience",
+        "years_experience": "les années d’expérience",
+        "skills": "les compétences",
+        "certifications": "les certifications",
+        "languages": "les langues",
+        "location": "le lieu",
+        "work_modes": "les modes de travail",
+        "tjm_min": "le tarif journalier minimum",
+        "tjm_max": "le tarif journalier maximum",
+        "availability_date": "la date de disponibilité",
+        "linkedin_url": "le lien LinkedIn",
+        "phone": "le numéro de téléphone",
+        "address_line": "l’adresse",
+        "postal_code": "le code postal",
+        "city": "la ville",
+        "country": "le pays",
+        "birth_year": "l’année de naissance",
+        "photo_url": "la photo",
+        "years_total_experience": "les années d’expérience au total",
+        "availability_status": "la disponibilité",
+        "branch_id": "la branche de métiers",
+        "speciality_ids": "les spécialités",
+        "speciality_other": "la spécialité proposée",
+        "work_zone_ids": "les zones de travail",
+        "cdi_status": "la recherche d’un poste salarié",
+        "cdi_notice_period": "le préavis",
+        "cdi_availability_date": "la date de prise de poste",
+        "cdi_confidential_mode": "la recherche confidentielle",
+        "cdi_salary_min": "le salaire minimum souhaité",
+        "cdi_salary_max": "le salaire maximum souhaité",
+        "cdi_variable_pct": "la part variable",
+        "cdi_benefits": "les avantages souhaités",
+        "cdi_company_size": "la taille d’entreprise souhaitée",
+        "cdi_sectors": "les secteurs souhaités",
+        "cdi_geo_mobility": "la mobilité géographique",
+        "cdi_contract_types": "les types de contrat",
+        "cdi_motivations": "les motivations",
+        "cdi_career_goals": "les objectifs de carrière",
+        "experiences": "les expériences",
+        "educations": "les formations",
+        "languages_structured": "les langues",
+        "formations": "les formations",
+        "langues": "les langues"
+      },
+      "champ_dispo": {
+        "availability_status": "disponibilité pour des missions",
+        "cdi_status": "recherche d’un poste salarié",
+        "open_to_cdi": "ouverture aux postes salariés",
+        "open_to_freelance": "ouverture aux missions"
+      },
+      "valeur_dispo": {
+        "available": "disponible",
+        "do_not_disturb": "ne pas déranger",
+        "employed": "en poste",
+        "open_to_work": "en recherche",
+        "true": "oui",
+        "false": "non",
+        "aucune": "non renseignée"
+      },
+      "nature_travail": {
+        "analyse_cv": "l’analyse du CV",
+        "verification_expert": "la vérification"
+      },
+      "code_travail": {
+        "profil_illisible": "le profil n’a pas pu être lu",
+        "profil_introuvable": "le profil n’existe plus",
+        "compte_illisible": "le compte n’a pas pu être lu",
+        "voie_inconnue": "le type de compte n’est pas reconnu",
+        "document_absent": "aucun CV n’a été trouvé",
+        "stockage_illisible": "le fichier du CV n’a pas pu être lu",
+        "referentiel_illisible": "la liste des métiers n’a pas pu être lue",
+        "quota_non_configure": "le nombre d’analyses permis n’est pas réglé",
+        "quota_illisible": "le nombre d’analyses permis n’a pas pu être lu",
+        "plafond_depense": "le plafond de dépense d’IA est atteint",
+        "ecriture_en_panne": "le résultat n’a pas pu être enregistré",
+        "modele_indisponible": "le service d’IA ne répondait pas",
+        "configuration": "le service d’IA est mal réglé",
+        "document_refuse": "le service d’IA a refusé le document",
+        "reponse_illisible": "la réponse du service d’IA était illisible",
+        "configuration_illisible": "les réglages n’ont pas pu être lus",
+        "specialites_illisibles": "la liste des spécialités n’a pas pu être lue",
+        "exception_interne": "une erreur inattendue s’est produite",
+        "delai_depasse": "le travail a pris trop de temps",
+        "non_execute": "le travail n’a jamais démarré"
+      },
+      "raison_ineligible": {
+        "profil_non_visible": "le profil n’est pas publié",
+        "cv_non_analyse": "le CV n’a pas encore été analysé",
+        "consentement_absent": "l’expert n’a pas accepté l’analyse par IA",
+        "profil_non_approuve": "le profil n’est pas encore approuvé",
+        "compte_suspendu": "le compte est suspendu",
+        "compte_en_suppression": "le compte est en cours de suppression",
+        "compte_anonymise": "le compte a été effacé",
+        "ne_pas_deranger": "l’expert a demandé à ne pas être dérangé",
+        "non_en_recherche": "l’expert n’est pas en recherche"
+      },
+      "etape_recherche": {
+        "lecture": "la lecture des données",
+        "reglages": "la lecture des réglages",
+        "vivier": "la recherche des candidats possibles",
+        "filtrage": "le tri des candidats",
+        "notation": "la notation par l’IA",
+        "correspondances": "l’enregistrement des résultats"
+      },
+      "cause_recherche": {
+        "lecture_en_panne": "les données n’ont pas pu être lues",
+        "introuvable": "l’annonce ou le profil n’existe plus",
+        "reglages_absents": "les réglages de la recherche manquent",
+        "durees_illisibles": "les durées réglées n’ont pas pu être lues",
+        "vivier_en_panne": "les candidats possibles n’ont pas pu être lus",
+        "decisions_illisibles": "les choix déjà faits n’ont pas pu être lus",
+        "annonce_sans_matiere": "l’annonce ne contient pas assez d’informations",
+        "notation_arretee": "la notation par l’IA s’est arrêtée",
+        "lots_en_echec": "une partie de la notation a échoué",
+        "reconciliation_en_panne": "les résultats n’ont pas pu être enregistrés"
+      },
+      "arret_notation": {
+        "interrupteur_ferme": "la notation par l’IA est désactivée",
+        "cle_absente": "la clé du service de notation manque",
+        "aucun_document": "il n’y avait rien à noter",
+        "plafond_atteint": "le plafond de dépense d’IA est atteint"
+      },
+      "type_compte": {
+        "expert_freelance": "expert indépendant",
+        "expert_cdi": "expert en recherche d’un poste salarié",
+        "client": "organisation cliente",
+        "cabinet": "cabinet de conseil",
+        "admin": "administrateur"
+      },
+      "voie": {
+        "inscription_expert": "par l’inscription des experts",
+        "preinscription_organisation": "par la préinscription d’une organisation",
+        "invitation": "en acceptant une invitation",
+        "administrateur": "par un administrateur"
+      },
+      "org_type": {
+        "client": "organisation cliente",
+        "cabinet": "cabinet de conseil",
+        "esn": "entreprise de services numériques"
+      },
+      "motif_verification": {
+        "note_suffisante": "la note atteint celle de l’approbation automatique",
+        "note_insuffisante": "sous la note d’approbation automatique",
+        "drapeau_bloquant": "un point bloquant a été relevé",
+        "travail_echoue": "la vérification n’a pas pu se faire",
+        "config_non_configure": "la vérification des experts n’est pas réglée",
+        "config_ambigu": "le réglage de la vérification est ambigu",
+        "config_incomplet": "le réglage de la vérification est incomplet",
+        "domaine_sans_nom": "l’écosystème de l’expert n’a pas de nom",
+        "consentement_absent": "l’expert n’a pas accepté l’analyse par IA",
+        "cv_non_analyse": "le CV n’a pas été analysé",
+        "plafond_ia": "le plafond de dépense d’IA est atteint",
+        "configuration": "le service d’IA est mal réglé",
+        "document_refuse": "le service d’IA a refusé le document",
+        "reponse_illisible": "la réponse du service d’IA était illisible",
+        "modele_indisponible": "le service d’IA ne répondait pas"
+      },
+      "champ_identite": {
+        "first_name": "le prénom",
+        "last_name": "le nom de famille"
+      },
+      "role_org": {
+        "admin": "administrateur",
+        "editor": "éditeur",
+        "viewer": "lecteur"
+      },
+      "champ_organisation": {
+        "company_name": "le nom",
+        "sector": "le secteur",
+        "size": "la taille",
+        "description": "la description",
+        "website_url": "le site web",
+        "country": "le pays"
+      },
+      "periode_paiement": {
+        "monthly": "abonnement mensuel",
+        "yearly": "abonnement annuel",
+        "one_time": "paiement unique"
+      },
+      "action_ia": {
+        "matching_pool": "la recherche automatique de correspondances",
+        "cv_parsing": "l’analyse d’un CV",
+        "candidature_assessment": "l’évaluation d’une candidature",
+        "pitch": "la rédaction d’une présentation",
+        "expert_verification": "la vérification d’un expert",
+        "org_verification": "la vérification d’une organisation",
+        "publication_quality": "la vérification d’une annonce"
+      },
+      "reglage": {
+        "duree_reglages": "les durées de la plateforme",
+        "ai_model_tarifs": "le tarif d’un modèle d’IA",
+        "ai_spend_caps": "les plafonds mensuels de dépense d’IA de la plateforme",
+        "ai_spend_seuils_acteur": "le plafond de dépense d’IA par compte",
+        "ai_quotas": "le nombre d’analyses de CV permis",
+        "matching_settings": "les réglages de la recherche de correspondances",
+        "verification_providers": "la note d’approbation automatique",
+        "packages_default": "l’offre attribuée par défaut",
+        "grand_livre_conservation": "la conservation du journal",
+        "blocked_email_domains": "la liste des domaines d’adresse e-mail refusés",
+        "public_email_domains": "la liste des messageries publiques",
+        "packages": "une offre",
+        "organizations": "l’offre d’une organisation",
+        "packages_stripe": "la liaison des offres avec Stripe"
+      },
+      "cle_reglage": {
+        "vie_annonce_jours": "durée de vie d’une annonce (jours)",
+        "fenetre_echange_jours": "durée d’un échange (jours)",
+        "invitation_jours": "validité d’une invitation (jours)",
+        "conservation_ip_mois": "conservation des adresses IP (mois)",
+        "usd_par_1m_entree": "prix pour un million de mots envoyés (dollars)",
+        "usd_par_1m_sortie": "prix pour un million de mots reçus (dollars)",
+        "usd_par_unite": "prix par unité (dollars)",
+        "usd_par_recherche": "prix par recherche (dollars)",
+        "usd_par_recherche_web": "prix par recherche sur le web (dollars)",
+        "claude": "plafond du modèle de langage (dollars par mois)",
+        "rerank": "plafond du service de classement (dollars par mois)",
+        "organization": "plafond par organisation (dollars par mois)",
+        "profile": "plafond par expert (dollars par mois)",
+        "max_per_window": "nombre d’analyses permis",
+        "window_hours": "période (heures)",
+        "feed_threshold": "note minimale pour proposer une correspondance",
+        "notify_threshold": "note minimale pour prévenir par notification",
+        "notify_enabled": "notifications activées",
+        "rerank_model": "modèle de classement",
+        "rerank_batch_size": "taille des lots notés ensemble",
+        "note": "note d’approbation automatique",
+        "name": "nom",
+        "slug": "nom court",
+        "target_role": "comptes visés",
+        "price_monthly": "prix mensuel",
+        "price_yearly": "prix annuel",
+        "currency": "devise",
+        "active": "active",
+        "is_free": "gratuite",
+        "is_default": "offre par défaut",
+        "scope": "portée",
+        "package_started_at": "début de l’offre",
+        "package_valid_until": "fin de l’offre",
+        "conservation_mois": "conservation (mois)",
+        "plancher_mois": "minimum légal (mois)",
+        "actif": "active"
+      },
+      "valeur_reglage": {
+        "expert_freelance": "experts indépendants",
+        "expert_cdi": "experts en recherche d’un poste salarié",
+        "client": "organisations clientes",
+        "cabinet": "cabinets de conseil",
+        "all": "tous les comptes",
+        "organization": "par organisation",
+        "user": "par personne",
+        "organization_per_seat": "par membre d’organisation"
+      },
+      "note_de": {
+        "experts": "des experts",
+        "entreprises": "des organisations",
+        "annonces": "des annonces"
+      },
+      "champ_plafond_compte": {
+        "seuil_mensuel_usd": "l’alerte mensuelle",
+        "plafond_mensuel_usd": "le plafond mensuel"
+      },
+      "mode_paiement": {
+        "test": "mode d’essai",
+        "live": "mode réel"
+      },
+      "liste_domaines": {
+        "bloques": "domaines refusés",
+        "publics": "messageries publiques"
+      },
+      "objet_taxo": {
+        "branche": "branche de métiers",
+        "specialite": "spécialité"
+      },
+      "champ_taxo": {
+        "name": "le nom",
+        "active": "l’activation",
+        "sort_order": "l’ordre d’affichage",
+        "slug": "le nom court"
+      },
+      "langue": {
+        "fr": "français",
+        "en": "anglais",
+        "es": "espagnol",
+        "de": "allemand"
+      },
+      "champ_ecosysteme": {
+        "name": "le nom",
+        "ecosystem_name": "le nom affiché",
+        "tagline": "le slogan",
+        "description": "la description",
+        "active": "l’ouverture",
+        "launch_date": "la date de lancement",
+        "couleur_fond_page": "la couleur du fond",
+        "couleur_bandeau": "la couleur du bandeau",
+        "couleur_cartes": "la couleur des cartes",
+        "couleur_bordures": "la couleur des bordures",
+        "couleur_texte_principal": "la couleur du texte",
+        "couleur_texte_secondaire": "la couleur du texte secondaire",
+        "primary_color": "la couleur de la marque",
+        "accent_color": "la couleur des boutons",
+        "secondary_color": "la couleur secondaire",
+        "ecosystem_expert_label": "le nom donné aux experts",
+        "ecosystem_community_label": "le nom donné à la communauté",
+        "ecosystem_speciality_label": "le nom donné aux spécialités",
+        "ecosystem_domain_search_label": "le libellé de la recherche",
+        "tags": "les mots-clés",
+        "logo_url": "le logo",
+        "favicon_url": "l’icône d’onglet"
+      },
+      "visuel": {
+        "logo": "le logo",
+        "favicon": "l’icône d’onglet"
+      },
+      "tache": {
+        "constats_trigger": "constats (annonces expirées, échanges terminés)",
+        "cron_run_log_purge": "nettoyage de l’historique des tâches",
+        "cron_run_reconcile": "contrôle des tâches restées sans réponse",
+        "expert_relance_trigger": "relance des recherches des experts",
+        "ip_retention_purge": "effacement des anciennes adresses IP",
+        "matching_notes_partielles_purge": "nettoyage des notations inachevées",
+        "matching_retry_trigger": "reprise des recherches en échec",
+        "purge_deletions_trigger": "effacement des comptes dont la suppression est due",
+        "purge_inactive_trigger": "avertissement et effacement des comptes inactifs",
+        "rate_limit_hits_purge": "nettoyage des compteurs anti-abus",
+        "stripe_reconcile_trigger": "rapprochement des paiements",
+        "travaux_ia_pilote": "suivi des travaux d’IA"
+      },
+      "cause_avertissement": {
+        "origine_inconnaissable": "l’adresse du site n’a pas pu être déterminée",
+        "sans_email": "le compte n’a pas d’adresse e-mail",
+        "lien_sans_ecosysteme": "le lien de l’e-mail n’a pas pu être construit",
+        "exception": "une erreur inattendue s’est produite",
+        "missing_env": "l’envoi d’e-mails n’est pas configuré",
+        "invalid_to": "l’adresse e-mail est invalide",
+        "resend_error": "le service d’envoi d’e-mails a refusé le message",
+        "timeout": "le service d’envoi d’e-mails n’a pas répondu à temps"
+      },
+      "evenement": {
+        "new_match_opportunity": "nouvelles missions proposées",
+        "new_candidature_received": "nouvelle candidature reçue",
+        "new_message": "nouveau message"
+      },
+      "cause_depot": {
+        "plafond": "le plafond de dépense d’IA est atteint",
+        "modele_indisponible": "le service d’IA ne répondait pas",
+        "reponse_illisible": "la réponse du service d’IA était illisible"
+      },
+      "effacement": {
+        "profil_anonymise": "profil anonymisé",
+        "cv_supprime": "CV supprimé",
+        "avatar_supprime": "photo supprimée"
+      },
+      "canal_notification": {
+        "email": "par e-mail",
+        "inapp": "dans l’application",
+        "both": "par e-mail et dans l’application",
+        "sms": "par SMS"
+      },
+      "statut_notification": {
+        "pending": "en attente",
+        "sent": "envoyée",
+        "failed": "en échec",
+        "read": "lue"
+      }
+    },
+    "glossaire": {
+      "titre": "Les mots de ce journal",
+      "ecriture": {
+        "mot": "Écriture",
+        "explication": "Une ligne du journal : une action, faite par quelqu’un ou par la plateforme, à un moment donné."
+      },
+      "geste": {
+        "mot": "Écritures liées",
+        "explication": "Une même action peut laisser plusieurs écritures (un compte créé et l’inscription de l’expert, par exemple). Elles portent le même numéro de geste, et « Voir les écritures liées » les montre ensemble."
+      },
+      "famille": {
+        "mot": "Famille",
+        "explication": "Le rangement des écritures par sujet : annonces, profils, comptes, paiements… Chaque famille a sa propre durée de conservation."
+      },
+      "ecosysteme": {
+        "mot": "Écosystème",
+        "explication": "L’espace de la plateforme réservé à une technologie (par exemple les experts certifiés d’un même éditeur de logiciels), avec sa propre adresse web. Un expert appartient à un seul écosystème."
+      }
     }
   },
   "inscription_refus": {

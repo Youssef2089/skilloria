@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { AuthError, requireAuth, type AuthContext } from '@/lib/auth-guard'
+import { clesModifiees } from '@/lib/profil/changements'
 import { requireReauth } from '@/lib/reauth-token'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
@@ -59,6 +60,21 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return json({ error: 'Invalid last_name', code: 'invalid_last_name' }, 400)
   }
 
+  // CE QUI CHANGE VRAIMENT (décision de Youssef, 01/10/2026, ARRÊT 22) : « Nom modifié » s'écrivait à chaque
+  // enregistrement, même identique. Le nom est relu ; les champs qui ne changent pas ne s'écrivent pas, et un
+  // enregistrement sans changement ne touche à rien. Une relecture en panne compte les deux comme modifiés.
+  const { data: actuel, error: actuelErr } = await auth.supabaseAdmin
+    .from('users')
+    .select('first_name, last_name')
+    .eq('id', auth.user.id)
+    .maybeSingle()
+  const champs: Array<'first_name' | 'last_name'> = actuelErr || !actuel
+    ? ['first_name', 'last_name']
+    : (clesModifiees({ first_name, last_name }, actuel as Record<string, unknown>) as Array<'first_name' | 'last_name'>)
+  if (champs.length === 0) {
+    return json({ ok: true, first_name, last_name, inchange: true }, 200)
+  }
+
   const { error: updErr } = await auth.supabaseAdmin
     .from('users')
     .update({ first_name, last_name })
@@ -70,7 +86,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
 
   // Le grand livre (§D.26, phase B) : les NOMS des champs, jamais les valeurs.
   try {
-    await identiteModifiee(auth.supabaseAdmin, journal, { userId: auth.user.id, champs: ['first_name', 'last_name'] })
+    await identiteModifiee(auth.supabaseAdmin, journal, { userId: auth.user.id, champs })
   } catch (err) {
     if (!(err instanceof JournalError)) throw err
     console.error('[me/identity] grand livre en échec après écriture', { userId: auth.user.id, message: err.message })
@@ -87,7 +103,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     entity_id: auth.user.id,
     // Les VALEURS ne vont pas au journal (données personnelles — elles y
     // survivaient à la purge du compte) : seulement quels champs ont changé.
-    detail: { champs_modifies: ['first_name', 'last_name'] },
+    detail: { champs_modifies: champs },
   })
 
   return json({ ok: true, first_name, last_name }, 200)

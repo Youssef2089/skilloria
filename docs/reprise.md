@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 01/10/2026 (ARRÊT 21, phase 1 — la liste des écritures du grand livre, pour décision).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 01/10/2026 (ARRÊT 22 — le grand livre, phase 2 : la liste validée, des écritures lisibles par tous).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,80 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 22 — LE GRAND LIVRE, PHASE 2 : LA LISTE VALIDÉE, DES ÉCRITURES LISIBLES PAR TOUS (01/10/2026)
+
+Décision de Youssef : les recommandations de l'ARRÊT 21 (phase 1, ci-dessous) sont validées telles quelles — GARDER 48,
+MIEUX 15, FUSIONNER 5, RETIRER 6 — avec un AJOUT : le désabonnement d'un e-mail s'écrit au grand livre (un changement de
+consentement). Tag local `sauvegarde-avant-grand-livre-lisible` sur `0fb9f1d`, arbre propre (hormis `supabase/snippets/`).
+
+**Contradictions signalées AVANT d'écrire.**
+① **§D.26 « chaque action a exactement un écrivain — ni deux, ni zéro » ↔ retirer onze actions** (6 retirées, 5 fondues
+  dans la ligne de fin d'une recherche). Leurs lignes passées existent et la liste fermée en est la clé étrangère : elles
+  RESTENT dans la liste, marquées retirées (`retiree_le`), avec zéro écrivain ; `journaliser()` refuse de les écrire
+  (GL006). La règle devient : une action active a exactement un écrivain, une action retirée n'en a aucun.
+② **§D.22 « une recherche écartée parce qu'une autre tient le bail s'écrit »** : Youssef la retire. §D.22 est mis à jour.
+③ **« Aucune route n'écrit sans ligne » (diag-routes-tracees)** : l'envoi d'un message écrit la messagerie sans ligne au
+  grand livre — exclusion NOMMÉE, avec sa raison (décision de Youssef : la messagerie garde déjà chaque message daté).
+④ **Point 4 : « aucune valeur écrite dans le code » ↔ « un bouton pour appliquer la référence légale proposée »** : le
+  nombre proposé doit vivre quelque part — aujourd'hui il est DANS les traductions (donc dans le code). Il passe en BASE,
+  dans une table de PROPOSITIONS, distincte des valeurs appliquées ; celles-ci restent nées vides (règle du 28/09) jusqu'au
+  clic de l'administrateur, qui s'écrit au grand livre. Les références restent des PROPOSITIONS, NON VÉRIFIÉES par un
+  juriste — l'écran le dit.
+⑤ **Point 3 : nommer le profil ↔ §D.4 (nom abrégé)** : §D.4 règle ce qu'une ORGANISATION voit ; l'écran du grand livre
+  est réservé à l'administrateur, qui voit déjà les noms complets. Les noms sont RELUS à l'affichage, jamais écrits au
+  grand livre (identifiants seulement, §D.26) ; un compte effacé s'affiche « compte supprimé ».
+⑥ **Les étapes fondues portaient le coût d'une recherche** : la ligne de fin le porte désormais ; le détail lot par lot
+  reste dans le journal des dépenses d'IA.
+⑦ **Le désabonnement passe par un lien (une lecture)** : c'est pourtant un changement de consentement — il s'écrit, une
+  fois, et seulement si la préférence change vraiment ; « mission vue » et « messages lus » restent hors du grand livre.
+
+### Le compte exact, point par point
+
+| Point | Ce qui est fait | Compte |
+|---|---|---|
+| **1. Les 6 retirées** | `message_envoye`, `refus_recherche_en_cours`, `refus_expert_inapte`, `refus_garde_eligibilite`, `refus_plafond_atteint`, `refus_quota_cv` : plus aucun écrivain (SQL : `envoyer_message` redéfinie sans ligne ; TS : les quatre écritures supprimées, `refusRechercheEnCours` supprimée) ; `journaliser()` les refuse (GL006) ; `ActionActive` les exclut à la compilation. Le refus reste RENDU à l'écran comme avant. | **6/6** |
+| **1. Les 5 fondues** | Les étapes d'une recherche (`recherche_lancee/filtree/classee/correspondances/notifiee`) NOTENT dans un bilan partagé ; UNE ligne à la fin : `recherche_terminee` (l'issue, examinées, notées, retenues, fortes, nouvelles, notifiées, manquées, le coût), `recherche_echouee` (l'étape, la cause, le bilan) ou, au plafond, `recherche_abandonnee` AU LIEU de l'échec. Le détail par lot reste dans les dépenses d'IA. | **5/5** (11 codes retirés en tout) |
+| **1. Les 15 « mieux »** | Réglages (`journaliser_reglage` : 12 écrans, une règle — avant = après → aucune ligne) ; « Profil modifié » (relu avant, seules les vraies différences, pas deux fois dans la séance de 10 min) ; « Profil publié » (quand il DEVIENT visible) ; « Annonce modifiée », « Fiche d'organisation modifiée », « Nom modifié », « Liste des métiers modifiée », « Écosystème modifié » (relus avant, seuls les champs qui changent, rien sinon) ; « Téléphone vérifié » (le même numéro revérifié : rien) ; « Adresses IP effacées » (rien à effacer : rien) ; « Avertissement d'inactivité » en échec (une fois depuis la dernière connexion) ; « Vérification conclue » (avec la note). | **15/15** (dont les 12 écrans de réglage en une règle) |
+| **2. Le désabonnement** | `se_desabonner_email` : la préférence coupée ET `desabonnement_email` (l'événement, le canal), une transaction, une fois ; second clic « déjà », rien ; compte inconnu, rien ; événement hors catalogue refusé par la route. | **fait** |
+| **3. Les phrases** | `lib/journal/phrase.ts` : 75 actions (64 actives + 11 retirées, pour l'historique), 184 gabarits, 40 dimensions de codes, 15 désignations d'objets, × 4 langues ; noms relus par `libelles_journal` ; « Système Système » disparu ; glossaire à l'écran (« écosystème » expliqué) ; la page d'un geste en phrases, ses journaux détaillés en mots. Codes en base inchangés. | **75/75 actions** |
+| **4. La conservation** | Écran à part `/admin/journal/conservation` (menu « Conservation du journal ») : « Comment ça marche » ; par famille « Ces écritures sont gardées X mois, puis effacées. La loi impose au moins Y mois », la référence (texte de loi sans nombre), « Appliquer la proposition » ; le nettoyage dit simplement. Nombres EN BASE (`grand_livre_conservation_proposee`), valeurs appliquées toujours nées vides. | **12 familles + le journal** |
+| **5. La preuve** | `diag-journal-lisible` (nouveau, exécuté : 38 796 lignes fabriquées, 43 728 phrases distinctes, 4 langues, grammaire des désignations, dimensions recoupées avec le code, retirées SQL = TS, tests, écrans) ; `diag-grand-livre` D bis/D ter ; `diag-tests-grand-livre` (gel 22 → 11) ; pgTAP `liste_validee` (19), `reglages` (10 → 14), `telephone_verifie`, `socle`, `purges`, `verification_conclue`, `message_envoye`, `refus_recherche_en_cours` réécrits. **Tous les tests qui citent une retirée** : balayés (54 → 55 fichiers) — chacun attend GL006 ou zéro ligne. | **543 → 567 tests pgTAP** |
+| **Mise en page** | Pleine largeur, alignée à gauche, marge de l'admin (24 px) ; jamais centrée ni limitée (`maxWidth` retiré). | **fait** |
+
+### Les migrations nouvelles (plage 20261001000000–20261001099999, toutes AVANT le déploiement)
+- `grand_livre_liste_validee` — `retiree_le`, les onze retirées, `desabonnement_email`, les listes blanches élargies, GL006, le réglage inchangé sans ligne.
+- `ecritures_sur_vrai_changement` — cinq fonctions à signature identique, `se_desabonner_email` ajoutée.
+- `conservation_propositions` — la table des propositions (12 lignes) et `appliquer_proposition_conservation`.
+- `journal_libelles` — `libelles_journal`.
+⚠️ **Fenêtre de déploiement (§E.72)** : entre `db push` et `git push`, le code en ligne écrit encore les actions retirées ; chaque geste concerné (un message, un refus de dépôt, une étape de recherche) est REFUSÉ (GL006) — la fenêtre se compte en minutes, comme d'habitude.
+
+### La requête d'avant-push — À METTRE À JOUR PAR LE LOT FUSIONNÉ EN SECOND (consigne du mandat)
+Je ne l'ai PAS touchée. Deux contrôles le disent, et resteront rouges jusqu'à cette mise à jour :
+- `diag-requete-staging` E — `prochain_push_cree` doit recevoir : fonction `se_desabonner_email`, fonction `appliquer_proposition_conservation`,
+  fonction `libelles_journal`, table `grand_livre_conservation_proposee`, contraintes `gl_conservation_proposee_plancher`,
+  `gl_conservation_proposee_duree`, `gl_conservation_proposee_au_dessus`, `gl_conservation_proposee_journal` (et ce que S1 ajoute).
+- `diag-portes-laterales` — la ligne « invariant : politiques d'écriture client » doit lister `notification_preferences`
+  (le désabonnement l'écrit désormais sous une ligne du grand livre).
+
+### Pour Youssef — dans l'ordre, chaque étape verte avant la suivante
+1. **Sur votre poste**, Docker lancé : `npx supabase link --project-ref wnayuerhakekxccgimeg`, puis
+   `node scripts/verifier-version-postgres.mjs` ; `npx supabase db reset --local` ; `npx supabase db lint -s public --level error`
+   (sortie vide) ; `npx supabase test db --local` — **567 tests, tous verts** (sinon envoyez-moi le fichier et le numéro).
+2. **La requête de staging**, une fois mise à jour par le lot fusionné en second (ci-dessus) : collée dans l'éditeur SQL de
+   staging ; un seul ÉCART, on s'arrête.
+3. `npx supabase db push`, puis **aussitôt** `git push` (la fenêtre GL006 se compte en minutes).
+4. **Sur staging, après le déploiement** :
+   - `/admin/journal` : chaque ligne est une phrase (qui, quoi, sur quoi, le résultat) ; plus aucun « Système Système » ;
+     « Les mots de ce journal » s'ouvre et explique les quatre mots ; « Voir les écritures liées » ouvre un geste en phrases.
+   - Réenregistrez un réglage sans rien changer (par exemple les durées) : **aucune** ligne nouvelle. Changez une valeur : une
+     ligne, qui dit l'ancienne et la nouvelle.
+   - Ouvrez le lien « se désabonner » d'un e-mail de notification d'essai : une ligne « … ne veut plus recevoir par e-mail
+     les avis … » ; recliquez : rien de plus.
+   - Relancez une recherche d'un expert d'essai : **une** ligne, avec ce qui a été examiné, retenu, et le coût.
+   - `/admin/journal/conservation` : lisez les propositions famille par famille.
+5. **À décider avant d'appliquer une proposition de conservation** : les durées et références sont des PROPOSITIONS, non
+   vérifiées par un juriste (l'écran le dit). Rien ne s'efface tant que vous n'avez rien appliqué ni nettoyé.
 
 ## ⛔ ARRÊT 21 — LE GRAND LIVRE : PHASE 1, LA LISTE POUR DÉCISION DE YOUSSEF (01/10/2026)
 

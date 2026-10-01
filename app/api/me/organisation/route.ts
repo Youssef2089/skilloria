@@ -3,6 +3,7 @@ import { requireAuth, AuthError, type AuthContext } from '@/lib/auth-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { organisationModifiee } from '@/lib/organisations/journal-organisation'
+import { clesModifiees } from '@/lib/profil/changements'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -271,6 +272,18 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return json({ error: 'No editable field provided', code: 'nothing_to_update' }, 400)
   }
 
+  // CE QUI CHANGE VRAIMENT (décision de Youssef, 01/10/2026, ARRÊT 22) : l'écran envoie tout le formulaire ; la
+  // ligne « Fiche d'organisation modifiée » ne nomme plus que les champs dont la valeur change, et ne s'écrit pas si
+  // aucun ne change. Une relecture en panne compte tout comme modifié (le doute écrit).
+  const { data: avantOrg, error: avantOrgErr } = await auth.supabaseAdmin
+    .from('organizations')
+    .select(Object.keys(patch).join(', '))
+    .eq('id', org.id)
+    .maybeSingle()
+  const champsChanges = avantOrgErr || !avantOrg
+    ? Object.keys(patch)
+    : clesModifiees(patch as Record<string, unknown>, avantOrg as unknown as Record<string, unknown>)
+
   // ── Écriture (service-role, org déjà résolue et vérifiée admin) ─────────────
   const { data: updated, error } = await auth.supabaseAdmin
     .from('organizations')
@@ -289,12 +302,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return json({ error: 'Organization not found', code: 'not_found' }, 404)
   }
 
-  // Le grand livre (§D.26, phase B) : les NOMS des champs, jamais leurs valeurs.
-  const ligne = await organisationModifiee(auth.supabaseAdmin, journal, {
-    organizationId: org.id,
-    operation: 'modification',
-    champs: Object.keys(patch),
-  })
+  // Le grand livre (§D.26, phase B) : les NOMS des champs qui changent, jamais leurs valeurs — et rien sans changement.
+  const ligne = champsChanges.length === 0
+    ? ({ ok: true } as const)
+    : await organisationModifiee(auth.supabaseAdmin, journal, {
+        organizationId: org.id,
+        operation: 'modification',
+        champs: champsChanges as Parameters<typeof organisationModifiee>[2]['champs'],
+      })
   if (!ligne.ok) {
     console.error('[organisation] grand livre en échec après écriture', { orgId: org.id, message: ligne.message })
     return json({ error: 'Journal failed', code: 'journal_error', organization_id: org.id }, 500)

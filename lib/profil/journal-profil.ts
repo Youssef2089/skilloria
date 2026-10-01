@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ContexteJournal } from '@/lib/journal/contexte'
 import { journaliserDans } from '@/lib/journal/journaliser'
+import { DELAI_RELANCE_MINUTES } from '@/lib/matching/relance'
+import { dejaDitDansLaSeance } from '@/lib/profil/changements'
 
 /**
  * LES ÉCRIVAINS DU PROFIL — le CV, la publication, la modification, la
@@ -82,16 +84,40 @@ export async function profilPublie(
 }
 
 /**
- * LE PROFIL MODIFIÉ — les NOMS des champs scalaires et des blocs touchés
- * (expériences, formations, langues), jamais leur contenu. Une modification
- * qui ne fait que publier ou basculer la disponibilité n'écrit pas cette
- * ligne : ces deux gestes ont la leur (`profil_publie`, `disponibilite_basculee`).
+ * LE PROFIL MODIFIÉ — les NOMS des champs scalaires et des blocs qui ont VRAIMENT changé (expériences, formations,
+ * langues), jamais leur contenu. Une modification qui ne fait que publier ou basculer la disponibilité n'écrit pas
+ * cette ligne : ces deux gestes ont la leur (`profil_publie`, `disponibilite_basculee`).
+ *
+ * UNE LIGNE PAR SÉANCE D'ÉDITION (décision de Youssef, 01/10/2026, ARRÊT 22) : l'appelant ne passe que ce qui a changé
+ * (lib/profil/changements.ts) ; ici, un enregistrement qui ne touche que des champs déjà dits par la ligne de la
+ * même séance — celle des `DELAI_RELANCE_MINUTES` dernières minutes, le délai que la recherche attend déjà avant de
+ * repartir — n'en écrit pas une autre. Des champs NOUVEAUX écrivent une ligne : rien ne se tait.
+ * La ligne précédente se lit au grand livre ; une lecture en panne n'empêche pas d'écrire (le doute écrit).
  */
 export async function profilModifie(
   admin: SupabaseClient,
   journal: ContexteJournal,
   args: { profileId: string; champs: string[]; blocs: string[] },
 ): Promise<void> {
+  if (args.champs.length === 0 && args.blocs.length === 0) return
+  const depuis = new Date(Date.now() - DELAI_RELANCE_MINUTES * 60 * 1000).toISOString()
+  const { data: recente, error } = await admin
+    .from('grand_livre')
+    .select('detail')
+    .eq('type_action', 'profil_modifie')
+    .eq('sujet_id', args.profileId)
+    .gte('horodatage', depuis)
+    .order('horodatage', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (!error && recente) {
+    const d = (recente.detail ?? {}) as { champs?: unknown; blocs?: unknown }
+    const precedente = {
+      champs: Array.isArray(d.champs) ? (d.champs as string[]) : [],
+      blocs: Array.isArray(d.blocs) ? (d.blocs as string[]) : [],
+    }
+    if (dejaDitDansLaSeance({ champs: args.champs, blocs: args.blocs }, precedente)) return
+  }
   await journaliserDans(admin, journal, {
     type: 'profil_modifie',
     statut: 'reussi',

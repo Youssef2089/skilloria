@@ -96,7 +96,9 @@ for (const n of ecrivains) for (const m of (defs.get(n) ?? '').matchAll(/\b(?:in
 tables.delete('grand_livre')
 
 console.log(`\n═══ Les portes latérales du grand livre ═══\n`)
-ok(tables.size >= 10 && ['organization_invitations', 'publications', 'candidatures', 'messages', 'profiles', 'users'].every((t) => tables.has(t)),
+// Témoins : `messages` en est sorti le 01/10/2026 (ARRÊT 22 — `envoyer_message` n'écrit plus au grand livre, l'action
+// est retirée) ; `notification_preferences` y est entré (le désabonnement d'un e-mail s'écrit, `se_desabonner_email`).
+ok(tables.size >= 10 && ['organization_invitations', 'publications', 'candidatures', 'notification_preferences', 'profiles', 'users'].every((t) => tables.has(t)),
   `${tables.size} tables dont l’écriture est une action, DÉRIVÉES de ${ecrivains.size} écrivains SQL (témoins présents)`)
 
 // ── L'ÉTAT RÉEL, que ce contrôle ne voit pas, se lit dans la requête de staging (ligne « politiques
@@ -130,7 +132,9 @@ ok(ouvertes.length === 0,
   `aucune politique ne laisse un client ÉCRIRE une table journalisée (${portes.length} porte(s), ${EXCEPTIONS.size} exception(s) écrite(s))`,
   ouvertes.map(([k, p]) => `${k} (${p.cmd} → ${p.roles.join(',')}) ← ${p.f}`).join('\n         ') || undefined)
 const fermees = [...ouvertesUnJour].filter((k) => !politiques.has(k))
-ok(ouvertesUnJour.size >= 13 && fermees.length === ouvertesUnJour.size,
+// 12 et non plus 13 depuis l'ARRÊT 22 : la porte d'écriture de `messages` (fermée le 26/09/2026) ne compte plus, la
+// table n'étant plus journalisée. Un compte qui descend encore sans raison écrite est un témoin perdu.
+ok(ouvertesUnJour.size >= 12 && fermees.length === ouvertesUnJour.size,
   `${fermees.length} sur ${ouvertesUnJour.size} portes ouvertes un jour sont fermées en état final`,
   [...ouvertesUnJour].filter((k) => politiques.has(k)).join(', ') || undefined)
 const perimees = [...EXCEPTIONS.keys()].filter((k) => !portes.some(([kk]) => kk === k))

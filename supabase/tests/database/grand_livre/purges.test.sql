@@ -1,10 +1,12 @@
 -- compte_purge_inactivite / _demande / _admin / inactivite_avertie — anonymiser_compte() : le jalon,
 -- l'anonymisation et la ligne, ensemble, le code dérivé du motif ; déjà purgé → rien ; motif inconnu refusé.
 -- constater_avertissement_inactivite() : parti → marqueur ET ligne ; pas parti → ligne échouée, sans marqueur.
+-- Depuis l'ARRÊT 22 (décision de Youssef, 01/10/2026) : un échec déjà écrit depuis la dernière connexion ne
+-- s'écrit plus — l'envoi retenté chaque nuit n'ajoute pas une ligne par nuit.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(10);
+select plan(11);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -14,7 +16,7 @@ declare
   v_c     uuid := pg_temp.fab_compte('entreprise');
   v_u     uuid := pg_temp.fab_compte('expert');
   v_email text;
-  v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 7));
+  v_p     uuid[] := array(select gen_random_uuid() from generate_series(1, 8));
   v_ok    boolean;
 begin
   select u.email into v_email from public.users u where u.id = v_a;
@@ -48,6 +50,9 @@ begin
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[5] and g.type_action = 'inactivite_avertie'
                               and g.statut = 'echoue' and g.detail ->> 'cause' = 'resend_refuse'),
                  'avertissement non parti : ligne échouée avec sa cause, AUCUN marqueur');
+  v_ok := public.constater_avertissement_inactivite(v_p[8], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', false, null, 'resend_refuse');
+  return next ok(v_ok and pg_temp.lignes(v_p[8]) = 0,
+                 'le même échec, retenté : true, et AUCUNE nouvelle ligne (un échec s''écrit une fois)');
   v_ok := public.constater_avertissement_inactivite(v_p[6], null, 'tache_planifiee', null, null, v_u, now() + interval '30 days', true, 'msg_sonde', null);
   return next ok(v_ok
                  and exists (select 1 from public.users u where u.id = v_u and u.inactivity_warning_sent_at is not null)

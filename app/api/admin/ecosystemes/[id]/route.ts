@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth, type ContexteJournal } from '@/lib/journal/contexte'
 import { ecosystemeModifie } from '@/lib/ecosystemes/journal-ecosysteme'
+import { clesModifiees } from '@/lib/profil/changements'
 import { isValidEcosystemSlug } from '@/lib/ecosystem-url'
 import {
   COLONNE_PAR_ROLE,
@@ -326,6 +327,24 @@ export async function PATCH(
     }
   }
 
+  // ── CE QUI CHANGE VRAIMENT (décision de Youssef, 01/10/2026, ARRÊT 22) ─────
+  // L'écran renvoie tout le formulaire : « Écosystème modifié » ne nomme que les champs dont la valeur change, et ne
+  // s'écrit pas si rien ne change. Relu AVANT l'écriture ; une relecture en panne compte tout comme modifié.
+  let champsDomaineChanges = Object.keys(domainUpdates)
+  if (champsDomaineChanges.length > 0) {
+    const { data: avantDomaine, error: avantDomaineErr } = await auth.supabaseAdmin
+      .from('domains')
+      .select(Object.keys(domainUpdates).join(', '))
+      .eq('id', id)
+      .maybeSingle()
+    if (!avantDomaineErr && avantDomaine) {
+      champsDomaineChanges = clesModifiees(domainUpdates, avantDomaine as unknown as Record<string, unknown>)
+    }
+  }
+  const champsConfigChanges = configActuelle
+    ? clesModifiees(configUpdates, configActuelle)
+    : Object.keys(configUpdates)
+
   // ── Écritures ──────────────────────────────────────────────────────────────
   if (Object.keys(domainUpdates).length > 0) {
     const { error } = await auth.supabaseAdmin.from('domains').update(domainUpdates).eq('id', id)
@@ -394,6 +413,24 @@ export async function PATCH(
     }
   }
 
+  // Les traductions existantes, relues AVANT d'être remplacées : seules celles qui changent sont nommées.
+  const cleTraduction = (t: { table_name: string; field: string; locale: string }) => `${t.table_name}.${t.field}.${t.locale}`
+  let traductionsChangees = [...toUpsert, ...toDelete].map(cleTraduction)
+  if (traductionsChangees.length > 0) {
+    const lignes = [...new Set([...toUpsert, ...toDelete].map((t) => t.row_id))]
+    const { data: existantes, error: existantesErr } = await auth.supabaseAdmin
+      .from('translations')
+      .select('table_name, field, locale, value')
+      .in('row_id', lignes)
+    if (!existantesErr) {
+      const valeurs = new Map((existantes ?? []).map((t) => [cleTraduction(t as { table_name: string; field: string; locale: string }), t.value as string]))
+      traductionsChangees = [
+        ...toUpsert.filter((t) => valeurs.get(cleTraduction(t)) !== t.value).map(cleTraduction),
+        ...toDelete.filter((t) => valeurs.has(cleTraduction(t))).map(cleTraduction),
+      ]
+    }
+  }
+
   if (toUpsert.length > 0) {
     const { error } = await auth.supabaseAdmin
       .from('translations')
@@ -411,15 +448,19 @@ export async function PATCH(
     if (error) console.error('[admin:ecosysteme] translation delete failed', error.message)
   }
 
-  // Le grand livre (§D.26, phase B) : l'activation est une OPÉRATION à part, comme dans l'audit.
-  const ligne = await ecosystemeModifie(auth.supabaseAdmin, journal, {
-    id,
-    operation: has('active') && typeof body.active === 'boolean'
-      ? (body.active ? 'activation' : 'desactivation')
-      : 'modification',
-    champs: [...Object.keys(domainUpdates), ...Object.keys(configUpdates)],
-    traductions: [...toUpsert, ...toDelete].map((t) => `${t.table_name}.${t.field}.${t.locale}`),
-  })
+  // Le grand livre (§D.26, phase B) : l'activation est une OPÉRATION à part, comme dans l'audit — quand l'état
+  // CHANGE ; un formulaire renvoyé à l'identique n'écrit rien (ARRÊT 22).
+  const champsChanges = [...champsDomaineChanges, ...champsConfigChanges]
+  const ligne = champsChanges.length === 0 && traductionsChangees.length === 0
+    ? ({ ok: true } as const)
+    : await ecosystemeModifie(auth.supabaseAdmin, journal, {
+        id,
+        operation: champsDomaineChanges.includes('active') && typeof body.active === 'boolean'
+          ? (body.active ? 'activation' : 'desactivation')
+          : 'modification',
+        champs: champsChanges,
+        traductions: traductionsChangees,
+      })
   if (!ligne.ok) {
     console.error('[admin:ecosysteme] grand livre en échec après écriture', { id: id, message: ligne.message })
     return json({ error: 'Journal failed', code: 'journal_error', id: id }, 500)

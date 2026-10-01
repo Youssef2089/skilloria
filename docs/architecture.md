@@ -85,8 +85,9 @@ travaux d'IA longs — analyse d'un CV, vérification d'un expert — §D.30).
 
 **Journal des transactions (§D.26)** — `grand_livre` (le grand livre, en **ajout seul** : aucun rôle
 applicatif n'y écrit, seule `journaliser()` insère), `grand_livre_actions` (la **liste fermée** des
-actions, clé étrangère du grand livre), `grand_livre_conservation` (par famille : la conservation et le PLANCHER légal,
-les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.7).
+actions, clé étrangère du grand livre ; une colonne y date le retrait d'une action RETIRÉE, §D.33), `grand_livre_conservation` (par famille : la conservation et le PLANCHER légal,
+les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.7), `grand_livre_conservation_proposee`
+(par famille : le minimum qu'un texte impose et la durée PROPOSÉE — des propositions, appliquées par un bouton, §D.33).
 
 **Marketing / contenu — CRÉÉES PAR LA BASELINE, ET JAMAIS TOUCHÉES PAR LE CODE.**
 `ad_placements`, `blog_posts`, `campaigns`, `dashboard_stats`, `leads`,
@@ -353,6 +354,33 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > - **`joignabilite_du_site`** (AVANT) — `cron_joignabilite(interval)` : le dernier appel HTTP de chaque tâche (24 h),
 >   journal ET réponse brute de pg_net, avec la source du verdict et le drapeau « notre secret refusé » ; lecture
 >   seule, fermée au navigateur (§E.89). Test : `taches_planifiees/joignabilite.test.sql`.
+>
+> **LES QUATRE MIGRATIONS DU GRAND LIVRE LISIBLE (ARRÊT 22, 01/10/2026 — §D.33).** Toutes AVANT le déploiement.
+> - **`grand_livre_liste_validee`** — `grand_livre_actions.retiree_le` (timestamptz) : ONZE actions retirées
+>   (`message_envoye`, `refus_recherche_en_cours`, `refus_expert_inapte`, `refus_garde_eligibilite`,
+>   `refus_plafond_atteint`, `refus_quota_cv`, et les cinq étapes `recherche_lancee/filtree/classee/correspondances/notifiee`) —
+>   leurs lignes passées restent, `journaliser()` les refuse (**GL006**) ; l'action `desabonnement_email` (famille rgpd, clés
+>   `evenement`, `canal`) ; les listes blanches de la ligne de fin d'une recherche élargies à ses compteurs
+>   (`recherche_terminee`, `_echouee`, `_abandonnee`) et de `verification_conclue` à `note` ; `journaliser_reglage()`
+>   rend NULL, sans ligne, quand un réglage réussi a l'avant égal à l'après et un complément sans changement.
+>   ⚠️ FENÊTRE DE DÉPLOIEMENT (§E.72) : entre le `db push` et le `git push`, le code en ligne écrit encore les actions
+>   retirées — chaque geste concerné est refusé (GL006) ; la fenêtre se compte en minutes. Test : `grand_livre/liste_validee`.
+> - **`ecritures_sur_vrai_changement`** — à signature identique : `envoyer_message` n'écrit plus de ligne ;
+>   `verifier_telephone` n'écrit pas quand le MÊME numéro est revérifié ; `effacer_adresses_ip` n'écrit que s'il a
+>   effacé quelque chose (un échec toujours) ; `constater_avertissement_inactivite` écrit un échec UNE fois depuis la
+>   dernière connexion ; `poser_verdict_verification` porte la note. Ajoutée : `se_desabonner_email(pièce, compte,
+>   événement)` → `desabonne` | `deja` | `introuvable` (la préférence coupée ET sa ligne, ensemble), fermée au
+>   navigateur. Tests : `grand_livre/liste_validee`, `message_envoye`, `telephone_verifie`, `socle`, `purges`,
+>   `verification_conclue`.
+> - **`conservation_propositions`** — table `grand_livre_conservation_proposee` (famille → minimum imposé par un texte,
+>   durée proposée ; douze familles, le journal exclu ; NON vérifiées par un juriste) et
+>   `appliquer_proposition_conservation(pièce, acteur, famille)`, qui pose la proposition par l'écrivain unique
+>   `regler_conservation_journal` ; `grand_livre_conservation` reste née VIDE (règle du 28/09/2026). Test :
+>   `grand_livre/liste_validee`.
+> - **`journal_libelles`** — `libelles_journal(admin, sujets)` : le nom de chaque objet cité (compte, profil,
+>   organisation, annonce ; candidature → son annonce et son expert ; membre → son organisation et son nom), relu à
+>   l'AFFICHAGE, réservée à l'administrateur (AD002), 500 sujets au plus. Un compte effacé n'a plus de nom. Test :
+>   `grand_livre/liste_validee`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -3606,9 +3634,11 @@ l'organisation et l'invitation le faisaient déjà. Cas jugés distincts, et dit
 (`compte_cree` par le système, `administrateur_cree` par l'administrateur qui agit — le type « client » était faux,
 il vaut « admin ») ; le franchissement d'un plafond puis un refus dans le même geste (`plafond_atteint` réussi, une
 fois par mois, et `refus_plafond_atteint` refusé) ; l'échec d'une recherche au plafond de tentatives
-(`recherche_echouee` puis `recherche_abandonnee`). L'écran rend le détail clé par clé (`DetailEcriture`,
-`ResumeEcriture`, components/admin/journal/presentation.tsx) : deux écritures d'une pièce se distinguent sans être
-ouvertes.
+(`recherche_echouee` puis `recherche_abandonnee`). ~~L'écran rend le détail clé par clé (`DetailEcriture`,
+`ResumeEcriture`)~~ — **remplacé le 01/10/2026 (§D.33)** : chaque écriture se lit comme une PHRASE ; deux écritures
+d'un même geste se distinguent par leur phrase, sans être ouvertes. Les deux derniers cas ont changé avec la liste
+validée : `refus_plafond_atteint` est retirée (le fait `plafond_atteint` reste), et l'abandon d'une recherche
+REMPLACE son échec (une ligne, pas deux).
 
 **Gardé par** `diag-grand-livre` (deux actions d'une même fonction SQL sur le même sujet rougissent), le test
 `grand_livre/inscriptions` (deux sujets par voie), `diag-recette-staging` (l'écran), et `diag-tests-grand-livre` C ter
@@ -3616,6 +3646,59 @@ ouvertes.
 encore la forme d'avant, rejeu du 01/10/2026). **Ce qu'ils ne voient pas** :
 deux lignes écrites par deux fonctions différentes ou par le TypeScript sous la même pièce — le balayage est à refaire
 à chaque action nouvelle.
+
+<a id="d33"></a>
+### D.33 — LE GRAND LIVRE SE LIT EN PHRASES, ET N'ÉCRIT QUE CE QUI CHANGE (ARRÊT 22, 01/10/2026)
+
+**La décision de Youssef.** La liste des 74 écritures de l'ARRÊT 21 est validée telle quelle — GARDER 48, MIEUX 15,
+FUSIONNER 5, RETIRER 6 — avec un AJOUT : le lien de désabonnement d'un e-mail est un changement de consentement, il
+s'écrit. Et chaque écriture se lit comme une phrase, comprise par une personne qui ne connaît pas la plateforme.
+
+**① Retirées (onze codes).** Les six de la liste (le message envoyé — la messagerie le garde ; la recherche écartée
+par le bail ; l'expert inapte, la garde du dépôt, le refus par plafond, le refus par quota — des refus qui ne disent
+rien que la réponse ne dise déjà) et les cinq étapes d'une recherche, FONDUES dans sa ligne de fin. Une action retirée
+reste dans la liste fermée (ses lignes passées se lisent : `grand_livre_actions.retiree_le`), n'a PLUS d'écrivain
+(`diag-grand-livre` D bis), est refusée par `journaliser()` (GL006) et ne compile plus en TypeScript
+(`EcritureJournal<A extends ActionActive>`).
+
+**② La recherche, une ligne.** `JournalDeRecherche` NOTE à chaque étape (éligibles, examinés, notés, reprises,
+lots en échec, retenus, forts, nouveaux, prévenus, manqués, coût) dans un bilan partagé par `dansEcosysteme()`, et
+écrit UNE ligne : `recherche_terminee` (l'issue), `recherche_echouee` (l'étape, la cause) ou, au plafond de
+tentatives, `recherche_abandonnee` AU LIEU de l'échec. Le coût est dans les colonnes de coût de cette ligne.
+
+**③ Mieux — rien ne s'écrit quand rien ne change.** Les réglages (douze écrans) : `journaliser_reglage()` rend NULL
+quand l'avant égale l'après. Le profil, l'annonce, la fiche d'organisation, le nom, la liste des métiers, l'écosystème :
+la route RELIT les valeurs avant d'écrire (`lib/profil/changements.ts`, pur : `clesModifiees`, `listeModifiee`) et
+ne nomme que ce qui change — un doute (une relecture en panne) compte comme un changement, il ne tait rien. « Profil
+modifié » ne se répète pas dans la même séance de 10 min pour les mêmes rubriques ; « Profil publié » s'écrit quand le
+profil DEVIENT visible ; le téléphone revérifié au même numéro, l'effacement d'IP sans rien à effacer, l'échec
+d'avertissement d'inactivité déjà écrit : aucune ligne. « Vérification conclue » porte la note.
+
+**④ Le désabonnement.** `GET /api/notifications/unsubscribe` passe par `se_desabonner_email` : la préférence coupée
+ET `desabonnement_email` (l'événement, le canal), une fois ; un second clic n'écrit rien. Un événement hors catalogue
+est refusé. « Mission vue » et « messages lus » restent hors du grand livre (décision de Youssef).
+
+**⑤ La phrase.** `lib/journal/phrase.ts` (pur) traduit une ligne en une clé `journal.phrases.*` et ses arguments
+typés ; chaque code passe par sa DIMENSION (`journal.valeurs.<dimension>.<code>` — un code inconnu devient « une
+autre information », jamais le code) ; chaque objet se nomme par `libelles_journal()`, relu à l'affichage (jamais
+écrit au journal, §D.26), ou par son nom commun (« un profil (données effacées) »). « Qui » se dit une fois : le nom,
+« La plateforme », « Une tâche automatique » — « Système Système » a disparu. Le seul mot propre à la plateforme
+employé, « écosystème », est expliqué par le glossaire de l'écran. Quatre langues, et une règle de grammaire : une
+désignation ne suit jamais « de » en français ni « a/de » en espagnol, ni une préposition au datif en allemand (§E.90).
+
+**⑥ La conservation, à part.** `/admin/journal/conservation` : par famille, « Ces écritures sont gardées X mois, puis
+effacées. La loi impose au moins Y mois », la référence (le TEXTE de loi, sans nombre), un bouton qui applique la
+proposition (`appliquer_proposition_conservation`) ; les nombres vivent en base (`grand_livre_conservation_proposee`),
+la table des valeurs appliquées reste née vide. Le nettoyage, dit simplement, sous l'annonce et la ré-authentification.
+
+**Gardé par** `diag-journal-lisible` (38 796 lignes fabriquées, 43 728 phrases distinctes rendues dans les quatre
+langues — aucun code, nom de champ, identifiant, accolade ni jargon non expliqué ; la grammaire des désignations, §E.90 ; chaque action a SA phrase ; chaque gabarit est produit ; les dimensions
+recoupées avec leur source dans le code ; les retirées identiques en SQL et en TS ; tout test qui cite une retirée
+attend GL006 ou zéro ligne ; les écrans), `diag-grand-livre` (D bis : aucun écrivain pour une retirée ; D ter : les
+nouvelles formes), `diag-tests-grand-livre`, et les tests pgTAP `grand_livre/liste_validee`, `reglages`. **Ce qu'ils
+ne voient pas** : la JUSTESSE d'une traduction ; une valeur que la base inventerait hors des dimensions (elle
+s'affiche « une autre information ») ; le comportement « rien ne change, rien ne s'écrit » côté routes TypeScript
+(aucun test d'API) — il repose sur la relecture, lue par D ter.
 
 ---
 

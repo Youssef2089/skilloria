@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **172** migrations : **74 insertions vues, 61 analysées, 2280 valeurs confrontées** (mesuré le
-30/09/2026 à la recette staging — ses trois migrations ne sèment rien, les compteurs ne bougent pas ; sur 169 : les mêmes,
+Sur les **176** migrations : **76 insertions vues, 63 analysées, 2320 valeurs confrontées** (mesuré le
+01/10/2026, ARRÊT 22 — la liste validée sème l'action `desabonnement_email`, les propositions de conservation leurs
+douze lignes ; sur 172 : 74, 61, 2280, mesuré le 30/09/2026 à la recette staging — ses trois migrations ne sèment rien ; sur 169 : les mêmes,
 mesuré le 30/09/2026 — les huit migrations de l'ARRÊT 19 sèment deux actions nouvelles ; sur 161 : 72, 59, 2268, mesuré le
 28/09/2026 — chaque migration du grand livre sème son action, une insertion analysée de plus ; sur 139 : 57, 45, 2208 — les 138ᵉ et 139ᵉ ne sèment rien ; le 24/09/2026, sur 137 : 52, 40, 1968 — l'écart vient des migrations du grand livre, qui
 sèment leurs actions. À l'exécution du 24/09 — les 71ᵉ à 86ᵉ laissent les trois autres compteurs **inchangés**, et
@@ -4262,6 +4263,34 @@ grand livre, lui, ne porte aucun numéro de téléphone, même partiel : seuleme
 **Gardé par** [`diag-recette-staging`](../scripts/diag-recette-staging.mjs) (7 : le lanceur ; 4 : dix causes exécutées)
 et `taches_planifiees/joignabilite.test.sql`. **Ce qu'ils ne voient pas** : la protection réelle de Vercel — seul
 l'écran de supervision, sur staging, dira qu'elle est levée.
+
+---
+
+<a id="e90"></a>
+### E.90 — UNE PHRASE QUI COLLE UN NOM À UNE PRÉPOSITION CASSE LA GRAMMAIRE SUR LE REPLI : « de le profil », « a el anuncio », un datif allemand — vu en lisant les phrases, pas par le contrôle.
+
+**Le cas (ARRÊT 22, 01/10/2026).** Les écritures du grand livre deviennent des phrases ; un objet s'y insère tout
+désigné — « le profil de Mehdi », « l'organisation « Acme » » — ou, quand le nom n'existe plus, par son repli :
+« un profil (données effacées) », « une organisation supprimée ». Les premiers gabarits français écrivaient
+« le CV de {profil} », « la fiche de {organisation} », « la candidature de {expert} » : avec un nom, c'est juste ; avec
+la désignation, « de le profil de Mehdi » ; avec le repli, « de une organisation supprimée ». Même famille en espagnol
+(« a el anuncio », « de el perfil ») et en allemand (« von » et « mit » exigent le datif, la désignation est au
+nominatif/accusatif : « von einen Experten »). **Le contrôle exécuté — 241 584 phrases — ne l'a pas vu** : il cherche
+des codes, des accolades, des identifiants, du jargon ; une faute d'accord est une phrase « propre ». Vu en LISANT un
+échantillon dans les quatre langues.
+
+**La parade.** Une règle d'écriture par langue, inscrite en tête de chaque fichier de phrases et dans §D.33 : en
+français, une désignation ne suit JAMAIS « de » ni « du » (on écrit « pour {profil} », « par {organisation} », ou on met
+le nom en apposition : « la candidature de l'expert {expert} », et le repli d'une personne est « (compte effacé) ») ;
+« à » seulement devant un féminin (« à l'annonce », « à une annonce ») ; en espagnol, jamais « a » ni « de » devant une
+désignation qui commence par « el » (« para », « por ») ; en allemand, les désignations sont à l'accusatif et ne
+suivent que « für », « auf », « durch », « in » de direction, ou sont objet direct.
+
+**Gardé par** — en partie seulement : [`diag-journal-lisible`](../scripts/diag-journal-lisible.mjs) section 1 bis lit
+les GABARITS des quatre langues et refuse une désignation derrière « de/du/des » (et « à » devant un masculin) en
+français, « a/de » devant un masculin en espagnol, une préposition au datif en allemand, et une personne citée hors
+apposition ; éprouvé par mutation. **Ce qu'aucun contrôle ne voit** : l'accord d'une phrase hors de ces motifs. Toute phrase nouvelle se relit rendue, avec son repli, dans les quatre
+langues — un échantillon par action suffit, le repli compris.
 
 ---
 

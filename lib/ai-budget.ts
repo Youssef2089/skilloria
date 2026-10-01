@@ -151,19 +151,18 @@ export async function budgetDisponible(
   supabaseAdmin: SupabaseClient,
   provider: Fournisseur,
   pour: { acteur: ActeurIA; action: ActionIA },
-  /** Le geste qui dépense (§D.26) : chaque refus s'écrit au grand livre, sous sa pièce. */
+  /** Le geste qui dépense (§D.26). Un refus ne s'écrit plus au grand livre (ARRÊT 22) ; le paramètre reste, les appelants
+   *  le passent — retirer la signature est un lot à part. */
   journal: ContexteJournal,
 ): Promise<{ ok: true; etat: EtatDepense } | { ok: false; raison: string }> {
+  void journal
   // ── ① LE PLAFOND DE L'ACTEUR, D'ABORD — le plus spécifique ──────────────
   const acteurEtat = await etatDeLActeur(supabaseAdmin, pour.acteur)
   if (!acteurEtat.ok) return { ok: false, raison: acteurEtat.raison }
   const arret = arretParPlafondActeur(pour.action, acteurEtat.etat)
   if (arret.arrete) {
-    await journaliserRefusPlafond(supabaseAdmin, journal, pour, provider, {
-      portee: 'acteur',
-      depense_mois_usd: arret.depense_mois_usd,
-      plafond_mensuel_usd: arret.plafond_mensuel_usd,
-    })
+    // Le refus n'écrit plus au grand livre (décision de Youssef, 01/10/2026) : « Plafond atteint » dit déjà le fait,
+    // une fois par mois ; la page Consommation dit qui est arrêté. Le refus reste rendu, avec sa raison.
     return {
       ok: false,
       raison: `plafond mensuel de l'acteur atteint (${arret.depense_mois_usd.toFixed(2)} $ / ${arret.plafond_mensuel_usd.toFixed(2)} $) — le compte reste utilisable, seul le classement s'arrête`,
@@ -198,11 +197,8 @@ export async function budgetDisponible(
     au_plafond: l.au_plafond === true,
   }
   if (etat.au_plafond) {
-    await journaliserRefusPlafond(supabaseAdmin, journal, pour, provider, {
-      portee: 'global',
-      depense_mois_usd: etat.depense_mois_usd,
-      plafond_mensuel_usd: etat.plafond_usd,
-    })
+    // Le refus n'écrit plus au grand livre (décision de Youssef, 01/10/2026) : « Plafond atteint » dit déjà le fait,
+    // une fois par mois ; la page Consommation dit qui est arrêté. Le refus reste rendu, avec sa raison.
     return {
       ok: false,
       raison: `plafond mensuel atteint (${etat.depense_mois_usd.toFixed(2)} $ / ${etat.plafond_usd.toFixed(2)} $)`,
@@ -218,35 +214,6 @@ function sujetDeLActeur(acteur: ActeurIA): { type: string; id: string } | null {
   return null
 }
 
-/**
- * ── LE REFUS S'ÉCRIT — c'est la moitié de « où ça a cassé » (§D.26) ─────────
- *  Un refus n'insère rien ailleurs : sans cette ligne, un classement qui ne
- *  part pas ou une analyse de CV refusée ne laisseraient AUCUNE trace. Le seul
- *  écrivain de `refus_plafond_atteint` ; les deux plafonds (acteur, global)
- *  passent par lui, avec leur portée.
- *  ⚠️ Il LÈVE si le journal refuse : un refus qu'on ne peut pas journaliser
- *     remonte comme une panne, jamais comme un refus silencieux.
- */
-async function journaliserRefusPlafond(
-  supabaseAdmin: SupabaseClient,
-  journal: ContexteJournal,
-  pour: { acteur: ActeurIA; action: ActionIA },
-  provider: Fournisseur,
-  plafond: { portee: 'acteur' | 'global'; depense_mois_usd: number; plafond_mensuel_usd: number },
-): Promise<void> {
-  await journaliserDans(supabaseAdmin, journal, {
-    type: 'refus_plafond_atteint',
-    statut: 'refuse',
-    sujet: sujetDeLActeur(pour.acteur),
-    detail: {
-      action: pour.action,
-      fournisseur: provider,
-      portee: plafond.portee,
-      depense_mois_usd: plafond.depense_mois_usd,
-      plafond_mensuel_usd: plafond.plafond_mensuel_usd,
-    },
-  })
-}
 
 /**
  * ── LE FAIT : UN PLAFOND VIENT DE MORDRE ────────────────────────────────────

@@ -8,8 +8,8 @@ import PageHeader from '@/components/ui/PageHeader'
 import EmptyState from '@/components/ui/EmptyState'
 import { ACTIONS_JOURNAL } from '@/lib/journal/actions'
 import { FAMILLES_JOURNAL, ORIGINES_JOURNAL, STATUTS_JOURNAL, estUuid, type PageJournal } from '@/lib/journal/lecture'
-import { Acteur, Montant, PastilleStatut, Quand, ResumeEcriture, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
-import NettoyageJournal from '@/components/admin/journal/NettoyageJournal'
+import { Acteur, Glossaire, Montant, PastilleStatut, PhraseEcriture, Quand, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
+import type { NomsJournal } from '@/lib/journal/phrase'
 
 /**
  * /admin/journal — LE GRAND LIVRE (§D.26, phase B 2.6). Page de MENU : aucun
@@ -22,6 +22,9 @@ import NettoyageJournal from '@/components/admin/journal/NettoyageJournal'
  *    suite de numéros ferait croire à des lignes manquantes. La PIÈCE, oui.
  * ⚠️ LE NETTOYAGE RESTE VISIBLE SOUS TOUT FILTRE — c'est la base qui le garantit ;
  *    l'écran le DIT, pour qu'on ne cherche pas pourquoi une ligne « déborde ».
+ * ⚠️ CHAQUE ÉCRITURE SE LIT COMME UNE PHRASE (ARRÊT 22, §D.33) : `PhraseEcriture`, avec les noms relus par la
+ *    route ; une relecture des noms en panne se DIT (bandeau), les phrases retombent sur « un profil ».
+ * ⚠️ LA CONSERVATION ET LE NETTOYAGE ONT LEUR ÉCRAN (/admin/journal/conservation) : on n'efface pas là où l'on enquête.
  */
 
 type Filtres = {
@@ -62,6 +65,8 @@ export default function JournalPage() {
   const [saisies, setSaisies] = useState<Filtres>(VIDE)
   const [actifs, setActifs] = useState<Filtres>(VIDE)
   const [lignes, setLignes] = useState<Ligne[]>([])
+  const [noms, setNoms] = useState<NomsJournal>({})
+  const [nomsDisponibles, setNomsDisponibles] = useState(true)
   const [suivant, setSuivant] = useState<string | null>(null)
   const [chargement, setChargement] = useState(true)
   const [suiteEnCours, setSuiteEnCours] = useState(false)
@@ -96,13 +101,15 @@ export default function JournalPage() {
 
   const charger = useCallback(async (f: Filtres, curseur: string | null) => {
     if (curseur) setSuiteEnCours(true)
-    else { setChargement(true); setLignes([]); setSuivant(null) }
+    else { setChargement(true); setLignes([]); setSuivant(null); setNoms({}); setNomsDisponibles(true) }
     setErreur(false)
     try {
       const res = await secureFetch(url(f, curseur))
       if (!res.ok) { setErreur(true); return }
       const page = (await res.json()) as PageJournal
       setLignes((l) => (curseur ? [...l, ...page.lignes] : page.lignes))
+      setNoms((n) => ({ ...n, ...page.noms }))
+      if (page.noms_indisponibles) setNomsDisponibles(false)
       setSuivant(page.suivant)
     } catch {
       setErreur(true)
@@ -131,6 +138,13 @@ export default function JournalPage() {
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
       <PageHeader flush title={t('title')} subtitle={t('intro')} />
+      <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+        <Glossaire />
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: 0 }}>
+          {t('conservation_ailleurs')}{' '}
+          <Link href="/admin/journal/conservation" style={{ color: 'var(--sk-accent)' }}>{t('conservation_lien')}</Link>
+        </p>
+      </div>
 
       {/* ─── LES FILTRES — ils s'enroulent sur mobile ────────────────────── */}
       <form
@@ -197,6 +211,9 @@ export default function JournalPage() {
         {invalide && <p role="alert" style={{ flexBasis: '100%', margin: 0, fontSize: 13, color: 'var(--sk-red)' }}>{invalide}</p>}
       </form>
       <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 16px' }}>{t('nettoyage_toujours')}</p>
+      {!nomsDisponibles && (
+        <p role="status" style={{ fontSize: 13, color: 'var(--sk-amber)', margin: '0 0 12px' }}>{t('noms_indisponibles')}</p>
+      )}
 
       {/* ─── LES ÉCRITURES ─────────────────────────────────────────────── */}
       {chargement ? (
@@ -223,18 +240,20 @@ export default function JournalPage() {
                 >
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                      <strong style={{ fontSize: 14, color: 'var(--sk-text)' }}>{tA(l.type_action)}</strong>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)' }}>{tA(l.type_action)}</span>
                       <PastilleStatut statut={l.statut} />
                     </div>
                     <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}><Quand iso={l.horodatage} /></span>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 13, color: 'var(--sk-text)' }}>
-                    <span><Acteur ligne={l} /></span>
-                    <span style={{ color: 'var(--sk-muted)' }}>{tO(l.origine)}</span>
-                    <span style={{ color: 'var(--sk-muted)' }}>{l.ecosysteme_nom ?? t('ecosysteme_aucun')}</span>
+                  {/* LA PHRASE : qui, quoi, sur quoi, le résultat (§D.33). */}
+                  <p style={{ fontSize: 14, color: 'var(--sk-text)', margin: 0, lineHeight: 1.5 }}>
+                    <PhraseEcriture ligne={l} noms={noms} nomsDisponibles={nomsDisponibles} />
+                  </p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', fontSize: 12, color: 'var(--sk-muted)' }}>
+                    <span>{t('par')} <Acteur ligne={l} /></span>
+                    <span>{l.ecosysteme_nom ? t('ecosysteme_nomme', { nom: l.ecosysteme_nom }) : t('ecosysteme_aucun')}</span>
                     <Montant ligne={l} />
                   </div>
-                  <ResumeEcriture ligne={l} />
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, fontSize: 12 }}>
                     <Link href={`/admin/journal/${l.piece}`} style={{ color: 'var(--sk-accent)', fontWeight: 600 }}>{t('voir_piece')}</Link>
                     {objet && <Link href={objet} style={{ color: 'var(--sk-accent)' }}>{t('ouvrir_objet')}</Link>}
@@ -271,8 +290,6 @@ export default function JournalPage() {
         </>
       )}
 
-      {/* ─── CONSERVATION ET NETTOYAGE — l'annonce avant l'acte (2.7) ──── */}
-      <NettoyageJournal />
     </div>
   )
 }

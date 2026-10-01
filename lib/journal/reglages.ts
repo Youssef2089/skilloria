@@ -32,7 +32,7 @@ export async function journaliserReglage(
     complement?: DetailDe<'reglage_modifie'>
     statut?: 'reussi' | 'echoue'
   },
-): Promise<number> {
+): Promise<number | null> {
   if (!journal.acteur) {
     throw new JournalError('reglage_modifie : un réglage a toujours un auteur', null)
   }
@@ -50,5 +50,6 @@ export async function journaliserReglage(
   if (error) {
     throw new JournalError(`grand livre : reglage_modifie refusé (${r.sujet.type}) — ${error.message}`, error.code ?? null)
   }
-  return Number(data)
+  // `null` : rien n'a changé, rien ne s'est écrit (décision de Youssef, 01/10/2026, ARRÊT 22) — pas une panne.
+  return data === null ? null : Number(data)
 }

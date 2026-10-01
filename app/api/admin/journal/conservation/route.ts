@@ -45,7 +45,17 @@ export async function GET(request: NextRequest): Promise<Response> {
     console.error('[admin:journal/conservation] annonce illisible', error.message)
     return json({ error: 'Retention unreadable', code: 'conservation_illisible' }, 503)
   }
-  return json(data, 200)
+  // LES PROPOSITIONS (ARRÊT 22) : la durée minimale qu'un texte impose et la durée proposée, par famille — EN BASE
+  // (`grand_livre_conservation_proposee`), jamais dans le code. Une lecture en panne se dit : l'écran n'affiche
+  // alors aucune proposition plutôt qu'une proposition inventée.
+  const { data: propositions, error: propErr } = await auth.supabaseAdmin
+    .from('grand_livre_conservation_proposee')
+    .select('famille, plancher_mois, conservation_mois')
+  if (propErr) console.error('[admin:journal/conservation] propositions illisibles', propErr.message)
+  return json({
+    ...(data as Record<string, unknown>),
+    propositions: propErr ? null : propositions ?? [],
+  }, 200)
 }
 
 const REFUS: Record<string, number> = {

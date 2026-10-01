@@ -2569,7 +2569,8 @@
       "nav_consommation": "Consumption",
       "nav_journal": "General ledger",
       "nav_depots_echec": "Failed submissions",
-      "nav_travaux_ia": "AI jobs"
+      "nav_travaux_ia": "AI jobs",
+      "nav_journal_conservation": "Log retention"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -3430,7 +3431,7 @@
     },
     "journal": {
       "title": "General ledger",
-      "intro": "Every action that changes a state leaves an entry here, with its voucher: the number that ties together every entry of a single operation. Nothing here is ever edited; a clean-up, when it happens, leaves its own entry.",
+      "intro": "Every action that changes something on the platform leaves an entry here, readable as a sentence: who, what, on what, and the outcome. Nothing in it can be changed; a clean-up, when there is one, leaves its own entry.",
       "f_famille": "Family",
       "f_action": "Action",
       "f_statut": "Status",
@@ -3456,100 +3457,46 @@
       "suite_chargement": "Loading…",
       "fin": "End of the journal for these filters.",
       "tronque": "{count} entries shown — more exist.",
-      "acteur_systeme": "System",
-      "acteur_supprime": "Deleted account",
-      "acteur_sans_nom": "Unnamed account",
       "filtrer_acteur": "Filter on this account",
       "ecosysteme_aucun": "No ecosystem",
-      "ouvrir_objet": "Open",
-      "cout_ia": "${montant} · {unite}",
-      "voir_piece": "View voucher",
-      "piece_titre": "Voucher",
-      "piece_intro": "Every entry of a single operation, and what the detailed logs hold under the same voucher.",
-      "piece_lignes": "Entries of the voucher",
-      "piece_tronquee": "This voucher has more than 500 entries: only the first 500 are shown.",
-      "piece_origine": "Takes up voucher",
-      "piece_referencee": "Taken up by",
-      "piece_inconnue": "This voucher does not exist in the journal.",
-      "piece_invalide": "This voucher identifier is not valid.",
+      "ouvrir_objet": "Open the page",
+      "cout_ia": "AI cost: {montant}",
+      "voir_piece": "See related entries",
+      "piece_titre": "Entries of one action",
+      "piece_intro": "One action can leave several entries — for example, an account created and the expert’s sign-up. Here they all are, with what the detailed logs keep for this action.",
+      "piece_lignes": "Entries of this action",
+      "piece_tronquee": "This action has more than 500 entries: only the first 500 are shown.",
+      "piece_origine": "This action repeats an earlier one:",
+      "piece_referencee": "This action was repeated by another one:",
+      "piece_inconnue": "This action does not exist in the log.",
+      "piece_invalide": "This link does not point to any action in the log.",
       "choisir_ligne": "Choose an entry to see its detail.",
       "ligne_quand": "When",
-      "ligne_acteur": "Who",
-      "ligne_origine": "Origin",
-      "ligne_statut": "Status",
+      "ligne_acteur": "By",
       "ligne_ecosysteme": "Ecosystem",
-      "ligne_objet": "Object",
       "ligne_cout": "Cost",
       "ligne_montant": "Amount",
-      "detail_titre": "Detail",
-      "detail_vide": "No detail.",
       "sous_journaux": "Detailed logs",
-      "sj_audit": "Audit",
+      "sj_audit": "Audit log",
       "sj_ia": "AI spending",
       "sj_stripe": "Payment events",
-      "sj_taches": "Task runs",
+      "sj_taches": "Automatic task runs",
       "sj_notifications": "Notifications",
       "sj_aucun": "Nothing under this voucher.",
-      "sj_note": "Entries earlier than 28/09/2026 carry no voucher in the detailed logs.",
-      "nettoyage": {
-        "titre": "Retention and clean-up",
-        "intro": "For each family: the legal minimum and the retention period, which you enter, and what a clean-up would erase. While either value is empty, the family is never cleaned up. The clean-up is manual, announced before it acts, and leaves its own entry.",
-        "chargement": "Computing the announcement…",
-        "erreur": "The announcement could not be computed.",
-        "reessayer": "Try again",
-        "col_famille": "Family",
-        "col_plancher": "Legal minimum",
-        "col_conservation": "Retention",
-        "col_efface": "A clean-up would erase",
-        "unite_mois": "months",
-        "mois_label": "Retention of the {famille} family, in months",
-        "enregistrer": "Save",
-        "enregistre": "Saved.",
-        "inchange": "Already set this way.",
-        "err_duree_invalide": "Enter a whole number of months (minimum: 0 to 1200, retention: 1 to 1200), or leave empty.",
-        "err_sous_le_plancher": "Retention cannot be shorter than the legal minimum ({plancher} months).",
-        "err_generique": "The setting could not be saved. Try again.",
-        "raison_journal_conserve": "Nothing — always kept",
-        "efface_famille": "{count, plural, one {# entry} other {# entries}} older than {date}",
-        "rien_famille": "Nothing",
-        "note_plancher": "Nothing is pre-filled: the reference under each family is a help, not a value. Every change is written to the ledger.",
-        "rien": "Nothing to clean up.",
-        "annonce_total": "A clean-up would erase {count, plural, one {# entry} other {# entries}}.",
-        "nettoyer": "Clean up the journal",
-        "confirmer_corps": "{count, plural, one {# entry will be} other {# entries will be}} permanently erased. The clean-up leaves its own entry, which is never erased.",
-        "confirmer": "Erase permanently",
-        "annuler": "Cancel",
-        "en_cours": "Cleaning up…",
-        "resultat": "{count, plural, one {# entry erased.} other {# entries erased.}}",
-        "perimee": "The journal changed since the announcement: nothing was erased. Check the new total before confirming.",
-        "err_nettoyage": "The clean-up did not go through: nothing was erased. Try again.",
-        "col_reglage": "Legal minimum and retention",
-        "vide": "Empty",
-        "plancher_label": "Legal minimum of the {famille} family, in months",
-        "err_plancher_manquant": "Enter this family’s legal minimum first (0 if none): a retention cannot be set without it.",
-        "journal_non_reglable": "Always kept: these are the traces of clean-ups.",
-        "raison_plancher_non_saisi": "Nothing — legal minimum not entered",
-        "raison_conservation_non_saisie": "Nothing — retention not entered",
-        "reference": {
-          "commerce": "Suggested reference: French Commercial Code, art. L123-22 — accounting records kept 10 years (120 months).",
-          "compte": "Suggested reference: French Civil Code, art. 2224 — 5-year limitation period (60 months). Strict minimum: decree no. 2021-1362, 1 year after the account is closed.",
-          "organisation": "Suggested reference: French Civil Code, art. 2224 — 5-year limitation period (60 months).",
-          "rgpd": "Suggested reference: GDPR, art. 5.2 (proof of erasures) and French Civil Code, art. 2224 — 60 months, as a precaution: no text sets this figure.",
-          "administration": "Suggested reference: CNIL, deliberation no. 2021-122 (logging) — 6 months to 1 year (12 months).",
-          "refus": "Suggested reference: CNIL, deliberation no. 2021-122 (logging) — 6 months to 1 year (12 months).",
-          "candidature": "No legal minimum found (0). To be able to account for a selection: French Labour Code, art. L1134-5 — 5 years (60 months).",
-          "annonce": "No legal minimum found (0).",
-          "profil": "No legal minimum found (0).",
-          "recherche": "No legal minimum found (0).",
-          "devoilement": "No legal minimum found (0).",
-          "messagerie": "No legal minimum found (0).",
-          "journal": "Traces of clean-ups are never erased."
-        }
-      },
-      "oui": "yes",
-      "non": "no",
-      "resume_objet": "object: {objet}",
-      "resume_plus": "+ {n} more"
+      "sj_note": "Entries older than 28/09/2026 are not linked to the detailed logs.",
+      "piece_voir": "see that action",
+      "par": "By",
+      "ecosysteme_nomme": "Ecosystem: {nom}",
+      "noms_indisponibles": "The names of profiles, organisations and postings could not be read: the sentences say “a profile”, “a posting” instead. Try again in a moment.",
+      "conservation_ailleurs": "How long these entries are kept, and their clean-up:",
+      "conservation_lien": "Log retention",
+      "ligne_fiche": "Page",
+      "sous_journaux_intro": "What the platform’s other logs keep for this same action: the details of AI spending, automatic tasks, payments and notifications.",
+      "sj_audit_n": "{count, plural, one {# entry} other {# entries}}",
+      "sj_ia_ligne": "{action}: {montant}",
+      "sj_stripe_n": "{count, plural, one {# event received from the payment provider} other {# events received from the payment provider}}",
+      "sj_tache_ligne": "Task “{tache}”",
+      "sj_notification_ligne": "“{evenement}”, {canal}: {statut}"
     },
     "travaux_ia": {
       "title": "AI jobs needing attention",
@@ -3606,6 +3553,81 @@
         "specialites_illisibles": "The specialities could not be read."
       },
       "liste_coupee": "Only the {n} most recent jobs are shown: the full list is longer. Retry these, then reload."
+    },
+    "conservation": {
+      "title": "Log retention",
+      "intro": "How long the log keeps each type of entry, what the law requires, and the clean-up of entries that are too old.",
+      "principe_titre": "How it works",
+      "principe_1": "The log keeps a record of every action taken on the platform. Entries are grouped into families (postings, accounts, payments…) and each family has its own period.",
+      "principe_2": "For each family, you choose how many months entries are kept. The platform suggests a period and shows the minimum the law requires, with the reference text; a button applies the suggestion.",
+      "principe_3": "Nothing is erased on its own. Entries older than the chosen period only disappear when you start a clean-up, at the bottom of this page, after seeing what it will erase. A family with no chosen period is never cleaned up.",
+      "avertissement_juriste": "The suggested periods and references have not been checked by a lawyer.",
+      "chargement": "Reading the periods…",
+      "erreur": "The periods could not be read.",
+      "reessayer": "Try again",
+      "propositions_illisibles": "The suggestions could not be read: none is shown. Your own periods are up to date.",
+      "etat_garde": "These entries are kept for {mois, plural, one {# month} other {# months}}, then erased.",
+      "etat_minimum": "The law requires at least {mois, plural, one {# month} other {# months}}.",
+      "etat_aucun_minimum": "No law requires a minimum period.",
+      "etat_minimum_non_saisi": "The legal minimum has not been entered yet: nothing will be erased until it is.",
+      "etat_sans_duree": "No period is chosen: these entries are kept indefinitely.",
+      "etat_journal": "These entries are always kept: they are the records of the clean-ups.",
+      "proposition_duree": "Suggestion: keep them for {mois, plural, one {# month} other {# months}}.",
+      "proposition_sans_duree": "No period is suggested: it is up to you to choose one.",
+      "proposition_minimum": "The law requires at least {mois, plural, one {# month} other {# months}}.",
+      "proposition_aucun_minimum": "No law requires a minimum.",
+      "proposition_en_place": "The suggestion is applied.",
+      "appliquer_proposition": "Apply the suggestion",
+      "en_cours_reglage": "Saving…",
+      "applique": "Suggestion applied.",
+      "deja_applique": "That was already the period in place.",
+      "regler_soi_meme": "Choose another period",
+      "regler_soi_meme_fermer": "Close",
+      "champ_garde": "Kept for (months)",
+      "champ_minimum": "Minimum required by law (months)",
+      "champ_garde_label": "Retention period of the {famille} family, in months",
+      "champ_minimum_label": "Legal minimum of the {famille} family, in months",
+      "regler_aide": "Enter the legal minimum first (0 if no law requires one); the chosen period cannot be shorter. Leave empty to keep indefinitely.",
+      "vide": "Empty",
+      "enregistrer": "Save",
+      "enregistre": "Saved.",
+      "inchange": "It was already set this way.",
+      "err_duree_invalide": "Enter a whole number of months (legal minimum: 0 to 1200; period: 1 to 1200), or leave empty.",
+      "err_sous_le_plancher": "The period cannot be shorter than the legal minimum ({plancher, plural, one {# month} other {# months}}).",
+      "err_plancher_manquant": "First enter the legal minimum for this family (0 if no law requires one).",
+      "err_sans_proposition": "There is no suggestion for this family.",
+      "err_generique": "The change could not be saved. Try again.",
+      "nettoyage_jamais": "A clean-up never erases these entries.",
+      "nettoyage_sans_duree": "A clean-up erases nothing here until a period is chosen.",
+      "nettoyage_sans_minimum": "A clean-up erases nothing here until the legal minimum is entered.",
+      "nettoyage_effacerait": "A clean-up now would erase {count, plural, one {# entry} other {# entries}} older than {date}.",
+      "nettoyage_rien": "A clean-up now would erase nothing here.",
+      "nettoyage_titre": "Clean up the log",
+      "nettoyage_explication": "A clean-up permanently erases, family by family, the entries older than the chosen period. It never touches a family without a period, nor the records of clean-ups. It leaves an entry of its own, which is never erased. It asks you to confirm your identity.",
+      "rien": "Nothing to clean up for now.",
+      "annonce_total": "A clean-up would erase {count, plural, one {# entry} other {# entries}}.",
+      "nettoyer": "Clean up the log",
+      "confirmer_corps": "{count, plural, one {# entry will be} other {# entries will be}} permanently erased. The clean-up leaves an entry of its own, which is never erased.",
+      "confirmer": "Erase permanently",
+      "annuler": "Cancel",
+      "en_cours": "Cleaning up…",
+      "resultat": "{count, plural, one {# entry erased.} other {# entries erased.}}",
+      "perimee": "The log changed since the estimate: nothing was erased. Check the new total before confirming.",
+      "err_nettoyage": "The clean-up did not complete: nothing was erased. Try again.",
+      "reference": {
+        "commerce": "Suggested reference: French Commercial Code, article L123-22 (keeping accounting records).",
+        "compte": "Suggested reference: decree no. 2021-1362 (account identification data); suggested period: the limitation period of the French Civil Code, article 2224.",
+        "organisation": "Suggested reference: French Civil Code, article 2224 (limitation period). No legal minimum found.",
+        "rgpd": "Suggested reference: GDPR, article 5(2) (proving an erasure took place) and French Civil Code, article 2224 — as a precaution: no text sets this period.",
+        "administration": "Suggested reference: CNIL, deliberation no. 2021-122 (logging) — a recommendation, not an obligation.",
+        "refus": "Suggested reference: CNIL, deliberation no. 2021-122 (logging) — a recommendation, not an obligation.",
+        "candidature": "Suggested reference: French Labour Code, article L1134-5 (being able to account for a selection). No legal minimum found.",
+        "annonce": "No text found that requires or suggests a period.",
+        "profil": "No text found that requires or suggests a period.",
+        "recherche": "No text found that requires or suggests a period.",
+        "devoilement": "No text found that requires or suggests a period.",
+        "messagerie": "No text found that requires or suggests a period."
+      }
     }
   },
   "expert_verification": {
@@ -4957,11 +4979,11 @@
       "profil_modifie": "Profile edited",
       "disponibilite_basculee": "Availability changed",
       "cv_reinitialise": "CV reset",
-      "recherche_lancee": "Search started",
-      "recherche_filtree": "Search: pool filtered",
-      "recherche_classee": "Search: profiles scored",
-      "recherche_correspondances": "Search: matches saved",
-      "recherche_notifiee": "Search: notifications sent",
+      "recherche_lancee": "Search started (older entry)",
+      "recherche_filtree": "Search: candidates sorted (older entry)",
+      "recherche_classee": "Search: scoring (older entry)",
+      "recherche_correspondances": "Search: results saved (older entry)",
+      "recherche_notifiee": "Search: notifications sent (older entry)",
       "recherche_terminee": "Search completed",
       "recherche_echouee": "Search failed",
       "recherche_abandonnee": "Search abandoned",
@@ -4970,8 +4992,8 @@
       "candidature_retenue": "Application selected",
       "sous_traitance_candidature": "Application to a subcontracting need",
       "mission_ecartee": "Mission dismissed by the expert",
-      "devoilement_ouvert": "Contact details revealed",
-      "devoilement_ferme": "Reveal closed",
+      "devoilement_ouvert": "Access to contact details opened",
+      "devoilement_ferme": "Access to contact details closed",
       "message_envoye": "Message sent",
       "compte_cree": "Account created",
       "expert_inscrit": "Expert sign-up",
@@ -4980,7 +5002,7 @@
       "compte_refuse": "Account rejected",
       "compte_suspendu": "Account suspended",
       "compte_reactive": "Account reactivated",
-      "session_revoquee": "Other sessions signed out",
+      "session_revoquee": "Other sessions closed",
       "suppression_programmee": "Account deletion scheduled",
       "suppression_annulee": "Account deletion cancelled",
       "email_change": "Email address changed",
@@ -4999,7 +5021,7 @@
       "plafond_atteint": "Spending cap reached",
       "evenement_stripe_rouvert": "Payment event reopened",
       "reglage_modifie": "Setting changed",
-      "taxonomie_modifiee": "Taxonomy changed",
+      "taxonomie_modifiee": "List of trades changed",
       "ecosysteme_cree": "Ecosystem created",
       "ecosysteme_modifie": "Ecosystem edited",
       "administrateur_cree": "Administrator created",
@@ -5017,15 +5039,16 @@
       "refus_depot_sans_jugement": "Refused: application not assessed",
       "refus_recherche_en_cours": "Refused: a search is already running",
       "verification_conclue": "Verification concluded",
-      "travail_ia_echoue": "AI job abandoned",
-      "travail_ia_relance": "AI job restarted"
+      "travail_ia_echoue": "AI work given up",
+      "travail_ia_relance": "AI work restarted",
+      "desabonnement_email": "E-mail unsubscribe"
     },
     "familles": {
       "annonce": "Listings",
       "profil": "Profiles",
       "recherche": "Search",
       "candidature": "Applications",
-      "devoilement": "Reveal",
+      "devoilement": "Access to contact details",
       "messagerie": "Messaging",
       "compte": "Accounts",
       "organisation": "Organisations",
@@ -5041,17 +5064,793 @@
       "refuse": "Refused"
     },
     "origines": {
-      "utilisateur": "User",
-      "tache_planifiee": "Scheduled task",
-      "administrateur": "Administrator",
-      "systeme": "System"
+      "utilisateur": "Action by a user",
+      "tache_planifiee": "Automatic task",
+      "administrateur": "Action by an administrator",
+      "systeme": "The platform itself"
     },
     "acteurs": {
-      "expert_freelance": "Freelance expert",
-      "expert_cdi": "Salaried expert",
-      "client": "Client",
-      "cabinet": "Consultancy",
-      "admin": "Administrator"
+      "expert_freelance": "independent expert",
+      "expert_cdi": "expert looking for a salaried position",
+      "client": "client organisation",
+      "cabinet": "consulting firm",
+      "admin": "administrator"
+    },
+    "familles_description": {
+      "annonce": "Creating, publishing, editing and ending mission or job postings.",
+      "profil": "Uploaded CVs, published or edited profiles, availability changes, profile checks.",
+      "recherche": "The automatic mission searches run for each expert, and their outcome.",
+      "candidature": "Applications submitted, accepted or declined, and missions dismissed by an expert.",
+      "devoilement": "An organisation gaining or losing access to an expert’s contact details.",
+      "messagerie": "Entries about message exchanges (older ones: messages are no longer written here).",
+      "compte": "Account creation, approval, suspension and deletion; changes of e-mail address, password, phone number and name.",
+      "organisation": "Invitations, members, their roles and organisation details.",
+      "commerce": "Payments received, payment events, and spending limits reached.",
+      "administration": "Settings changed by an administrator, tasks started by hand, spaces and lists of trades.",
+      "rgpd": "Erasures of personal data: deleted accounts, erased IP addresses, e-mail unsubscribes.",
+      "journal": "Clean-ups of the log itself.",
+      "refus": "Actions the platform refused, and why."
+    },
+    "qui": {
+      "utilisateur": "A user",
+      "tache_planifiee": "An automatic task",
+      "administrateur": "An administrator",
+      "systeme": "The platform",
+      "supprime": "A deleted account",
+      "sans_nom": "An account without a name"
+    },
+    "qui_milieu": {
+      "utilisateur": "a user",
+      "tache_planifiee": "an automatic task",
+      "administrateur": "an administrator",
+      "systeme": "the platform",
+      "supprime": "a deleted account",
+      "sans_nom": "an account without a name"
+    },
+    "designe": {
+      "users": "the account of {nom}",
+      "profiles": "the profile of {nom}",
+      "organizations": "the organisation “{nom}”",
+      "publications": "the posting “{nom}”",
+      "candidatures": "the posting “{nom}”",
+      "matches": "the posting “{nom}”",
+      "candidature_depots": "the posting “{nom}”",
+      "organization_invitations": "the organisation “{nom}”",
+      "organization_members": "the organisation “{nom}”",
+      "domains": "the ecosystem “{nom}”",
+      "packages": "the plan “{nom}”",
+      "branches": "the trade “{nom}”",
+      "specialities": "the speciality “{nom}”",
+      "expert": "{nom}",
+      "membre": "{nom}"
+    },
+    "designe_absent": {
+      "users": "an account (data erased)",
+      "profiles": "a profile (data erased)",
+      "organizations": "a deleted organisation",
+      "publications": "a deleted posting",
+      "candidatures": "a deleted posting",
+      "matches": "a deleted posting",
+      "candidature_depots": "a deleted posting",
+      "organization_invitations": "a deleted organisation",
+      "organization_members": "a deleted organisation",
+      "domains": "a deleted ecosystem",
+      "packages": "a deleted plan",
+      "branches": "a deleted trade",
+      "specialities": "a deleted speciality",
+      "expert": "(account deleted)",
+      "membre": "(account deleted)"
+    },
+    "designe_inconnu": {
+      "users": "an account",
+      "profiles": "a profile",
+      "organizations": "an organisation",
+      "publications": "a posting",
+      "candidatures": "a posting",
+      "matches": "a posting",
+      "candidature_depots": "a posting",
+      "organization_invitations": "an organisation",
+      "organization_members": "an organisation",
+      "domains": "an ecosystem",
+      "packages": "a plan",
+      "branches": "a trade",
+      "specialities": "a speciality",
+      "expert": "(name unavailable)",
+      "membre": "(name unavailable)"
+    },
+    "phrases": {
+      "_generique": "{qui} took an action recorded in the log.",
+      "_recherche": {
+        "annonce": "a search for experts for {annonce}",
+        "profil_soi": "a search for missions on their own profile",
+        "profil": "a search for missions for {profil}"
+      },
+      "_changement": "{champ}: {avant} → {apres}",
+      "_vide": "empty",
+      "_oui": "yes",
+      "_non": "no",
+      "_champ": "{champ}",
+      "_traduction": "{champ} in {langue}",
+      "_traduction_nom": "the name in {langue}",
+      "_reglage": {
+        "ai_model_tarifs": "the price of the AI model “{modele}”",
+        "ai_model_tarifs_simple": "the price of an AI model",
+        "ai_spend_seuils_acteur": "{champ} for AI spending per account",
+        "verification_providers": "the automatic approval score {de}",
+        "grand_livre_conservation": "how long the log keeps its “{famille}” family",
+        "blocked_email_domains": "the list of e-mail domains refused at sign-up",
+        "public_email_domains": "the list of public mail services (personal e-mail addresses)",
+        "packages": "{offre}",
+        "organizations": "the plan assigned to {organisation}",
+        "packages_stripe": "the link between the plans and the payment provider Stripe ({mode})",
+        "packages_default": "the plan given by default to “{cible}” accounts"
+      },
+      "annonce_creee": "{qui} created {annonce} as a draft ({type}).",
+      "sous_traitance_creee": "{qui} created {annonce} as a draft (subcontracting need).",
+      "annonce_publiee": {
+        "simple": "{qui} published {annonce}.",
+        "note": "{qui} published {annonce}, after an automatic quality check (score {note}/10)."
+      },
+      "sous_traitance_publiee": {
+        "simple": "{qui} published {annonce} (subcontracting need).",
+        "note": "{qui} published {annonce} (subcontracting need), after an automatic quality check (score {note}/10)."
+      },
+      "annonce_modifiee": {
+        "champs": "{qui} edited {annonce}: {champs}.",
+        "simple": "{qui} edited {annonce}."
+      },
+      "annonce_depubliee": "{qui} closed {annonce}: experts no longer see it.",
+      "annonce_expiree": {
+        "simple": "{qui} closed {annonce}, which reached the end of its life.",
+        "jours": "{qui} closed {annonce}, which reached the end of its life ({jours, plural, one {# day} other {# days}})."
+      },
+      "cv_televerse": {
+        "echec_soi": "{qui} uploaded their CV, but it could not be analysed.",
+        "echec_autre": "{qui} uploaded a CV for {profil}, but it could not be analysed.",
+        "lu_soi": "{qui} uploaded their CV; the analysis read {experiences, plural, one {# experience} other {# experiences}}, {formations, plural, one {# education entry} other {# education entries}} and {langues, plural, one {# language} other {# languages}}.",
+        "lu_autre": "{qui} uploaded a CV for {profil}; the analysis read {experiences, plural, one {# experience} other {# experiences}}, {formations, plural, one {# education entry} other {# education entries}} and {langues, plural, one {# language} other {# languages}}.",
+        "simple_soi": "{qui} uploaded their CV, which was analysed.",
+        "simple_autre": "{qui} uploaded a CV for {profil}, which was analysed."
+      },
+      "profil_publie": {
+        "soi": "{qui} published their profile: organisations can see it and it will be checked.",
+        "autre": "{qui} published {profil}: organisations can see it and it will be checked."
+      },
+      "profil_modifie": {
+        "champs_soi": "{qui} edited their profile: {champs}.",
+        "champs_autre": "{qui} edited {profil}: {champs}.",
+        "simple_soi": "{qui} edited their profile.",
+        "simple_autre": "{qui} edited {profil}."
+      },
+      "disponibilite_basculee": {
+        "soi": "{qui} changed their availability ({champ}): from “{de}” to “{vers}”.",
+        "autre": "{qui} changed the availability ({champ}) for {profil}: from “{de}” to “{vers}”."
+      },
+      "cv_reinitialise": {
+        "vitrine": "{qui} removed their CV: the profile no longer holds its analysis and organisations no longer see it.",
+        "simple": "{qui} removed their CV: the profile no longer holds its analysis."
+      },
+      "travail_ia_echoue": {
+        "simple": "{qui} gave up {nature} for {profil}: {code}.",
+        "tentatives": "{qui} gave up {nature} for {profil} after {tentatives, plural, one {# attempt} other {# attempts}}: {code}."
+      },
+      "travail_ia_relance": "{qui} restarted {nature} for {profil}, which had failed: {code}.",
+      "recherche_terminee": {
+        "ok_annonces": "{qui} ran {recherche}: {examinees, plural, =0 {no posting examined} one {# posting examined} other {# postings examined}}, {retenues, plural, =0 {none kept} one {# kept} other {# kept}}, {nouvelles, plural, =0 {none of them new} one {# of them new} other {# of them new}}; {notifiees, plural, =0 {no notification sent} one {# notification sent} other {# notifications sent}}.",
+        "ok_profils": "{qui} ran {recherche}: {examinees, plural, =0 {no profile examined} one {# profile examined} other {# profiles examined}}, {retenues, plural, =0 {none kept} one {# kept} other {# kept}}, {nouvelles, plural, =0 {none of them new} one {# of them new} other {# of them new}}; {notifiees, plural, =0 {no notification sent} one {# notification sent} other {# notifications sent}}.",
+        "ok_simple": "{qui} ran {recherche}, which ended normally.",
+        "vivier_vide_annonces": "{qui} ran {recherche}: no open posting could match.",
+        "vivier_vide_profils": "{qui} ran {recherche}: no available profile could match.",
+        "annonce_expiree": "{qui} ran {recherche}: nothing was searched, the posting had expired.",
+        "sans_matiere": "{qui} ran {recherche}: nothing was searched, the posting does not contain enough information.",
+        "ineligible": "{qui} ran {recherche}: nothing was searched, because {raison}."
+      },
+      "recherche_echouee": {
+        "simple": "{qui} ran {recherche}: it failed during {etape} — {pourquoi}.",
+        "tentatives": "{qui} ran {recherche}: it failed during {etape} — {pourquoi} (attempt no. {tentatives})."
+      },
+      "recherche_abandonnee": {
+        "simple": "{qui} ran {recherche}: it was given up, failing during {etape} — {pourquoi}.",
+        "tentatives": "{qui} ran {recherche}: it was given up after {tentatives, plural, one {# attempt} other {# attempts}}, failing during {etape} — {pourquoi}."
+      },
+      "recherche_lancee": "{qui} started {recherche} (older entry: the start of a search is no longer written separately).",
+      "recherche_filtree": "Older entry for one step — {recherche}: sorting the possible candidates. Since 1 October 2026, a search is written as one line, when it ends.",
+      "recherche_classee": "Older entry for one step — {recherche}: scoring by AI. Since 1 October 2026, a search is written as one line, when it ends.",
+      "recherche_correspondances": "Older entry for one step — {recherche}: saving the results. Since 1 October 2026, a search is written as one line, when it ends.",
+      "recherche_notifiee": "Older entry for one step — {recherche}: sending the notifications. Since 1 October 2026, a search is written as one line, when it ends.",
+      "candidature_deposee": {
+        "expert_simple": "{qui} applied to {annonce}.",
+        "expert_note": "{qui} applied to {annonce}; the application was scored {note}/10.",
+        "relance_simple": "{qui} resubmitted the application of the expert {expert} to {annonce}, which could not be saved.",
+        "relance_note": "{qui} resubmitted the application of the expert {expert} to {annonce}, which could not be saved; it was scored {note}/10."
+      },
+      "sous_traitance_candidature": {
+        "expert_simple": "{qui} answered {annonce}, a subcontracting need.",
+        "expert_note": "{qui} answered {annonce}, a subcontracting need; the answer was scored {note}/10.",
+        "relance_simple": "{qui} resubmitted the answer of the expert {expert} to {annonce}, a subcontracting need, which could not be saved.",
+        "relance_note": "{qui} resubmitted the answer of the expert {expert} to {annonce}, a subcontracting need, which could not be saved; it was scored {note}/10."
+      },
+      "candidature_declinee": {
+        "raison": "{qui} declined the application of the expert {expert} to {annonce}, giving a reason.",
+        "simple": "{qui} declined the application of the expert {expert} to {annonce}."
+      },
+      "candidature_retenue": "{qui} accepted the application of the expert {expert} to {annonce}.",
+      "mission_ecartee": "{qui} dismissed {annonce}, which had been suggested to them.",
+      "devoilement_ouvert": {
+        "auto": "{qui} applied to {annonce}: the organisation automatically got access to the contact details of the expert {expert}, and the exchange can begin.",
+        "main": "{qui} opened access to the contact details of the expert {expert} for {annonce}: the exchange can begin."
+      },
+      "devoilement_ferme": "{qui} closed access to the contact details of the expert {expert} for {annonce}: the exchange period is over.",
+      "message_envoye": "{qui} sent a message (older entry: messages are no longer written to the log, the messaging keeps them).",
+      "compte_cree": {
+        "soi": "{qui} created their account ({type}), {voie}.",
+        "soi_tel": "{qui} created their account ({type}), {voie}, with a verified phone number.",
+        "soi_sans_tel": "{qui} created their account ({type}), {voie}, without a verified phone number.",
+        "autre": "{qui} created {compte} ({type})."
+      },
+      "expert_inscrit": {
+        "simple": "{qui} completed their expert sign-up: their profile is created.",
+        "specialites": "{qui} completed their expert sign-up: their profile is created with {specialites, plural, =0 {no speciality} one {# speciality} other {# specialities}}.",
+        "autre_specialite": "{qui} completed their expert sign-up: their profile is created with {specialites, plural, =0 {no speciality from the list} one {# speciality} other {# specialities}}, and a speciality suggested by the expert."
+      },
+      "organisation_preinscrite": {
+        "simple": "{qui} pre-registered {organisation} ({type}).",
+        "adresse_publique": "{qui} pre-registered {organisation} ({type}) with a personal e-mail address rather than the organisation’s."
+      },
+      "compte_valide": {
+        "simple": "{qui} approved {objet}.",
+        "raison": "{qui} approved {objet}, with a comment."
+      },
+      "compte_refuse": {
+        "simple": "{qui} refused {objet}.",
+        "raison": "{qui} refused {objet}, with a comment."
+      },
+      "verification_conclue": {
+        "approuve_note": "{qui} checked {profil}: score {note}/10, {motif}; profile approved.",
+        "approuve_simple": "{qui} checked {profil}: {motif}; profile approved.",
+        "revue_note": "{qui} checked {profil}: score {note}/10, {motif}; sent for manual review.",
+        "revue_simple": "{qui} checked {profil}: {motif}; sent for manual review."
+      },
+      "compte_suspendu": "{qui} suspended {compte}.",
+      "compte_reactive": "{qui} reactivated {compte}.",
+      "session_revoquee": "{qui} closed all their other open sessions.",
+      "mot_de_passe_change": "{qui} changed their password.",
+      "suppression_programmee": {
+        "date": "{qui} asked for their account to be deleted: erasure planned on {date}.",
+        "simple": "{qui} asked for their account to be deleted."
+      },
+      "suppression_annulee": {
+        "visible": "{qui} cancelled the deletion of their account: their profile is visible again.",
+        "simple": "{qui} cancelled the deletion of their account."
+      },
+      "email_change": {
+        "demande": "{qui} asked to change their e-mail address; the change awaits the confirmation sent to the new address.",
+        "confirme": "{qui} confirmed their new e-mail address."
+      },
+      "telephone_verifie": "{qui} verified their phone number with a code received by text message.",
+      "identite_modifiee": {
+        "champs": "{qui} changed their name: {champs}.",
+        "simple": "{qui} changed their name."
+      },
+      "membre_invite": {
+        "simple": "{qui} invited someone to join {organisation} as {role}.",
+        "compte_existant": "{qui} invited someone to join {organisation} as {role}; this address already has an account."
+      },
+      "invitation_renvoyee": "{qui} resent an invitation to join {organisation}.",
+      "invitation_revoquee": "{qui} cancelled an invitation to join {organisation}.",
+      "invitation_acceptee": {
+        "simple": "{qui} accepted the invitation to join {organisation} as {role}.",
+        "deja": "{qui} accepted the invitation to join {organisation} as {role}; they were already a member.",
+        "retour": "{qui} accepted the invitation to join {organisation} as {role}, after having left it."
+      },
+      "membre_retire": "{qui} removed the member {membre} ({organisation}).",
+      "membre_parti": "{qui} left {organisation}.",
+      "role_membre_change": "{qui} changed the role of the member {membre} ({organisation}): now {vers}, previously {de}.",
+      "organisation_modifiee": {
+        "champs": "{qui} edited the profile page of {organisation}: {champs}.",
+        "simple": "{qui} edited the profile page of {organisation}.",
+        "logo_depose": "{qui} uploaded a new logo for {organisation}.",
+        "logo_retire": "{qui} removed the logo shown for {organisation}."
+      },
+      "paiement_recu": {
+        "montant": "{qui} recorded a payment of {montant} made by {organisation} ({periode}).",
+        "simple": "{qui} recorded a payment made by {organisation}."
+      },
+      "plafond_atteint": {
+        "compte_montants": "Monthly AI spending limit reached for {objet}, during {action} started by {qui}: {depense} spent against a limit of {plafond}.",
+        "compte_simple": "Monthly AI spending limit reached for {objet}, during {action} started by {qui}.",
+        "global_montants": "Monthly AI spending limit of the whole platform reached, during {action} started by {qui}: {depense} spent against a limit of {plafond}.",
+        "global_simple": "Monthly AI spending limit of the whole platform reached, during {action} started by {qui}."
+      },
+      "refus_plafond_atteint": {
+        "compte_montants": "Action refused for {objet}: {action}, started by {qui}, went over the monthly AI spending limit ({depense} spent against a limit of {plafond}).",
+        "compte_simple": "Action refused for {objet}: {action}, started by {qui}, went over the monthly AI spending limit.",
+        "global_montants": "Action refused: {action}, started by {qui}, went over the platform’s monthly AI spending limit ({depense} spent against a limit of {plafond}).",
+        "global_simple": "Action refused: {action}, started by {qui}, went over the platform’s monthly AI spending limit."
+      },
+      "evenement_stripe_rouvert": {
+        "date": "{qui} reopened a payment event received on {date} from the payment provider Stripe, so that it is processed again.",
+        "simple": "{qui} reopened a payment event received from the payment provider Stripe, so that it is processed again."
+      },
+      "reglage_modifie": {
+        "changements": "{qui} changed {reglage}: {changements}.",
+        "simple": "{qui} changed {reglage}.",
+        "echec": "{qui} tried to change {reglage}, without success."
+      },
+      "taxonomie_modifiee": {
+        "creee": "{qui} created {objet}.",
+        "supprimee": "{qui} deleted {objet}.",
+        "modifiee": "{qui} edited {objet}: {changements}.",
+        "simple": "{qui} edited {objet}."
+      },
+      "ecosysteme_cree": {
+        "adresse": "{qui} created {ecosysteme}, whose address starts with “{adresse}”.",
+        "simple": "{qui} created {ecosysteme}."
+      },
+      "ecosysteme_modifie": {
+        "modification": "{qui} edited {ecosysteme}: {changements}.",
+        "simple": "{qui} edited {ecosysteme}.",
+        "activation": "{qui} opened {ecosysteme}: organisations can now join it.",
+        "desactivation": "{qui} closed {ecosysteme} to organisations.",
+        "visuel_depose": "{qui} uploaded {visuel} for {ecosysteme}.",
+        "visuel_retire": "{qui} removed {visuel} for {ecosysteme}.",
+        "adresse": "{qui} changed the web address of {ecosysteme}: “{avant}” becomes “{apres}”.",
+        "adresse_simple": "{qui} changed the web address of {ecosysteme}."
+      },
+      "administrateur_cree": {
+        "simple": "{qui} created {compte}, with administrator rights.",
+        "premier": "{qui} created the very first administrator account: {compte}.",
+        "echec": "{qui} could not create {compte} with administrator rights (technical error)."
+      },
+      "tache_lancee_a_la_main": {
+        "simple": "{qui} started the automatic task “{tache}” by hand.",
+        "inactive": "{qui} started the automatic task “{tache}” by hand, although it was switched off.",
+        "echec": "{qui} could not start the automatic task “{tache}” by hand (technical error)."
+      },
+      "inactivite_avertie": {
+        "date": "{qui} sent a warning e-mail for {compte}: this inactive account will be erased on {date}.",
+        "simple": "{qui} sent a warning e-mail for {compte}: this inactive account is about to be erased.",
+        "echec": "{qui} could not send the warning e-mail for {compte}, inactive, before its erasure: {cause}."
+      },
+      "compte_purge_inactivite": {
+        "detail": "{qui} erased {compte}, inactive for too long: {effacements}.",
+        "simple": "{qui} erased {compte}, inactive for too long."
+      },
+      "compte_purge_demande": {
+        "detail": "{qui} erased {compte}, at its holder’s request: {effacements}.",
+        "simple": "{qui} erased {compte}, at its holder’s request."
+      },
+      "compte_purge_admin": {
+        "detail": "{qui} erased {compte}: {effacements}.",
+        "simple": "{qui} erased {compte}."
+      },
+      "ip_effacees": {
+        "detail": "{qui} erased IP addresses older than {mois, plural, one {# month} other {# months}}: {audit, plural, =0 {none} other {#}} in the audit log, {sessions, plural, =0 {none} other {#}} in the sign-in history.",
+        "simple": "{qui} erased the old IP addresses.",
+        "echec": "{qui} could not erase the old IP addresses (technical error)."
+      },
+      "desabonnement_email": "{qui} no longer wants to receive “{evenement}” notices by e-mail: switched off from the unsubscribe link of an e-mail.",
+      "journal_nettoye": {
+        "familles": "{qui} cleaned up the log: {lignes, plural, =0 {no entry erased} one {# entry erased} other {# entries erased}} ({familles}).",
+        "total": "{qui} cleaned up the log: {lignes, plural, =0 {no entry erased} one {# entry erased} other {# entries erased}}.",
+        "simple": "{qui} cleaned up the log."
+      },
+      "refus_depot_sans_jugement": "{qui} tried to apply to {annonce}: the application was not saved because it could not be assessed — {cause}.",
+      "refus_expert_inapte": "{qui} could not apply: {raison} (older entry).",
+      "refus_garde_eligibilite": "{qui} could not apply: the conditions for applying were not met (older entry).",
+      "refus_quota_cv": "{qui} could not have their CV analysed: the number of analyses allowed was reached (older entry).",
+      "refus_recherche_en_cours": "{qui}: a search was set aside because another one was already running for the same profile (older entry)."
+    },
+    "valeurs": {
+      "inconnu": "another piece of information",
+      "type_annonce": {
+        "mission": "mission",
+        "offre": "job offer",
+        "sous_traitance": "subcontracting need"
+      },
+      "champ_annonce": {
+        "title": "the title",
+        "description": "the description",
+        "skills_required": "the required skills",
+        "seniorities": "the experience levels",
+        "work_mode": "the work mode",
+        "location_note": "the location",
+        "duration": "the duration",
+        "start_date": "the start date",
+        "budget_min": "the minimum budget",
+        "budget_max": "the maximum budget",
+        "branch_id": "the trade",
+        "speciality_ids": "the specialities",
+        "speciality_other": "the suggested speciality",
+        "confidential": "confidentiality",
+        "work_zone_ids": "the work areas"
+      },
+      "champ_profil": {
+        "title": "the title",
+        "summary": "the summary",
+        "seniorities": "the experience levels",
+        "years_experience": "the years of experience",
+        "skills": "the skills",
+        "certifications": "the certifications",
+        "languages": "the languages",
+        "location": "the location",
+        "work_modes": "the work modes",
+        "tjm_min": "the minimum daily rate",
+        "tjm_max": "the maximum daily rate",
+        "availability_date": "the availability date",
+        "linkedin_url": "the LinkedIn link",
+        "phone": "the phone number",
+        "address_line": "the address",
+        "postal_code": "the postcode",
+        "city": "the city",
+        "country": "the country",
+        "birth_year": "the year of birth",
+        "photo_url": "the photo",
+        "years_total_experience": "the total years of experience",
+        "availability_status": "availability",
+        "branch_id": "the trade",
+        "speciality_ids": "the specialities",
+        "speciality_other": "the suggested speciality",
+        "work_zone_ids": "the work areas",
+        "cdi_status": "the search for a salaried position",
+        "cdi_notice_period": "the notice period",
+        "cdi_availability_date": "the start date",
+        "cdi_confidential_mode": "confidential search",
+        "cdi_salary_min": "the minimum salary wanted",
+        "cdi_salary_max": "the maximum salary wanted",
+        "cdi_variable_pct": "the variable pay share",
+        "cdi_benefits": "the benefits wanted",
+        "cdi_company_size": "the company size wanted",
+        "cdi_sectors": "the sectors wanted",
+        "cdi_geo_mobility": "geographic mobility",
+        "cdi_contract_types": "the contract types",
+        "cdi_motivations": "the motivations",
+        "cdi_career_goals": "the career goals",
+        "experiences": "the experiences",
+        "educations": "the education",
+        "languages_structured": "the languages",
+        "formations": "the education",
+        "langues": "the languages"
+      },
+      "champ_dispo": {
+        "availability_status": "availability for missions",
+        "cdi_status": "search for a salaried position",
+        "open_to_cdi": "open to salaried positions",
+        "open_to_freelance": "open to missions"
+      },
+      "valeur_dispo": {
+        "available": "available",
+        "do_not_disturb": "do not disturb",
+        "employed": "employed",
+        "open_to_work": "looking",
+        "true": "yes",
+        "false": "no",
+        "aucune": "not set"
+      },
+      "nature_travail": {
+        "analyse_cv": "the CV analysis",
+        "verification_expert": "the check"
+      },
+      "code_travail": {
+        "profil_illisible": "the profile could not be read",
+        "profil_introuvable": "the profile no longer exists",
+        "compte_illisible": "the account could not be read",
+        "voie_inconnue": "the account type is not recognised",
+        "document_absent": "no CV was found",
+        "stockage_illisible": "the CV file could not be read",
+        "referentiel_illisible": "the list of trades could not be read",
+        "quota_non_configure": "the number of analyses allowed is not set",
+        "quota_illisible": "the number of analyses allowed could not be read",
+        "plafond_depense": "the AI spending limit is reached",
+        "ecriture_en_panne": "the result could not be saved",
+        "modele_indisponible": "the AI service did not respond",
+        "configuration": "the AI service is misconfigured",
+        "document_refuse": "the AI service refused the document",
+        "reponse_illisible": "the AI service’s answer was unreadable",
+        "configuration_illisible": "the settings could not be read",
+        "specialites_illisibles": "the list of specialities could not be read",
+        "exception_interne": "an unexpected error occurred",
+        "delai_depasse": "the work took too long",
+        "non_execute": "the work never started"
+      },
+      "raison_ineligible": {
+        "profil_non_visible": "the profile is not published",
+        "cv_non_analyse": "the CV has not been analysed yet",
+        "consentement_absent": "the expert has not accepted AI analysis",
+        "profil_non_approuve": "the profile is not approved yet",
+        "compte_suspendu": "the account is suspended",
+        "compte_en_suppression": "the account is being deleted",
+        "compte_anonymise": "the account has been erased",
+        "ne_pas_deranger": "the expert asked not to be disturbed",
+        "non_en_recherche": "the expert is not looking"
+      },
+      "etape_recherche": {
+        "lecture": "reading the data",
+        "reglages": "reading the settings",
+        "vivier": "finding the possible candidates",
+        "filtrage": "sorting the candidates",
+        "notation": "scoring by AI",
+        "correspondances": "saving the results"
+      },
+      "cause_recherche": {
+        "lecture_en_panne": "the data could not be read",
+        "introuvable": "the posting or the profile no longer exists",
+        "reglages_absents": "the search settings are missing",
+        "durees_illisibles": "the set periods could not be read",
+        "vivier_en_panne": "the possible candidates could not be read",
+        "decisions_illisibles": "the choices already made could not be read",
+        "annonce_sans_matiere": "the posting does not contain enough information",
+        "notation_arretee": "scoring by AI stopped",
+        "lots_en_echec": "part of the scoring failed",
+        "reconciliation_en_panne": "the results could not be saved"
+      },
+      "arret_notation": {
+        "interrupteur_ferme": "scoring by AI is switched off",
+        "cle_absente": "the scoring service key is missing",
+        "aucun_document": "there was nothing to score",
+        "plafond_atteint": "the AI spending limit is reached"
+      },
+      "type_compte": {
+        "expert_freelance": "independent expert",
+        "expert_cdi": "expert looking for a salaried position",
+        "client": "client organisation",
+        "cabinet": "consulting firm",
+        "admin": "administrator"
+      },
+      "voie": {
+        "inscription_expert": "through the expert sign-up",
+        "preinscription_organisation": "through an organisation pre-registration",
+        "invitation": "by accepting an invitation",
+        "administrateur": "by an administrator"
+      },
+      "org_type": {
+        "client": "client organisation",
+        "cabinet": "consulting firm",
+        "esn": "IT services company"
+      },
+      "motif_verification": {
+        "note_suffisante": "the score reaches the automatic approval score",
+        "note_insuffisante": "below the automatic approval score",
+        "drapeau_bloquant": "a blocking issue was found",
+        "travail_echoue": "the check could not be done",
+        "config_non_configure": "expert checking is not set up",
+        "config_ambigu": "the check settings are ambiguous",
+        "config_incomplet": "the check settings are incomplete",
+        "domaine_sans_nom": "the expert’s ecosystem has no name",
+        "consentement_absent": "the expert has not accepted AI analysis",
+        "cv_non_analyse": "the CV was not analysed",
+        "plafond_ia": "the AI spending limit is reached",
+        "configuration": "the AI service is misconfigured",
+        "document_refuse": "the AI service refused the document",
+        "reponse_illisible": "the AI service’s answer was unreadable",
+        "modele_indisponible": "the AI service did not respond"
+      },
+      "champ_identite": {
+        "first_name": "the first name",
+        "last_name": "the last name"
+      },
+      "role_org": {
+        "admin": "administrator",
+        "editor": "editor",
+        "viewer": "reader"
+      },
+      "champ_organisation": {
+        "company_name": "the name",
+        "sector": "the sector",
+        "size": "the size",
+        "description": "the description",
+        "website_url": "the website",
+        "country": "the country"
+      },
+      "periode_paiement": {
+        "monthly": "monthly subscription",
+        "yearly": "yearly subscription",
+        "one_time": "one-off payment"
+      },
+      "action_ia": {
+        "matching_pool": "the automatic search for matches",
+        "cv_parsing": "a CV analysis",
+        "candidature_assessment": "the assessment of an application",
+        "pitch": "writing a presentation",
+        "expert_verification": "the check of an expert",
+        "org_verification": "the check of an organisation",
+        "publication_quality": "the check of a posting"
+      },
+      "reglage": {
+        "duree_reglages": "the platform’s time limits",
+        "ai_model_tarifs": "the price of an AI model",
+        "ai_spend_caps": "the platform’s monthly AI spending limits",
+        "ai_spend_seuils_acteur": "the AI spending limit per account",
+        "ai_quotas": "the number of CV analyses allowed",
+        "matching_settings": "the settings of the search for matches",
+        "verification_providers": "the automatic approval score",
+        "packages_default": "the default plan",
+        "grand_livre_conservation": "how long the log keeps its entries",
+        "blocked_email_domains": "the list of refused e-mail domains",
+        "public_email_domains": "the list of public mail services",
+        "packages": "a plan",
+        "organizations": "the plan of an organisation",
+        "packages_stripe": "the link between the plans and Stripe"
+      },
+      "cle_reglage": {
+        "vie_annonce_jours": "life of a posting (days)",
+        "fenetre_echange_jours": "length of an exchange (days)",
+        "invitation_jours": "validity of an invitation (days)",
+        "conservation_ip_mois": "keeping IP addresses (months)",
+        "usd_par_1m_entree": "price per million words sent (dollars)",
+        "usd_par_1m_sortie": "price per million words received (dollars)",
+        "usd_par_unite": "price per unit (dollars)",
+        "usd_par_recherche": "price per search (dollars)",
+        "usd_par_recherche_web": "price per web search (dollars)",
+        "claude": "limit for the language model (dollars per month)",
+        "rerank": "limit for the ranking service (dollars per month)",
+        "organization": "limit per organisation (dollars per month)",
+        "profile": "limit per expert (dollars per month)",
+        "max_per_window": "number of analyses allowed",
+        "window_hours": "period (hours)",
+        "feed_threshold": "minimum score to suggest a match",
+        "notify_threshold": "minimum score to send a notification",
+        "notify_enabled": "notifications on",
+        "rerank_model": "ranking model",
+        "rerank_batch_size": "size of the batches scored together",
+        "note": "automatic approval score",
+        "name": "name",
+        "slug": "short name",
+        "target_role": "accounts concerned",
+        "price_monthly": "monthly price",
+        "price_yearly": "yearly price",
+        "currency": "currency",
+        "active": "active",
+        "is_free": "free",
+        "is_default": "default plan",
+        "scope": "scope",
+        "package_started_at": "start of the plan",
+        "package_valid_until": "end of the plan",
+        "conservation_mois": "kept for (months)",
+        "plancher_mois": "legal minimum (months)",
+        "actif": "active"
+      },
+      "valeur_reglage": {
+        "expert_freelance": "independent experts",
+        "expert_cdi": "experts looking for a salaried position",
+        "client": "client organisations",
+        "cabinet": "consulting firms",
+        "all": "all accounts",
+        "organization": "per organisation",
+        "user": "per person",
+        "organization_per_seat": "per organisation member"
+      },
+      "note_de": {
+        "experts": "for experts",
+        "entreprises": "for organisations",
+        "annonces": "for postings"
+      },
+      "champ_plafond_compte": {
+        "seuil_mensuel_usd": "the monthly alert",
+        "plafond_mensuel_usd": "the monthly limit"
+      },
+      "mode_paiement": {
+        "test": "test mode",
+        "live": "live mode"
+      },
+      "liste_domaines": {
+        "bloques": "refused domains",
+        "publics": "public mail services"
+      },
+      "objet_taxo": {
+        "branche": "trade",
+        "specialite": "speciality"
+      },
+      "champ_taxo": {
+        "name": "the name",
+        "active": "activation",
+        "sort_order": "the display order",
+        "slug": "the short name"
+      },
+      "langue": {
+        "fr": "French",
+        "en": "English",
+        "es": "Spanish",
+        "de": "German"
+      },
+      "champ_ecosysteme": {
+        "name": "the name",
+        "ecosystem_name": "the displayed name",
+        "tagline": "the tagline",
+        "description": "the description",
+        "active": "opening",
+        "launch_date": "the launch date",
+        "couleur_fond_page": "the background colour",
+        "couleur_bandeau": "the banner colour",
+        "couleur_cartes": "the card colour",
+        "couleur_bordures": "the border colour",
+        "couleur_texte_principal": "the text colour",
+        "couleur_texte_secondaire": "the secondary text colour",
+        "primary_color": "the brand colour",
+        "accent_color": "the button colour",
+        "secondary_color": "the secondary colour",
+        "ecosystem_expert_label": "the name given to experts",
+        "ecosystem_community_label": "the name given to the community",
+        "ecosystem_speciality_label": "the name given to specialities",
+        "ecosystem_domain_search_label": "the search label",
+        "tags": "the keywords",
+        "logo_url": "the logo",
+        "favicon_url": "the tab icon"
+      },
+      "visuel": {
+        "logo": "the logo",
+        "favicon": "the tab icon"
+      },
+      "tache": {
+        "constats_trigger": "checks (expired postings, finished exchanges)",
+        "cron_run_log_purge": "clean-up of the task history",
+        "cron_run_reconcile": "check of tasks left without an answer",
+        "expert_relance_trigger": "restarting the experts’ searches",
+        "ip_retention_purge": "erasing old IP addresses",
+        "matching_notes_partielles_purge": "clean-up of unfinished scoring",
+        "matching_retry_trigger": "retrying failed searches",
+        "purge_deletions_trigger": "erasing accounts whose deletion is due",
+        "purge_inactive_trigger": "warning and erasing inactive accounts",
+        "rate_limit_hits_purge": "clean-up of the anti-abuse counters",
+        "stripe_reconcile_trigger": "reconciling payments",
+        "travaux_ia_pilote": "follow-up of AI work"
+      },
+      "cause_avertissement": {
+        "origine_inconnaissable": "the site address could not be determined",
+        "sans_email": "the account has no e-mail address",
+        "lien_sans_ecosysteme": "the e-mail link could not be built",
+        "exception": "an unexpected error occurred",
+        "missing_env": "e-mail sending is not configured",
+        "invalid_to": "the e-mail address is invalid",
+        "resend_error": "the e-mail service refused the message",
+        "timeout": "the e-mail service did not answer in time"
+      },
+      "evenement": {
+        "new_match_opportunity": "new missions suggested",
+        "new_candidature_received": "new application received",
+        "new_message": "new message"
+      },
+      "cause_depot": {
+        "plafond": "the AI spending limit is reached",
+        "modele_indisponible": "the AI service did not respond",
+        "reponse_illisible": "the AI service’s answer was unreadable"
+      },
+      "effacement": {
+        "profil_anonymise": "profile anonymised",
+        "cv_supprime": "CV deleted",
+        "avatar_supprime": "photo deleted"
+      },
+      "canal_notification": {
+        "email": "by e-mail",
+        "inapp": "in the app",
+        "both": "by e-mail and in the app",
+        "sms": "by text message"
+      },
+      "statut_notification": {
+        "pending": "pending",
+        "sent": "sent",
+        "failed": "failed",
+        "read": "read"
+      }
+    },
+    "glossaire": {
+      "titre": "The words used in this log",
+      "ecriture": {
+        "mot": "Entry",
+        "explication": "One line of the log: an action, taken by someone or by the platform, at a given moment."
+      },
+      "geste": {
+        "mot": "Related entries",
+        "explication": "One action can leave several entries (an account created and the expert’s sign-up, for example). They share the same action number, and “See related entries” shows them together."
+      },
+      "famille": {
+        "mot": "Family",
+        "explication": "How entries are grouped by subject: postings, profiles, accounts, payments… Each family has its own retention period."
+      },
+      "ecosysteme": {
+        "mot": "Ecosystem",
+        "explication": "The area of the platform dedicated to one technology (for example, the experts certified by the same software publisher), with its own web address. An expert belongs to a single ecosystem."
+      }
     }
   },
   "inscription_refus": {
