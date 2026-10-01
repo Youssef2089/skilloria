@@ -107,6 +107,30 @@ celles de S1 (`20261001100000`–`…100020`) et après `journal_photo_et_cv` (`
 **599** sur la branche fusionnée (58 fichiers) : 567 du principal + 26 de S1 + 6 de `photo_et_cv`. Le lot B n'en ajoute pas
 (il change trois attentes) : **599** aussi.
 
+### L'épreuve de l'ARRÊT 23 (branche fusionnée `feat/sprint-archi-orga`, `bb401b0`)
+- **tsc** : 0 erreur (aucune ligne, même dans `.next/`). **next build** : réussi jusqu'au bout (les routes de S1 et les
+  nôtres compilées). **Lint** : 50 erreurs / 23 avertissements — la base abaissée par S1 tient. **Parité i18n** : 4 934 clés.
+- **Série complète** (`node scripts/diag.mjs`) : **120 verts, 0 rouge, 0 « n'a pas tourné », 6 écartés.** Les deux rouges
+  laissés par l'ARRÊT 22 (la requête d'avant-push) et celui laissé par S1 (`diag-routes-tracees`, la photo) sont fermés.
+- **Lot B** (`lot/grand-livre-refus-retirees`, un commit au-dessus de la branche fusionnée) : `diag-journal-lisible` (TEMPS 2),
+  `diag-tests-grand-livre`, `diag-grand-livre`, `diag-postconditions-structure`, `diag-migration-donnees`,
+  `diag-memoire-exacte`, `diag-requete-staging` : verts. `journaliser()` y diffère de sa dernière définition par le seul refus.
+- **Mutations : 5 sur 5 rougissent**, arbre restauré : la photo qui ne s'écrit plus, le lien du CV rendu malgré un journal
+  qui refuse, `notification_preferences` ôtée de l'invariant ⑧, un objet de l'ARRÊT 22 ôté de `prochain_push_cree`,
+  « Profil modifié » qui renomme une photo déposée.
+- **pgTAP : 599 tests attendus**, NON exécutés ici (ni Docker ni base).
+
+### Pour Youssef — dans l'ordre, après la relecture indépendante
+1. Sur votre poste, Docker lancé : `npx supabase link --project-ref wnayuerhakekxccgimeg`, `node scripts/verifier-version-postgres.mjs`,
+   `npx supabase db reset --local`, `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local`
+   — **599 tests, tous verts**.
+2. La requête de staging (éditeur SQL de staging) : aucun ÉCART.
+3. `npx supabase db push`, puis `git push` — le lot A (ARRÊT 22 bis + S1 + ARRÊT 23). Aucun geste en ligne n'échoue.
+4. Sur staging : les vérifications de S1 (docs/reprise-s1.md, étape 9) et de l'ARRÊT 22 ; changer la photo deux fois → deux
+   lignes « … a remplacé sa photo de profil » ; ouvrir un CV depuis la fiche admin → une ligne « … a ouvert, en lecture
+   seule, le CV … ».
+5. **Le lot B, quand le lot A est en ligne** : `git merge lot/grand-livre-refus-retirees`, puis 1 à 3 de nouveau (599 tests).
+
 ## ⛔ ARRÊT 22 bis — LE REFUS DES ACTIONS RETIRÉES, EN DEUX DÉPLOIEMENTS (01/10/2026)
 
 **Le point corrigé (Youssef).** L'ARRÊT 22 faisait refuser par la base (GL006) les onze actions retirées DANS LE MÊME
