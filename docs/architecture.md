@@ -3967,6 +3967,17 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
   profil modifié reste approuvé (arbitrage ④ de l'ARRÊT 19, docs/reprise.md) — à trancher par Youssef s'il veut
   l'autre sens (repasser « en cours » tout de suite, et sortir des mises en relation à chaque republication).
 
+**H.6 — CE QUE LA RELECTURE INDÉPENDANTE DU 01/10/2026 LAISSE OUVERT, DIT.**
+- Le coût d'une recherche COUPÉE après la notation (le couperet de la fonction, §E.5) n'est porté par aucune ligne du grand
+  livre : la ligne de fin n'est jamais écrite. Il reste dans `ai_spend_events`, lot par lot, SOUS LA MÊME PIÈCE et avec sa
+  source (`unites_source`, mesurée ou au plancher) — la pièce relie les deux. Une ligne d'étape réintroduirait ce que la
+  liste validée a retiré (§D.33).
+- Une spécialité RÉACTIVÉE dont une traduction existante serait « Other » n'est vue par aucune garde : la contrainte lit le
+  nom et le slug, la garde des traductions (lot B) l'écriture d'une traduction.
+- Une page restée ouverte depuis le code d'avant le lot A, utilisée après le lot B : ses langues en texte libre sont
+  refusées (`langue_hors_liste`, nommé) ; une annonce publiée avec « Autre » coché garde l'identifiant désactivé (aucun
+  échec ; `retirer_specialites_autre()` est rejouable).
+
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
 **Palette**

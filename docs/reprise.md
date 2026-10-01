@@ -57,6 +57,97 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
+## ⛔ ARRÊT 24 — LA RELECTURE INDÉPENDANTE : FEU ROUGE, LES 22 POINTS CORRIGÉS, LE LOT A ET LE LOT B REBÂTIS (01/10/2026)
+
+Tag local `sauvegarde-avant-relecture` sur `8e68599` (tête de l'ARRÊT 23) ; l'ancien lot B gardé sous
+`sauvegarde-lot-b-avant-relecture` (`b2c821a`). Tout est fait sur `feat/sprint-archi-orga` (S1 ne touche plus à rien).
+**Lu** (règle de lecture du 26/09) : les sept migrations du lot A et leurs en-têtes ; dans les migrations, les contraintes
+réelles de `profile_languages`, `langues`, `specialities`, `translations`, `users` (noms NULLABLES), `matches`, `packages`,
+`candidature_depots`, `grand_livre_conservation(_proposee)`, `duree_reglages` (`conservation_ip_mois` NOT NULL, 1..60),
+`notification_preferences` ; les routes en ligne contre chaque restriction (`/api/profile`, publications, administration
+des spécialités, photo) ; CLAUDE.md §D.40/§D.41/§G.4, architecture §B.2 (S1), §D.40, §D.41, §H, pièges §E.72, §E.90,
+§E.101, §E.103 ; `docs/reprise.md` ARRÊT 23. **Non relu** : le reste de `docs/`.
+
+### Les 22 points — ce qui est fait, et ce qui le prouve
+| # | Fait | Prouvé par |
+|---|---|---|
+| 1 | Le déclencheur `LG001` quitte le lot A ; `langues_liste_fermee` garde tables, `code_de_langue`, reprise. Lot B `langues_garde` : la reprise RELANCÉE, PUIS la garde | `diag-deux-temps` (lot A : aucun déclencheur) ; `diag-recette-s1` 3 (TEMPS 1 sans garde ; TEMPS 2 : reprise avant `create trigger`) ; `profil/langues_liste_fermee` (11, reprise des lignes héritées PROUVÉE) ; `profil/langues_garde` (8) ; mutation ① |
+| 2 | `photo_par_le_serveur` quitte le lot A → lot B `…000040`. **Et un troisième cas, non vu par le relecteur** : la désactivation de « Autre » (le code en ligne rend 400 sur une spécialité inactive) → lot B `specialite_autre_garde` ; le lot A garde la seule définition. `/api/profile` (lot A) sort une spécialité inactive au lieu de refuser, « Autre » gardé en précision. Les SEPT migrations du lot A repassées à la règle (§E.91) | `diag-deux-temps` (nouveau, 7 migrations en attente, toutes conformes) ; `diag-recette-s1` 1 et 8 ; mutations ② ③ |
+| 3 | ⓪ = `joignabilite_du_site` ; les listes décrivent EXACTEMENT le lot A (aucune signature retirée ; 13 objets créés) — sur la branche lot B, ⓪ = `journal_photo_et_cv`, 4 objets créés | `diag-requete-staging` (sur chaque branche), `diag-portes-laterales` |
+| 4 | `changements.ts` ne convertit plus : chaîne et chaîne comparées telles quelles (« 01000 » ≠ « 1000 »), nombre et chaîne égaux seulement si `String(n)` | `diag-ce-qui-change` (nouveau, exécuté) ; mutation ④ |
+| 5 | L'en-tête de « Mon profil » suit `etatAffiche` (libellé, couleurs, pastille) | `diag-recette-s1` 5 |
+| 6 | Les exceptions de `journaliser_reglage` prouvées une par une (features, package_fields, synchronisées, count > 0, default_applied) ; complément vide → rien ; `offres` retirée | `grand_livre/reglages` (20) |
+| 7 | Sur `journal_error`, le dépôt est fait : le PATCH `photo_url` part quand même | `diag-recette-s1` (avant 9) |
+| 8 | Une lecture du compte ou du profil en panne : `photo_compte_illisible` (503), distinct du stockage | `diag-recette-s1` (avant 9) ; i18n ×4 |
+| 9 | L'infobulle du TJM dit ce qu'il fait (montré aux organisations, ne choisit pas les missions) | `diag-recette-s1` (avant 7) |
+| 10 | « Validé, mais masqué » : vert sur fond neutre ; « en attente d'un administrateur » reste ambre | `diag-recette-s1` 5 (triplets distincts) |
+| 11 | « Autre » DEMANDÉ à la base (`contientAutre` → `est_specialite_autre`) pour le nom, le slug ET chaque traduction, avant toute écriture ; au lot B, une garde des traductions en base | `diag-recette-s1` 1 ; `taxonomie/autre_definition` (4) ; lot B `taxonomie/autre_hors_referentiel` E (6) |
+| 12 | Une ligne héritée qui est un code hors liste se NOMME (« la » → « Latin ») ; la cause (le rattachement par `Intl`) est fermée par le point 20 | `diag-recette-s1` 3 (exécuté) ; mutation ⑤ |
+| 13 | Zones : flèches sur « partout / certaines zones » (motif radio, une tabulation) ; `aria-activedescendant`, Début/Fin, Échap, liste FERMÉE au départ du focus ; une zone retirée visible et retirable ; « 0 pays couverts » n'existe plus ; un continent sans pays n'est pas offert | `diag-recette-s1` 2 ; mutation ⑥ |
+| 14 | La phrase d'une recherche : examinées, retenues, « dont N forte(s) » ; `notifiees` absent = 0 | `diag-journal-lisible` 6 (exécuté, ×4) ; mutation ⑦ |
+| 15 | La fin, l'échec et l'abandon d'une recherche portent `recherches` et `unites_source` (listes blanches ÉLARGIES au lot A) ; l'écran dit « estimé au minimum facturable » | `diag-grand-livre` D ter ; `grand_livre/liste_validee` ; mutation ⑧. **Limite dite** : coupée APRÈS la notation, la recherche n'écrit aucune ligne — son coût reste dans `ai_spend_events`, lot par lot, SOUS LA MÊME PIÈCE, avec sa source (architecture §H.6) |
+| 16 | Réordonner ses expériences est une vraie modification (« Profil modifié »), sans action nouvelle | `diag-ce-qui-change` (listes ordonnées) |
+| 17 | Ouvrir (ou fermer) un écosystème EN modifiant autre chose : « a ouvert … et a modifié le nom » (4 langues) | `diag-journal-lisible` 6 ; mutation ⑨ |
+| 18 | Un compte qui VIT sans nom : `''` en base → « un compte sans nom renseigné » ; effacé : NULL → « données effacées » | `diag-journal-lisible` 6 ; `grand_livre/liste_validee` ; mutation ⑩ |
+| 19 | Une offre réenregistrée à l'identique n'écrit rien : chaque colonne comparée à sa valeur LUE, les limites à leur valeur d'avant | `diag-grand-livre` D ter (nouvelle ancre) ; mutation ⑪ |
+| 20 | UNE liste de rattachement, celle de la base : l'analyse lit `langues` et `langues_noms` AVANT le modèle (`rattacheurDeLangues`, la règle de `code_de_langue`) ; `Intl` ne sert plus qu'à nommer ; les écrans ne rattachent plus | `diag-recette-s1` 3 (exécuté sur la liste SEMÉE : 92 langues, 467 noms) ; mutation ⑫ |
+| 21 | Les tests manquants : effacement d'adresses en échec (`socle`), nouvel échec après reconnexion (`purges`), même numéro non vérifié (`telephone_verifie`), désabonnement d'un compte effacé, proposition de conservation refusée à un non-administrateur et remontée au minimum, les treize types de `libelles_journal`, le compte sans nom (`liste_validee`), rejeu GL005 de `photo_deposee` et `cv_consulte` (`photo_et_cv`) | `diag-tests-grand-livre` (forme, plans, « appeler puis relire ») |
+| 22 | `reglages.test.sql` : le cas « à l'identique » par un SECOND administrateur ; les deux postconditions nomment les tests qui prouvent chaque geste | `diag-postconditions-structure` (chaque preuve est un fichier qui existe) |
+
+### Le lot A — `feat/sprint-archi-orga`, 179 migrations, 7 en attente après `joignabilite_du_site`, toutes AVANT
+`20261001000000_grand_livre_liste_validee` · `…000010_ecritures_sur_vrai_changement` · `…000020_conservation_propositions` ·
+`…000030_journal_libelles` · `20261001100000_specialite_autre_hors_referentiel` (la définition seule) ·
+`…100010_langues_liste_fermee` (sans garde) · `20261002000000_journal_photo_et_cv`. Aucune ne retire de signature, aucune
+ne refuse un geste du code en ligne (13d1524) : `diag-deux-temps`, deux exceptions écrites avec leur raison
+(`remplacer_listes_profil` reste fermée au navigateur comme avant ; la fonte des doublons de langues d'un même profil).
+
+### Le lot B — `lot/grand-livre-refus-retirees`, 183 migrations, toutes APRÈS, à pousser quand le lot A est EN LIGNE
+`20261002000010_grand_livre_refus_des_retirees` (GL006) · `…000020_langues_garde` · `…000030_specialite_autre_garde` ·
+`…000040_photo_par_le_serveur`. Requête de staging : ⓪ `journal_photo_et_cv`, rien de retiré, quatre objets créés.
+
+### Le nombre de tests de base attendu
+**Lot A : 611** (58 fichiers) = 599 − 14 (`autre_hors_referentiel`, au lot B) − 1 (langues) + 4 (`autre_definition`) + 6
+(`reglages`) + 11 (`liste_validee`) + 2 (`socle`) + 1 (`purges`) + 1 (`telephone_verifie`) + 2 (`photo_et_cv`).
+**Lot B : 637** (60 fichiers) = 611 + 18 (`taxonomie/autre_hors_referentiel`) + 8 (`profil/langues_garde`) ; trois
+attentes passent à GL006.
+
+### Ce qui reste, et se dit
+- Une page restée ouverte depuis le code d'AVANT le lot A (13d1524), utilisée APRÈS le push du lot B, enverrait des langues
+  en texte libre : refusées, nommément (`langue_hors_liste`). Une annonce publiée depuis une telle page avec « Autre » coché
+  garde l'identifiant désactivé (aucun échec ; la reprise est rejouable).
+- Une spécialité RÉACTIVÉE dont une traduction existante est « Other » n'est vue par aucune garde (la contrainte lit le nom
+  et le slug, la garde des traductions l'écriture d'une traduction).
+- Le coût d'une recherche coupée après la notation (point 15) : dans `ai_spend_events` seulement (§H.6).
+
+### L'épreuve de l'ARRÊT 24
+- **Lot A** (`feat/sprint-archi-orga`) : **tsc** 0 erreur (hors `.next/`) ; **next build** réussi ; **lint** 50 erreurs / 23
+  avertissements (le cliquet tient) ; **parité i18n** 4 944 clés. **Série complète** : 118 verts et 4 rouges au premier
+  passage — une exemption de `diag-ecritures-effectives` partie au lot B avec sa reprise, deux assertions neuves qui
+  appelaient puis relisaient dans la même instruction (§E.74), le nombre de migrations (180 → 179) — corrigés ; la série
+  rejouée après le commit de ce compte rendu : voir la ligne du commit `docs(reprise)`.
+- **Lot B** (`lot/grand-livre-refus-retirees`) : **série complète** 121 verts, 1 rouge (`diag-deux-temps` : les deux
+  exceptions de `langues_liste_fermee` mortes une fois ⓪ avancé — retirées du gel, vert).
+- **Mutations : 12 sur 12 au lot A** (un déclencheur ou une désactivation remis dans le lot A, `/api/profile` qui refuse de
+  nouveau une spécialité inactive, `memeValeur` par `Number()`, une ligne héritée montrée brute, la liste des pays qui ne
+  se ferme plus, `notifiees` exigé, la source des unités non notée, l'ouverture répétée dans la liste, un compte sans nom
+  rendu NULL, l'offre qui nomme tous ses champs, l'analyse qui ne lit plus les noms de la base) **et 5 sur 5 au lot B** (une
+  migration du second temps marquée AVANT, la reprise des langues ôtée avant la garde, la garde des traductions réduite au
+  changement, la reprise « Autre » appelée par aucun test, un objet ôté de la requête de staging). Arbre restauré à chaque fois.
+- **pgTAP : 611 (lot A) puis 637 (lot B), NON exécutés ici** (ni Docker ni base).
+
+### Pour Youssef — dans l'ordre
+1. **Le lot A** (`feat/sprint-archi-orga`), Docker lancé : `npx supabase link --project-ref wnayuerhakekxccgimeg`,
+   `node scripts/verifier-version-postgres.mjs`, `npx supabase db reset --local`, `npx supabase db lint -s public --level error`
+   (sortie vide), `npx supabase test db --local` — **611 tests, tous verts**.
+2. La requête de staging (éditeur SQL de staging, lecture seule) : **aucun ÉCART** (⓪ `joignabilite_du_site`).
+3. `npx supabase db push`, puis `git push` aussitôt — le lot A.
+4. Sur staging : les vérifications de S1 (docs/reprise-s1.md, étape 9), de l'ARRÊT 22 et de l'ARRÊT 23 ; plus : une
+   langue choisie s'enregistre ; une photo se dépose deux fois ; « Autre » coché s'enregistre ; le clavier sur les zones.
+5. **Le lot B, quand le lot A est EN LIGNE** : `git merge lot/grand-livre-refus-retirees` (ou `git checkout` de la branche),
+   puis 1 (**637 tests**), la requête de staging (**⓪ `journal_photo_et_cv`**, aucun ÉCART), `db push`, `git push`.
+6. Sur staging après le lot B : une traduction « Other » refusée dans l'administration des spécialités ; la ligne « Autre »
+   absente des listes ; les notices de la migration disent combien de langues et de spécialités la reprise a reprises.
+
 ## ⛔ ARRÊT 23 — LA FUSION DU LOT S1 DANS `feat/sprint-archi-orga`, AVEC LES DÉCISIONS DE YOUSSEF (01/10/2026)
 
 Tag local `sauvegarde-avant-fusion-s1` sur `4f951cf` (tête de l'ARRÊT 22 bis), arbre propre (hormis `supabase/snippets/`).
