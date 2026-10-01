@@ -89,6 +89,13 @@ Je n'ai lancé aucun d'eux, ni `--avec-base`. **Gardé par** `diag-recette-stagi
 migration modifiée n'est pas encore appliquée ; `db reset --local` la rejoue) ; **543 tests attendus** dans 54 fichiers
 (540 + 3). L'étape 9 n'a plus à décider du script d'enquête : il est supprimé.
 
+**L'épreuve (sur `98bfd81`)** : tsc et next build séparément, lint 50/24, parité 4257, série complète **118 verts, 0 rouge,
+0 n'a pas tourné, 6 écartés** (sortie 0) ; **5 mutations sur 5 rougissent** — le numéro remis dans `compte_cree`, une clé
+`telephone` ajoutée, la recherche des huit derniers chiffres retirée du test, `diag-cron-purges` qui réaffiche la réponse,
+le script d'enquête rétabli (écrit puis effacé, jamais lancé). Les 543 tests pgTAP restent à rejouer par Youssef.
+
+**ARRÊT 20 bis : terminé.** Aucun `git push`, aucune écriture en base.
+
 ## ⛔ ARRÊT 20 — LA RECETTE STAGING : TOUT LE RESTE DE LA LISTE, EN UN SEUL LOT (30/09/2026)
 
 État de départ : ARRÊTS 18, 19 et 19 bis déployés sur staging (`dbd028e`, dernière migration `listes_profil_atomiques`).
