@@ -3611,7 +3611,9 @@ fois par mois, et `refus_plafond_atteint` refusé) ; l'échec d'une recherche au
 ouvertes.
 
 **Gardé par** `diag-grand-livre` (deux actions d'une même fonction SQL sur le même sujet rougissent), le test
-`grand_livre/inscriptions` (deux sujets par voie), `diag-recette-staging` (l'écran). **Ce qu'ils ne voient pas** :
+`grand_livre/inscriptions` (deux sujets par voie), `diag-recette-staging` (l'écran), et `diag-tests-grand-livre` C ter
+(un test ne lit dans le détail d'une action que des clés de sa liste blanche — `inscription/porte.test.sql` lisait
+encore la forme d'avant, rejeu du 01/10/2026). **Ce qu'ils ne voient pas** :
 deux lignes écrites par deux fonctions différentes ou par le TypeScript sous la même pièce — le balayage est à refaire
 à chaque action nouvelle.
 

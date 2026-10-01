@@ -353,6 +353,45 @@ for (const p of tousLesTests.filter((x) => x.endsWith(".test.sql"))) {
 ok(plansFaux.length === 0, `C bis. le plan de chacun des ${tousLesTests.filter((x) => x.endsWith(".test.sql")).length} fichiers de test égale ses assertions, tous dossiers`,
   plansFaux.length ? plansFaux.join('\n       → ') : undefined)
 
+// ── C ter. UN TEST NE LIT DANS LE DÉTAIL D'UNE ACTION QUE DES CLÉS DE SA LISTE BLANCHE (rejeu local du 01/10/2026) ──
+//  L'ARRÊT 20 a déplacé `cgu_version` et `type_de_compte` de `expert_inscrit` vers `compte_cree`. Le test des lignes
+//  sœurs a été mis à jour ; `inscription/porte.test.sql`, qui lit la MÊME paire, ne l'a pas été — deux rouges au
+//  rejeu, que rien ne pouvait annoncer avant. Une clé que l'action n'a plus le droit de porter ne sera JAMAIS lue :
+//  le test qui la cherche attend une forme morte. Lu sur TOUS les fichiers de test : chaque `detail ->> 'clé'` (ou
+//  `-> 'clé'`) lu dans la portée d'un `type_action = '<code>'` littéral doit être une clé de CLES_DETAIL[<code>]
+//  (lib/journal/actions.ts, miroir de la base que diag-grand-livre tient égal).
+{
+  const src = lire(join(ROOT, 'lib', 'journal', 'actions.ts'))
+  const bloc = src.slice(src.indexOf('export const CLES_DETAIL = {'))
+  const listes = new Map()
+  // Une clé peut contenir `]` (`'champs[]'`) : on saute les chaînes entières, sinon la liste s'arrête au premier crochet.
+  // Et les commentaires de la liste portent des apostrophes (« d'offres ») : on les retire d'abord (§E.7).
+  const blocNu = bloc.slice(0, bloc.indexOf('\n}')).split('\n').map((l) => l.replace(/\/\/.*$/, '')).join('\n')
+  for (const m of blocNu.matchAll(/^\s*(\w+):\s*\[((?:'[^']*'|[^\]'])*)\]/gm)) {
+    listes.set(m[1], [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]))
+  }
+  const admise = (code, cle) => (listes.get(code) ?? []).some((c) => c === cle || c.startsWith(`${cle}.`) || c.startsWith(`${cle}[`))
+  const mortes = []
+  let lectures = 0
+  for (const p of tousLesTests.filter((x) => x.endsWith('.test.sql'))) {
+    const s = sansCommentaires(lire(p))
+    const ancres = [...s.matchAll(/type_action\s*=\s*'(\w+)'/g)]
+    ancres.forEach((a, i) => {
+      // La portée : jusqu'à la prochaine action nommée, ou la prochaine assertion.
+      const fin = Math.min(...[ancres[i + 1]?.index ?? s.length, s.indexOf('return next', a.index + 1), s.indexOf(';', a.index + 1)].filter((x) => x > a.index))
+      const portee = s.slice(a.index, fin)
+      for (const k of portee.matchAll(/detail\s*->>?\s*'(\w+)'/g)) {
+        if (!listes.has(a[1])) continue
+        lectures++
+        if (!admise(a[1], k[1])) mortes.push(`${relative(RACINE_TESTS, p).split('\\').join('/')} : ${a[1]} n'a pas la clé « ${k[1]} » (liste : ${listes.get(a[1]).join(', ')})`)
+      }
+    })
+  }
+  ok(listes.size > 50 && lectures > 10 && mortes.length === 0,
+    `C ter. chaque clé lue dans le détail d'une action (${lectures} lectures) est une clé de sa liste blanche`,
+    mortes.length ? mortes.join('\n       → ') : `${listes.size} listes, ${lectures} lectures`)
+}
+
 // ── K. AUCUN IDENTIFIANT DE SQL DYNAMIQUE TIRÉ D'UNE BOUCLE SUR UNE CONSTANTE (ARRÊT 19, §E.88) ──
 //  `plpgsql_check` suit la valeur des constantes : `foreach v in array <constante>` lui fait croire que
 //  `v` vaut le tableau ENTIER, et un `execute format('… %I …', v)` devient une erreur au lint et au test

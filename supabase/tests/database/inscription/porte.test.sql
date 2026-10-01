@@ -131,20 +131,30 @@ begin
                  and exists (select 1 from public.profiles p where p.user_id = v_ids[9] and p.speciality_other = 'Sonde'
                               and p.branch_id = (v_m ->> 'branch_id')::uuid),
                  'expert : le compte (brouillon), le téléphone VÉRIFIÉ et les CGU (version, date) écrits avec lui ; le profil');
+  -- UN GESTE, UNE PIÈCE, DEUX OBJETS (§D.32, ARRÊT 20) : compte_cree dit le COMPTE (voie, CGU, téléphone vérifié — un
+  -- booléen), expert_inscrit dit le PROFIL né avec lui (branche, spécialités, « Autre »). Ce test lisait la version
+  -- des CGU sur expert_inscrit : la forme d'avant l'ARRÊT 20 (rejeu local du 01/10/2026).
   return next ok(pg_temp.lignes(v_piece) = 2
                  and exists (select 1 from public.grand_livre g where g.piece = v_piece and g.type_action = 'compte_cree'
-                              and g.acteur_id = v_ids[9] and g.detail ->> 'voie_declaree' = 'inscription_expert')
+                              and g.acteur_id = v_ids[9] and g.sujet_type = 'users' and g.sujet_id = v_ids[9]
+                              and g.detail ->> 'voie_declaree' = 'inscription_expert' and g.detail ->> 'cgu_version' = 'sonde'
+                              and g.detail -> 'telephone_verifie' = 'true'::jsonb)
                  and exists (select 1 from public.grand_livre g where g.piece = v_piece and g.type_action = 'expert_inscrit'
-                              and g.statut = 'reussi' and g.acteur_type = 'expert_freelance' and g.detail ->> 'cgu_version' = 'sonde'),
-                 'expert : compte_cree ET sa ligne sœur expert_inscrit, sous la MÊME pièce');
+                              and g.statut = 'reussi' and g.acteur_type = 'expert_freelance' and g.sujet_type = 'profiles'
+                              and g.sujet_id = (select p.id from public.profiles p where p.user_id = v_ids[9])
+                              and g.detail ->> 'branch_id' = v_m ->> 'branch_id' and g.detail -> 'specialite_autre' = 'true'::jsonb),
+                 'expert : compte_cree (le compte) ET expert_inscrit (son profil), sous la MÊME pièce');
   -- ── l'expert CDI ──
   v_m := pg_temp.signee(v_ids[10], 'cdi');
   perform pg_temp.fab_auth(v_ids[10], pg_temp.fab_email(v_ids[10]), v_m, false);
   return next ok(exists (select 1 from public.users u where u.id = v_ids[10] and u.user_type = 'expert_cdi' and u.phone_verified)
                  and pg_temp.lignes((v_m ->> 'piece')::uuid) = 2
+                 and exists (select 1 from public.grand_livre g where g.piece = (v_m ->> 'piece')::uuid and g.type_action = 'compte_cree'
+                              and g.sujet_id = v_ids[10] and g.detail ->> 'type_de_compte' = 'expert_cdi')
                  and exists (select 1 from public.grand_livre g where g.piece = (v_m ->> 'piece')::uuid and g.type_action = 'expert_inscrit'
-                              and g.detail ->> 'type_de_compte' = 'expert_cdi'),
-                 'CDI : le compte, et la paire sous la même pièce');
+                              and g.acteur_type = 'expert_cdi' and g.sujet_type = 'profiles'
+                              and g.sujet_id = (select p.id from public.profiles p where p.user_id = v_ids[10])),
+                 'CDI : le compte, et la paire sous la même pièce — le type sur compte_cree, le profil sur expert_inscrit');
   -- ── le client : l'organisation NAÎT avec son compte ──
   v_m := pg_temp.signee(v_ids[11], 'entreprise');
   v_piece := (v_m ->> 'piece')::uuid;

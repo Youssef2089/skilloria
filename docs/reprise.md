@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 01/10/2026 (ARRÊT 20 bis — le téléphone au grand livre, les scripts qui lisaient la vraie base).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 01/10/2026 (ARRÊT 20 ter — les deux rouges de inscription/porte.test.sql).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,37 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 20 ter — LES DEUX ROUGES DE `inscription/porte.test.sql` (01/10/2026)
+
+Rejeu de Youssef : 54 fichiers, 541 tests sur 543 ; rouges les tests 12 (« expert : compte_cree ET sa ligne sœur
+expert_inscrit, sous la MÊME pièce ») et 13 (« CDI : le compte, et la paire sous la même pièce »).
+
+**① CE N'EST PAS UNE RÉGRESSION : c'est le test qui attendait la forme d'avant l'ARRÊT 20.** Les deux tests vérifient
+d'abord `pg_temp.lignes(pièce) = 2` — deux lignes, une pièce ; puis ils lisaient sur `expert_inscrit` la version des CGU
+(test 12) et le type de compte (test 13), deux clés que l'ARRÊT 20 a déplacées sur `compte_cree` (§D.32). Une clé que
+l'action n'a plus le droit de porter ne peut plus être lue : l'`exists` rendait faux, le test aussi. **L'inscription reste
+un seul geste, une seule pièce** : `grand_livre/inscriptions.test.sql` (même chemin, mêmes fabriques) l'exige pour chaque
+voie et il est vert au rejeu ; `handle_new_user` écrit les deux lignes sous `v_piece`, l'unique pièce signée par la route.
+
+**② LE CORRECTIF, À LA SOURCE : le test.** La migration 090 est juste ; elle ne change pas. Les tests 12 et 13 vérifient
+désormais la forme actuelle : la paire sous la MÊME pièce, `compte_cree` sur le compte (voie, version des CGU, téléphone
+vérifié — un booléen ; le type pour le CDI), `expert_inscrit` sur le PROFIL né avec lui (branche, « Autre »).
+
+**③ POURQUOI MON CONTRÔLE NE L'A PAS VU.** J'ai mis à jour `grand_livre/inscriptions.test.sql`, le test nommé pour la paire,
+sans chercher les AUTRES tests qui lisent ces deux écritures — c'est §E.20 (un correctif appliqué à un jumeau, pas à
+l'autre) dans les tests eux-mêmes. Et aucun contrôle ne confrontait la clé qu'un test lit à la liste blanche de l'action.
+**Balayage** : six fichiers lisent `compte_cree` ou `expert_inscrit` — `grand_livre/inscriptions` (mis à jour à
+l'ARRÊT 20), `grand_livre/administrateur_cree` (mis à jour), `inscription/compte_cree` (type, voie, sujet : inchangés, mis à
+jour pour l'administrateur), `inscription/porte` (**les deux rouges**, corrigés ; ses autres lectures — l'invitation,
+l'organisation, l'administrateur — portent sur d'autres actions), `grand_livre/nettoyage` (des lignes fabriquées, détail
+vide). **La parade, qui aurait vu ces deux tests avant le rejeu** : `diag-tests-grand-livre` C ter — dans TOUS les
+fichiers de test, chaque clé lue dans le détail d'une action nommée doit appartenir à la liste blanche de cette action
+(90 lectures contrôlées). Sa première version a rougi à tort : elle coupait la liste au premier `]` d'une clé
+(`'champs[]'`) et aux apostrophes des commentaires — corrigée, éprouvée par mutation.
+
+**Pour Youssef** : `npx supabase test db --local` — **543 tests, tous verts** ; le reste des étapes de l'ARRÊT 20 tel quel
+(aucune migration n'a changé).
 
 ## ⛔ ARRÊT 20 bis — AVANT LE DÉPLOIEMENT DE L'ARRÊT 20 : DEUX POINTS (01/10/2026)
 

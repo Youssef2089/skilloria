@@ -4214,6 +4214,11 @@ cite une action sans l'exécuter trompe le recensement.
 ⑤ **Un plan faux ne se voit qu'au rejeu** : `profil/travaux_ia.test.sql` annonçait 26 et en faisait 27. Le contrôle
   du plan existait, borné au dossier `grand_livre/` (§E.61) ; il couvre désormais les 54 fichiers.
 
+⑥ **Changer la forme d'une écriture, c'est changer TOUS les tests qui la lisent** (rejeu du 01/10/2026). L'ARRÊT 20 a
+  déplacé deux clés d'`expert_inscrit` vers `compte_cree` et mis à jour le test nommé pour la paire ;
+  `inscription/porte.test.sql`, qui lit la même paire, attendait encore l'ancienne forme — deux rouges au rejeu. La parade
+  est un contrôle, pas une consigne : `diag-tests-grand-livre` C ter confronte chaque clé lue à la liste blanche de l'action.
+
 **Gardé par** [`diag-parcours-expert`](../scripts/diag-parcours-expert.mjs) (la liste unique, la normalisation
 exécutée sur des cas fabriqués, le test G sur EXACTEMENT la liste fermée, la forme de la boucle),
 [`diag-tests-grand-livre`](../scripts/diag-tests-grand-livre.mjs) (C bis : le plan de chaque fichier ; K : aucune
