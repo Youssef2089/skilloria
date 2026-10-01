@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 01/10/2026 (ARRÊT 20 ter — les deux rouges de inscription/porte.test.sql).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 01/10/2026 (ARRÊT 21, phase 1 — la liste des écritures du grand livre, pour décision).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,127 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 21 — LE GRAND LIVRE : PHASE 1, LA LISTE POUR DÉCISION DE YOUSSEF (01/10/2026)
+
+Lecture seule : aucun code, aucune migration. Établi en lisant chaque écrivain dans le code et dans la dernière
+définition de chaque fonction SQL. Les fréquences sont tirées du code ; les volumes reposent sur des HYPOTHÈSES
+d'usage, dites comme telles (aucune donnée réelle lue).
+
+**Légende des recommandations** — **GARDER** : un changement d'état qui compte. **GARDER, MIEUX** : à garder, mais
+seulement quand quelque chose change vraiment (aujourd'hui l'écriture part aussi quand rien n'a changé). **FUSIONNER** :
+le fait reste, dit par une autre écriture. **RETIRER** : pas un changement d'état (un clic refusé, une étape technique).
+
+### Comptes et inscription
+| Écriture (libellé à l'écran) | Quand, et qui la déclenche | Ce qu'elle dit aujourd'hui | Fréquence | Recommandation |
+|---|---|---|---|---|
+| Compte créé | à toute création de compte (inscription, invitation, administrateur) ; la personne, ou « Système » pour un administrateur | type de compte, voie, version des CGU, téléphone vérifié oui/non | 1 fois par compte | **GARDER** |
+| Inscription d'un expert | même geste, pour un expert | branche, nombre de spécialités, « Autre » oui/non | 1 fois par expert | **GARDER** (votre décision du 30/09 : chacune dit son objet) |
+| Préinscription d'une organisation | même geste, pour une organisation | type d'organisation, adresse publique ou non | 1 fois par organisation | **GARDER** |
+| Administrateur créé | création d'un administrateur | « premier administrateur » oui/non | 1 fois par administrateur | **GARDER** |
+| Compte validé / Compte refusé | un administrateur tranche un dossier | motif donné oui/non, état d'avant | 1 par décision | **GARDER** |
+| Vérification conclue | après chaque publication d'un profil, la vérification automatique rend son verdict | « approuvé non », « motif note_insuffisante », « de pending » — ne nomme pas le profil | 1 par publication | **GARDER, MIEUX** : une phrase qui nomme le profil, la note et la suite donnée |
+| Compte suspendu / Compte réactivé | un administrateur | état d'avant et d'après, type de compte | 1 par bascule | **GARDER** |
+| Autres sessions fermées | l'utilisateur clique « se déconnecter des autres appareils » | rien | rare | **GARDER** |
+| Suppression du compte programmée / annulée | l'utilisateur demande, puis annule | échéance, délai | 1 par demande | **GARDER** |
+| Adresse e-mail changée | l'utilisateur demande un changement | toujours « demande » (la confirmation n'est pas reliée) | 1 par demande | **GARDER** (libellé à corriger : « changement demandé ») |
+| Mot de passe changé | depuis les réglages | rien | 1 par changement | **GARDER** (le « mot de passe oublié » n'écrit rien : à signaler) |
+| Téléphone vérifié | code SMS validé | « méthode : otp_sms » | à CHAQUE validation, même déjà vérifié | **GARDER, MIEUX** : seulement si le numéro change ou n'était pas vérifié |
+| Nom modifié | enregistrement du prénom et du nom | toujours « first_name, last_name » | à chaque enregistrement, MÊME SANS CHANGEMENT | **GARDER, MIEUX** : seulement si le nom change |
+| Membre invité / Invitation renvoyée / acceptée / révoquée | l'administrateur de l'organisation, ou l'invité | rôle, état | 1 par geste | **GARDER** |
+| Membre retiré / Membre parti / Rôle d'un membre changé | administrateur de l'organisation, le membre, ou un administrateur | rôle et état d'avant et d'après | 1 par changement réel | **GARDER** |
+| Fiche d'organisation modifiée | « Enregistrer » sur la fiche, logo | la liste de TOUS les champs du formulaire | à chaque enregistrement, MÊME SANS CHANGEMENT | **GARDER, MIEUX** : seulement si un champ change, et dire lequel en mots |
+| Avertissement d'inactivité | tâche de nuit, 23 mois sans connexion | échéance de l'effacement | réussi : 1 fois ; ÉCHOUÉ : chaque nuit tant que l'e-mail ne part pas | **GARDER, MIEUX** : l'échec une seule fois par compte |
+| Compte effacé (inactivité / à sa demande / par un administrateur) | tâche de nuit, ou un administrateur | ce qui a été effacé | 1 fois par compte | **GARDER** (preuve RGPD) |
+
+### Profil et CV
+| Écriture | Quand, et qui | Ce qu'elle dit | Fréquence | Recommandation |
+|---|---|---|---|---|
+| CV déposé | l'analyse d'un CV déposé par l'expert aboutit | taille, « analyse done », nombre d'expériences, écarts | 1 par CV analysé | **GARDER** |
+| CV réinitialisé | l'expert retire son CV | retiré de la vitrine, fichier présent | 1 par geste | **GARDER** |
+| Profil publié | l'expert clique « Publier » | « deja_visible non », « verification_avant — » | à CHAQUE clic, même profil déjà visible | **GARDER, MIEUX** : seulement quand le profil devient visible |
+| Profil modifié | chaque enregistrement du profil (formulaire, tarif, photo) | une liste de noms de champs techniques | à CHAQUE enregistrement, MÊME SANS CHANGEMENT | **GARDER, MIEUX** : seulement si quelque chose change ; UNE ligne par séance d'édition (les enregistrements rapprochés d'un même expert regroupés, comme la recherche qui attend déjà 10 min) ; les rubriques en mots (« expériences, compétences ») |
+| Disponibilité changée | l'expert bascule sa disponibilité | avant / après | seulement si elle change | **GARDER** |
+| Travail d'IA abandonné / relancé | une analyse ou une vérification échoue définitivement ; un administrateur relance | nature, cause | rare | **GARDER** |
+
+### Annonces
+| Écriture | Quand, et qui | Ce qu'elle dit | Fréquence | Recommandation |
+|---|---|---|---|---|
+| Annonce créée en brouillon / Besoin de sous-traitance créé | l'organisation (ou l'expert) crée un brouillon | type | 1 par annonce | **GARDER** |
+| Annonce modifiée | chaque enregistrement d'un brouillon | la liste des champs envoyés | à CHAQUE enregistrement, MÊME SANS CHANGEMENT | **GARDER, MIEUX** : seulement si quelque chose change |
+| Annonce publiée / Besoin de sous-traitance publié | la publication est acceptée | méthode et note de la vérification | 1 par annonce | **GARDER** |
+| Annonce dépubliée | l'organisation ferme l'annonce | avant / après | 1 par annonce | **GARDER** |
+| Annonce expirée | tâche de nuit | durée de vie | 1 par annonce | **GARDER** |
+
+### La recherche de correspondances (le moteur)
+| Écriture | Quand, et qui | Ce qu'elle dit | Fréquence | Recommandation |
+|---|---|---|---|---|
+| Recherche lancée · vivier filtré · profils notés · correspondances enregistrées · notifications envoyées | chaque recherche, dans les deux sens (une annonce cherche des experts, un expert cherche des annonces), y compris les recherches automatiques | des compteurs techniques, une étape par ligne | **5 à 6 lignes PAR recherche** | **FUSIONNER** dans la ligne de fin |
+| Recherche terminée / en échec / abandonnée | fin de chaque recherche | l'issue | 1 par recherche | **GARDER, MIEUX** : UNE seule ligne par recherche, en phrase : « Recherche pour le profil de X : 14 annonces examinées, 3 retenues dont 1 forte, coût 0,002 $ » |
+| Refusé : une recherche est déjà en cours | une seconde recherche tombe pendant la première | rien d'utile | à chaque collision | **RETIRER** (rien n'a changé) |
+
+### Candidatures et échanges
+| Écriture | Quand, et qui | Ce qu'elle dit | Fréquence | Recommandation |
+|---|---|---|---|---|
+| Candidature déposée / à un besoin de sous-traitance | l'expert postule | annonce, note | 1 par candidature | **GARDER** |
+| Candidature déclinée / retenue | l'organisation tranche | annonce | 1 par décision | **GARDER** |
+| Mission écartée par l'expert | l'expert écarte une proposition | annonce | 1 par proposition | **GARDER** |
+| Coordonnées dévoilées / Dévoilement refermé | l'organisation dévoile ; la fenêtre se referme (tâche de nuit) | annonce, profil, échéance | 1 par échange | **GARDER** |
+| Message envoyé | CHAQUE message de la messagerie | la conversation | **1 par message** | **RETIRER** : la messagerie garde déjà chaque message et sa date ; le fait métier est l'ouverture de l'échange (« Coordonnées dévoilées ») |
+| Refusé : expert inapte / conditions de dépôt non remplies | un dépôt refusé (profil incomplet, déjà postulé, annonce fermée…) | un code | à chaque tentative, un double-clic en écrit deux | **RETIRER** (un clic refusé, rien n'a changé ; l'écran le dit à l'expert) |
+| Refusé : candidature non évaluée | l'évaluation par l'IA d'une candidature échoue | cause | rare | **GARDER** (une candidature perdue — elle est aussi à l'écran « Dépôts en échec ») |
+
+### Argent et intelligence artificielle
+| Écriture | Quand, et qui | Ce qu'elle dit | Fréquence | Recommandation |
+|---|---|---|---|---|
+| Paiement reçu | Stripe confirme une facture payée | montant, période | 1 par facture | **GARDER** |
+| Événement de paiement rouvert | un administrateur relance un paiement bloqué | l'événement | rare | **GARDER** |
+| Plafond de dépense atteint | une dépense d'IA franchit le plafond mensuel | dépense, plafond, mois | au plus 1 par mois et par compte | **GARDER** |
+| Refusé : plafond de dépense atteint | chaque appel d'IA refusé tant que le plafond tient | dépense, plafond | à CHAQUE appel refusé | **RETIRER** : « Plafond atteint » dit le fait ; la page Consommation dit qui est arrêté |
+| Refusé : quota d'analyses de CV atteint | un dépôt de CV au-delà du quota | quota, limite | à chaque tentative | **RETIRER** (un clic refusé ; l'écran le dit) |
+
+### Administration
+| Écriture | Quand, et qui | Ce qu'elle dit | Fréquence | Recommandation |
+|---|---|---|---|---|
+| Réglage modifié | « Enregistrer » sur un écran de réglage (durées, tarifs, notes, quotas, moteur, plafonds, offres, synchronisation du catalogue) | avant / après, en noms techniques | à chaque enregistrement, SOUVENT MÊME SANS CHANGEMENT (jusqu'à 3 lignes pour les plafonds) | **GARDER, MIEUX** : seulement si une valeur change, en mots |
+| Taxonomie modifiée / Écosystème créé / modifié | un administrateur | les champs envoyés, toutes les traductions | à chaque enregistrement, même sans changement | **GARDER, MIEUX** : seulement si quelque chose change |
+| Tâche lancée à la main | un administrateur clique « exécuter maintenant » | la tâche | 1 par clic | **GARDER** (geste rare et volontaire) |
+| Adresses IP effacées | tâche de nuit | nombres d'adresses effacées | **chaque nuit, même avec 0** | **GARDER, MIEUX** : seulement s'il y a eu quelque chose à effacer (ou un échec) |
+| Journal nettoyé | un administrateur nettoie | ce qui a été effacé, par famille | 1 par nettoyage réel | **GARDER** |
+
+**Le compte** : 74 écritures possibles. **GARDER** 48 · **GARDER, MIEUX** 15 (écrire seulement sur un vrai
+changement, ou une ligne au lieu de plusieurs) · **FUSIONNER** 5 (les étapes de la recherche, dites par la ligne de fin)
+· **RETIRER** 6 (message envoyé, recherche déjà en cours, expert inapte, conditions de dépôt non remplies, plafond
+atteint refusé, quota de CV refusé). Après : 63 écritures possibles, et beaucoup moins souvent.
+
+### Le volume
+**Aucune consultation n'écrit au grand livre** — vérifié sur les 72 routes de lecture, les pages, le middleware et les
+déclencheurs de la base : aucune lecture n'appelle une fonction qui écrit au grand livre. Une seule tâche écrit à chaque
+passage sans rien avoir fait : « Adresses IP effacées », une ligne par nuit. *(Hors grand livre, et dit pour être
+complet : trois lectures changent un état sans le tracer — l'ouverture d'une mission la marque « vue », la lecture d'une
+conversation marque les messages lus, le lien de désabonnement d'un e-mail coupe une préférence ; et la fiche d'un
+compte ouverte par un administrateur s'écrit dans le journal d'audit, un autre journal.)*
+
+**Ce que pèse une écriture** : environ 0,8 Ko, index compris (une ligne de 0,3 à 0,45 Ko, et autant dans ses sept index).
+
+**Par compte actif et par mois** (HYPOTHÈSES, NON MESURÉES — un expert actif : 4 enregistrements du profil, 1 publication,
+4 recherches, 2 candidatures, 15 messages, 1 dévoilement ; une organisation active : 1 annonce, 3 enregistrements du
+brouillon, 3 décisions, 15 messages) :
+
+| | Aujourd'hui | Après les recommandations |
+|---|---|---|
+| Expert actif | ≈ 50 écritures / mois (dont 24 pour la recherche et 15 pour les messages) | ≈ 11 |
+| Organisation active | ≈ 31 / mois | ≈ 8 |
+| **10 000 comptes** (8 000 experts, 2 000 organisations, 30 % actifs un mois donné) | ≈ 140 000 lignes / mois, **≈ 1,7 million / an, ≈ 1,3 Go / an** | ≈ 31 000 / mois, **≈ 0,4 million / an, ≈ 0,3 Go / an** |
+| Les mêmes 10 000 comptes, tous actifs | ≈ 4,4 Go / an | ≈ 1 Go / an |
+
+**Lecture** : la base n'explose pas aujourd'hui, mais deux postes font l'essentiel du volume — les étapes de la recherche
+et les messages — et aucun n'apporte une information que le reste de la base n'ait pas déjà. Les recommandations
+divisent le volume par quatre à cinq. La conservation par famille (phase 2, point 6) bornera ensuite la taille dans le
+temps.
+
+**À trancher par Youssef** : chaque ligne du tableau (GARDER / GARDER, MIEUX / FUSIONNER / RETIRER). Rien n'est construit
+avant sa décision.
 
 ## ⛔ ARRÊT 20 ter — LES DEUX ROUGES DE `inscription/porte.test.sql` (01/10/2026)
 
