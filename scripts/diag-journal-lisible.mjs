@@ -437,7 +437,6 @@ section('3. Les actions retirées n’écrivent plus')
     ok(/ORDRE DE PASSAGE : APRÈS le déploiement/.test(entete) && /retiree_le/.test(defsPar.at(-1)?.corps ?? ''),
       'TEMPS 2 : sa migration se passe APRÈS le déploiement du lot qui a cessé d’écrire (en-tête lu, §G.4)')
   }
-  const refusEnPlace = migRefus.length > 0
   const jtx = sansCommentaires(lire('lib/journal/journaliser.ts'))
   ok(/A extends ActionActive/.test(jtx) && !/A extends TypeAction\b/.test(jtx), 'en TypeScript, écrire une action retirée ne compile pas (EcritureJournal<A extends ActionActive>)')
   // Aucun appel TypeScript n'écrit une action retirée.
