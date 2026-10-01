@@ -131,6 +131,23 @@ Je ne l'ai PAS touchée. Deux contrôles le disent, et resteront rouges jusqu'à
 5. **À décider avant d'appliquer une proposition de conservation** : les durées et références sont des PROPOSITIONS, non
    vérifiées par un juriste (l'écran le dit). Rien ne s'efface tant que vous n'avez rien appliqué ni nettoyé.
 
+### L'épreuve de l'ARRÊT 22 (sur `88df3dc`)
+- **tsc** (filtre .next/) : 0 erreur. **next build** : réussi (les trois routes et l'écran nouveaux compilés).
+- **lint** : 50 erreurs / 24 avertissements — le cliquet tient (vert seul, en 120,2 s : à la limite du délai du lanceur).
+- **parité i18n** : 4 856 clés dans les quatre langues. **diag-memoire-exacte** et **diag-memoire-a-jour --base=0fb9f1d** : verts.
+- **Série complète** (`node scripts/diag.mjs`) : **115 verts, 2 rouges, 2 n'ont pas tourné, 6 écartés.**
+  · Les 2 rouges sont ceux de la requête d'avant-push, LAISSÉE au lot fusionné en second (consigne) : `diag-requete-staging`
+    (huit objets nouveaux à déclarer) et une ligne de `diag-portes-laterales` (`notification_preferences` à lister).
+  · Les 2 « n'a pas tourné » sont des délais : `diag-lint-cliquet` (vert seul, 120,2 s) et `diag-controles-a-rejouer`
+    (seul : 95 contrôles rejoués en 3 min 29, un seul rouge — `diag-portes-laterales`, la même ligne de la requête).
+- **Mutations : 16 sur 16 rougissent**, arbre restauré : un code brut, un libellé manquant, un mot de jargon, « de {profil} »,
+  une action sans phrase propre, GL006 retiré, une retirée ôtée de la liste TS, un test qui n'attend plus GL006, « Système
+  Système » revenu, l'écran limité en largeur, une durée dans une référence, le désabonnement par setPreference, un champ
+  d'organisation sans libellé (→ `diag-journal-lisible`) ; une retirée qui retrouve un écrivain SQL, une étape de recherche
+  qui réécrit, le profil qui renomme tout l'envoyé (→ `diag-grand-livre`). **Une mutation sans contrôle statique, dite** : un
+  réglage inchangé qui réécrirait — c'est un comportement SQL, prouvé par pgTAP (`reglages.test.sql`), que vous lancez.
+- **pgTAP** : 567 tests écrits, NON exécutés ici (ni Docker ni base) — étape 1 ci-dessus.
+
 ## ⛔ ARRÊT 21 — LE GRAND LIVRE : PHASE 1, LA LISTE POUR DÉCISION DE YOUSSEF (01/10/2026)
 
 Lecture seule : aucun code, aucune migration. Établi en lisant chaque écrivain dans le code et dans la dernière
