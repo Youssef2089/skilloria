@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **179** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
-01/10/2026 à la relecture indépendante — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
+Sur les **183** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
+01/10/2026 sur le lot B — ses quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
+mêmes — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
 fusion du lot S1 : les mêmes — `journal_photo_et_cv` sème deux actions ; sur 179, à la fusion : 78, 65, 3346 ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
 l'action `desabonnement_email`, les propositions de conservation leurs douze lignes ; sur 175, côté S1 : 76, 63, 3306 —
 `langues_liste_fermee` sème les 92 langues et leurs 467 noms ; sur 172 : 74, 61, 2280, mesuré le 30/09/2026 à la

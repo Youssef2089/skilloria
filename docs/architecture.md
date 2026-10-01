@@ -425,7 +425,18 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   politiques, calculé dans l'ordre des migrations : au temps 1, les trois restent).
 >
 > **LE LOT B — branche `lot/grand-livre-refus-retirees`, horodaté après `20261002000000`, TOUT marqué APRÈS.** Il se
-> pousse une fois le lot A EN LIGNE ; son contenu et ses tests sont décrits dans sa propre branche (§E.91).
+> pousse une fois le lot A EN LIGNE (§E.91) : entre son push et son déploiement, c'est le code du lot A qui tourne, et il
+> n'écrit plus rien de ce que ces migrations refusent.
+> - **`grand_livre_refus_des_retirees`** (`…000010`) — `journaliser()` refuse les onze actions retirées (GL006).
+> - **`langues_garde`** (`…000020`) — la reprise `rattacher_langues_heritees()` RELANCÉE (les lignes écrites en texte
+>   libre par le code d'avant, pendant la fenêtre du lot A), PUIS le déclencheur `profile_languages_langue_de_la_liste`
+>   (`LG001`, hors liste active, à l'insertion et au changement de `language`). Test : `profil/langues_garde.test.sql` (8).
+> - **`specialite_autre_garde`** (`…000030`) — la reprise `retirer_specialites_autre()` (sort « Autre » des profils et
+>   annonces, garde « Autre » en précision quand elle était vide, DÉSACTIVE la ligne, rend ses comptes, fermée au
+>   navigateur) dans son bloc, PUIS la contrainte `specialities_autre_hors_referentiel` (nom et slug), PUIS la garde des
+>   traductions `translations_specialite_autre` (le nom traduit d'une spécialité ACTIVE n'est jamais « Autre » — 23514
+>   sous le nom de la contrainte). Test : `taxonomie/autre_hors_referentiel.test.sql` (18).
+> - **`photo_par_le_serveur`** (`…000040`) — retire `avatars_auth_upload`, `_update`, `_delete`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est

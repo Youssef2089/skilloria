@@ -37,34 +37,25 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- CE PUSH, LE LOT A (relecture du 01/10/2026) : staging est à jour jusqu'à joignabilite_du_site (ARRÊT 20, déployé le
-  -- 01/10). Six migrations — grand_livre_liste_validee, ecritures_sur_vrai_changement, conservation_propositions,
-  -- journal_libelles (ARRÊT 22), langues_liste_fermee SANS sa garde (recette S1), journal_photo_et_cv (fusion S1). AUCUNE
-  -- ne supprime de signature, AUCUNE ne refuse un geste du code en ligne (diag-deux-temps). Ce qui refuse part au lot B
-  -- (le refus GL006, la garde des langues, la contrainte « Autre », l'écriture des photos par le navigateur), après.
+  -- CE PUSH, LE LOT B (relecture du 01/10/2026) : il se pousse quand le lot A est EN LIGNE — staging est alors à jour
+  -- jusqu'à journal_photo_et_cv. Quatre migrations, toutes APRÈS : grand_livre_refus_des_retirees (journaliser() refuse
+  -- les onze retirées, GL006 — redéfinie à signature identique), langues_garde (la reprise relancée, puis le déclencheur
+  -- LG001), specialite_autre_garde (la reprise « Autre », la contrainte, la garde des traductions), photo_par_le_serveur
+  -- (trois politiques d'écriture du navigateur retirées sur avatars — des politiques, pas des signatures). AUCUNE ne
+  -- supprime de signature.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
-  -- Des fonctions REDÉFINIES à signature identique (journaliser_reglage, envoyer_message, verifier_telephone,
-  -- effacer_adresses_ip, constater_avertissement_inactivite, poser_verdict_verification, remplacer_listes_profil) et des
-  -- lignes (actions, propositions, langues) ne sont pas « créées » au sens de cette liste.
+  -- Une fonction REDÉFINIE à signature identique (journaliser), un déclencheur, une politique retirée et des lignes
+  -- reprises ne sont pas « créés » au sens de cette liste.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'se_desabonner_email'),
-      ('fonction', 'appliquer_proposition_conservation'),
-      ('fonction', 'libelles_journal'),
-      ('table', 'grand_livre_conservation_proposee'),
-      ('contrainte', 'gl_conservation_proposee_plancher'),
-      ('contrainte', 'gl_conservation_proposee_duree'),
-      ('contrainte', 'gl_conservation_proposee_au_dessus'),
-      ('contrainte', 'gl_conservation_proposee_journal'),
-      ('table', 'langues'),
-      ('table', 'langues_noms'),
-      ('fonction', 'code_de_langue'),
-      ('fonction', 'rattacher_langues_heritees'),
-      ('fonction', 'est_specialite_autre')
+      ('fonction', 'profile_languages_langue_de_la_liste'),
+      ('fonction', 'retirer_specialites_autre'),
+      ('fonction', 'translations_specialite_autre'),
+      ('contrainte', 'specialities_autre_hors_referentiel')
     ) v(genre, nom)
   )
 
@@ -77,7 +68,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'joignabilite_du_site',
+   'journal_photo_et_cv',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 
