@@ -512,6 +512,14 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
 {
   /** Les plages attribuees, telles que §G.2 les fixe. */
   const PLAGES = { '0': 'tronc', '2': 'S1', '3': 'S2' }
+  /**
+   * LA PLAGE `1xxxxx` A ETE ATTRIBUEE A S1 LE 01/10/2026 — par la consigne de l'architecte du
+   * lot « corrections de la recette » (tronc 20261001000000–…099999, S1 20261001100000–…199999).
+   * DATEE, et c'est ce qui garde le gel lisible : avant cette date, `1xxxxx` reste la plage FAUSSE
+   * des quatre migrations gelees ; a partir d'elle, c'est S1. Une `1xxxxx` anterieure rougit
+   * toujours.
+   */
+  const PLAGES_DATEES = [{ plage: '1', auteur: 'S1', depuis: '20261001' }]
 
   /**
    * LA DETTE GELEE — quatre migrations du tronc en `1xxxxx`, plage que §G.2
@@ -562,6 +570,7 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
     if (horodatage.length !== 14 || /^0+$/.test(horodatage)) continue
     const plage = horodatage.slice(8, 9)
     if (PLAGES[plage]) continue
+    if (PLAGES_DATEES.some((p) => p.plage === plage && horodatage.slice(0, 8) >= p.depuis)) continue
     horsPlage.push(f)
   }
 
@@ -571,7 +580,7 @@ section('E. La plage de numerotation du worktree — un CLIQUET')
   ok(nouvelles.length === 0,
     `aucune NOUVELLE migration hors des plages attribuees (gel : ${GEL.size})`,
     nouvelles.map((f) => `${f} — suffixe ${f.split('_')[0].slice(8)}, plage inconnue`).join(' · ') +
-      ' — §G.2 : tronc 0xxxxx, S1 2xxxxx, S2 3xxxxx')
+      ' — §G.2 : tronc 0xxxxx, S1 2xxxxx (et 1xxxxx depuis le 01/10/2026), S2 3xxxxx')
 
   if (sorties.length > 0) {
     console.log(`  note ${sorties.length} migration(s) sortie(s) du gel — pensez a les retirer de GEL :`)

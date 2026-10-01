@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/admin-guard'
 import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
+import { estRefusAutre } from '@/lib/taxonomie/specialite-autre'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -153,6 +154,11 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (Object.keys(updates).length > 0) {
     updates.updated_at = new Date().toISOString()
     const { error: updErr } = await auth.supabaseAdmin.from('specialities').update(updates).eq('id', id)
+    // Renommer en « Autre » ou réactiver une ligne « Autre » retirée : la base refuse (recette du
+    // 01/10/2026, point 1) — une règle, pas une panne.
+    if (estRefusAutre(updErr)) {
+      return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
+    }
     if (updErr) {
       console.error('[admin:update-speciality] update failed', updErr.message)
       return json({ error: 'Update failed', code: 'db_error' }, 500)

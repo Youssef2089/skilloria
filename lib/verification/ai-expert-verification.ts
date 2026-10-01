@@ -1,13 +1,15 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { consommationJetons, type ConsommationIA } from '../ai-consommation.ts'
 import { causeEchecModele, type CauseEchecModele } from '../profil/cause-echec-modele.ts'
+import { tranchesPourConsigne } from '../profil/seniorites.ts'
 
 /**
- * Analyseur de cohérence IA — VÉRIFICATION EXPERT (3 axes).
+ * Analyseur de cohérence IA — VÉRIFICATION EXPERT (2 axes).
  *
  * Patron : ai-fallback.ts (vérification org 11G).
- *   - Claude Haiku 4.5 (PRIMARY) → Sonnet 4.6 (FALLBACK) si tool incompatible
- *   - Tool natif `web_search_20250305` (server-side Anthropic, sources citées)
+ *   - Claude Haiku 4.5 (PRIMARY) → Sonnet 4.6 (FALLBACK)
+ *   - AUCUN outil : ni recherche web, ni ouverture de page (recette du 01/10/2026,
+ *     décision de Youssef — voir « LinkedIn est ignoré » ci-dessous)
  *   - JSON strict + sanitize anti-prompt-injection
  *   - Fail-safe : timeout / erreur SDK / JSON non parsable → result='error'
  *     ⇒ dispatcher promeut en `pending_admin_review` (JAMAIS auto-approve)
@@ -17,10 +19,13 @@ import { causeEchecModele, type CauseEchecModele } from '../profil/cause-echec-m
  * 1) CV ↔ profil déclaré (cohérence interne)
  *    Le contenu déclaré (skills/seniority/years_experience/title/summary +
  *    experiences/educations) doit être COHÉRENT en lui-même :
- *      • séniorité ↔ years_experience plausible (junior < 3 ans, senior ≥ 6, etc.)
+ *      • séniorité ↔ years_experience plausible (tranches de lib/profil/seniorites.ts,
+ *        semi-ouvertes : chaque valeur appartient à UNE tranche)
  *      • skills déclarés ↔ rôles tenus (un "developer C++" qui liste 0 skill
  *        C++ est incohérent)
  *      • dates des expériences sans trou inexpliqué incompatible avec years_experience
+ *      • une MISSION nomme un CLIENT, pas un employeur ; des missions qui se
+ *        chevauchent sont NORMALES pour un freelance (plusieurs clients à la fois)
  *
  * 2) COHÉRENCE DOMAINE (disqualifiant : DOMAIN_MISMATCH cap 5)
  *    Le DOMAINE PRINCIPAL déclaré (branche/spécialité + titre) doit s'aligner
@@ -30,11 +35,12 @@ import { causeEchecModele, type CauseEchecModele } from '../profil/cause-echec-m
  *    plateforme Microsoft). Un expert multi-éco qui mentionne du Salesforce
  *    EN PLUS de Microsoft NE doit PAS être plafonné.
  *
- * 3) LINKEDIN / EMPREINTE PUBLIQUE (web_search)
- *    Signal de CORROBORATION secondaire :
- *      • url fournie → corroborer existence + cohérence head (nom/titre/employer)
- *      • url absente → neutre (ne pénalise pas seul)
- *      • url invraisemblable → flag corroboration, ne plafonne pas seul
+ * LINKEDIN EST IGNORÉ (recette du 01/10/2026, décision de Youssef). LinkedIn bloque
+ *    les robots : chaque tentative échouait, posait LINKEDIN_UNVERIFIABLE, et l'échelle
+ *    rangeait alors le profil en « 5-6 → corroboration LinkedIn impossible » — tous les
+ *    profils seraient partis en revue manuelle. L'adresse n'est plus transmise, aucun
+ *    outil n'est offert (aucune recherche payée), le drapeau n'est plus accepté et
+ *    l'échelle ne cite plus LinkedIn.
  *
  * ─── Décision (côté dispatcher) ─────────────────────────────────────────────
  *   score ≥ auto_approve_threshold (config) ET aucun flag disqualifiant
@@ -63,11 +69,14 @@ export type ExpertVerificationInput = {
   skills: string[]
   languages: string[]
   certifications_count: number
-  linkedin_url: string | null
   // Expériences/formations injectées en format compact (whitelist)
   experiences: Array<{
+    /** 'career' (un poste chez un employeur) ou 'project' (une mission pour un client). */
+    experience_type: string | null
     role: string | null
     employer: string | null
+    /** Le CLIENT d'une mission — distinct de l'employeur (point 12 de la recette). */
+    client_name: string | null
     sector: string | null
     start_date: string | null
     end_date: string | null
@@ -84,10 +93,11 @@ export type ExpertVerificationInput = {
   locale: 'fr' | 'en' | 'es' | 'de'
 }
 
+// LINKEDIN_UNVERIFIABLE n'est plus un drapeau que le modèle peut poser (LinkedIn est
+// ignoré) ; un verdict ANCIEN peut encore le porter, et l'admin le lit tel quel.
 export type ExpertVerificationFlag =
   | 'DOMAIN_MISMATCH'
   | 'CV_PROFILE_INCOHERENT'
-  | 'LINKEDIN_UNVERIFIABLE'
   | 'SUSPICIOUS_CONTENT'
 
 export type ExpertVerificationOutput = {
@@ -98,6 +108,7 @@ export type ExpertVerificationOutput = {
   notes: string
   discrepancies: string[]
   flags: ExpertVerificationFlag[]
+  /** Toujours `false` : aucun outil n'est offert. Gardé pour la forme du verdict écrit. */
   web_search_used: boolean
   raw_response: unknown
   /**
@@ -118,12 +129,9 @@ export type ExpertVerificationConfig = {
   max_tokens: number
   request_timeout_ms: number
   auto_approve_threshold: number
-  web_search_max_uses: number
   domain_mismatch_cap: number
   // Flags de cohérence qui INTERDISENT l'auto-approbation, quel que soit le
   // score. Configurable via verification_providers.config.blocking_flags.
-  // LINKEDIN_UNVERIFIABLE reste volontairement HORS de cette liste (signal
-  // secondaire, axe 3 — une absence de trace n'est pas disqualifiante).
   blocking_flags: ExpertVerificationFlag[]
 }
 
@@ -161,12 +169,12 @@ type ClaudeJson = {
   notes?: string
   discrepancies?: unknown
   flags?: unknown
-  web_search_used?: boolean
 }
 
 function parseFlags(raw: unknown): ExpertVerificationFlag[] {
   if (!Array.isArray(raw)) return []
-  const allowed: ExpertVerificationFlag[] = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'LINKEDIN_UNVERIFIABLE', 'SUSPICIOUS_CONTENT']
+  // LINKEDIN_UNVERIFIABLE n'y est plus : un modèle qui le poserait quand même ne fait rien tomber.
+  const allowed: ExpertVerificationFlag[] = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'SUSPICIOUS_CONTENT']
   const out: ExpertVerificationFlag[] = []
   for (const v of raw) {
     if (typeof v !== 'string') continue
@@ -182,17 +190,30 @@ function parseDiscrepancies(raw: unknown): string[] {
   return raw.filter((v): v is string => typeof v === 'string').slice(0, 20)
 }
 
+/**
+ * UNE MISSION N'A PAS D'EMPLOYEUR, ELLE A UN CLIENT (recette du 01/10/2026, point 12).
+ * L'analyseur range la mission d'un freelance en `project` : `employer` vide, le client
+ * dans `client_name`. Ce bloc écrivait « chez (employeur ?) » sur CHAQUE mission, sans
+ * le client, et le modèle comptait « 10 employeurs non nommés sur 12 » chez un freelance
+ * au parcours parfaitement nommé. Chaque ligne dit maintenant ce qu'elle est.
+ */
+export function ligneExperience(e: ExpertVerificationInput['experiences'][number]): string {
+  const role = sanitize(e.role, 150) || '(rôle ?)'
+  const employer = sanitize(e.employer, 150)
+  const client = sanitize(e.client_name, 150)
+  const sector = sanitize(e.sector, 100)
+  const start = sanitize(e.start_date, 12)
+  const end = e.is_current ? '(en cours)' : sanitize(e.end_date, 12)
+  const quoi =
+    e.experience_type === 'project'
+      ? `MISSION — ${role} pour le client ${client || '(client confidentiel)'}${employer ? ` (portée par ${employer})` : ''}`
+      : `POSTE — ${role} chez ${employer || '(employeur non renseigné)'}`
+  return `${quoi} — ${sector || 'secteur ?'} (${start || '?'} → ${end || '?'})`
+}
+
 function buildExperiencesBlock(exps: ExpertVerificationInput['experiences']): string {
   if (exps.length === 0) return '(aucune expérience renseignée)'
-  return exps.slice(0, 12).map((e, i) => {
-    const role = sanitize(e.role, 150)
-    const employer = sanitize(e.employer, 150)
-    const sector = sanitize(e.sector, 100)
-    const start = sanitize(e.start_date, 12)
-    const end = e.is_current ? '(en cours)' : sanitize(e.end_date, 12)
-    const desc = sanitize(e.description, 400)
-    return `${i + 1}. ${role || '(rôle ?)'} chez ${employer || '(employeur ?)'} — ${sector || 'secteur ?'} (${start || '?'} → ${end || '?'})\n    ${desc}`
-  }).join('\n')
+  return exps.slice(0, 12).map((e, i) => `${i + 1}. ${ligneExperience(e)}\n    ${sanitize(e.description, 400)}`).join('\n')
 }
 
 function buildEducationsBlock(edus: ExpertVerificationInput['educations']): string {
@@ -212,7 +233,6 @@ function buildPrompt(input: ExpertVerificationInput): string {
   const seniority = sanitizeList(input.seniorities, 4, 30)
   const branch = sanitize(input.branch_name, 200)
   const speciality = sanitizeList(input.speciality_names, 10, 100)
-  const linkedin = sanitize(input.linkedin_url, 500)
   const skillsList = input.skills.slice(0, 60).map((s) => sanitize(s, 80)).filter(Boolean).join(', ') || '(aucune)'
   const languages = input.languages.slice(0, 20).map((s) => sanitize(s, 50)).filter(Boolean).join(', ') || '(aucune)'
   // Référentiel produits par domaine (domain_configs.tags). Vide → pas de
@@ -226,7 +246,7 @@ function buildPrompt(input: ExpertVerificationInput): string {
 
   return `Tu es l'analyseur de cohérence des profils experts d'une marketplace B2B spécialisée sur le domaine **${domain}** (écosystème logiciel d'entreprise).
 
-Tu DISPOSES du tool \`web_search\` : utilise-le activement pour corroborer le profil LinkedIn s'il est fourni (axe 3).
+Tu n'as AUCUN outil : tu juges uniquement ce qui est écrit ci-dessous. LinkedIn n'est ni fourni ni consulté, et son absence ne compte JAMAIS.
 
 ═══════════════════════════════════════════════════════════════
 PROFIL DÉCLARÉ PAR L'EXPERT
@@ -241,7 +261,6 @@ PROFIL DÉCLARÉ PAR L'EXPERT
 - Compétences déclarées (max 60) : ${skillsList}
 - Langues : ${languages}
 - Certifications listées : ${input.certifications_count}
-- LinkedIn URL : ${linkedin || '(non fourni)'}
 
 ═══════════════════════════════════════════════════════════════
 EXPÉRIENCES PROFESSIONNELLES (déclarées dans le CV parsé)
@@ -267,12 +286,21 @@ TA MISSION — 3 AXES À ÉVALUER, CHACUN INDÉPENDAMMENT
 ═══════════════════════════════════════════════════════════════
 
 **AXE 1 — Cohérence INTERNE (CV ↔ profil)**
-   - séniorité ↔ years_experience plausible (junior < 3 ; confirmed 3-6 ;
-     senior 6-12 ; expert 12+) ?
+   - séniorité ↔ years_experience plausible ? Les tranches, sans recouvrement (la
+     borne basse comprise, la borne haute exclue) : ${tranchesPourConsigne()}.
+     Une valeur appartient à UNE seule tranche ; ne la cite jamais dans deux.
    - skills déclarés ↔ rôles tenus dans expériences ?
    - dates des expériences ↔ years_experience (pas de trou massif inexpliqué) ?
    - certifications listées cohérentes avec le profil ?
    - liste précisément chaque écart dans discrepancies[].
+   CE QUI N'EST PAS UN ÉCART :
+   - une MISSION (ligne « MISSION — … pour le client … ») n'a pas d'employeur :
+     elle a un client, et un client confidentiel est normal. Ne compte JAMAIS une
+     mission comme un « employeur non nommé ».
+   - des périodes qui se CHEVAUCHENT sont normales : un freelance mène plusieurs
+     missions en parallèle, et un poste peut couvrir les missions menées pendant
+     ce poste. Ne les signale pas, ne les pénalise pas, et ne les additionne pas
+     comme si elles étaient successives.
 
 **AXE 2 — Cohérence DOMAINE (DISQUALIFIANT si désalignement principal)**${
   hasRef
@@ -295,34 +323,22 @@ TA MISSION — 3 AXES À ÉVALUER, CHACUN INDÉPENDAMMENT
    INTERDIT. Ignore cet axe et n'en tiens aucun compte dans le score.`
 }
 
-**AXE 3 — LinkedIn / empreinte publique (signal de corroboration NON décisif)**
-   Si linkedin_url fourni : utilise web_search pour :
-     1. corroborer l'existence (URL renvoie une page valide ?)
-     2. recouper nom/titre/employer actuel
-   Si URL absente : NEUTRE (ne pénalise pas).
-   Si URL invraisemblable ou recoupement impossible : ajoute flag
-   LINKEDIN_UNVERIFIABLE mais NE plafonne PAS seul.
-
 ═══════════════════════════════════════════════════════════════
-RÈGLE ABSOLUE — Formulation de l'absence
+RÈGLE ABSOLUE — Formulation
 ═══════════════════════════════════════════════════════════════
-Tu n'as JAMAIS la certitude qu'un profil LinkedIn n'existe pas. Une absence
-de trace n'est PAS une preuve d'inexistence.
-
 ❌ FORMULATIONS INTERDITES : "inexistant", "n'existe pas", "fictif",
    "introuvable", "n'est pas un vrai expert"
-✅ FORMULATIONS AUTORISÉES : "non confirmé via les sources consultées",
-   "aucune trace trouvée dans <sources>", "le recoupement n'a pas permis…"
+✅ Décris ce qui est ÉCRIT et en quoi c'est incohérent — jamais un soupçon sur
+   l'existence de la personne.
 
 ═══════════════════════════════════════════════════════════════
 ÉCHELLE DE SCORE 0..10
 ═══════════════════════════════════════════════════════════════
-  10  → profil cohérent à tous les axes, corroboré LinkedIn
+  10  → profil cohérent sur les deux axes
   9   → cohérent + 1 micro-discrepancy non significative
   7-8 → cohérent globalement mais quelques écarts notables (séniorité↔années
         floue, skills↔rôles partiels)
-  5-6 → cohérence interne faible OU corroboration LinkedIn impossible alors
-        qu'attendue
+  5-6 → cohérence interne faible
   ≤ 5 → CAP automatique si DOMAIN_MISMATCH (orientation principale désalignée)
   0-4 → multiples incohérences graves (CV truqué, contenu généré, etc.)
 
@@ -336,8 +352,7 @@ Format exact attendu :
   "score": <nombre entre 0 et 10, entier ou décimal>,
   "notes": "<synthèse 1-3 phrases, langue ${input.locale}>",
   "discrepancies": ["<écart précis 1>", "<écart 2>", ...],
-  "flags": ["DOMAIN_MISMATCH"|"CV_PROFILE_INCOHERENT"|"LINKEDIN_UNVERIFIABLE"|"SUSPICIOUS_CONTENT", ...],
-  "web_search_used": <true|false>
+  "flags": ["DOMAIN_MISMATCH"|"CV_PROFILE_INCOHERENT"|"SUSPICIOUS_CONTENT", ...]
 }
 
 Important :
@@ -380,10 +395,7 @@ function safeParseJson(text: string): ClaudeJson | null {
   }
 }
 
-/** Au plus deux reprises d'un tour mis en pause par le fournisseur (recherche web longue). */
-const REPRISES_PAUSE_MAX = 2
-
-async function callClaude(model: string, prompt: string, cfg: ExpertVerificationConfig, withWebSearch: boolean, usages: ConsommationIA[]): Promise<{ json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean }> {
+async function callClaude(model: string, prompt: string, cfg: ExpertVerificationConfig, usages: ConsommationIA[]): Promise<{ json: ClaudeJson | null; raw: unknown; model_used: string; web_search_used: boolean }> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY missing')
 
@@ -392,39 +404,24 @@ async function callClaude(model: string, prompt: string, cfg: ExpertVerification
   // deux de plus par tentative, et un délai de 45 s devenait 135 s.
   const client = new Anthropic({ apiKey, timeout: cfg.request_timeout_ms, maxRetries: 0 })
 
-  const tools = withWebSearch
-    ? [{ type: 'web_search_20250305' as const, name: 'web_search' as const, max_uses: cfg.web_search_max_uses }]
-    : []
-
-  const messages: Anthropic.MessageParam[] = [{ role: 'user', content: prompt }]
-  let message = await client.messages.create({ model, max_tokens: cfg.max_tokens, tools, messages })
+  // AUCUN OUTIL (recette du 01/10/2026). La recherche web n'existait que pour LinkedIn,
+  // qui bloque les robots : chaque recherche était PAYÉE (§D.24, facturée à la recherche)
+  // pour un échec certain, puis comptée contre l'expert. Sans outil : ni recherche, ni tour
+  // mis en pause à reprendre.
+  const message = await client.messages.create({
+    model,
+    max_tokens: cfg.max_tokens,
+    messages: [{ role: 'user', content: prompt }],
+  })
+  // Poussé dans `usages` AU MOMENT où l'appel est payé, avant même qu'on sache si sa
+  // réponse est lisible ; au tarif de `model` — le repli n'a pas le même prix.
   usages.push(consommationJetons(model, message.usage))
-  // UN TOUR MIS EN PAUSE SE REPREND, il ne se repaie pas : le fournisseur arrête une boucle
-  // de recherche longue avec `pause_turn` ; on lui renvoie sa réponse pour qu'il continue.
-  // Sans cela, la réponse partielle n'était pas du JSON, et une tentative de plus était payée.
-  for (let i = 0; i < REPRISES_PAUSE_MAX && message.stop_reason === 'pause_turn'; i++) {
-    messages.push({ role: 'assistant', content: message.content })
-    message = await client.messages.create({ model, max_tokens: cfg.max_tokens, tools, messages })
-    usages.push(consommationJetons(model, message.usage))
-  }
 
-  const text = extractText(message.content as unknown)
-  const json = safeParseJson(text)
-
-  // Heuristique : web_search_used vrai si on voit des tool_use ou citations dans la réponse
-  const blocks = message.content as unknown[]
-  const hasToolUse = Array.isArray(blocks) && blocks.some((b) => b && typeof b === 'object' && ['tool_use', 'web_search_tool_result', 'server_tool_use'].includes((b as { type?: string }).type ?? ''))
-
-  // ⚠️ CE VÉRIFICATEUR CHERCHE SUR LE WEB, ET ÇA SE PAIE EN PLUS DES JETONS : l'outil
-  //    natif `web_search_20250305` est facturé À LA RECHERCHE (§D.24). Le fournisseur
-  //    les renvoie dans `usage.server_tool_use` ; `consommationJetons` les lit, au tarif
-  //    de `model` — le repli n'a pas le même prix. Chaque appel est poussé dans `usages`
-  //    AU MOMENT où il est payé, avant même qu'on sache si sa réponse est lisible.
   return {
-    json,
+    json: safeParseJson(extractText(message.content as unknown)),
     raw: message,
     model_used: model,
-    web_search_used: hasToolUse,
+    web_search_used: false,
   }
 }
 
@@ -437,15 +434,13 @@ export async function runExpertCoherenceCheck(
   // LA CAUSE du dernier échec, NOMMÉE : l'exécutant rejoue une panne de passage, il défère le reste.
   let echec: CauseEchecModele = 'reponse_illisible'
 
-  const tentatives: Array<{ model: string; web: boolean; etiquette: string }> = [
-    { model: cfg.model, web: true, etiquette: 'principal + recherche web' },
-    { model: cfg.fallback_model, web: true, etiquette: 'repli + recherche web' },
-    // Sans outil : le cas où la recherche web est refusée ou saturée.
-    { model: cfg.fallback_model, web: false, etiquette: 'repli sans outil' },
+  const tentatives: Array<{ model: string; etiquette: string }> = [
+    { model: cfg.model, etiquette: 'principal' },
+    { model: cfg.fallback_model, etiquette: 'repli' },
   ]
   for (const t of tentatives) {
     try {
-      const out = await callClaude(t.model, prompt, cfg, t.web, usages)
+      const out = await callClaude(t.model, prompt, cfg, usages)
       if (out.json) return shapeOutput(out, cfg, usages)
       echec = 'reponse_illisible'
       console.warn('[ai-expert-verification] réponse illisible', { tentative: t.etiquette })
@@ -496,7 +491,7 @@ function shapeOutput(
     notes: typeof j.notes === 'string' ? j.notes.slice(0, 1500) : '',
     discrepancies,
     flags,
-    web_search_used: parsed.web_search_used || j.web_search_used === true,
+    web_search_used: false,
     raw_response: parsed.raw,
   }
 }

@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { consommationJetons, type ConsommationIA } from './ai-consommation.ts'
 import { TYPES_EXPERIENCE } from './profil/types-experience.ts'
 import { causeEchecModele, type CauseEchecModele } from './profil/cause-echec-modele.ts'
+import { tranchesPourConsigne } from './profil/seniorites.ts'
 
 // =============================================================================
 // CV Parser — Variant CDI
@@ -271,7 +272,8 @@ function buildToolCdi(ctx: DomainContext) {
             type: 'object',
             additionalProperties: false,
             properties: {
-              language: { type: 'string' },
+              // Un CODE, jamais un nom (recette du 01/10/2026, point 3) — voir lib/cv-parser.ts.
+              language: { type: 'string', description: 'Code ISO 639-1 de la langue, en minuscules (fr, en, ar, es, de…), jamais son nom.' },
               level: {
                 type: 'string',
                 enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native'],
@@ -316,7 +318,9 @@ function buildSystemPromptCdi(ctx: DomainContext): string {
     '',
     "SPÉCIALITÉS (`speciality_slugs`) : un CV en montre souvent PLUSIEURS, et c'est un FAIT qu'on lit, pas une préférence qu'on suppose. Retiens TOUTES celles que le parcours démontre réellement — postes, projets, certifications à l'appui. N'en ajoute aucune que le CV ne prouve pas : une spécialité inventée fera proposer à cette personne des postes qu'elle ne sait pas tenir.",
     '',
-    "SÉNIORITÉS (`seniorities`) : ici la prudence est INVERSE. Un CV démontre un NIVEAU ATTEINT ; il ne dit rien de ce que la personne ACCEPTE. Retiens uniquement le ou les niveaux que le parcours établit — deux seulement si l'expérience est franchement à la charnière. N'ÉLARGIS JAMAIS vers le bas : ce choix appartient à la personne, et l'écran le lui demandera.",
+    "SÉNIORITÉS (`seniorities`) : ici la prudence est INVERSE. Un CV démontre un NIVEAU ATTEINT ; il ne dit rien de ce que la personne ACCEPTE. Retiens uniquement le ou les niveaux que le parcours établit — deux seulement si l'expérience est franchement à la charnière (à moins d'un an d'une borne). N'ÉLARGIS JAMAIS vers le bas : ce choix appartient à la personne, et l'écran le lui demandera.",
+    // Les tranches viennent de lib/profil/seniorites.ts : semi-ouvertes, aucune valeur dans deux (recette du 01/10/2026, point 13).
+    `Les tranches, la borne basse comprise et la borne haute exclue : ${tranchesPourConsigne()}.`,
     '',
     "ZONES DE TRAVAIL : ne les déduis PAS. Un CV dit où quelqu'un a TRAVAILLÉ, jamais où il ACCEPTE de travailler. Le schéma ne prévoit aucun champ pour cela — c'est délibéré.",
     '',

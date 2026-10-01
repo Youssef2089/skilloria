@@ -29,6 +29,9 @@ import {
   RESUME_MIN,
 } from '@/lib/profile-visibility'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
+import { codeDeLangue, languesAEnvoyer, listeDesLangues, nomDeLangue, type LangueProposee } from '@/lib/profil/langues'
+import { ChoixLangue, ChoixNiveauLangue } from '@/components/profile/ChoixLangue'
 
 // =============================================================================
 // Page de validation profil CDI — phase 4a (sections COMMUNES + placeholders)
@@ -110,8 +113,10 @@ type EducationItem = {
 
 type LanguageItem = {
   _uid?: string
+  /** Un CODE de la liste fermée (`fr`, `en`) — ou une saisie HÉRITÉE en texte libre, à choisir. */
   language: string
-  level: CefrLevel
+  /** Vide tant que l'expert n'a pas choisi : aucun niveau d'office (recette du 01/10/2026, point 3). */
+  level: CefrLevel | ''
   is_primary: boolean
 }
 
@@ -127,7 +132,6 @@ function ensureUid<T extends { _uid?: string }>(item: T): T {
 }
 
 const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
-const CEFR_LEVELS: CefrLevel[] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'native']
 const WORK_MODE_VALUES: WorkMode[] = ['remote', 'onsite', 'hybrid']
 const NOTICE_PERIOD_VALUES: NoticePeriod[] = ['immediate', '1_month', '2_months', '3_months', 'negotiable']
 const GEO_MOBILITY_VALUES: GeoMobility[] = ['local', 'regional', 'national', 'international']
@@ -191,7 +195,7 @@ function emptyEducation(): EducationItem {
 }
 
 function emptyLanguage(): LanguageItem {
-  return { _uid: uid(), language: '', level: 'B2', is_primary: false }
+  return { _uid: uid(), language: '', level: '', is_primary: false }
 }
 
 function emptyCertification(): Certification {
@@ -203,8 +207,8 @@ function emptyCertification(): Certification {
 export default function CdiValiderProfilPage() {
   const router = useRouter()
   const secureFetch = useSecureFetch()
-  const SPECIALITY_OTHER = '__other__'
   const tProfile = useTranslations('cdi_profile_validation')
+  const tLangues = useTranslations('langues')
   const tRefus = useTranslations('profil_refus')
   // tView : on réutilise les options déjà i18n-isées dans le namespace
   // cdi_profile_view (notice_period_options, geo_mobility_options, etc.).
@@ -315,6 +319,8 @@ export default function CdiValiderProfilPage() {
   const [linkedinUrl, setLinkedinUrl] = useState('')
 
   const [languagesStructured, setLanguagesStructured] = useState<LanguageItem[]>([])
+  // La liste FERMÉE des langues, servie par /api/taxonomy (table `langues`), nommée dans la langue de l'écran.
+  const [langues, setLangues] = useState<LangueProposee[]>([])
 
   const [phone, setPhone] = useState('')
   const [birthYear, setBirthYear] = useState('')
@@ -591,7 +597,7 @@ export default function CdiValiderProfilPage() {
       setWorkModes(Array.isArray(p.work_modes) ? (p.work_modes as WorkMode[]) : [])
 
       const taxonomyPromise = fetch(
-        `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}`,
+        `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}&avec=langues`,
         { cache: 'no-store' },
       )
         // LE RÉFÉRENTIEL ILLISIBLE N'EST PAS UN RÉFÉRENTIEL VIDE (M11) : il faisait effacer branche, spécialités, zones.
@@ -623,6 +629,7 @@ export default function CdiValiderProfilPage() {
       setBranches((taxonomy.branches ?? []) as Branch[])
       setSpecialities((taxonomy.specialities ?? []) as Speciality[])
       setWorkZones((taxonomy.work_zones ?? []) as WorkZone[])
+      setLangues(listeDesLangues(((taxonomy as { langues?: string[] }).langues ?? []), locale))
 
       // ⚠️ MÊME DÉFAUT QUE LE JUMEAU FREELANCE, ET IL DÉTRUISAIT PAREIL (§E.20).
       //    `(expsRes.data ?? [])` faisait d'une panne un formulaire VIDE, et
@@ -685,8 +692,9 @@ export default function CdiValiderProfilPage() {
       setLanguagesStructured(
         lignesOuVide(langsLu).map((l: any) => ({
           _uid: uid(),
-          language: l.language ?? '',
-          level: (l.level ?? 'B2') as CefrLevel,
+          // Une ligne héritée en texte libre (« French ») est RATTACHÉE à son code quand c'est possible.
+          language: codeDeLangue(l.language) ?? l.language ?? '',
+          level: (l.level ?? '') as CefrLevel | '',
           is_primary: !!l.is_primary,
         })),
       )
@@ -912,6 +920,15 @@ export default function CdiValiderProfilPage() {
       }
     }
 
+    // LES LANGUES : une langue hors de la liste fermée ou un niveau non choisi ne partent pas en
+    // silence — l'écran dit laquelle (recette du 01/10/2026, point 3). Même règle que la voie freelance.
+    const languesVerdict = languesAEnvoyer(languagesStructured, new Set(langues.map(x => x.code)))
+    if (!languesVerdict.ok) {
+      setErrorMsg(tLangues(languesVerdict.raison, { rang: languesVerdict.rang }))
+      showFieldError(['languages_structured'])
+      return
+    }
+
     setSaving(true)
 
     const cleanedExperiences = experiences
@@ -939,13 +956,7 @@ export default function CdiValiderProfilPage() {
         location: e.location.trim() || null,
       }))
 
-    const cleanedLanguages = languagesStructured
-      .filter(l => l.language.trim())
-      .map(l => ({
-        language: l.language.trim(),
-        level: l.level,
-        is_primary: l.is_primary,
-      }))
+    const cleanedLanguages = languesVerdict.lignes
 
     // PATCH body : commun + 14 colonnes cdi_* + work_modes (informatif)
     const body: Record<string, unknown> = {
@@ -1027,6 +1038,14 @@ export default function CdiValiderProfilPage() {
         body: JSON.stringify(body),
       })
       const payload = await res.json().catch(() => ({} as any))
+
+      // PUBLIER RAMÈNE AU TABLEAU DE BORD (recette du 01/10/2026, point 7) — y compris quand la
+      // publication est ÉCRITE et que seule la ligne du grand livre a été refusée (`journal_error`) :
+      // le profil est publié. Même règle que la voie freelance (§E.20).
+      if (visible && !res.ok && payload?.code === 'journal_error') {
+        router.push('/dashboard/cdi')
+        return
+      }
 
       if (!res.ok) {
         if (
@@ -2936,7 +2955,8 @@ export default function CdiValiderProfilPage() {
                     id={l._uid!}
                     title={
                       <>
-                        {l.language || tProfile('sections.languages.language_placeholder')}
+                        {/* Le NOM dans la langue de l'écran ; une ligne neuve le dit, sans montrer d'exemple comme une langue. */}
+                        {l.language ? nomDeLangue(l.language, locale) : tLangues('nouvelle')}
                         {l.is_primary && (
                           <span
                             style={{
@@ -2951,7 +2971,7 @@ export default function CdiValiderProfilPage() {
                         )}
                       </>
                     }
-                    subtitle={CEFR_LABELS[l.level]}
+                    subtitle={l.level ? CEFR_LABELS[l.level] : tLangues('niveau_a_choisir')}
                     isExpanded={expandedIds.has(l._uid!)}
                     onToggleExpand={() => toggleExpand(l._uid!)}
                     confirmingDelete={confirmingDeleteId === l._uid}
@@ -2969,25 +2989,19 @@ export default function CdiValiderProfilPage() {
                         alignItems: 'center',
                       }}
                     >
-                      <input
-                    maxLength={LONGUEURS_SAISIE.language}
-                        type="text"
-                        value={l.language}
-                        onChange={e => updateLanguage(i, { language: e.target.value })}
-                        placeholder={tProfile('sections.languages.language_placeholder')}
+                      <ChoixLangue
+                        valeur={l.language}
+                        langues={langues}
+                        dejaChoisies={new Set(languagesStructured.filter((_, j) => j !== i).map(x => x.language))}
+                        onChange={code => updateLanguage(i, { language: code })}
                         style={inputStyle('languages_structured')}
                       />
-                      <select
-                        value={l.level}
-                        onChange={e => updateLanguage(i, { level: e.target.value as CefrLevel })}
+                      <ChoixNiveauLangue
+                        valeur={l.level}
+                        libelles={CEFR_LABELS}
+                        onChange={niveau => updateLanguage(i, { level: niveau as CefrLevel })}
                         style={inputStyle()}
-                      >
-                        {CEFR_LEVELS.map(lv => (
-                          <option key={lv} value={lv}>
-                            {CEFR_LABELS[lv]}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       <label
                         style={{
                           display: 'inline-flex',

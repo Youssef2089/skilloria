@@ -14,6 +14,7 @@ import type { CandidatureFacet, CandidatureFacetCounts } from '@/lib/candidature
 import { FACET_BUCKET } from '@/lib/candidatures/facets'
 import type { Annonce } from '@/types/annonce'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
+import InfoBulle from '@/components/ui/InfoBulle'
 
 /**
  * Dashboard entreprise (Lot refonte tableau de bord).
@@ -61,6 +62,8 @@ export default function DashboardEntreprise() {
   const t = useTranslations('dashboard_entreprise')
   const tCommon = useTranslations('common')
   const tPlafond = useTranslations('plafonds')
+  // Ce que chaque case compte et ce que chaque bloc montre (recette du 01/10/2026, point 6).
+  const tInfo = useTranslations('infobulles')
   const domain = useDomain()
   // C7 : viewer = lecture seule → bouton « Publier » masqué/désactivé (garde
   // serveur = garantie). canManage vrai pour editor/admin.
@@ -379,8 +382,9 @@ export default function DashboardEntreprise() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
             {t('overview.annonces_title')}
+            <InfoBulle texte={tInfo('entreprise.annonces')} etiquette={tInfo('etiquette', { titre: t('overview.annonces_title') })} />
           </div>
           <Link
             href="/dashboard/entreprise/annonces"
@@ -399,10 +403,10 @@ export default function DashboardEntreprise() {
               — elle ouvre la liste vide correspondante, correctement libellée,
               pour que l'utilisateur puisse vérifier qu'il n'a effectivement
               rien plutôt que de se heurter à un chiffre inerte. */}
-          <PubTile label={t('overview.pub_published')} value={pubCounts.published} dot="var(--sk-success)" loading={isLoadingData} tab="published" />
-          <PubTile label={t('overview.pub_review')} value={pubCounts.review} dot="var(--sk-amber)" loading={isLoadingData} tab="review" />
-          <PubTile label={t('overview.pub_drafts')} value={pubCounts.drafts} dot="var(--sk-muted)" loading={isLoadingData} tab="drafts" />
-          <PubTile label={t('overview.pub_closed')} value={pubCounts.closed} dot="var(--sk-muted)" loading={isLoadingData} tab="closed" />
+          <PubTile label={t('overview.pub_published')} info={tInfo('entreprise.pub_published')} etiquette={tInfo('etiquette', { titre: t('overview.pub_published') })} value={pubCounts.published} dot="var(--sk-success)" loading={isLoadingData} tab="published" />
+          <PubTile label={t('overview.pub_review')} info={tInfo('entreprise.pub_review')} etiquette={tInfo('etiquette', { titre: t('overview.pub_review') })} value={pubCounts.review} dot="var(--sk-amber)" loading={isLoadingData} tab="review" />
+          <PubTile label={t('overview.pub_drafts')} info={tInfo('entreprise.pub_drafts')} etiquette={tInfo('etiquette', { titre: t('overview.pub_drafts') })} value={pubCounts.drafts} dot="var(--sk-muted)" loading={isLoadingData} tab="drafts" />
+          <PubTile label={t('overview.pub_closed')} info={tInfo('entreprise.pub_closed')} etiquette={tInfo('etiquette', { titre: t('overview.pub_closed') })} value={pubCounts.closed} dot="var(--sk-muted)" loading={isLoadingData} tab="closed" />
         </div>
       </section>
 
@@ -416,8 +420,9 @@ export default function DashboardEntreprise() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px' }}>
             {t('overview.candidatures_title')}
+            <InfoBulle texte={tInfo('entreprise.candidatures')} etiquette={tInfo('etiquette', { titre: t('overview.candidatures_title') })} />
           </div>
           <Link
             href="/dashboard/entreprise/candidatures"
@@ -446,21 +451,23 @@ export default function DashboardEntreprise() {
           className="sk-dash-grid"
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}
         >
-          <FunnelTile label={t('funnel.to_review')} facet="awaiting_review" facets={candFacets} accent />
-          <FunnelTile label={t('funnel.in_progress')} facet="exchange_open" facets={candFacets} color="var(--sk-text)" />
-          <FunnelTile label={t('funnel.accepted')} facet="selected" facets={candFacets} color="var(--sk-success)" />
+          <FunnelTile label={t('funnel.to_review')} info={tInfo('entreprise.to_review')} etiquette={tInfo('etiquette', { titre: t('funnel.to_review') })} facet="awaiting_review" facets={candFacets} accent />
+          <FunnelTile label={t('funnel.in_progress')} info={tInfo('entreprise.in_progress')} etiquette={tInfo('etiquette', { titre: t('funnel.in_progress') })} facet="exchange_open" facets={candFacets} color="var(--sk-text)" />
+          <FunnelTile label={t('funnel.accepted')} info={tInfo('entreprise.accepted')} etiquette={tInfo('etiquette', { titre: t('funnel.accepted') })} facet="selected" facets={candFacets} color="var(--sk-success)" />
+          {/* L'ancien `title` natif (funnel.rejected_hint) ne s'ouvrait ni au toucher ni au clavier : l'info-bulle le remplace. */}
           <FunnelTile
             label={t('funnel.rejected')}
+            info={tInfo('entreprise.rejected')}
+            etiquette={tInfo('etiquette', { titre: t('funnel.rejected') })}
             facet="rejected"
             facets={candFacets}
             color="var(--sk-muted)"
-            title={t('funnel.rejected_hint')}
           />
         </div>
       </section>
 
       {!isApproved && annonces.length === 0 && (
-        <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 18, textAlign: 'center' }}>
+        <p style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 18, textAlign: 'left' }}>
           {t('publish_disabled_tooltip')}
         </p>
       )}
@@ -481,6 +488,8 @@ function PubTile({
   dot,
   loading,
   tab,
+  info,
+  etiquette,
 }: {
   label: string
   value: number
@@ -488,14 +497,19 @@ function PubTile({
   loading: boolean
   /** Onglet de « Mes annonces » ouvert par la tuile (cf. parseAnnoncesTab). */
   tab: TabKey
+  /** Ce que la tuile compte (recette du 01/10/2026, point 6). */
+  info: string
+  etiquette: string
 }) {
+  // L'icône « i » est posée HORS du lien, en surimpression : un bouton ne vit pas dans un `<a>`.
   return (
+    <div style={{ position: 'relative' }}>
     <Link
       href={`/dashboard/entreprise/annonces?tab=${tab}`}
       className="sk-dash-tile is-link"
-      style={{ textDecoration: 'none', color: 'inherit' }}
+      style={{ textDecoration: 'none', color: 'inherit', height: '100%' }}
     >
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', paddingRight: 24 }}>
         <span aria-hidden style={{ width: 6, height: 6, borderRadius: '50%', background: dot }} />
         {label}
       </div>
@@ -503,6 +517,10 @@ function PubTile({
         {loading ? '…' : value}
       </div>
     </Link>
+    <span style={{ position: 'absolute', top: 10, right: 10 }}>
+      <InfoBulle texte={info} etiquette={etiquette} />
+    </span>
+    </div>
   )
 }
 
@@ -520,7 +538,8 @@ function FunnelTile({
   facets,
   color,
   accent,
-  title,
+  info,
+  etiquette,
 }: {
   label: string
   facet: CandidatureFacet
@@ -528,18 +547,20 @@ function FunnelTile({
   facets: CandidatureFacetCounts | null
   color?: string
   accent?: boolean
-  title?: string
+  /** Ce que la tuile compte (recette du 01/10/2026, point 6). */
+  info: string
+  etiquette: string
 }) {
   const href =
     `/dashboard/entreprise/candidatures?filter=${FACET_BUCKET[facet]}&facet=${facet}`
   return (
+    <div style={{ position: 'relative' }}>
     <Link
       href={href}
-      title={title}
       className={`sk-dash-tile is-link${accent ? ' is-accent' : ''}`}
-      style={{ textDecoration: 'none', color: 'inherit' }}
+      style={{ textDecoration: 'none', color: 'inherit', height: '100%' }}
     >
-      <div style={{ fontSize: 11, color: accent ? 'var(--sk-accent-ink)' : 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em' }}>
+      <div style={{ fontSize: 11, color: accent ? 'var(--sk-accent-ink)' : 'var(--sk-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.06em', paddingRight: 24 }}>
         {label}
       </div>
       <div
@@ -554,6 +575,10 @@ function FunnelTile({
         {facets ? facets[facet] : '…'}
       </div>
     </Link>
+    <span style={{ position: 'absolute', top: 10, right: 10 }}>
+      <InfoBulle texte={info} etiquette={etiquette} />
+    </span>
+    </div>
   )
 }
 

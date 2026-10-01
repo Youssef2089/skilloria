@@ -236,7 +236,8 @@ const estCron = (src) => /CRON_SECRET/.test(src)
 /** GEL — lib et routes LUES, une raison chacune (§G.8). */
 const GEL_D4 = {
   'lib/notifications/dispatch.ts': 'LÉGITIME — le dispatcher lit l’e-mail du DESTINATAIRE pour lui envoyer sa notification ; jamais projeté vers un tiers',
-  'lib/verification/expert-verification.ts': 'LÉGITIME — la vérification IA lit linkedin_url comme entrée du jugement ; le résultat est une note, pas un profil servi',
+  // `lib/verification/expert-verification.ts` EST SORTI le 01/10/2026 (recette S1, §D.43) : la vérification IA
+  // ignore LinkedIn et ne lit plus `linkedin_url` — le gel ne fait que descendre.
   'lib/hooks/useCdiProfile.ts': 'LÉGITIME — hook CLIENT qui lit le compte de l’utilisateur connecté (son propre e-mail) ; pas une projection vers une organisation',
   'lib/admin/user-actions-guard.ts': 'LÉGITIME — garde des actions du BACK-OFFICE : l’e-mail identifie la cible pour l’audit, et ses appelants sont des routes requireAdmin',
   'lib/billing/purchase.ts': 'LÉGITIME — l’e-mail de l’ACHETEUR lui-même, transmis à Stripe comme e-mail client ; rien ne part vers une organisation tierce',

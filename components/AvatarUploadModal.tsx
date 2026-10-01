@@ -4,8 +4,18 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Cropper, { type Area } from 'react-easy-crop'
 import { useTranslations } from 'next-intl'
-import { supabase } from '@/lib/supabase'
 import { useSecureFetch } from '@/lib/secure-fetch'
+
+/** Les codes de POST /api/profile/photo, chacun avec son message (quatre langues). */
+const CODES_PHOTO: ReadonlySet<string> = new Set([
+  'photo_absente',
+  'photo_trop_volumineuse',
+  'photo_format_refuse',
+  'photo_contenu_non_conforme',
+  'photo_type_incoherent',
+  'pas_expert',
+  'photo_stockage_indisponible',
+])
 
 type Props = {
   open: boolean
@@ -153,38 +163,38 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
     setSaving(true)
     setError(null)
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-      if (!session) {
-        setError(t('error_save'))
-        return
-      }
       const blob = await getCroppedBlob(imageSrc, croppedAreaPixels)
-      const path = `${session.user.id}/avatar.jpg`
 
-      const { error: uploadErr } = await supabase.storage
-        .from('avatars')
-        .upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
-      if (uploadErr) {
-        console.error('[avatar upload]', uploadErr.message)
-        setError(t('error_save'))
+      // ① LE FICHIER PASSE PAR LE SERVEUR (recette du 01/10/2026, point 8). Le navigateur
+      //    l'écrivait lui-même dans le bucket `avatars`, en `upsert` ; le bucket privé n'a plus
+      //    de politique de lecture, et un `upsert` l'exige : chaque REMPLACEMENT de photo
+      //    échouait, dit « Erreur lors de l'enregistrement ». La route vérifie le contenu et
+      //    dépose au chemin dérivé du compte ; chaque refus a son code, et son message.
+      const corps = new FormData()
+      corps.append('photo', blob, 'avatar.jpg')
+      const depot = await secureFetch('/api/profile/photo', { method: 'POST', body: corps })
+      const recu = (await depot.json().catch(() => ({}))) as { chemin?: string; code?: string }
+      if (!depot.ok || !recu.chemin) {
+        const code = recu.code ?? `HTTP ${depot.status}`
+        console.error('[avatar] dépôt refusé', { code })
+        setError(CODES_PHOTO.has(code) ? t(`errors.${code}`) : t('errors.inattendu', { code }))
         return
       }
 
-      // M3 : bucket 'avatars' PRIVÉ. On ne génère plus d'URL publique — on
-      // stocke le CHEMIN storage ('<uid>/avatar.jpg', flag de présence).
-      // L'affichage passe désormais par une URL signée serveur (endpoint
-      // /api/me/avatar-url + DTO org/admin). NB : l'aperçu immédiat post-upload
-      // via `onSaved(path)` cassera tant que le Temps 2 (affichage client) n'est
-      // pas branché — comportement attendu, pas de contournement ici.
+      // ② LE DRAPEAU DE PRÉSENCE (bucket privé, M3) : le CHEMIN, jamais une URL — l'affichage
+      //    passe par une URL signée serveur. PATCH /api/profile porte la ligne du grand livre.
       const res = await secureFetch('/api/profile', {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ photo_url: path }),
+        body: JSON.stringify({ photo_url: recu.chemin }),
       })
-      if (!res.ok) {
-        setError(t('error_save'))
+      // `journal_error` : la photo EST enregistrée, seule la ligne du grand livre a été refusée
+      // (lib/profil/refus-profil.ts) — ce n'est pas un échec pour l'expert.
+      const p = (await res.json().catch(() => ({}))) as { code?: string }
+      if (!res.ok && p.code !== 'journal_error') {
+        const code = p.code ?? `HTTP ${res.status}`
+        console.error('[avatar] drapeau refusé', { code })
+        setError(t('errors.drapeau_refuse', { code }))
         return
       }
 
@@ -199,8 +209,9 @@ export default function AvatarUploadModal({ open, onClose, onSaved }: Props) {
       setShow(false)
       window.setTimeout(onClose, ANIM_MS)
     } catch (err) {
+      // Le recadrage local ou le réseau : rien n'a atteint le serveur.
       console.error('[avatar upload] exception', err)
-      setError(t('error_save'))
+      setError(t('errors.reseau'))
     } finally {
       setSaving(false)
     }

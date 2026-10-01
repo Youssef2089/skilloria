@@ -209,7 +209,8 @@ const CHAMPS_SUJET = ['titre', 'effet', 'champ']
 // texte qu'on croit avoir ecrit. Elle a ete supprimee avec la branche morte qui
 // la rendait.
 const SUJETS_AVEC_FILE = ['experts', 'entreprises']
-const DRAPEAUX = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'LINKEDIN_UNVERIFIABLE', 'SUSPICIOUS_CONTENT']
+// LINKEDIN_UNVERIFIABLE n'est plus un drapeau (LinkedIn ignoré, recette du 01/10/2026).
+const DRAPEAUX = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'SUSPICIOUS_CONTENT']
 const CONSTRUITES = [
   ...SUJETS_ECRAN.flatMap((x) => CHAMPS_SUJET.map((c) => `admin_seuils.sujet.${x}.${c}`)),
   ...SUJETS_AVEC_FILE.map((x) => `admin_seuils.sujet.${x}.file`),

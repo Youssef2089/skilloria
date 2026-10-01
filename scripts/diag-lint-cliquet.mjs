@@ -24,8 +24,8 @@ import { spawnSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-/** LA BASE — abaissée à 65/25 le 26/09/2026 (point 2.10), à 65/24 le 29/09/2026 (§E.85), à 50/24 le 30/09/2026 (ARRÊT 19 : les écrans du parcours expert réécrits). Elle ne remonte jamais. */
-const BASE = { erreurs: 50, avertissements: 24 }
+/** LA BASE — abaissée à 65/25 le 26/09/2026 (point 2.10), à 65/24 le 29/09/2026 (§E.85), à 50/24 le 30/09/2026 (ARRÊT 19 : les écrans du parcours expert réécrits), à 50/23 le 01/10/2026 (recette S1 : les écrans touchés en perdent un). Elle ne remonte jamais. */
+const BASE = { erreurs: 50, avertissements: 23 }
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const r = spawnSync('npx', ['eslint', '-f', 'json', '.'], { cwd: ROOT, encoding: 'utf8', shell: true, maxBuffer: 256 * 1024 * 1024 })

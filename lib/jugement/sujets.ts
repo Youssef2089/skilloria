@@ -18,11 +18,14 @@
  * par un diagnostic, sans base et sans réseau.
  */
 
-/** Les cas qui forcent le passage par un humain, quelle que soit la note. */
+/**
+ * Les cas qui forcent le passage par un humain, quelle que soit la note.
+ * LINKEDIN_UNVERIFIABLE n'en est plus un : LinkedIn est ignoré par le vérificateur
+ * (recette du 01/10/2026, décision de Youssef) — il ne peut plus être posé.
+ */
 export const DRAPEAUX_CONNUS = [
   'DOMAIN_MISMATCH',
   'CV_PROFILE_INCOHERENT',
-  'LINKEDIN_UNVERIFIABLE',
   'SUSPICIOUS_CONTENT',
 ] as const
 
@@ -83,5 +86,10 @@ export const NE_GOUVERNENT_RIEN = [
     quoi: "la ligne claude_profile_matching (provider_type = 'profile_matching')",
     pourquoi:
       "Le moteur d'AVANT le reranking. Claude est sorti de la mise en relation : aucun code ne lit ce type. Désactivée en base, jamais supprimée — la valeur reste dans le CHECK pour que le type garde une explication.",
+  },
+  {
+    quoi: "verification_providers.config->>'web_search_max_uses' de la ligne profile_verification",
+    pourquoi:
+      "La recherche web du vérificateur d'expert n'existait que pour corroborer LinkedIn, que LinkedIn bloque. Depuis la recette du 01/10/2026, aucun outil n'est offert au modèle : la clé n'est plus lue ni exigée. Elle reste en base, sans effet.",
   },
 ] as const

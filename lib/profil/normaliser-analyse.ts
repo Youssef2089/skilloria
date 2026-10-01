@@ -22,6 +22,7 @@
 
 import { TYPES_EXPERIENCE, estTypeExperience, type TypeExperience } from './types-experience.ts'
 import { RESUME_MAX, RESUME_MIN } from '../profile-visibility.ts'
+import { codeDeLangue } from './langues.ts'
 
 /** Un écart : ce qui a été ramené ou écarté, jamais la valeur (elle peut être personnelle). */
 export type Ecart = {
@@ -38,7 +39,7 @@ export const CODES_ECART = [
   'date_completee', 'nombre_arrondi', 'type_ramene', 'niveau_ramene', 'resume_raccourci',
   // écartés ici
   'date_illisible', 'code_pays_illisible', 'valeur_hors_liste', 'ligne_sans_intitule', 'doublon',
-  'adresse_web_illisible',
+  'adresse_web_illisible', 'langue_inconnue',
   // signalés sans rien changer
   'resume_trop_court',
   // de la base
@@ -241,7 +242,11 @@ export function normaliserAnalyse(brut: Brut): AnalyseNormalisee {
   }
   // Les listes de textes.
   if ('skills' in brut) profil.skills = textesDistincts(brut.skills)
-  if ('languages' in brut) profil.languages = textesDistincts(brut.languages)
+  // La liste plate suit la liste structurée : des CODES (recette du 01/10/2026, point 3). Un nom
+  // que rien ne rattache n'y entre pas — l'écart est dit sur la liste structurée.
+  if ('languages' in brut) {
+    profil.languages = [...new Set(textesDistincts(brut.languages).map((x) => codeDeLangue(x)).filter((c): c is string => c !== null))]
+  }
   if ('certifications' in brut) profil.certifications = Array.isArray(brut.certifications) ? brut.certifications : []
   // Les codes CDI : passés tels quels ; la base écarte un code hors de sa liste (valeur_refusee).
   for (const k of ['cdi_status', 'cdi_notice_period'] as const) {
@@ -336,7 +341,16 @@ export function normaliserAnalyse(brut: Brut): AnalyseNormalisee {
       const rang = i + 1
       const nom = texte(l.language)
       if (!nom) return
-      const cle = nom.toLowerCase()
+      // UN CODE, PAS UN NOM (recette du 01/10/2026, point 3) : « French », « Français »,
+      // « Francés » deviennent `fr`, que l'écran nomme dans sa langue. Ce que rien ne
+      // rattache est ÉCARTÉ et DIT — jamais écrit en texte libre. La base, elle, refuse un
+      // code hors de la liste fermée (déclencheur de `profile_languages`).
+      const code = codeDeLangue(nom)
+      if (!code) {
+        ecarts.push({ bloc: 'langues', rang, champ: 'language', code: 'langue_inconnue' })
+        return
+      }
+      const cle = code
       if (vues.has(cle)) {
         ecarts.push({ bloc: 'langues', rang, code: 'doublon' })
         return
@@ -350,7 +364,7 @@ export function normaliserAnalyse(brut: Brut): AnalyseNormalisee {
       vues.add(cle)
       const estPrincipale = l.is_primary === true && !principale
       if (estPrincipale) principale = true
-      langues!.push({ language: nom, level: n.niveau, is_primary: estPrincipale })
+      langues!.push({ language: code, level: n.niveau, is_primary: estPrincipale })
     })
     if (langues.length === 0) langues = null
   }

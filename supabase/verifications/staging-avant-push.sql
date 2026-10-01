@@ -45,9 +45,20 @@ with
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
+  -- + les TROIS migrations de la recette S1 (01/10/2026, plage S1) : specialite_autre_hors_referentiel,
+  -- langues_liste_fermee (remplace aussi remplacer_listes_profil À SIGNATURE IDENTIQUE : rien de « créé »),
+  -- photo_par_le_serveur (ne retire que des politiques de storage.objects : rien de « créé »).
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'cron_joignabilite')
+      ('fonction', 'cron_joignabilite'),
+      ('fonction', 'est_specialite_autre'),
+      ('fonction', 'retirer_specialites_autre'),
+      ('contrainte', 'specialities_autre_hors_referentiel'),
+      ('table', 'langues'),
+      ('table', 'langues_noms'),
+      ('fonction', 'code_de_langue'),
+      ('fonction', 'profile_languages_langue_de_la_liste'),
+      ('fonction', 'rattacher_langues_heritees')
     ) v(genre, nom)
   )
 

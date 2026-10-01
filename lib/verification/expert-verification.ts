@@ -8,6 +8,8 @@ import {
   type ExpertVerificationOutput,
 } from './ai-expert-verification'
 import { dashboardUrlForUserType } from '@/lib/auth-routing'
+import { texteNotificationStatut, voieDuCompte } from '@/lib/profil/notification-statut'
+import { nomDeLangue } from '@/lib/profil/langues'
 import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 
 /**
@@ -59,7 +61,6 @@ type ProfileRow = {
   speciality_ids: string[] | null
   skills: string[] | null
   certifications: unknown
-  linkedin_url: string | null
   visible: boolean | null
   ai_consent_at: string | null
   cv_parsing_status: string | null
@@ -74,16 +75,16 @@ type RawConfig = {
   max_tokens?: unknown
   request_timeout_ms?: unknown
   auto_approve_threshold?: unknown
-  web_search_max_uses?: unknown
   domain_mismatch_cap?: unknown
   blocking_flags?: unknown
 }
 
 // Flags de cohérence qui bloquent l'auto-approbation si la config n'en fournit
-// pas (defense in depth). LINKEDIN_UNVERIFIABLE volontairement exclu.
+// pas (defense in depth).
 const DEFAULT_BLOCKING_FLAGS: ExpertVerificationFlag[] = ['CV_PROFILE_INCOHERENT', 'SUSPICIOUS_CONTENT', 'DOMAIN_MISMATCH']
 
-const KNOWN_FLAGS: readonly ExpertVerificationFlag[] = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'LINKEDIN_UNVERIFIABLE', 'SUSPICIOUS_CONTENT']
+// LINKEDIN_UNVERIFIABLE n'est plus un drapeau (LinkedIn est ignoré, recette du 01/10/2026).
+const KNOWN_FLAGS: readonly ExpertVerificationFlag[] = ['DOMAIN_MISMATCH', 'CV_PROFILE_INCOHERENT', 'SUSPICIOUS_CONTENT']
 
 function parseBlockingFlags(raw: unknown): ExpertVerificationFlag[] {
   if (!Array.isArray(raw)) return DEFAULT_BLOCKING_FLAGS
@@ -169,6 +170,11 @@ async function loadConfig(
 
   // ── PLUS AUCUNE VALEUR FABRIQUÉE ────────────────────────────────────────
   //
+  //  ⚠️ `web_search_max_uses` N'EST PLUS LU (recette du 01/10/2026) : le vérificateur
+  //  n'offre plus aucun outil au modèle — la recherche web n'existait que pour LinkedIn.
+  //  La clé peut rester en base ; elle ne gouverne rien et n'est plus EXIGÉE (§D.11 :
+  //  un réglage inerte qui refuserait la vérification serait pire qu'un réglage absent).
+  //
   //  `request_timeout_ms`, `web_search_max_uses` et `domain_mismatch_cap`
   //  retombaient sur 45000, 4 et 5 quand la clé manquait. Les trois valeurs
   //  EXISTENT aujourd'hui en base et coïncident exactement avec ces replis —
@@ -188,10 +194,6 @@ async function loadConfig(
       ? Math.min(cfg.request_timeout_ms, 120000)
       : null
   const auto_approve = typeof cfg.auto_approve_threshold === 'number' ? Math.max(0, Math.min(10, cfg.auto_approve_threshold)) : null
-  const web_search_max_uses =
-    typeof cfg.web_search_max_uses === 'number' && cfg.web_search_max_uses > 0
-      ? Math.min(cfg.web_search_max_uses, 10)
-      : null
   const domain_mismatch_cap =
     typeof cfg.domain_mismatch_cap === 'number' ? Math.max(0, Math.min(10, cfg.domain_mismatch_cap)) : null
   const blocking_flags = parseBlockingFlags(cfg.blocking_flags)
@@ -201,7 +203,6 @@ async function loadConfig(
     !max_tokens ||
     auto_approve == null ||
     request_timeout_ms == null ||
-    web_search_max_uses == null ||
     domain_mismatch_cap == null
   ) {
     console.error('[expert-verification] config incomplete', {
@@ -210,12 +211,11 @@ async function loadConfig(
       max_tokens,
       auto_approve,
       request_timeout_ms,
-      web_search_max_uses,
       domain_mismatch_cap,
     })
     return 'incomplet'
   }
-  return { model, fallback_model, max_tokens, request_timeout_ms, auto_approve_threshold: auto_approve, web_search_max_uses, domain_mismatch_cap, blocking_flags }
+  return { model, fallback_model, max_tokens, request_timeout_ms, auto_approve_threshold: auto_approve, domain_mismatch_cap, blocking_flags }
 }
 
 async function loadProfileForVerification(
@@ -231,7 +231,7 @@ async function loadProfileForVerification(
     .select(
       'id, user_id, domain_id, expert_type, title, summary, seniorities, years_experience, ' +
         'years_total_experience, branch_id, speciality_ids, skills, certifications, ' +
-        'linkedin_url, visible, ai_consent_at, cv_parsing_status, verification_status, ' +
+        'visible, ai_consent_at, cv_parsing_status, verification_status, ' +
         'branches(name), users!profiles_user_id_fkey(id, locale, user_type)',
     )
     .eq('id', profileId)
@@ -260,7 +260,8 @@ async function loadProfileForVerification(
 
   // Charger experiences / educations / languages (tables structurées, optionnelles)
   const [expRes, eduRes, langRes, domRes] = await Promise.all([
-    supabaseAdmin.from('profile_experiences').select('role, employer, sector, start_date, end_date, is_current, description').eq('profile_id', profileId).order('start_date', { ascending: false }).limit(20),
+    // `experience_type` et `client_name` : une mission se lit avec son CLIENT (recette du 01/10/2026, point 12).
+    supabaseAdmin.from('profile_experiences').select('experience_type, role, employer, client_name, sector, start_date, end_date, is_current, description').eq('profile_id', profileId).order('start_date', { ascending: false }).limit(20),
     supabaseAdmin.from('profile_educations').select('school, degree, field, start_year, end_year').eq('profile_id', profileId).order('start_year', { ascending: false }).limit(10),
     supabaseAdmin.from('profile_languages').select('language, level').eq('profile_id', profileId).limit(15),
     // Référentiel écosystème : nom du domaine + tags (source canonique
@@ -296,7 +297,8 @@ async function loadProfileForVerification(
   }
   const experiences = ((expRes.data ?? []) as unknown as ExpertVerificationInput['experiences'])
   const educations = ((eduRes.data ?? []) as unknown as ExpertVerificationInput['educations'])
-  const languages = ((langRes.data ?? []) as { language: string; level?: string }[]).map((l) => l.language)
+  // Des CODES en base (recette du 01/10/2026, point 3) : nommés en français, la langue de la consigne.
+  const languages = ((langRes.data ?? []) as { language: string; level?: string }[]).map((l) => nomDeLangue(l.language, 'fr'))
   const domRow = domRes.data as { name?: string | null; domain_configs?: { tags?: string[] | null } | { tags?: string[] | null }[] | null } | null
   const domain_name = (domRow?.name ?? '').trim()   // '' → anomalie (cf. caller), plus de défaut 'Microsoft'
   const domCfg = Array.isArray(domRow?.domain_configs) ? domRow?.domain_configs[0] : domRow?.domain_configs
@@ -321,56 +323,23 @@ export async function notifyExpertResult(args: {
   domain_id: string
   user_type: string | null
   locale: Locale
-  verification_status: 'approved' | 'pending_admin_review' | 'rejected'
+  /**
+   * `pending` : posée À LA PUBLICATION (recette du 01/10/2026, point 7) — l'expert apprenait
+   * que son profil était « en cours de validation » une minute après, seulement si l'IA
+   * déférait à un humain. Les trois autres : le verdict.
+   */
+  verification_status: 'pending' | 'approved' | 'pending_admin_review' | 'rejected'
   reason: string | null
-  /** La pièce de la vérification (§D.26, phase B 2.5). */
+  /** La pièce du geste qui la pose (§D.26, phase B 2.5). */
   piece: string
 }): Promise<void> {
   const { supabaseAdmin, user_id, domain_id, user_type, locale, verification_status, reason, piece } = args
-  const titles: Record<Locale, Record<string, string>> = {
-    fr: {
-      approved: 'Votre profil est vérifié ✓',
-      pending_admin_review: 'Votre profil est en cours de validation',
-      rejected: 'Votre demande de vérification n\'a pas abouti',
-    },
-    en: {
-      approved: 'Your profile is verified ✓',
-      pending_admin_review: 'Your profile is under review',
-      rejected: 'Your verification request was not approved',
-    },
-    es: {
-      approved: 'Tu perfil está verificado ✓',
-      pending_admin_review: 'Tu perfil está en revisión',
-      rejected: 'Tu solicitud de verificación no fue aprobada',
-    },
-    de: {
-      approved: 'Ihr Profil ist verifiziert ✓',
-      pending_admin_review: 'Ihr Profil wird gerade geprüft',
-      rejected: 'Ihre Verifizierungsanfrage wurde nicht genehmigt',
-    },
-  }
-  const bodies: Record<Locale, Record<string, string>> = {
-    fr: {
-      approved: 'Votre profil est désormais visible des entreprises. Vous apparaissez dans les recommandations IA.',
-      pending_admin_review: 'Notre équipe vérifie quelques points avant de valider votre profil. Vous serez notifié de la décision.',
-      rejected: reason ? `Motif : ${reason}` : 'Vous pouvez ajuster votre profil et soumettre à nouveau.',
-    },
-    en: {
-      approved: 'Your profile is now visible to companies. You will appear in AI recommendations.',
-      pending_admin_review: 'Our team is verifying a few details before approving your profile. You will be notified of the decision.',
-      rejected: reason ? `Reason: ${reason}` : 'You can adjust your profile and submit again.',
-    },
-    es: {
-      approved: 'Tu perfil es ahora visible para las empresas. Aparecerás en las recomendaciones IA.',
-      pending_admin_review: 'Nuestro equipo verifica algunos puntos antes de aprobar tu perfil. Te avisaremos de la decisión.',
-      rejected: reason ? `Motivo: ${reason}` : 'Puedes ajustar tu perfil y volver a enviarlo.',
-    },
-    de: {
-      approved: 'Ihr Profil ist nun für Unternehmen sichtbar. Sie erscheinen in den KI-Empfehlungen.',
-      pending_admin_review: 'Unser Team prüft einige Punkte vor der Freigabe Ihres Profils. Sie werden über die Entscheidung benachrichtigt.',
-      rejected: reason ? `Grund: ${reason}` : 'Sie können Ihr Profil anpassen und erneut einreichen.',
-    },
-  }
+  // LES TEXTES SONT CEUX DE L'ÉCRAN (recette du 01/10/2026, point 5) : « Statut de votre
+  // profil : <état> » et la phrase qui dit la suite, lus dans l'espace `statut_profil` —
+  // le même que la pastille et l'étape 3. Ils vivaient ici, en dur, avec d'autres mots.
+  const etat = verification_status === 'pending_admin_review' ? 'admin_review' : verification_status
+  const { titre, corps } = texteNotificationStatut(etat, voieDuCompte(user_type), locale)
+  const motif = verification_status === 'rejected' && reason ? `\n${reason}` : ''
   // Lien notif conditionné user_type (parité freelance/CDI). Source de
   // vérité partagée : dashboardUrlForUserType (lib/auth-routing.ts).
   const linkUrl = dashboardUrlForUserType(user_type)
@@ -379,13 +348,13 @@ export async function notifyExpertResult(args: {
     user_id, domain_id, piece,
     type: 'verification_result',
     channel: 'inapp',
-    title: titles[locale][verification_status] ?? titles.fr[verification_status],
-    body: bodies[locale][verification_status] ?? bodies.fr[verification_status],
+    title: titre,
+    body: corps + motif,
     link_url: linkUrl,
     status: 'pending',
     entity_id: null,
   })
-  if (error) console.error('[expert-verification] notification du verdict NON posée', { user_id, message: error.message })
+  if (error) console.error('[expert-verification] notification de statut NON posée', { user_id, etat, message: error.message })
 }
 
 /**
@@ -488,7 +457,6 @@ export async function evaluerVerificationExpert(args: {
     skills: Array.isArray(row.skills) ? row.skills : [],
     languages,
     certifications_count: countCerts(row.certifications),
-    linkedin_url: row.linkedin_url,
     experiences,
     educations,
     locale,

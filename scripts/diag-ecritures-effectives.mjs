@@ -88,6 +88,13 @@ const GEL = {
   'remplacer_listes_profil:profile_experiences:1': 'LÉGITIME : remplacement d’une liste SAISIE — elle peut être vide avant ; une ligne refusée annule tout le bloc (LP001, M4)',
   'remplacer_listes_profil:profile_educations:1': 'LÉGITIME : remplacement d’une liste saisie — vide avant, ou annulé avec le bloc (LP001)',
   'remplacer_listes_profil:profile_languages:1': 'LÉGITIME : remplacement d’une liste saisie — vide avant, ou annulé avec le bloc (LP001)',
+  // ── les reprises de la recette S1 du 01/10/2026 — rejouables, chacune rend ce qu'elle a fait ──
+  'retirer_specialites_autre:profiles:1': 'LÉGITIME : reprise par lot — zéro profil porte une spécialité « Autre » : rien à reprendre ; la fonction rend son compte',
+  'retirer_specialites_autre:publications:1': 'LÉGITIME : reprise par lot — zéro annonce porte une spécialité « Autre » : rien à reprendre ; la fonction rend son compte',
+  'retirer_specialites_autre:specialities:1': 'LÉGITIME : reprise par lot — les lignes « Autre » déjà inactives ne se désactivent pas deux fois ; rejouée, zéro ; rend son compte',
+  'rattacher_langues_heritees:profile_languages:1': 'LÉGITIME : reprise par lot — zéro doublon à fondre est l’état normal ; rend son compte',
+  'rattacher_langues_heritees:profile_languages:2': 'LÉGITIME : reprise par lot — zéro ligne héritée à rattacher (base neuve, ou rejouée) ; rend son compte',
+  'rattacher_langues_heritees:profiles:1': 'LÉGITIME : reprise par lot — zéro liste plate à rattacher ; rend son compte',
   'regler_durees_place:duree_reglages:1': 'LÉGITIME : le compte est vérifié en place (v_n <> 1 → exception nommée) — même garde, écrite avant exiger_ecriture',
   'regler_tarif_ia:ai_model_tarifs:1': 'LÉGITIME : compte vérifié en place (v_n <> 1 → P0002 « modèle inconnu », refus nommé)',
   'regler_quota_ia:ai_quotas:1': 'LÉGITIME : compte vérifié en place (v_n <> 1 → P0002 « quota inconnu »)',

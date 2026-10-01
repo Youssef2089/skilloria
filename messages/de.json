@@ -453,7 +453,8 @@
       "retained": "Angenommen",
       "daily_rate": "Mein Tagessatz",
       "daily_rate_set": "Festlegen →",
-      "daily_rate_range": "{min} € — {max} €"
+      "daily_rate_range": "{min} € — {max} €",
+      "daily_rate_edit": "Ändern →"
     },
     "avatar_modal": {
       "title": "Profilfoto",
@@ -465,10 +466,21 @@
       "saving": "Wird hochgeladen...",
       "error_size": "Datei zu groß (max. 2 MB)",
       "error_format": "Format nicht unterstützt (nur JPG, PNG, WebP)",
-      "error_save": "Speichern fehlgeschlagen, bitte erneut versuchen",
       "success": "Foto aktualisiert",
       "close_aria": "Schließen",
-      "edit_overlay_cta": "Foto bearbeiten"
+      "edit_overlay_cta": "Foto bearbeiten",
+      "errors": {
+        "photo_absente": "Es wurde kein Foto empfangen. Wählen Sie ein Bild und speichern Sie erneut.",
+        "photo_trop_volumineuse": "Dieses Bild ist größer als 2 MB. Wählen Sie ein kleineres Bild.",
+        "photo_format_refuse": "Dieses Format wird nicht akzeptiert. Wählen Sie ein JPEG-, PNG- oder WebP-Bild.",
+        "photo_contenu_non_conforme": "Diese Datei ist kein lesbares Bild. Wählen Sie ein anderes Bild.",
+        "photo_type_incoherent": "Diese Datei entspricht nicht dem angegebenen Format. Wählen Sie ein anderes Bild.",
+        "pas_expert": "Das Profilfoto ist Expertenkonten vorbehalten.",
+        "photo_stockage_indisponible": "Der Fotospeicher antwortet nicht. Ihr Foto wurde nicht gespeichert: Versuchen Sie es in einigen Minuten erneut.",
+        "drapeau_refuse": "Das Foto wurde hochgeladen, aber Ihr Profil konnte nicht aktualisiert werden (Code {code}). Versuchen Sie es erneut; falls es anhält, senden Sie diesen Code an den Support.",
+        "inattendu": "Das Speichern wurde abgelehnt (Code {code}). Versuchen Sie es erneut; falls es anhält, senden Sie diesen Code an den Support.",
+        "reseau": "Das Foto konnte nicht gesendet werden: Prüfen Sie Ihre Verbindung und versuchen Sie es erneut."
+      }
     },
     "tjm_modal": {
       "title": "Tagessatz festlegen",
@@ -737,7 +749,6 @@
         "languages_label": "Sprachen",
         "languages_min_hint": "(mind. 1 zum Veröffentlichen)",
         "languages_empty": "Keine Sprache hinzugefügt.",
-        "language_placeholder": "Deutsch, Englisch...",
         "level_options": {
           "A1": "A1 — Anfänger",
           "A2": "A2 — Grundkenntnisse",
@@ -1735,7 +1746,6 @@
         "title": "Sprachen",
         "languages_min_hint": "(mind. 1 zum Veröffentlichen)",
         "empty": "Noch keine Sprachen hinterlegt.",
-        "language_placeholder": "Deutsch, Englisch...",
         "level_options": {
           "A1": "A1 — Anfänger",
           "A2": "A2 — Grundkenntnisse",
@@ -1839,8 +1849,7 @@
       "to_review": "Zu prüfen",
       "in_progress": "Im Austausch",
       "accepted": "Angenommen",
-      "rejected": "Abgelehnt",
-      "rejected_hint": "Abgelehnte Bewerbungen ansehen (archiviert)"
+      "rejected": "Abgelehnt"
     },
     "overview": {
       "annonces_title": "Übersicht Anzeigen",
@@ -2843,7 +2852,6 @@
       "branch": "Branche",
       "speciality": "Spezialität",
       "skills": "Kompetenzen",
-      "download_cv": "Lebenslauf herunterladen",
       "current": "(laufend)",
       "status_pending": "Läuft",
       "status_pending_admin_review": "Zu prüfen",
@@ -2864,7 +2872,15 @@
       "error_already_processed": "Dieses Profil wurde bereits bearbeitet.",
       "error_reason_required": "Ein Grund ist zur Ablehnung erforderlich.",
       "speciality_other_prefix": "{value} (nicht im Referenzkatalog)",
-      "years": "{count, plural, one {# Jahr Erfahrung} other {# Jahre Erfahrung}}"
+      "years": "{count, plural, one {# Jahr Erfahrung} other {# Jahre Erfahrung}}",
+      "cv_ouvrir": "Lebenslauf öffnen (nur lesen)",
+      "cv_ouverture": "Wird geöffnet…",
+      "cv_aucun": "Kein Lebenslauf hochgeladen",
+      "cv_absent": "Der Lebenslauf ist nicht mehr verfügbar: Der Experte hat ihn nicht hochgeladen oder entfernt.",
+      "cv_lien_indisponible": "Der Link zum Lebenslauf konnte nicht erstellt werden. Versuchen Sie es gleich noch einmal.",
+      "cv_lien_inattendu": "Der Link zum Lebenslauf wurde abgelehnt (Code {code}).",
+      "experience_mission": "Auftrag für {client}",
+      "experience_client_confidentiel": "einen vertraulichen Kunden"
     },
     "users": {
       "title": "Benutzer",
@@ -3609,13 +3625,6 @@
     }
   },
   "expert_verification": {
-    "badge": {
-      "draft": "Entwurf",
-      "pending": "Überprüfung läuft",
-      "admin_review": "Validierung ausstehend",
-      "approved": "Verifiziert",
-      "rejected": "Abgelehnt"
-    },
     "rejected_details": {
       "reason_label": "Grund:",
       "cta": "Profil vervollständigen →"
@@ -3754,7 +3763,7 @@
       "sms_label": "Per SMS",
       "sms_unavailable": "Nicht verfügbar: Ihre Telefonnummer ist nicht verifiziert.",
       "sms_verify_link": "Mein Telefon verifizieren",
-      "grouping_note_digest": "Chancen aus demselben Empfehlungslauf kommen in einer einzigen Sendung an. Andere Benachrichtigungen werden einzeln versendet.",
+      "grouping_note_digest": "Wenn mehrere Aufträge gleichzeitig zu Ihnen passen, erhalten Sie eine einzige E-Mail, die sie bündelt. Nachrichten werden Ihnen dagegen einzeln geschickt.",
       "saved_on": "Benachrichtigungen aktiviert.",
       "saved_off": "Benachrichtigungen deaktiviert.",
       "unsub_done": "Sie haben die E-Mail-Benachrichtigungen abbestellt.",
@@ -3967,13 +3976,6 @@
     "account_created_title": "Ihr Konto wurde erstellt",
     "account_created_body": "Sie sind {company} beigetreten. Melden Sie sich mit Ihrer Adresse und dem soeben gewählten Passwort an."
   },
-  "verification_status": {
-    "draft": "Entwurf",
-    "pending": "Verifizierung ausstehend",
-    "approved": "Verifiziertes Profil",
-    "rejected": "Profil abgelehnt",
-    "approved_hidden": "Geprüft · Profil ausgeblendet"
-  },
   "expert_onboarding": {
     "title": "Willkommen! So starten Sie",
     "subtitle": "Schließen Sie diese Schritte ab, um sichtbar zu werden und Gelegenheiten zu erhalten.",
@@ -3996,7 +3998,6 @@
     "status": {
       "done": "Erledigt",
       "current": "Jetzt zu erledigen",
-      "in_progress": "Prüfung läuft",
       "todo": "Demnächst"
     }
   },
@@ -4211,7 +4212,8 @@
     "err_branch_in_use": "Branche in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en), {specialities} Fachgebiet(e).",
     "err_spec_in_use": "Fachgebiet in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en).",
     "usage_unavailable_warning": "Wir konnten nicht lesen, was dieser Zweig noch enthält. Das heißt nicht „nichts“: wir wissen es nicht. Laden Sie die Seite neu, bevor Sie entscheiden.",
-    "err_usage_unavailable": "Löschen abgelehnt: Wir konnten nicht prüfen, was dieser Zweig noch enthält. Es wurde nichts gelöscht. Bitte versuchen Sie es gleich erneut."
+    "err_usage_unavailable": "Löschen abgelehnt: Wir konnten nicht prüfen, was dieser Zweig noch enthält. Es wurde nichts gelöscht. Bitte versuchen Sie es gleich erneut.",
+    "err_specialite_autre_reservee": "„Andere“ ist keine Spezialisierung der Referenzliste: Es ist die Option „Andere (bitte angeben)“, die Experten und Anzeigen angeboten wird. Wählen Sie einen anderen Namen."
   },
   "candidature_lifecycle": {
     "filters": {
@@ -4334,11 +4336,21 @@
     "none_selected": "Wählen Sie mindestens ein Gebiet, um zu veröffentlichen",
     "coverage": "{count} Länder abgedeckt",
     "country_count": "{count} Länder",
-    "detail_by_country": "Einzelne Länder in {continent} wählen",
-    "covered_by_continent": "Bereits durch {continent} abgedeckt",
     "suggestion_label": "Vorschlag: {zone}",
     "suggestion_confirm": "Dieses Gebiet verwenden",
-    "suggestion_not_applied": "Wird erst nach Ihrer Bestätigung übernommen"
+    "suggestion_not_applied": "Wird erst nach Ihrer Bestätigung übernommen",
+    "mode_monde": "Überall auf der Welt",
+    "mode_monde_aide": "Umfasst alle {count} Länder der Liste",
+    "mode_zones": "Nur in bestimmten Gebieten",
+    "mode_zones_aide": "Wählen Sie Kontinente oder bestimmte Länder",
+    "continents_label": "Ganze Kontinente",
+    "recherche_label": "Ein Land hinzufügen",
+    "recherche_placeholder": "Geben Sie einen Ländernamen ein…",
+    "recherche_aucun": "Kein Land entspricht dieser Suche.",
+    "deja_couvert": "Bereits abgedeckt durch {zone}",
+    "deja_choisi": "Bereits gewählt",
+    "selection_label": "Ihre Auswahl",
+    "retirer": "{zone} entfernen"
   },
   "matching_badge": {
     "strong": "Starke Übereinstimmung",
@@ -4679,7 +4691,6 @@
     "flag": {
       "DOMAIN_MISMATCH": "Ökosystem passt nicht",
       "CV_PROFILE_INCOHERENT": "Lebenslauf und Profil widersprüchlich",
-      "LINKEDIN_UNVERIFIABLE": "LinkedIn nicht überprüfbar",
       "SUSPICIOUS_CONTENT": "Verdächtiger Inhalt"
     },
     "countries_title": "Nur Frankreich hat ein abfragbares amtliches Register",
@@ -5166,7 +5177,8 @@
       "fin_avant_debut": "das Enddatum liegt vor dem Startdatum.",
       "annee_hors_bornes": "ein Jahr liegt außerhalb des zulässigen Bereichs.",
       "valeur_hors_liste": "ein Wert steht nicht in der vorgeschlagenen Liste.",
-      "ligne_refusee": "der Eintrag wurde abgelehnt."
+      "ligne_refusee": "der Eintrag wurde abgelehnt.",
+      "langue_hors_liste": "Sprache nicht in der vorgeschlagenen Liste"
     },
     "champs": {
       "birth_year": "Geburtsjahr",
@@ -5229,7 +5241,86 @@
       "champ_obligatoire": "Pflichtfeld leer: Eintrag ausgelassen",
       "nombre_illisible": "Zahl nicht lesbar: Eintrag ausgelassen",
       "ligne_refusee": "Eintrag von der Plattform abgelehnt: ausgelassen",
-      "liste_entierement_refusee": "kein lesbarer Eintrag: Die bisherige Liste bleibt erhalten"
+      "liste_entierement_refusee": "kein lesbarer Eintrag: Die bisherige Liste bleibt erhalten",
+      "langue_inconnue": "Sprache nicht erkannt: weggelassen, fügen Sie sie aus der Liste hinzu"
     }
+  },
+  "statut_profil": {
+    "titre": "Status Ihres Profils: {etat}",
+    "etat": {
+      "draft": "Entwurf",
+      "pending": "Prüfung durch die KI läuft",
+      "admin_review": "wartet auf einen Administrator",
+      "approved": "bestätigt",
+      "approved_masque": "bestätigt, aber ausgeblendet",
+      "rejected": "abgelehnt"
+    },
+    "phrase": {
+      "freelance": {
+        "draft": "Aufträge werden Ihnen vorgeschlagen, sobald Ihr Profil veröffentlicht und bestätigt ist.",
+        "pending": "Unsere KI prüft Ihr Profil, meist innerhalb weniger Minuten. Aufträge werden Ihnen vorgeschlagen, sobald es bestätigt ist.",
+        "admin_review": "Ein Administrator prüft Ihr Profil. Sie werden über die Entscheidung benachrichtigt; Aufträge werden Ihnen vorgeschlagen, sobald es bestätigt ist.",
+        "approved": "Ihr Profil ist für Unternehmen sichtbar: passende Aufträge werden Ihnen vorgeschlagen.",
+        "approved_masque": "Ihr Profil ist bestätigt, aber ausgeblendet: Ergänzen Sie, was fehlt, und veröffentlichen Sie es erneut, um wieder Aufträge zu erhalten.",
+        "rejected": "Ihr Profil wurde nicht bestätigt. Korrigieren Sie es und veröffentlichen Sie es erneut; der Grund steht unter „Mein Profil“."
+      },
+      "cdi": {
+        "draft": "Stellenangebote werden Ihnen vorgeschlagen, sobald Ihr Profil veröffentlicht und bestätigt ist.",
+        "pending": "Unsere KI prüft Ihr Profil, meist innerhalb weniger Minuten. Stellenangebote werden Ihnen vorgeschlagen, sobald es bestätigt ist.",
+        "admin_review": "Ein Administrator prüft Ihr Profil. Sie werden über die Entscheidung benachrichtigt; Stellenangebote werden Ihnen vorgeschlagen, sobald es bestätigt ist.",
+        "approved": "Ihr Profil ist für Recruiter sichtbar: passende Stellenangebote werden Ihnen vorgeschlagen.",
+        "approved_masque": "Ihr Profil ist bestätigt, aber ausgeblendet: Ergänzen Sie, was fehlt, und veröffentlichen Sie es erneut, um wieder Stellenangebote zu erhalten.",
+        "rejected": "Ihr Profil wurde nicht bestätigt. Korrigieren Sie es und veröffentlichen Sie es erneut; der Grund steht unter „Mein Profil“."
+      }
+    }
+  },
+  "infobulles": {
+    "etiquette": "Über „{titre}“",
+    "freelance": {
+      "active_applications": "Alle noch laufenden Bewerbungen: die auf eine Antwort warten, die im Austausch und die angenommenen. Abgeschlossene Bewerbungen zählen nicht dazu.",
+      "in_discussion": "Bewerbungen, für die das Unternehmen einen Austausch mit Ihnen eröffnet hat.",
+      "awaiting": "Gesendete Bewerbungen, die das Unternehmen noch nicht bearbeitet hat.",
+      "retained": "Bewerbungen, die das Unternehmen angenommen hat.",
+      "daily_rate": "Ihr Tagessatz als Spanne. Er wird Unternehmen angezeigt und dient dazu, Ihnen Aufträge in Ihrem Budget vorzuschlagen.",
+      "availability": "Zeigt, ob Sie neue Aufträge erhalten. „Nicht stören“ pausiert Vorschläge, ohne Ihr Profil auszublenden.",
+      "completion": "Der Anteil der ausgefüllten Angaben Ihres Profils. Ein vollständiges Profil erhält passendere Aufträge.",
+      "recommended_missions": "Aufträge, die unsere Engine als nah an Ihrem Profil einstuft: Bereich, Spezialisierungen, Arbeitsgebiete und Erfahrungsstufe.",
+      "your_candidatures": "Ihre letzten Bewerbungen und ihr Stand. „Alle ansehen“ öffnet die vollständige Liste."
+    },
+    "expert": {
+      "onboarding": "Die Schritte zur Sichtbarkeit: Lebenslauf importieren, Profil vervollständigen und veröffentlichen. Dieser Block verschwindet, sobald Ihr Profil bestätigt ist.",
+      "collaboration": "Von anderen Experten veröffentlichte Subunternehmer-Bedarfe und die, die Sie selbst veröffentlichen."
+    },
+    "cdi": {
+      "active_applications": "Alle noch laufenden Bewerbungen: die auf eine Antwort warten, die im Austausch und die angenommenen. Abgeschlossene Bewerbungen zählen nicht dazu.",
+      "in_discussion": "Bewerbungen, für die der Recruiter einen Austausch mit Ihnen eröffnet hat.",
+      "awaiting": "Gesendete Bewerbungen, die der Recruiter noch nicht bearbeitet hat.",
+      "retained": "Bewerbungen, die der Recruiter angenommen hat.",
+      "market_status": "Zeigt, ob Sie für neue Stellenangebote offen sind. Davon hängt ab, was Ihnen vorgeschlagen wird.",
+      "completion": "Der Anteil der ausgefüllten Angaben Ihres Profils. Ein vollständiges Profil erhält passendere Stellenangebote.",
+      "suggestions": "Stellenangebote, die unsere Engine als nah an Ihrem Profil einstuft: Bereich, Spezialisierungen, Arbeitsgebiete und Erfahrungsstufe.",
+      "applications": "Ihre letzten Bewerbungen und ihr Stand. „Alle ansehen“ öffnet die vollständige Liste."
+    },
+    "entreprise": {
+      "annonces": "Der Stand Ihrer Anzeigen nach Status. Jede Kachel öffnet die passende Liste.",
+      "candidatures": "Die auf Ihre Anzeigen eingegangenen Bewerbungen nach Phase. Jede Kachel öffnet die passende Liste.",
+      "pub_published": "Online geschaltete Anzeigen, für Experten sichtbar.",
+      "pub_review": "Anzeigen, die vor der Veröffentlichung geprüft werden.",
+      "pub_drafts": "Gespeicherte, noch nicht veröffentlichte Anzeigen.",
+      "pub_closed": "Abgelaufene oder von Ihnen geschlossene Anzeigen.",
+      "to_review": "Eingegangene Bewerbungen, die Sie noch nicht bearbeitet haben.",
+      "in_progress": "Bewerbungen, für die Sie einen Austausch mit dem Experten eröffnet haben.",
+      "accepted": "Bewerbungen, die Sie angenommen haben.",
+      "rejected": "Bewerbungen, die Sie abgelehnt haben. Sie sind archiviert."
+    }
+  },
+  "langues": {
+    "choisir_langue": "Sprache wählen",
+    "choisir_niveau": "Niveau wählen",
+    "heritee": "„{valeur}“: Wählen Sie diese Sprache aus der Liste.",
+    "nouvelle": "Neue Sprache – noch zu wählen",
+    "niveau_a_choisir": "Niveau noch zu wählen",
+    "langue_hors_liste": "Sprache Nr. {rang}: Wählen Sie sie aus der Liste oder entfernen Sie die Zeile.",
+    "niveau_manquant": "Sprache Nr. {rang}: Wählen Sie ihr Niveau."
   }
 }

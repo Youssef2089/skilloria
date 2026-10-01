@@ -55,6 +55,8 @@ export const LISTES_NOMMEES = ['experiences', 'formations', 'langues'] as const
 export const CAUSES_DE_LISTE = [
   'champ_obligatoire', 'doublon', 'texte_trop_long', 'date_illisible', 'nombre_illisible',
   'fin_avant_debut', 'annee_hors_bornes', 'valeur_hors_liste', 'ligne_refusee',
+  // LG001 en base : une langue hors de la liste fermée (recette du 01/10/2026, point 3).
+  'langue_hors_liste',
 ] as const
 /** Les champs qu'un refus de la base peut nommer (clés sous `profil_refus.champs`). */
 export const CHAMPS_NOMMES = [

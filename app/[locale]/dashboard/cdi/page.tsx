@@ -22,6 +22,7 @@ import DndEmptyState from '@/components/dashboard/DndEmptyState'
 import VerificationStatusPill from '@/components/dashboard/VerificationStatusPill'
 import ExpertOnboardingGuide from '@/components/dashboard/ExpertOnboardingGuide'
 import CollaborationDashboardBlock from '@/components/dashboard/CollaborationDashboardBlock'
+import InfoBulle from '@/components/ui/InfoBulle'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import { emitAvailabilityChanged } from '@/lib/availability-actions'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -97,6 +98,8 @@ function initialsOf(user: CdiUser | null): string {
 
 export default function DashboardCDI() {
   const t = useTranslations('dashboard_cdi')
+  // Ce que chaque case compte et ce que chaque bloc montre (recette du 01/10/2026, point 6).
+  const tInfo = useTranslations('infobulles')
   const tFeed = useTranslations('missions.feed')
   const tc = useTranslations('missions.casting')
   const tProfile = useTranslations('cdi_profile_view')
@@ -494,7 +497,7 @@ export default function DashboardCDI() {
               {/* C6 : pastille de statut = SOURCE UNIQUE (même que la topbar
                   « Mon Profil » et la home freelance), rendue par les 5 états. */}
               <div style={{ display: 'inline-flex', marginRight: 8, animation: 'fadeIn 0.6s ease 0.3s both' }}>
-                <VerificationStatusPill state={verifState} masque={profilMasque} />
+                <VerificationStatusPill state={verifState} masque={profilMasque} voie="cdi" />
               </div>
 
               {/* Status écoute marché badge (existant) */}
@@ -555,7 +558,10 @@ export default function DashboardCDI() {
                   marginBottom: 6,
                 }}
               >
-                {t('market_status_card.title')}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {t('market_status_card.title')}
+                  <InfoBulle texte={tInfo('cdi.market_status')} etiquette={tInfo('etiquette', { titre: t('market_status_card.title') })} />
+                </span>
               </div>
               <div style={{ fontSize: 13, color: 'var(--sk-muted)', lineHeight: 1.55 }}>
                 {t('market_status_card.description')}
@@ -593,6 +599,8 @@ export default function DashboardCDI() {
           >
             <KpiCard
               label={t('kpis.active_applications')}
+              info={tInfo('cdi.active_applications')}
+              etiquette={tInfo('etiquette', { titre: t('kpis.active_applications') })}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.total ?? 0)}
               delay="0.1s"
               accentColor={'var(--sk-accent)'}
@@ -601,6 +609,8 @@ export default function DashboardCDI() {
             />
             <KpiCard
               label={t('kpis.in_discussion')}
+              info={tInfo('cdi.in_discussion')}
+              etiquette={tInfo('etiquette', { titre: t('kpis.in_discussion') })}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.exchange_open ?? 0)}
               delay="0.13s"
               isPlaceholder={!isVerified}
@@ -608,6 +618,8 @@ export default function DashboardCDI() {
             />
             <KpiCard
               label={t('kpis.awaiting')}
+              info={tInfo('cdi.awaiting')}
+              etiquette={tInfo('etiquette', { titre: t('kpis.awaiting') })}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.awaiting_review ?? 0)}
               delay="0.16s"
               isPlaceholder={!isVerified}
@@ -615,6 +627,8 @@ export default function DashboardCDI() {
             />
             <KpiCard
               label={t('kpis.retained')}
+              info={tInfo('cdi.retained')}
+              etiquette={tInfo('etiquette', { titre: t('kpis.retained') })}
               value={!isVerified ? '—' : apps.loading ? '…' : String(apps.stats?.facets.selected ?? 0)}
               delay="0.2s"
               accentColor="var(--sk-amber)"
@@ -646,6 +660,9 @@ export default function DashboardCDI() {
                 {completionPercent >= 100
                   ? t('profile_completion.title_complete')
                   : t('profile_completion.title', { percent: completionPercent })}
+                <span style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 6 }}>
+                  <InfoBulle texte={tInfo('cdi.completion')} etiquette={tInfo('etiquette', { titre: t('profile_completion.title_complete') })} />
+                </span>
               </div>
               {/* « Compléter mon profil » mène à l'IMPORT (décision du 30/09/2026) ; un profil complet se consulte. */}
               <Link
@@ -694,6 +711,9 @@ export default function DashboardCDI() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--sk-text)', letterSpacing: '-0.2px', fontFamily: fontJakarta }}>
                   {t('suggestions_section.title')}
+                  <span style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 6 }}>
+                    <InfoBulle texte={tInfo('cdi.suggestions')} etiquette={tInfo('etiquette', { titre: t('suggestions_section.title') })} />
+                  </span>
                 </span>
                 <span style={{ background: 'var(--sk-accent-soft)', color: 'var(--sk-accent)', fontSize: 12, fontWeight: 500, padding: '4px 12px', borderRadius: 20 }}>
                   {t('suggestions_section.ai_badge')}
@@ -812,6 +832,9 @@ export default function DashboardCDI() {
                 }}
               >
                 {t('applications_section.title')}
+                <span style={{ display: 'inline-flex', verticalAlign: 'middle', marginLeft: 6 }}>
+                  <InfoBulle texte={tInfo('cdi.applications')} etiquette={tInfo('etiquette', { titre: t('applications_section.title') })} />
+                </span>
               </div>
               <span
                 style={{
@@ -946,6 +969,8 @@ function KpiCard({
   isPlaceholder = false,
   accentColor,
   href,
+  info,
+  etiquette,
 }: {
   label: string
   value: string
@@ -953,6 +978,9 @@ function KpiCard({
   isPlaceholder?: boolean
   accentColor?: string
   href?: string
+  /** Ce que la case compte (recette du 01/10/2026, point 6). */
+  info: string
+  etiquette: string
 }) {
   const body = (
     <>
@@ -962,6 +990,7 @@ function KpiCard({
           color: 'var(--sk-muted)',
           fontWeight: 600,
           marginBottom: 8,
+          paddingRight: 24,
           textTransform: 'uppercase',
           letterSpacing: '0.04em',
         }}
@@ -981,20 +1010,32 @@ function KpiCard({
       </div>
     </>
   )
+  // L'icône « i » est posée HORS du lien, en surimpression : un bouton ne vit pas dans un `<a>`.
+  const bulle = (
+    <span style={{ position: 'absolute', top: 12, right: 12 }}>
+      <InfoBulle texte={info} etiquette={etiquette} />
+    </span>
+  )
   if (!href) {
     return (
-      <div className="stat-card" style={{ animationDelay: delay }}>
-        {body}
+      <div style={{ position: 'relative' }}>
+        <div className="stat-card" style={{ animationDelay: delay, height: '100%' }}>
+          {body}
+        </div>
+        {bulle}
       </div>
     )
   }
   return (
-    <Link
-      href={href}
-      className="stat-card is-link"
-      style={{ animationDelay: delay, textDecoration: 'none', color: 'inherit', display: 'block' }}
-    >
-      {body}
-    </Link>
+    <div style={{ position: 'relative' }}>
+      <Link
+        href={href}
+        className="stat-card is-link"
+        style={{ animationDelay: delay, textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}
+      >
+        {body}
+      </Link>
+      {bulle}
+    </div>
   )
 }

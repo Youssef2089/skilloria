@@ -48,9 +48,9 @@ begin
       jsonb_build_object('school', 'Sonde', 'degree', 'Master', 'start_year', 2008, 'end_year', 2010),
       jsonb_build_object('school', 'Sonde', 'degree', 'Licence', 'start_year', 1940, 'end_year', 2008)),
     jsonb_build_array(
-      jsonb_build_object('language', 'Français', 'level', 'C2', 'is_primary', true),
-      jsonb_build_object('language', 'Anglais', 'level', 'X9', 'is_primary', false),
-      jsonb_build_object('language', 'Français', 'level', 'C1', 'is_primary', false)),
+      jsonb_build_object('language', 'fr', 'level', 'C2', 'is_primary', true),
+      jsonb_build_object('language', 'en', 'level', 'X9', 'is_primary', false),
+      jsonb_build_object('language', 'fr', 'level', 'C1', 'is_primary', false)),
     interval '24 hours');
   v_ecarts := v_res -> 'ecarts';
 
@@ -124,7 +124,7 @@ begin
     'years_experience', 12, 'skills', jsonb_build_array('Azure', 'Dynamics'), 'certifications', jsonb_build_array('AZ-305'),
     'branch_id', (select b.id from public.branches b order by b.id limit 1),
     'speciality_ids', to_jsonb(array(select s.id from public.specialities s order by s.id limit 1)),
-    'languages', jsonb_build_array('Français', 'Anglais'), 'location', 'Paris', 'tjm_min', 500, 'tjm_max', 800,
+    'languages', jsonb_build_array('fr', 'en'), 'location', 'Paris', 'tjm_min', 500, 'tjm_max', 800,
     'linkedin_url', 'https://www.linkedin.com/in/sonde', 'phone', '+33600000000', 'address_line', '1 rue de la Sonde',
     'postal_code', '75001', 'city', 'Paris', 'country', 'FR', 'birth_year', 1985, 'years_total_experience', 15,
     'work_modes', jsonb_build_array('remote', 'hybrid'),

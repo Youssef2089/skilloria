@@ -373,8 +373,11 @@ section('N. M11, M12, et les mineurs')
   ok(!/\.neq\('created_by'/.test(sansCommentaires(lire('lib/matching/run-for-expert.ts'))), 'm8 — une annonce sans auteur n’est plus écartée du sens expert')
   ok(!/verification_attempts/.test(sansCommentaires(lire('lib/verification/expert-verification.ts'))), 'm2 — plus d’écriture muette dans verification_attempts')
   const ia = sansCommentaires(lire('lib/verification/ai-expert-verification.ts'))
-  ok(/message\.stop_reason === 'pause_turn'/.test(ia) && /maxRetries: 0/.test(ia) && /usages\.push\(consommationJetons\(model, message\.usage\)\)/.test(ia),
-    'm4 — un tour mis en pause se reprend ; chaque tentative payée est comptée ; aucun rejeu caché du SDK')
+  // Recette S1 du 01/10/2026 (§D.43) : le vérificateur n'offre PLUS AUCUN OUTIL au modèle — sans recherche web, aucun
+  // tour ne peut être mis en pause. La propriété devient : soit le tour mis en pause se reprend, soit aucun outil
+  // n'est offert ; le reste (chaque tentative payée comptée, aucun rejeu caché) ne change pas.
+  ok((/message\.stop_reason === 'pause_turn'/.test(ia) || !/\btools\b/.test(ia)) && /maxRetries: 0/.test(ia) && /usages\.push\(consommationJetons\(model, message\.usage\)\)/.test(ia),
+    'm4 — un tour mis en pause se reprend (ou aucun outil n’est offert) ; chaque tentative payée est comptée ; aucun rejeu caché du SDK')
   const ev = sansCommentaires(lire('lib/verification/expert-verification.ts'))
   ok(/if \(expRes\.error \|\| eduRes\.error \|\| langRes\.error \|\| domRes\.error\) \{[\s\S]{0,400}?return 'indisponible'/.test(ev)
      && /if \(aiOut\.echec === 'modele_indisponible'\) return \{ issue: 'rejouer'/.test(ev) && /return deferer\(cause, NOTE_ECHEC\[cause\]/.test(ev),
@@ -408,7 +411,11 @@ section('O. Point 7 — le profil se remplit par le CV ou l’export LinkedIn')
   ok(/href="\/dashboard\/freelance\/profil"\n/.test(lire('app/[locale]/dashboard/freelance/page.tsx')) && /href="\/dashboard\/cdi\/profil"\n/.test(lire('app/[locale]/dashboard/cdi/page.tsx')),
     'les deux tableaux de bord mènent le bandeau à l’IMPORT')
   const guide = sansCommentaires(lire('components/dashboard/ExpertOnboardingGuide.tsx'))
-  ok(!/profil\/valider/.test(guide), 'les étapes de démarrage mènent à l’import, jamais au formulaire')
+  // RETOURNÉE, PAS EFFACÉE (§E.34) : la recette S1 du 01/10/2026 (point 4, décision de Youssef, §D.31 amendé) fait
+  // mener l'ÉTAPE 3 à la validation — elle n'est courante qu'une fois le CV analysé et le profil complet. Les étapes
+  // 1 et 2 mènent toujours à l'import, jamais au formulaire.
+  ok(/cv: `\$\{basePath\}\/profil`/.test(guide) && /profile: `\$\{basePath\}\/profil`/.test(guide) && /publish: `\$\{basePath\}\/profil\/valider`/.test(guide),
+    'les étapes 1 et 2 mènent à l’import ; l’étape 3 (publier) à la validation')
   for (const voie of ['freelance', 'cdi']) {
     const up = sansCommentaires(lire(`app/[locale]/dashboard/${voie}/profil/page.tsx`))
     ok(new RegExp(`<EtatAnalyseCv validerHref="/dashboard/${voie}/profil/valider" />`).test(up) && /suivreAnalyse\(secureFetch, payload\.jobId, setReprise\)/.test(up),

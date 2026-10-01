@@ -2,7 +2,8 @@
 
 import { useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
-import type { VerificationUiState } from '@/lib/verification-state'
+import InfoBulle from '@/components/ui/InfoBulle'
+import { cleLibelleStatut, type VerificationUiState } from '@/lib/verification-state'
 
 /**
  * ExpertOnboardingGuide — bloc de démarrage guidé (C1), en TÊTE du tableau de
@@ -32,6 +33,8 @@ export default function ExpertOnboardingGuide({
   verifState: VerificationUiState
 }) {
   const t = useTranslations('expert_onboarding')
+  const tStatut = useTranslations('statut_profil')
+  const tInfo = useTranslations('infobulles')
 
   // Publication : 'in_progress' pendant la vérif (pending/admin_review),
   // 'done' si approuvé (cas non rendu ici), sinon à faire.
@@ -53,13 +56,15 @@ export default function ExpertOnboardingGuide({
 
   // D4 — cible PAR ÉTAPE (et non plus une cible unique) : l'étape « CV » mène à
   // la vraie zone d'import (${basePath}/profil), les autres à la validation.
-  // TOUTES LES ÉTAPES MÈNENT À L'IMPORT (décision de Youssef, 30/09/2026 : le profil se remplit par le CV
-  // ou l'export LinkedIn). La page d'import dit où en est l'analyse et reprend la validation — jamais un
-  // formulaire vide ouvert directement depuis le tableau de bord.
+  // Les étapes 1 et 2 mènent à l'IMPORT (décision de Youssef, 30/09/2026 : le profil se remplit par le CV
+  // ou l'export LinkedIn) — jamais un formulaire vide ouvert directement depuis le tableau de bord.
+  // L'ÉTAPE 3 MÈNE À LA VALIDATION (recette du 01/10/2026, point 4) : elle n'est l'étape courante qu'une
+  // fois le CV analysé ET le profil complet — il ne reste qu'à publier, et l'import la faisait repartir
+  // de zéro. Sans profil, la page de validation renvoie d'elle-même à l'import.
   const STEP_HREF: Record<'cv' | 'profile' | 'publish' | 'receive', string | null> = {
     cv: `${basePath}/profil`,
     profile: `${basePath}/profil`,
-    publish: `${basePath}/profil`,
+    publish: `${basePath}/profil/valider`,
     receive: null,
   }
 
@@ -76,8 +81,9 @@ export default function ExpertOnboardingGuide({
       }}
     >
       <div style={{ marginBottom: 16 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 4px', letterSpacing: '-0.2px' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', margin: '0 0 4px', letterSpacing: '-0.2px' }}>
           {t('title')}
+          <InfoBulle texte={tInfo('expert.onboarding')} etiquette={tInfo('etiquette', { titre: t('title') })} />
         </h2>
         <p style={{ fontSize: 13.5, color: 'var(--sk-muted)', margin: 0, lineHeight: 1.55 }}>{t('subtitle')}</p>
       </div>
@@ -125,7 +131,9 @@ export default function ExpertOnboardingGuide({
                 {/* Description/statut : UNIQUEMENT sur l'étape courante. */}
                 {isCurrent && (
                   <div style={{ fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
-                    {step.inProgress ? t('status.in_progress') : t('status.current')}
+                    {/* Le MÊME libellé que la pastille (recette du 01/10/2026, point 5) :
+                        « Vérification en cours » disait les deux états d'un seul mot. */}
+                    {step.inProgress ? tStatut('titre', { etat: tStatut(cleLibelleStatut(verifState)) }) : t('status.current')}
                   </div>
                 )}
               </div>
