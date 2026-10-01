@@ -4250,6 +4250,10 @@ le site a été atteint) de « le site n'a pas été atteint », et nomme la cau
 **La leçon commune** : un outil d'exploitation ne se juge pas à ce qu'il promet (« statique », « la tâche tourne
 chaque nuit ») mais à ce qu'il fait réellement — le lire, pas son en-tête (§E.57).
 
+**Et ce qu'ils affichaient (01/10/2026)** : `diag-readonly-expert-achwek` est SUPPRIMÉ ; `diag-cron-purges` affichait le
+contenu de la réponse des purges, qui porte des identifiants de comptes — il n'en affiche plus que la longueur. Le
+grand livre, lui, ne porte aucun numéro de téléphone, même partiel : seulement le fait, un booléen.
+
 **Gardé par** [`diag-recette-staging`](../scripts/diag-recette-staging.mjs) (7 : le lanceur ; 4 : dix causes exécutées)
 et `taches_planifiees/joignabilite.test.sql`. **Ce qu'ils ne voient pas** : la protection réelle de Vercel — seul
 l'écran de supervision, sur staging, dira qu'elle est levée.

@@ -182,7 +182,10 @@ for (const exp of EXPECTED) {
         problems.push(`reponse HTTP ${r.http_status ?? 'sans statut'} — ${r.http_error ?? 'sans message'}`)
       } else {
         notes.push(`HTTP 200, ${fmtAge(httpAge)}`)
-        if (r.http_response) notes.push(`reponse : ${r.http_response.slice(0, 160)}`)
+        // LE CONTENU DE LA RÉPONSE N'EST JAMAIS AFFICHÉ (01/10/2026) : le compte-rendu des purges porte des
+        // identifiants de COMPTES (cron_run_log.response_body) — une donnée personnelle. Sa longueur suffit à
+        // dire qu'une réponse est arrivée ; son contenu se lit, si besoin, dans /admin/taches-planifiees.
+        if (r.http_response) notes.push(`reponse : ${r.http_response.length} caracteres (contenu non affiche — il peut porter des identifiants de comptes)`)
       }
     }
   }

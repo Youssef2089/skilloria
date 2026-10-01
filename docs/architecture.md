@@ -344,7 +344,7 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > **LES TROIS MIGRATIONS DE LA RECETTE STAGING (30/09/2026).**
 > - **`journal_inscription_distincte`** (AVANT le déploiement) — `handle_new_user()` remplacée à signature identique :
 >   `compte_cree` porte le compte (type FINAL — « admin » pour un administrateur, plus « client » —, voie, version des
->   CGU, téléphone vérifié) ; `expert_inscrit` porte sur le PROFIL (branche, nombre de spécialités, « Autre »). Listes
+>   CGU, téléphone vérifié — un booléen, JAMAIS le numéro) ; `expert_inscrit` porte sur le PROFIL (branche, nombre de spécialités, « Autre »). Listes
 >   blanches élargies en conséquence (§D.32). Tests : `grand_livre/inscriptions.test.sql`, `inscription/compte_cree.test.sql`,
 >   `grand_livre/administrateur_cree.test.sql`.
 > - **`appliquer_analyse_cv_retiree`** (indifférent) — `drop function appliquer_analyse_cv(uuid, jsonb, jsonb, jsonb, jsonb)`,

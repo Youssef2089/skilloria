@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 30/09/2026 (ARRÊT 20 — la recette staging, tout le reste de la liste).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 01/10/2026 (ARRÊT 20 bis — le téléphone au grand livre, les scripts qui lisaient la vraie base).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -57,6 +57,38 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
+## ⛔ ARRÊT 20 bis — AVANT LE DÉPLOIEMENT DE L'ARRÊT 20 : DEUX POINTS (01/10/2026)
+
+**① LE TÉLÉPHONE AU GRAND LIVRE — aucun numéro n'y était écrit ; le mot l'était.** `compte_cree` porte
+`telephone_verifie` = `v_tel is not null` : un BOOLÉEN. Le numéro ne va qu'à `users.phone`, sur le compte. Ni la migration
+`journal_inscription_distincte` ni la route ne l'écrivaient au grand livre ; ce qui était faux, c'est ma phrase — « dit le
+téléphone » — dans CLAUDE.md (§D.32), docs/reprise.md et le rapport. Corrigée partout : « téléphone vérifié — oui ou non,
+JAMAIS le numéro ». Les deux barrières de `journaliser()` jugent les CLÉS (liste blanche par action, GL004) ; une valeur
+n'est pas lue — c'est donc l'écrivain qui garantit qu'aucune clé admise ne reçoit un numéro, et le test qui le prouve.
+**Prouvé par** `grand_livre/inscriptions.test.sql` (11 → 14) : aucune ligne des cinq inscriptions (freelance, CDI, client,
+cabinet, ESN) ne contient le numéro fabriqué — ni entier, ni en forme nationale, ni ses huit derniers chiffres — et
+`telephone_verifie` est un booléen ; `compte_cree` refuse les clés `telephone` et `phone` (GL004) ; `expert_inscrit`
+refusait déjà `telephone`. Et par `diag-recette-staging` 1 : dans chaque appel à `journaliser()` de `handle_new_user`,
+`v_tel` n'apparaît que sous la forme `v_tel is not null`. **Les écritures touchées par l'ARRÊT 20** : `compte_cree` et
+`expert_inscrit` (branche, nombre de spécialités, « Autre » oui/non — aucune donnée personnelle ; la précision « Autre »,
+texte libre, n'entre pas). Aucune autre écriture n'a été touchée.
+**Migration modifiée** (pas encore appliquée) : `20260930000090_journal_inscription_distincte` — un COMMENTAIRE seulement ;
+son code écrivait déjà le booléen.
+
+**② LES SCRIPTS QUI LISAIENT LA VRAIE BASE.** `scripts/diag-readonly-expert-achwek.mjs` est **supprimé**. Les trois autres :
+- `diag-cron-purges` — **AFFICHAIT une donnée personnelle** : les 160 premiers caractères de la réponse des routes de
+  purge, dont le compte-rendu porte des identifiants de COMPTES (mémoire du projet : `cron_run_log.response_body`). Il
+  n'affiche plus que sa LONGUEUR. Le reste (statut, horaire, message d'erreur technique, adresse du projet) n'est pas personnel.
+- `diag-gate-recalibrage` — **non** : il affiche deux annonces FABRIQUÉES (l'adresse et le numéro de l'une sont fictifs,
+  et ne sont pas imprimés) et le verdict du modèle. Il appelle le modèle payant et lit `.env.local` : il reste écarté.
+- `diag-supabase` — **non** : il affiche les trente premiers caractères de chaque ligne de `.env.local` (le nom de la
+  variable et le début d'une clé), des longueurs, des préfixes, le statut HTTP, et la LONGUEUR du corps — jamais son contenu.
+Je n'ai lancé aucun d'eux, ni `--avec-base`. **Gardé par** `diag-recette-staging` 7.
+
+**Pour Youssef** : rien de nouveau à faire — les étapes de l'ARRÊT 20, ci-dessous, s'appliquent telles quelles (la
+migration modifiée n'est pas encore appliquée ; `db reset --local` la rejoue) ; **543 tests attendus** dans 54 fichiers
+(540 + 3). L'étape 9 n'a plus à décider du script d'enquête : il est supprimé.
+
 ## ⛔ ARRÊT 20 — LA RECETTE STAGING : TOUT LE RESTE DE LA LISTE, EN UN SEUL LOT (30/09/2026)
 
 État de départ : ARRÊTS 18, 19 et 19 bis déployés sur staging (`dbd028e`, dernière migration `listes_profil_atomiques`).
@@ -85,7 +117,7 @@ Tag local `sauvegarde-avant-reste-recette` sur `dbd028e`, arbre propre (hormis `
 
 | Point | État | Ce qui a été fait | Prouvé par |
 |---|---|---|---|
-| **1. Grand livre** | **corrigé** | Balayage de toute la plateforme (SQL et TypeScript) : l'inscription d'un expert — freelance et CDI — était le SEUL geste où deux lignes ne se distinguaient en rien. `compte_cree` dit désormais le COMPTE (type final, voie, CGU, téléphone), `expert_inscrit` le PROFIL (branche, nombre de spécialités, « Autre »). Administrateur : le type « client » était faux, il vaut « admin ». Organisation et invitation : déjà deux objets différents. L'écran rend le détail clé par clé (liste et pièce). | `diag-grand-livre` (deux actions d'une fonction SQL sur le même sujet), `diag-recette-staging` 1 ; tests `grand_livre/inscriptions` (deux sujets par voie), `inscription/compte_cree`, `grand_livre/administrateur_cree` |
+| **1. Grand livre** | **corrigé** | Balayage de toute la plateforme (SQL et TypeScript) : l'inscription d'un expert — freelance et CDI — était le SEUL geste où deux lignes ne se distinguaient en rien. `compte_cree` dit désormais le COMPTE (type final, voie, version des CGU, téléphone vérifié — oui ou non, JAMAIS le numéro), `expert_inscrit` le PROFIL (branche, nombre de spécialités, « Autre »). Administrateur : le type « client » était faux, il vaut « admin ». Organisation et invitation : déjà deux objets différents. L'écran rend le détail clé par clé (liste et pièce). | `diag-grand-livre` (deux actions d'une fonction SQL sur le même sujet), `diag-recette-staging` 1 ; tests `grand_livre/inscriptions` (deux sujets par voie), `inscription/compte_cree`, `grand_livre/administrateur_cree` |
 | **2. Traductions** | **corrigé** | `nav_depots_echec` était posée un niveau trop haut (déplacée), `nav_travaux_ia` manquait (ma régression de l'ARRÊT 19), `actor.reste_non_detaille` et `actor.non_imputable` manquaient. `diag-cles-i18n` suit désormais les clés dont la VALEUR vient d'ailleurs : le menu (lib/nav-config.ts), les acteurs (la dernière définition SQL de `ai_spend_par_acteur`), les problèmes de la supervision. | `diag-cles-i18n` (bornes B) |
 | **3. Supervision : les réglages** | **fait** | Panneau permanent « Réglages exigés au démarrage » : les N variables exigées posées, ou lesquelles manquent ; l'heure, la version (`VERCEL_GIT_COMMIT_SHA`) et l'environnement contrôlés. | `diag-recette-staging` 3 (exécuté) |
 | **4. Tâches planifiées** | **fait** | Les 7 routes `/api/cron` ne lisent aucun écosystème : elles répondent sur la racine. `cron_joignabilite()` lit le dernier appel de chaque tâche (journal ET réponse brute de pg_net) ; la supervision dit, en BLOQUANT, chaque tâche qui n'atteint pas le site, avec sa cause. La ligne Stripe « impossible » pour facturation coupée n'alarme plus. | `diag-recette-staging` 4 (dix causes exécutées) ; test `taches_planifiees/joignabilite` (8) |

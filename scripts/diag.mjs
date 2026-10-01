@@ -174,7 +174,7 @@ function ecritEnBase(nom) {
    │ `.env.local` SUR LE DISQUE — ce que le retrait des secrets de l'environnement de l'enfant   │
    │ ne peut pas empêcher — et interrogeaient la base réelle à CHAQUE série : deux s'affichaient │
    │ verts (diag-cron-purges, diag-gate-recalibrage), deux « plantés » (diag-supabase,          │
-   │ diag-readonly-expert-achwek, qui imprime les données d'une personne réelle avec la clé de   │
+   │ diag-readonly-expert-achwek — SUPPRIMÉ le 01/10/2026 —, qui imprimait les données d'une personne réelle avec la clé de   │
    │ service). Lecture seule, mais une sonde sur donnée réelle n'a rien à faire dans une série.   │
    │                                                                                             │
    │ LA PROPRIÉTÉ, PAS UNE LISTE (§E.34) : le script nomme `.env.local` dans son CODE (pas dans   │

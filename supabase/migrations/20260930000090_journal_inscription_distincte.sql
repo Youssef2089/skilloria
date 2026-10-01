@@ -146,7 +146,9 @@ begin
 
   -- ⑤ LA LIGNE DU COMPTE — pour toute création : ce qui appartient au COMPTE (recette staging, 30/09/2026).
   --    Son type FINAL (un administrateur naît par le rôle de pont puis est promu dans CETTE transaction :
-  --    « client » était faux), sa voie, la version des CGU acceptée, le téléphone vérifié.
+  --    « client » était faux), sa voie, la version des CGU acceptée, et le FAIT que le téléphone est vérifié — un
+  --    booléen, JAMAIS le numéro (décision de Youssef, 01/10/2026) : le grand livre ne s'efface jamais, il ne porte
+  --    aucune donnée personnelle, même partielle. Le numéro vit dans `users.phone`, sur le compte.
   perform public.journaliser(
     v_piece, 'compte_cree', 'reussi',
     case when v_voie = 'administrateur' then 'systeme' else 'utilisateur' end,

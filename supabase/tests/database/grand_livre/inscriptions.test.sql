@@ -8,10 +8,13 @@
 -- DEUX LIGNES D'UN GESTE NE SE RESSEMBLENT PAS (recette staging, 30/09/2026) : `compte_cree` dit le COMPTE (type,
 -- voie, CGU, téléphone), la ligne sœur dit l'OBJET que la voie crée — le profil, l'organisation. `paire()` exige
 -- deux SUJETS différents : deux lignes sur le même sujet, c'est le cas que Youssef a vu à l'écran.
+-- AUCUN NUMÉRO DE TÉLÉPHONE AU GRAND LIVRE, MÊME PARTIEL (décision de Youssef, 01/10/2026) : le grand livre ne
+-- s'efface jamais ; il porte le FAIT (téléphone vérifié, booléen), jamais le numéro — vérifié sur chaque ligne de
+-- chaque inscription, et les clés `telephone` / `phone` refusées par la liste blanche des deux écritures.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(11);
+select plan(14);
 
 -- Une inscription prouvée, et sa pièce.
 create or replace function pg_temp.inscrire(p_id uuid, p_role text, p_remplace jsonb default '{}'::jsonb) returns uuid
@@ -77,6 +80,27 @@ begin
                  and exists (select 1 from public.grand_livre g where g.piece = v_p[5] and g.type_action = 'organisation_preinscrite'
                               and g.acteur_type = 'cabinet' and g.detail ->> 'org_type' = 'esn'),
                  'ESN : le compte est un cabinet, l''organisation esn — la paire sous la même pièce');
+
+  -- ── AUCUN NUMÉRO, MÊME PARTIEL : ni le numéro, ni sa forme nationale, ni ses huit derniers chiffres ──
+  return next ok(not exists (
+                   select 1
+                     from unnest(v_p) with ordinality as p(piece, rang)
+                     join public.grand_livre g on g.piece = p.piece
+                    cross join lateral (select pg_temp.fab_telephone(v_ids[p.rang::int]) as num) t
+                    where strpos(g.detail::text, t.num) > 0
+                       or strpos(g.detail::text, '0' || substr(t.num, 4)) > 0
+                       or strpos(g.detail::text, right(t.num, 8)) > 0)
+                 and (select jsonb_typeof(g.detail -> 'telephone_verifie') = 'boolean' from public.grand_livre g
+                       where g.piece = v_p[1] and g.type_action = 'compte_cree'),
+                 'aucune ligne des cinq inscriptions ne porte le numéro, même partiel — seulement le FAIT, un booléen');
+  return next throws_ok(format($q$select public.journaliser(%L, 'compte_cree', 'reussi', 'utilisateur', %L, 'expert_freelance', %L,
+                                 'users', %L, '{"type_de_compte":"expert_freelance","telephone":"+33600000000"}'::jsonb,
+                                 null::uuid, null::numeric, null::text)$q$, gen_random_uuid(), v_ids[1], v_dom, v_ids[1]),
+                        'GL004', null, 'compte_cree : la clé « telephone » est refusée — le numéro n''entre pas');
+  return next throws_ok(format($q$select public.journaliser(%L, 'compte_cree', 'reussi', 'utilisateur', %L, 'expert_freelance', %L,
+                                 'users', %L, '{"type_de_compte":"expert_freelance","phone":"+33600000000"}'::jsonb,
+                                 null::uuid, null::numeric, null::text)$q$, gen_random_uuid(), v_ids[1], v_dom, v_ids[1]),
+                        'GL004', null, 'compte_cree : la clé « phone » est refusée');
 
   -- ── les listes blanches : la forme échouée n'existe plus ──
   return next throws_ok(format($q$select public.journaliser(%L, 'expert_inscrit', 'echoue', 'utilisateur', %L, 'expert_freelance', %L,

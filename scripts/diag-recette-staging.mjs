@@ -18,7 +18,7 @@
  * Sortie : 0 vert · 1 rouge · 2 n'a pas tourné.
  */
 
-import { readFileSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
@@ -62,6 +62,17 @@ section('1. Le grand livre : deux écritures d’un geste se distinguent, et l�
     'l’inscription d’un expert porte sur son PROFIL ; le compte d’un administrateur n’est plus dit « client »')
   ok(/count\(distinct \(g\.sujet_type, g\.sujet_id\)\)/.test(lire('supabase/tests/database/grand_livre/inscriptions.test.sql')),
     'le test des lignes sœurs exige deux SUJETS différents pour chaque voie')
+  // AUCUN NUMÉRO AU GRAND LIVRE, MÊME PARTIEL (décision de Youssef, 01/10/2026) : dans chaque appel à journaliser()
+  // de handle_new_user, le numéro (`v_tel`) n'apparaît que sous la forme du FAIT `v_tel is not null`.
+  const corps = mig.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
+  const appels = [...corps.matchAll(/perform public\.journaliser\(([\s\S]*?)\);/g)].map((m) => m[1])
+  const fuites = appels.filter((a) => /v_tel\b/.test(a.replace(/v_tel is not null/g, '')) || /'telephone'|'phone'/.test(a))
+  ok(appels.length >= 3 && fuites.length === 0 && appels.some((a) => /'telephone_verifie', v_tel is not null/.test(a)),
+    `aucune des ${appels.length} écritures de l’inscription ne porte le numéro — seulement « téléphone vérifié », un booléen`,
+    fuites.map((a) => a.slice(0, 80)).join(' · '))
+  const testInscr = lire('supabase/tests/database/grand_livre/inscriptions.test.sql')
+  ok(/strpos\(g\.detail::text, right\(t\.num, 8\)\) > 0/.test(testInscr) && /'compte_cree', 'reussi'[\s\S]{0,200}"telephone":"\+33600000000"/.test(testInscr),
+    'un test prouve qu’aucune ligne d’inscription ne porte le numéro, même partiel, et que la clé « telephone » est refusée')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -160,7 +171,14 @@ section('7. La série statique ne touche plus la vraie base ; les deux scripts f
     'le lanceur écarte, par PROPRIÉTÉ, les scripts qui lisent .env.local sans drapeau — --avec-base pour les inclure')
   ok(/process\.exitCode = rouges\.length \+ muets\.length > 0 \? 1 : 0/.test(lanceur) && /ecartes\.push\(/.test(lanceur),
     'un script écarté par construction n’est plus compté « n’a pas tourné » : seules les pannes du contrôle le sont')
-  for (const f of ['scripts/diag-supabase.mjs', 'scripts/diag-readonly-expert-achwek.mjs']) {
+  // DÉCISION DE YOUSSEF (01/10/2026) : le script qui imprimait les données d'une personne réelle est SUPPRIMÉ ;
+  // les lecteurs restants n'affichent aucune donnée personnelle — le compte-rendu des purges porte des
+  // identifiants de comptes : sa longueur s'affiche, jamais son contenu.
+  ok(!existsSync(join(ROOT, 'scripts/diag-readonly-expert-achwek.mjs')), 'le script d’enquête sur une personne réelle est supprimé')
+  const purges = sansCommentaires(lire('scripts/diag-cron-purges.mjs'))
+  ok(!/r\.http_response\.slice\(/.test(purges) && /r\.http_response\.length/.test(purges),
+    'diag-cron-purges n’affiche plus le contenu de la réponse des purges (des identifiants de comptes) — sa longueur seulement')
+  for (const f of ['scripts/diag-supabase.mjs']) {
     const s = sansCommentaires(lire(f))
     const apresReseau = s.slice(s.search(/await (fetch|principal)\(/))
     ok(/async function sortir\(code\)[\s\S]*?undici\.globalDispatcher\.1/.test(s) && !/process\.exit\(/.test(apresReseau.replace(/async function sortir[\s\S]*?\n\}/, '')),
