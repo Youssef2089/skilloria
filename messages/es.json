@@ -35,7 +35,7 @@
   "not_found": {
     "title": "Página no encontrada",
     "description": "La página que buscas no existe o se ha movido.",
-    "back_home": "Volver al inicio"
+    "back_home": "Inicio"
   },
   "shell": {
     "user_fallback": "Usuario",
@@ -983,7 +983,7 @@
     "submitting": "Enviando…",
     "sent_title": "Revisa tu correo",
     "sent_message": "Si existe una cuenta para esta dirección, acabamos de enviar un enlace para restablecer la contraseña.",
-    "back_to_login": "← Volver al inicio de sesión",
+    "back_to_login": "Iniciar sesión",
     "errors": {
       "missing_email": "Introduce tu correo.",
       "generic": "Se ha producido un error. Inténtalo de nuevo."
@@ -1084,7 +1084,7 @@
       "verifying_subtitle": "Estamos validando tu correo.",
       "error_title": "Error de verificación",
       "error_subtitle": "El enlace parece no válido o ha caducado.",
-      "back_to_signup": "Volver al registro",
+      "back_to_signup": "Registrarse",
       "back_to_signin": "Iniciar sesión",
       "error_expired_title": "Este enlace ha caducado",
       "error_expired_subtitle": "Este enlace de confirmación ha caducado o ya se ha usado. Inicie sesión: si su dirección aún no está confirmada, podrá recibir un nuevo enlace.",
@@ -1141,7 +1141,7 @@
     "message_line1": "Se ha enviado un correo de confirmación a tu dirección.",
     "message_line2": "Haz clic en el enlace del correo para activar tu cuenta y acceder a la plataforma.",
     "spam_notice": "💡 Recuerda revisar tu carpeta de <strong>spam</strong> si no recibes el correo en 2 minutos.",
-    "back_to_home": "Volver al inicio",
+    "back_to_home": "Inicio",
     "already_confirmed": "¿Ya confirmado?",
     "sign_in": "Iniciar sesión"
   },
@@ -1179,7 +1179,7 @@
       "speciality_other_placeholder": "Ej. FinOps, Green IT…",
       "taxonomy_loading": "Cargando ramas…"
     },
-    "change_profile": "← Cambiar de perfil",
+    "change_profile": "Cambiar de perfil",
     "cgu": "Acepto las <terms>condiciones de uso</terms> y la <privacy>política de privacidad</privacy>",
     "submit": "Crear mi cuenta →",
     "submitting": "Creando cuenta...",
@@ -3939,7 +3939,7 @@
     "loading": "Cargando…",
     "invalid_title": "Invitación no válida",
     "invalid_body": "Este enlace de invitación no es válido, ha caducado o ya se ha utilizado.",
-    "go_home": "Volver al inicio",
+    "go_home": "Inicio",
     "accepted_title": "Invitación aceptada",
     "accepted_body": "Redirigiendo a su espacio…",
     "invite_title": "Unirse a {company}",
@@ -4495,7 +4495,7 @@
   },
   "ecosystem_unavailable": {
     "meta_title": "Ecosistema no disponible",
-    "back_home": "Volver al inicio",
+    "back_home": "Inicio",
     "generic": {
       "title": "Este ecosistema no está disponible",
       "body": "No hemos podido abrir este ecosistema. Inténtelo de nuevo en un momento; si el problema persiste, contacte con el soporte."

@@ -70,8 +70,8 @@ begin
        select cont.code, count(*) as n from public.work_zones w
          join public.work_zones cont on cont.id = w.parent_id
         where w.kind = 'country' and w.active group by cont.code) c(code, n)),
-    '{"EU": 48, "AF": 54, "AS": 46, "NA": 23, "SA": 12, "OC": 14}'::jsonb,
-    '3. par continent : Europe 48, Afrique 54, Asie 46, Amérique du Nord 23, Amérique du Sud 12, Océanie 14');
+    '{"EU": 49, "AF": 54, "AS": 45, "NA": 23, "SA": 12, "OC": 14}'::jsonb,
+    '3. par continent : Europe 49 (la Turquie comprise, décision de Youssef), Afrique 54, Asie 45, Amérique du Nord 23, Amérique du Sud 12, Océanie 14');
 
   -- ── CONTINENT ET QUATRE NOMS ──
   return next is(

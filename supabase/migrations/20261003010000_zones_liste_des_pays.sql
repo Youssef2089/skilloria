@@ -33,7 +33,9 @@
 --   4. TOUS LES AUTRES PAYS : chaque État membre et observateur de l'ONU (Saint-Siège, Palestine), Israël excepté, a
 --      sa zone. Les 64 rattachements existants NE CHANGENT PAS (Chypre reste en Europe) ; un pays nouveau va dans le
 --      continent de la division géographique de l'ONU (M49), l'Amérique centrale et les Caraïbes avec l'Amérique du
---      Nord. Noms : CLDR (fr, en, es, de), corrigés là où il abrège (« Congo-Kinshasa », « St. Lucia ») ; le français
+--      Nord — SAUF LA TURQUIE, rangée en EUROPE (décision de Youssef, 02/10/2026 ; l'ONU la met en Asie occidentale).
+--      Noms : CLDR (fr, en, es, de), corrigés là où il abrège (« Congo-Kinshasa », « St. Lucia ») ou vise une autre forme
+--      que celle qu'on cherche (« Türkiye » → « Turkey » : une recherche « Turkey » ne la trouvait pas) ; le français
 --      dans `work_zones.name`, les trois autres dans `translations`. Un pays déjà présent n'est pas touché (`not
 --      exists` sur le code pays, puis `on conflict do nothing`) : staging (64 zones) et une base neuve (64, par
 --      `zones_pays_rattaches`) aboutissent à la MÊME liste — 197 pays actifs. Les continents entiers et « Partout dans
@@ -205,7 +207,7 @@ begin
     ('QA', 'AS', 'Qatar', 'Qatar', 'Catar', 'Katar'),
     ('SA', 'AS', 'Arabie saoudite', 'Saudi Arabia', 'Arabia Saudí', 'Saudi-Arabien'),
     ('SY', 'AS', 'Syrie', 'Syria', 'Siria', 'Syrien'),
-    ('TR', 'AS', 'Turquie', 'Türkiye', 'Turquía', 'Türkei'),
+    ('TR', 'EU', 'Turquie', 'Turkey', 'Turquía', 'Türkei'),
     ('YE', 'AS', 'Yémen', 'Yemen', 'Yemen', 'Jemen'),
     ('PS', 'AS', 'Palestine', 'Palestine', 'Palestina', 'Palästina'),
     ('BZ', 'NA', 'Belize', 'Belize', 'Belice', 'Belize'),

@@ -65,7 +65,7 @@ tourné pendant mes premières modifications, elle ne faisait pas foi) : série 
   l'import du CV, « Valider mon profil »).
 - **Vérifié sur toutes les pages de tous les profils** : les 73 `page.tsx` des trois tableaux de bord et de l'admin,
   exécutées une à une par le contrôle (72 nommées, 1 redirection serveur déclarée — `/dashboard/cabinet`).
-- ⚠️ **Deux en-têtes changent de mot, à valider par Youssef** : ils disent désormais ce que dit leur entrée de menu —
+- ✅ **Deux en-têtes changent de mot — VALIDÉ par Youssef (02/10/2026)** : ils disent désormais ce que dit leur entrée de menu —
   « Mes candidatures » → **« Candidatures »**, « Messagerie » → **« Messages »**. Le reste est inchangé (« Mon profil »,
   « Missions », « Offres » côté CDI, « Mes annonces », « Paramètres », « Mon entreprise », « Membres équipe », « Mon
   offre »). Si Youssef préfère les anciens mots, c'est le libellé du MENU qui change (`shell.nav`), et les deux suivent.
@@ -83,7 +83,7 @@ couvre tout, table « section → titre » remise, entrée de menu retirée, dé
 Ce qu'il ne voit pas, et le dit : un retour écrit avec un mot qu'aucune règle ne reconnaît (« Revenir à… ») dans une
 clé nommée autrement ; un lien vers la page parente sans mot ni flèche.
 
-⚠️ **À TRANCHER PAR YOUSSEF — les pages PUBLIQUES.** Elles n'ont **aucun menu** : leur lien est la seule issue de la
+✅ **TRANCHÉ PAR YOUSSEF (02/10/2026) — voir « Décisions de Youssef » plus bas : un lien de sortie, SANS FLÈCHE, qui dit où il mène.** *Le constat d'origine :* Elles n'ont **aucun menu** : leur lien est la seule issue de la
 page, le retirer en ferait une impasse. Je les ai **gardées**, déclarées une à une dans le contrôle :
 404 (« Retour à l'accueil »), écosystème indisponible (idem), mot de passe oublié (« ← Retour à la connexion »),
 retour d'une confirmation d'adresse (« Retour à l'inscription »), confirmations d'inscription expert et organisation
@@ -190,16 +190,17 @@ justes dans les deux états.
 
 | Continent | Pays | dont existants (inchangés) | dont nouveaux |
 |---|---|---|---|
-| Europe | **48** | 42 (les 43 de départ, moins le Royaume-Uni) | 2 (Biélorussie, Russie) + les 4 du Royaume-Uni |
+| Europe | **49** | 42 (les 43 de départ, moins le Royaume-Uni) | 3 (Biélorussie, Russie, **Turquie**) + les 4 du Royaume-Uni |
 | Afrique | **54** | 8 | 46 |
-| Asie | **46** | 4 (les 5 de départ, moins Israël) | 42 |
+| Asie | **45** | 4 (les 5 de départ, moins Israël) | 41 |
 | Amérique du Nord (avec l'Amérique centrale et les Caraïbes) | **23** | 3 | 20 |
 | Amérique du Sud | **12** | 3 | 9 |
 | Océanie | **14** | 2 | 12 |
 
 **Les rattachements qui se discutent** (j'ai suivi la règle : l'ONU pour un pays nouveau, l'existant inchangé) :
 - **Russie → Europe** (ONU : Europe de l'Est) — l'essentiel de son territoire est en Asie.
-- **Turquie → Asie** (ONU : Asie occidentale) — souvent comptée en Europe (Conseil de l'Europe, candidate à l'UE).
+- ✅ **Turquie → EUROPE — décision de Youssef (02/10/2026)** ; l'ONU la range en Asie occidentale. Les autres
+  rattachements restent tels quels.
 - **Caucase : Arménie, Azerbaïdjan, Géorgie → Asie** (ONU : Asie occidentale) — tous trois au Conseil de l'Europe.
 - **Asie centrale : Kazakhstan → Asie** (une partie à l'ouest de l'Oural est en Europe) ; Kirghizistan, Tadjikistan,
   Turkménistan, Ouzbékistan → Asie.
@@ -213,11 +214,51 @@ justes dans les deux états.
 - **Hors liste** (pas membres de l'ONU) : Kosovo, Taïwan, Hong Kong, Macao, Sahara occidental, Porto Rico, Groenland,
   et les territoires français (Guyane, Nouvelle-Calédonie, Polynésie) — ils figuraient dans la correspondance d'origine,
   mais n'ont jamais été actifs (absents de `countries`).
-- **Un nom** : la Turquie s'appelle « Türkiye » en anglais (nom officiel à l'ONU depuis 2022, celui de CLDR) ; la
-  recherche « Turk » la trouve, « Turkey » non.
+- ✅ **Un nom** : la Turquie s'appelait « Türkiye » en anglais (CLDR) — une recherche « Turkey » ne la trouvait pas ;
+  **elle s'appelle « Turkey »** (décision de Youssef).
 
 Un changement de continent est une ligne de la migration (avant le push) ou un `update … set parent_id` (après — le
 déclencheur recalcule).
+
+### DÉCISIONS DE YOUSSEF SUR LES POINTS À VALIDER (02/10/2026, commit 3)
+
+**Lu avant d'écrire** : les quatre valeurs de chaque lien public, et le fichier de chacun (sa destination réelle).
+
+1. **Turquie : en EUROPE, « Turkey » en anglais — fait.** La migration (jamais appliquée) la range en Europe sous ce
+   nom ; le contrôle (`diag-zones-liste-des-pays`, dont la SOURCE l'écrit en Europe avec la raison) et le test
+   attendent **Europe 49, Asie 45** ; la liste des 197 ne change pas. Le contrôle vérifie la Turquie nommément.
+2. **En-têtes « Candidatures » et « Messages » : validés** — rien à changer.
+3. **Pages publiques sans menu : un lien pour en sortir, SANS FLÈCHE, qui dit où il mène — fait**, dans les 4 langues,
+   par les VALEURS seules (les clés et le code ne changent pas) :
+
+| Page | Mène à | fr · en · es · de |
+|---|---|---|
+| 404, écosystème indisponible, confirmations d'inscription (expert, organisation), invitation | l'accueil | Accueil · Home · Inicio · Startseite |
+| mot de passe oublié | `/connexion` | Se connecter · Sign in · Iniciar sesión · Anmelden |
+| retour d'une confirmation d'adresse refusée | `/inscription` | S'inscrire · Sign up · Registrarse · Registrieren |
+| (même page, seconde sortie, inchangée) | `/connexion` | Se connecter · Sign in · Iniciar sesión · Anmelden |
+| formulaire d'inscription | `/inscription` (le choix du profil) | Changer de profil · Change profile · Cambiar de perfil · Profil ändern |
+
+   **`diag-aucun-retour` en tient compte** : aucune valeur de message ne porte « ← », dans aucune des quatre langues ;
+   les **8 sorties** des pages publiques sont déclarées avec leur DESTINATION, que le contrôle retrouve dans le fichier,
+   et leur libellé ne porte ni flèche ni mot de retour (Retour, Revenir, Back, Return, Volver, Regresar, Zurück), dans
+   aucune langue. **Mutations : 12 sur 12** pour `diag-aucun-retour` (dont une flèche remise en allemand, « Back to
+   home » remis en anglais, une sortie qui ne mène plus où elle dit) ; **16 sur 16** pour `diag-zones-liste-des-pays`
+   et `diag-deux-temps` (dont la Turquie remise en Asie, renommée « Türkiye »).
+
+**Tests de base attendus : toujours 690** (le test change ses comptes, pas son nombre d'assertions). À rejouer.
+
+**L'épreuve du commit 3** (dans ce dossier, sans copie de travail ni installation ailleurs) :
+- série `diag-*` : **127 verts / 0 rouge / 0 muet** (6 écartés : base) ;
+- lint (cliquet) : **49/23**, inchangé ; parité i18n : **4 934 clés** ; `tsc` : **0 erreur dans le code** ;
+- `next build` : **ÉCHEC À LA VÉRIFICATION DES TYPES, pas à la compilation** — « Compiled successfully », puis
+  `.next/dev/types/validator.ts:1160` cite `app/api/profile/cv/route.js`, route supprimée par le principal. Ce fichier
+  est GÉNÉRÉ (non versionné) et périmé (ARRÊT S1-1 ⑦) ; la consigne était de supprimer `.next/dev` avant le build,
+  mais **la suppression a été REFUSÉE par les permissions de la session** (deux tentatives, `rm -rf` puis `rm -r`) —
+  je ne l'ai pas contournée. **À faire par Youssef** : supprimer `.next/dev` dans `skilloria-s1`, puis `npm run build`.
+  Les deux builds précédents, sur un dossier sans `.next/dev`, passaient (parties A et B) ; ce commit ne change que des
+  valeurs de messages, une ligne de migration, un test et deux contrôles — **NON VÉRIFIÉ par un build vert ici**.
+- mutations : **12 sur 12** (`diag-aucun-retour`), **16 sur 16** (`diag-zones-liste-des-pays`, `diag-deux-temps`).
 
 ### L'ÉPREUVE (les deux commits)
 
@@ -257,8 +298,7 @@ déclencheur recalcule).
 (le tri par nom), les routes qui écrivent les zones (`/api/profile`, `/api/publications`, `/api/publications/[id]`) et
 `/api/taxonomy`, `scripts/lib/schema-migrations.mjs` (par ses effets).
 
-⛔ **ARRÊT.** Rien n'est poussé. Les étapes de Youssef : relire les deux en-têtes qui changent de mot et les pages
-publiques (partie A), les continents discutés (ci-dessus), puis la séquence §G.4 ter — `db reset --local`,
+⛔ **ARRÊT.** Rien n'est poussé. Les décisions de Youssef sont appliquées (commit 3). Ses étapes : la séquence §G.4 ter — `db reset --local`,
 `db lint`, `test db --local` (690), la requête d'avant-push sur staging (lignes ⑮ à ⑱ : le compte d'Israël et du
 Royaume-Uni), `npm run build`, `db push`, `git push`.
 

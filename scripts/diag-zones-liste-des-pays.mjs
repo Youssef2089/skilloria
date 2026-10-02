@@ -57,12 +57,13 @@ function migration(suffixe) {
 // LA SOURCE — les 193 États membres de l'ONU et ses deux observateurs (Saint-Siège VA, Palestine PS), par continent du
 // référentiel, d'après la division géographique de l'ONU (M49) ; l'Amérique centrale et les Caraïbes avec l'Amérique du
 // Nord. CHYPRE : Asie occidentale pour l'ONU, mais rattaché à l'Europe depuis l'origine — un rattachement existant ne
-// change pas (décision de Youssef) : il est écrit ici en Europe.
+// change pas (décision de Youssef) : il est écrit ici en Europe. LA TURQUIE : Asie occidentale pour l'ONU, rangée en
+// EUROPE par décision de Youssef (02/10/2026), et nommée « Turkey » en anglais (pas « Türkiye ») — écrite ici en Europe.
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 const ONU = {
-  EU: 'AL AD AT BY BE BA BG HR CY CZ DK EE FI FR DE GR HU IS IE IT LV LI LT LU MT MC ME NL MK NO PL PT MD RO RU SM RS SK SI ES SE CH UA GB VA',
+  EU: 'AL AD AT BY BE BA BG HR CY CZ DK EE FI FR DE GR HU IS IE IT LV LI LT LU MT MC ME NL MK NO PL PT MD RO RU SM RS SK SI ES SE CH UA GB VA TR',
   AF: 'DZ AO BJ BW BF BI CV CM CF TD KM CG CD CI DJ EG GQ ER SZ ET GA GM GH GN GW KE LS LR LY MG MW ML MR MU MA MZ NA NE NG RW ST SN SC SL SO ZA SS SD TZ TG TN UG ZM ZW',
-  AS: 'KZ KG TJ TM UZ CN JP KP KR MN BN KH ID LA MY MM PH SG TH TL VN AF BD BT IN IR MV NP PK LK AM AZ BH GE IQ IL JO KW LB OM QA SA SY TR AE YE PS',
+  AS: 'KZ KG TJ TM UZ CN JP KP KR MN BN KH ID LA MY MM PH SG TH TL VN AF BD BT IN IR MV NP PK LK AM AZ BH GE IQ IL JO KW LB OM QA SA SY AE YE PS',
   NA: 'CA US BZ CR SV GT HN MX NI PA AG BS BB CU DM DO GD HT JM KN LC VC TT',
   SA: 'AR BO BR CL CO EC GY PY PE SR UY VE',
   OC: 'AU FJ KI MH FM NR NZ PW PG WS SB TO TV VU',
@@ -111,6 +112,9 @@ const nations = Object.fromEntries(lignes.filter((l) => NATIONS.includes(l.code)
 ok(nations['GB-ENG'] === 'Angleterre / England / Inglaterra / England' && nations['GB-SCT'] === 'Écosse / Scotland / Escocia / Schottland'
    && nations['GB-WLS'] === 'Pays de Galles / Wales / Gales / Wales' && nations['GB-NIR'] === 'Irlande du Nord / Northern Ireland / Irlanda del Norte / Nordirland',
   'les quatre pays du Royaume-Uni, nommés dans les quatre langues', JSON.stringify(nations))
+const turquie = lignes.find((l) => l.code === 'TR')
+ok(turquie?.continent === 'EU' && turquie.noms.join(' / ') === 'Turquie / Turkey / Turquía / Türkei',
+  'la Turquie : en Europe, « Turkey » en anglais (décision de Youssef)', JSON.stringify(turquie))
 const FORME = /^[A-Z]{2}(-[A-Z]{3})?$/
 ok(codes.every((c) => FORME.test(c)) && /check \(country_code is null or country_code ~ '\^\[A-Z\]\{2\}\(-\[A-Z\]\{3\}\)\?\$'\)/.test(M),
   'chaque code a la forme que la base exige (ISO 3166-1, ou 3166-2 pour une nation) — la même expression, ici et en base')

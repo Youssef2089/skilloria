@@ -35,7 +35,7 @@
   "not_found": {
     "title": "Page not found",
     "description": "The page you're looking for doesn't exist or has moved.",
-    "back_home": "Back to home"
+    "back_home": "Home"
   },
   "shell": {
     "user_fallback": "User",
@@ -983,7 +983,7 @@
     "submitting": "Sending…",
     "sent_title": "Check your inbox",
     "sent_message": "If an account exists for this address, a reset link has just been sent.",
-    "back_to_login": "← Back to sign in",
+    "back_to_login": "Sign in",
     "errors": {
       "missing_email": "Please enter your email.",
       "generic": "Something went wrong. Please try again."
@@ -1084,7 +1084,7 @@
       "verifying_subtitle": "We are validating your email.",
       "error_title": "Verification error",
       "error_subtitle": "The link looks invalid or expired.",
-      "back_to_signup": "Back to sign up",
+      "back_to_signup": "Sign up",
       "back_to_signin": "Sign in",
       "error_expired_title": "This link has expired",
       "error_expired_subtitle": "This confirmation link has expired or has already been used. Sign in: if your address is not confirmed yet, you can get a new link.",
@@ -1141,7 +1141,7 @@
     "message_line1": "A confirmation email has been sent to your address.",
     "message_line2": "Click the link in the email to activate your account and access the platform.",
     "spam_notice": "💡 Remember to check your <strong>spam</strong> folder if you don't receive the email within 2 minutes.",
-    "back_to_home": "Back to home",
+    "back_to_home": "Home",
     "already_confirmed": "Already confirmed?",
     "sign_in": "Sign in"
   },
@@ -1179,7 +1179,7 @@
       "speciality_other_placeholder": "e.g. FinOps, Green IT…",
       "taxonomy_loading": "Loading branches…"
     },
-    "change_profile": "← Change profile",
+    "change_profile": "Change profile",
     "cgu": "I agree to the <terms>terms of service</terms> and the <privacy>privacy policy</privacy>",
     "submit": "Create my account →",
     "submitting": "Creating account...",
@@ -3939,7 +3939,7 @@
     "loading": "Loading…",
     "invalid_title": "Invalid invitation",
     "invalid_body": "This invitation link is invalid, has expired, or has already been used.",
-    "go_home": "Back to home",
+    "go_home": "Home",
     "accepted_title": "Invitation accepted",
     "accepted_body": "Redirecting to your workspace…",
     "invite_title": "Join {company}",
@@ -4495,7 +4495,7 @@
   },
   "ecosystem_unavailable": {
     "meta_title": "Ecosystem unavailable",
-    "back_home": "Back to home",
+    "back_home": "Home",
     "generic": {
       "title": "This ecosystem is unavailable",
       "body": "We could not open this ecosystem. Try again in a moment; if the problem persists, contact support."

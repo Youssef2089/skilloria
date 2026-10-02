@@ -19,9 +19,10 @@
  *      aucun espace de messages `back_nav` ;
  *   B. aucun retour par l'historique du navigateur (`router.back()`, `history.back()`, `history.go(-…)`) ;
  *   C. aucune flèche « ← » (ni `&larr;`, ni `←`) dans le code, aucune icône de flèche gauche importée ;
- *   D. LES MESSAGES : chaque clé dont le NOM dit « retour » (`back`, `retour`) ou dont la VALEUR commence par « ← » ou
- *      par « Retour » est DÉCLARÉE ci-dessous avec sa raison (§G.8) — sinon c'est un retour nouveau ; une déclaration
- *      dont la clé a disparu est morte et rougit ;
+ *   D. LES MESSAGES : aucune valeur, dans aucune des quatre langues, ne porte la flèche « ← » ; chaque clé dont le NOM
+ *      dit « retour » (`back`, `retour`) ou dont la VALEUR commence par « Retour » est DÉCLARÉE ci-dessous avec sa
+ *      raison (§G.8) — sinon c'est un retour nouveau ; une déclaration dont la clé a disparu est morte et rougit ;
+ *      chaque SORTIE d'une page publique dit où elle mène, sans flèche ni mot de retour, dans les quatre langues ;
  *   E. LE CODE : chaque appel de traduction dont la clé désigne l'une de ces clés est déclaré, DANS CE FICHIER-LÀ ; et
  *      un fichier de l'espace connecté n'en appelle aucune, sauf une action vers l'AVANT (« Tableau de bord → ») ;
  *   F. LE NOM DE CHAQUE PAGE, EXÉCUTÉ : chaque `page.tsx` des trois tableaux de bord et de l'admin a un nom dérivé du
@@ -32,9 +33,11 @@
  * (« Revenir à la liste » dans une clé nommée autrement) ; un lien vers une page parente sans mot ni flèche ; une page
  * qui passe son propre `pageTitle` à la coquille (aucune aujourd'hui — vérifié en F).
  *
- * LES PAGES PUBLIQUES (404, mot de passe oublié, confirmations d'inscription, invitation…) n'ont AUCUN MENU : leur lien
- * est la seule issue de la page. Elles sont déclarées une à une, avec cette raison, et signalées à Youssef
- * (docs/reprise-s1.md) — le retrait est d'une ligne chacune s'il le décide.
+ * LES PAGES PUBLIQUES (404, écosystème indisponible, mot de passe oublié, retour d'une confirmation d'adresse,
+ * confirmations d'inscription, invitation, inscription) n'ont AUCUN MENU : décision de Youssef (02/10/2026), elles
+ * gardent un lien pour en sortir, SANS FLÈCHE, avec un libellé qui dit OÙ il mène (« Accueil », « Se connecter »,
+ * « S'inscrire », « Changer de profil »), dans les quatre langues. Chacune est déclarée ici comme SORTIE, avec sa
+ * destination, que le contrôle retrouve dans le fichier.
  *
  * Sortie : 0 vert · 1 rouge · 2 n'a pas tourné.
  */
@@ -86,28 +89,29 @@ const CONNECTE = (f) => /^app\/\[locale\]\/(dashboard|admin)\//.test(f)
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
 // LES RETOURS DÉCLARÉS — une raison chacun (§G.8). Clé : le chemin du message. `fichiers` : ceux qui le lisent, et
 // `appel` : l'appel exact qu'ils font. `versLAvant` : une action vers l'avant que son nom de clé fait passer pour un
-// retour — la seule forme admise dans l'espace connecté.
+// retour — la seule forme admise dans l'espace connecté. `sortie` : la DESTINATION d'une sortie de page publique (le
+// fichier doit y mener) ; son libellé ne porte ni flèche ni mot de retour, dans aucune langue.
 // ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-const PUBLIQUE = 'LÉGITIME — page publique SANS MENU : ce lien est la seule issue de la page (le retirer en ferait une impasse) ; signalé à Youssef, à retirer sur sa décision.'
+const PUBLIQUE = 'LÉGITIME — page publique SANS MENU : ce lien est la seule issue de la page ; décision de Youssef (02/10/2026) : il reste, sans flèche, et son libellé dit où il mène.'
 const DECLARES = {
-  'not_found.back_home': { raison: PUBLIQUE, fichiers: ['app/[locale]/not-found.tsx'], appel: "t('back_home')" },
-  'ecosystem_unavailable.back_home': { raison: PUBLIQUE, fichiers: ['app/[locale]/ecosysteme-indisponible/page.tsx'], appel: "t('back_home')" },
-  'forgot_password.back_to_login': { raison: PUBLIQUE, fichiers: ['app/[locale]/mot-de-passe-oublie/page.tsx'], appel: "t('back_to_login')" },
-  'inscription_org.callback.back_to_signup': { raison: PUBLIQUE, fichiers: ['app/[locale]/auth/callback/page.tsx'], appel: "t('back_to_signup')" },
+  'not_found.back_home': { raison: PUBLIQUE, fichiers: ['app/[locale]/not-found.tsx'], appel: "t('back_home')", sortie: 'href="/"' },
+  'ecosystem_unavailable.back_home': { raison: PUBLIQUE, fichiers: ['app/[locale]/ecosysteme-indisponible/page.tsx'], appel: "t('back_home')", sortie: 'href={`/${locale}`}' },
+  'forgot_password.back_to_login': { raison: PUBLIQUE, fichiers: ['app/[locale]/mot-de-passe-oublie/page.tsx'], appel: "t('back_to_login')", sortie: "router.push('/connexion')" },
+  'inscription_org.callback.back_to_signup': { raison: PUBLIQUE, fichiers: ['app/[locale]/auth/callback/page.tsx'], appel: "t('back_to_signup')", sortie: "router.push('/inscription')" },
   'inscription_org.callback.back_to_signin': {
-    raison: 'LÉGITIME — « Se connecter » : une action vers l’avant, sur une page publique sans menu ; seul son nom de clé dit « back ».',
-    fichiers: ['app/[locale]/auth/callback/page.tsx'], appel: "t('back_to_signin')",
+    raison: 'LÉGITIME — « Se connecter » : la seconde sortie de la page publique sans menu, qui dit où elle mène ; seul son nom de clé dit « back ».',
+    fichiers: ['app/[locale]/auth/callback/page.tsx'], appel: "t('back_to_signin')", sortie: "router.push('/connexion')",
   },
   'signup_confirmation.back_to_home': {
     raison: PUBLIQUE,
     fichiers: ['app/[locale]/inscription/confirmation/page.tsx', 'app/[locale]/inscription/organisation/confirmation/page.tsx'],
-    appel: "t('back_to_home')",
+    appel: "t('back_to_home')", sortie: "router.push('/')",
   },
   'signup_form.change_profile': {
-    raison: 'LÉGITIME — page publique SANS MENU (inscription) : « ← Changer de profil » revient au choix du type de compte, la seule autre étape du parcours ; signalé à Youssef.',
-    fichiers: ['app/[locale]/inscription/[role]/page.tsx'], appel: "t('change_profile')",
+    raison: 'LÉGITIME — page publique SANS MENU (inscription) : « Changer de profil » mène au choix du type de compte ; décision de Youssef (02/10/2026) : sans flèche.',
+    fichiers: ['app/[locale]/inscription/[role]/page.tsx'], appel: "t('change_profile')", sortie: "router.push('/inscription')",
   },
-  'invitation_public.go_home': { raison: PUBLIQUE, fichiers: ['app/[locale]/invitation/[token]/page.tsx'], appel: "t('go_home')" },
+  'invitation_public.go_home': { raison: PUBLIQUE, fichiers: ['app/[locale]/invitation/[token]/page.tsx'], appel: "t('go_home')", sortie: "router.push('/')" },
   'profile_validation.success.back_to_dashboard': {
     raison: 'LÉGITIME — « Tableau de bord → » : l’action qui SUIT l’enregistrement du brouillon, vers l’avant ; seul son nom de clé dit « back ».',
     fichiers: ['app/[locale]/dashboard/freelance/profil/valider/page.tsx'], appel: "tProfile('success.back_to_dashboard')", versLAvant: true,
@@ -148,8 +152,20 @@ const fleches = CODE.filter((f) => FLECHE.test(SOURCES.get(f))).map((f) => `${f}
 ok(fleches.length === 0, 'ni « ← », ni `&larr;`, ni `\\u2190`, ni icône de flèche gauche — hors commentaires', fleches.join(' · '))
 
 // ══════════════════════════════════════════════════════════════════════════
-section('D. Les messages : chaque libellé de retour est déclaré')
+section('D. Les messages : aucune flèche, chaque libellé de retour déclaré, chaque sortie dit où elle mène')
 // ══════════════════════════════════════════════════════════════════════════
+const avecFleche = []
+for (const l of LANGUES) {
+  const fouiller = (o, p) => {
+    for (const [k, v] of Object.entries(o)) {
+      const q = p ? `${p}.${k}` : k
+      if (v && typeof v === 'object') fouiller(v, q)
+      else if (/←/.test(v)) avecFleche.push(`${l} ${q} = « ${v} »`)
+    }
+  }
+  fouiller(MSG[l], '')
+}
+ok(avecFleche.length === 0, 'aucune valeur de message ne porte la flèche « ← », dans aucune des quatre langues', avecFleche.join(' · '))
 const retours = []
 const parcourir = (o, p) => {
   for (const [k, v] of Object.entries(o)) {
@@ -162,8 +178,16 @@ parcourir(MSG.fr, '')
 const nonDeclares = retours.filter((c) => !DECLARES[c])
 ok(nonDeclares.length === 0, `les ${retours.length} libellés « retour » de messages/fr.json sont tous déclarés, avec leur raison`,
   nonDeclares.map((c) => `${c} = « ${valeur(MSG.fr, c)} »`).join(' · '))
-const morts = Object.keys(DECLARES).filter((c) => !retours.includes(c))
-ok(morts.length === 0, 'aucune déclaration morte (une clé déclarée a disparu ou ne dit plus « retour »)', morts.join(' · '))
+const morts = Object.entries(DECLARES).filter(([c, d]) => (d.sortie ? typeof valeur(MSG.fr, c) !== 'string' : !retours.includes(c))).map(([c]) => c)
+ok(morts.length === 0, 'aucune déclaration morte (une clé déclarée a disparu, ou ne dit plus « retour » sans être une sortie)', morts.join(' · '))
+// Une SORTIE dit où elle mène : ni flèche, ni mot de retour, dans aucune langue ; et le fichier mène bien à sa destination.
+const MOT_DE_RETOUR = /[←→‹›]|^\s*(Retour|Revenir|Back|Return|Go back|Volver|Regresar|Zurück)\b/i
+const sortiesFausses = Object.entries(DECLARES).filter(([, d]) => d.sortie)
+  .flatMap(([c]) => LANGUES.filter((l) => typeof valeur(MSG[l], c) !== 'string' || MOT_DE_RETOUR.test(valeur(MSG[l], c))).map((l) => `${l} ${c} = « ${valeur(MSG[l], c)} »`))
+const nbSorties = Object.values(DECLARES).filter((d) => d.sortie).length
+ok(nbSorties === 8 && sortiesFausses.length === 0, `les ${nbSorties} sorties des pages publiques disent où elles mènent, sans flèche ni « Retour », dans les quatre langues`, sortiesFausses.join(' · '))
+const sansDestination = Object.entries(DECLARES).filter(([, d]) => d.sortie).flatMap(([c, d]) => d.fichiers.filter((f) => !SOURCES.get(f)?.includes(d.sortie)).map((f) => `${c} → ${f} ne mène pas à ${d.sortie}`))
+ok(sansDestination.length === 0, 'chaque sortie mène là où son libellé le dit (la destination déclarée est dans le fichier)', sansDestination.join(' · '))
 const sansRaison = Object.entries(DECLARES).filter(([, d]) => !/^LÉGITIME — .{30,}/.test(d.raison))
 ok(sansRaison.length === 0, 'chaque déclaration commence par LÉGITIME et dit pourquoi (§G.8)', sansRaison.map(([c]) => c).join(' · '))
 const avantFleche = Object.entries(DECLARES).filter(([c, d]) => d.versLAvant && LANGUES.some((l) => /←|^\s*(Retour|Back|Volver|Zurück)\b/i.test(valeur(MSG[l], c) ?? '')))

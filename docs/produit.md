@@ -688,9 +688,11 @@ deux produits.
 > pages de détail et écrans d'erreur compris, pour tous les profils, admin compris. Le menu est le seul
 > chemin, et **l'en-tête de chaque page porte son nom** — celui de l'entrée de menu qui la couvre, le
 > même mot que la barre latérale (« Besoin / Sous-traitance » disait « Tableau de bord »). Les pages
-> **publiques** (404, mot de passe oublié, confirmations d'inscription, invitation), qui n'ont **aucun
-> menu**, gardent leur lien — sinon elles seraient des impasses ; **à trancher par Youssef**. Gardé par
-> `diag-aucun-retour` (bloquant).
+> **publiques** (404, écosystème indisponible, mot de passe oublié, confirmations d'inscription,
+> invitation, inscription), qui n'ont **aucun menu**, gardent un lien pour en sortir — **sans flèche, avec
+> un libellé qui dit où il mène** (« Accueil », « Se connecter », « S'inscrire », « Changer de profil »),
+> dans les quatre langues (décision de Youssef, 02/10/2026). Les en-têtes « Candidatures » et « Messages »
+> (ex-« Mes candidatures », « Messagerie ») sont validés. Gardé par `diag-aucun-retour` (bloquant).
 >
 > **`cdi/mon-profil` était une impasse.** Ni barre latérale, ni navigation : un
 > expert qui ouvrait son profil n'avait plus aucun lien vers le reste du produit. L'exclusion qui
@@ -762,6 +764,7 @@ deux produits.
 > **Lot « finitions et pays » du 02/10/2026 (S1) — la liste des pays des zones** (décisions de Youssef ; pas de régions) :
 > · **Tous les pays** : chaque État membre et observateur de l'ONU est proposé, nommé dans les quatre langues, rangé
 >   dans son continent (division de l'ONU ; l'Amérique centrale et les Caraïbes avec l'Amérique du Nord) — **197 pays**.
+>   **La Turquie est en Europe** (décision de Youssef), et s'appelle « Turkey » en anglais.
 > · **Le Royaume-Uni** est remplacé, dans cette liste SEULEMENT, par **Angleterre, Écosse, Pays de Galles, Irlande du
 >   Nord** : un expert « Angleterre » n'est pas proposé pour une mission en Écosse. Qui avait choisi le Royaume-Uni a
 >   reçu les quatre. Partout ailleurs (adresse, pays de l'organisation, téléphone), le Royaume-Uni reste un pays.

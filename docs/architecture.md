@@ -486,7 +486,8 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   ZN002 remplaçante introuvable ou inactive) donne les quatre pays à chaque profil et annonce qui avait le Royaume-Uni,
 >   sans rien perdre ; puis la reprise DÉSACTIVE « Royaume-Uni » et « Israël » (le déclencheur recalcule ; une liste
 >   devenue vide ne retient personne, règle en place). **Résultat : 197 pays actifs**, sur staging comme sur une base neuve
->   (Europe 48, Afrique 54, Asie 46, Amérique du Nord 23, Amérique du Sud 12, Océanie 14). Exceptions de
+>   (Europe 49, Afrique 54, Asie 45, Amérique du Nord 23, Amérique du Sud 12, Océanie 14 — la TURQUIE en Europe et
+>   nommée « Turkey » en anglais, décision de Youssef du 02/10/2026 ; l'ONU la range en Asie). Exceptions de
 >   `diag-deux-temps` : `aucun_ecrivain` (déclencheur reposé, contrainte, désactivation — une page chargée avant le push
 >   qui renverrait l'une des deux zones reçoit `bad_work_zone`, nommé) et `recreee` (preuve nouvelle : la fonction
 >   supprimée est recréée plus loin dans la même migration, et aucun `.rpc` ne l'appelle). Requête d'avant-push : ⑮ à ⑱

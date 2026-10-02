@@ -35,7 +35,7 @@
   "not_found": {
     "title": "Page introuvable",
     "description": "La page que vous cherchez n'existe pas ou a été déplacée.",
-    "back_home": "Retour à l'accueil"
+    "back_home": "Accueil"
   },
   "shell": {
     "user_fallback": "Utilisateur",
@@ -983,7 +983,7 @@
     "submitting": "Envoi en cours…",
     "sent_title": "Vérifiez votre boîte mail",
     "sent_message": "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.",
-    "back_to_login": "← Retour à la connexion",
+    "back_to_login": "Se connecter",
     "errors": {
       "missing_email": "Veuillez saisir votre email.",
       "generic": "Une erreur est survenue. Veuillez réessayer."
@@ -1084,7 +1084,7 @@
       "verifying_subtitle": "Nous validons votre email.",
       "error_title": "Erreur de vérification",
       "error_subtitle": "Le lien semble invalide ou expiré.",
-      "back_to_signup": "Retour à l'inscription",
+      "back_to_signup": "S'inscrire",
       "back_to_signin": "Se connecter",
       "error_expired_title": "Ce lien a expiré",
       "error_expired_subtitle": "Ce lien de confirmation a expiré ou a déjà servi. Connectez-vous : si votre adresse n’est pas encore confirmée, vous pourrez recevoir un nouveau lien.",
@@ -1141,7 +1141,7 @@
     "message_line1": "Un email de confirmation a été envoyé à votre adresse.",
     "message_line2": "Cliquez sur le lien dans l'email pour activer votre compte et accéder à la plateforme.",
     "spam_notice": "💡 Pensez à vérifier votre dossier <strong>spam</strong> si vous ne recevez pas l'email dans les 2 minutes.",
-    "back_to_home": "Retour à l'accueil",
+    "back_to_home": "Accueil",
     "already_confirmed": "Déjà confirmé ?",
     "sign_in": "Se connecter"
   },
@@ -1179,7 +1179,7 @@
       "speciality_other_placeholder": "Ex. FinOps, Green IT…",
       "taxonomy_loading": "Chargement des branches…"
     },
-    "change_profile": "← Changer de profil",
+    "change_profile": "Changer de profil",
     "cgu": "J'accepte les <terms>conditions d'utilisation</terms> et la <privacy>politique de confidentialité</privacy>",
     "submit": "Créer mon compte →",
     "submitting": "Création en cours...",
@@ -3939,7 +3939,7 @@
     "loading": "Chargement…",
     "invalid_title": "Invitation invalide",
     "invalid_body": "Ce lien d’invitation est invalide, a expiré ou a déjà été utilisé.",
-    "go_home": "Retour à l’accueil",
+    "go_home": "Accueil",
     "accepted_title": "Invitation acceptée",
     "accepted_body": "Redirection vers votre espace…",
     "invite_title": "Rejoindre {company}",
@@ -4495,7 +4495,7 @@
   },
   "ecosystem_unavailable": {
     "meta_title": "Écosystème indisponible",
-    "back_home": "Retour à l'accueil",
+    "back_home": "Accueil",
     "generic": {
       "title": "Cet écosystème est indisponible",
       "body": "Nous n'avons pas pu ouvrir cet écosystème. Réessayez dans un instant ; si le problème persiste, contactez le support."
