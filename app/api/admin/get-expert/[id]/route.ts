@@ -3,6 +3,9 @@ import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
 import { signAvatarUrl } from '@/lib/avatar'
 import { PLAFOND_FICHE_EXPERT, couperEtSignaler, limiteSondee } from '@/lib/plafonds-liste'
+import { loadTranslations, tBDD } from '@/lib/translations'
+import { routing, type Locale } from '@/i18n/routing'
+import { libelleZoneServeur } from '@/lib/zones/libelle-serveur'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -41,6 +44,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .select(
       'id, user_id, domain_id, expert_type, title, summary, seniorities, ' +
         'speciality_ids, speciality_other, ' +
+        'work_zone_ids, ' +
         'years_experience, years_total_experience, languages, skills, certifications, ' +
         'location, mobility, tjm_min, tjm_max, salary_min, salary_max, ' +
         'availability_status, availability_date, work_modes, ' +
@@ -80,7 +84,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   //    prenait là-dessus. Même famille que la vérification par IA, avec un
   //    humain à la place du modèle (§E.22 ⑦).
   const idsSpecialites = ((profile as unknown as { speciality_ids?: string[] | null }).speciality_ids ?? []) as string[]
-  const [expRes, eduRes, langRes, spsRes] = await Promise.all([
+  // Les zones de travail, nommées dans la langue de l'écran (lot zones de travail, 02/10/2026) : un continent choisi
+  // se lit « Europe — tout le continent », comme sur la carte d'une annonce.
+  const idsZones = ((profile as unknown as { work_zone_ids?: string[] | null }).work_zone_ids ?? []) as string[]
+  const demandee = new URL(request.url).searchParams.get('locale') ?? ''
+  const locale: Locale = (routing.locales as readonly string[]).includes(demandee) ? (demandee as Locale) : routing.defaultLocale
+  const [expRes, eduRes, langRes, spsRes, zonesRes, translations] = await Promise.all([
     // `experience_type` et `client_name` : une mission se lit avec son CLIENT, pas avec un
     // employeur vide (recette du 01/10/2026, point 12).
     auth.supabaseAdmin.from('profile_experiences').select('experience_type, role, employer, client_name, sector, start_date, end_date, is_current, description').eq('profile_id', id).order('start_date', { ascending: false }).limit(limiteSondee(PLAFOND_FICHE_EXPERT.experiences)),
@@ -89,16 +98,21 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     idsSpecialites.length > 0
       ? auth.supabaseAdmin.from('specialities').select('id, name, slug').in('id', idsSpecialites)
       : Promise.resolve({ data: [] as Array<{ id: string; name: string; slug: string }>, error: null }),
+    idsZones.length > 0
+      ? auth.supabaseAdmin.from('work_zones').select('id, name, kind').in('id', idsZones)
+      : Promise.resolve({ data: [] as Array<{ id: string; name: string; kind: string }>, error: null }),
+    loadTranslations(locale),
   ])
   // Le commentaire ci-dessus le disait, le code ne le faisait pas : les erreurs sont LUES.
   // Une fiche amputée n'est pas une fiche : 503, jamais une décision sur un dossier incomplet.
-  if (expRes.error || eduRes.error || langRes.error || spsRes.error) {
+  if (expRes.error || eduRes.error || langRes.error || spsRes.error || zonesRes.error) {
     console.error('[admin:get-expert] tables liées ILLISIBLES — fiche non servie', {
       id,
       experiences: expRes.error?.message ?? null,
       formations: eduRes.error?.message ?? null,
       langues: langRes.error?.message ?? null,
       specialites: spsRes.error?.message ?? null,
+      zones: zonesRes.error?.message ?? null,
     })
     return json({ error: 'Related data unavailable', code: 'fiche_incomplete' }, 503)
   }
@@ -121,6 +135,11 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     ecosystem: (profDom as { name?: string | null } | null)?.name ?? null,
     // Les spécialités, TOUTES (elles sont multiples depuis profil_annonce_multivalues).
     specialities: (spsRes.data ?? []) as Array<{ id: string; name: string; slug: string }>,
+    // Dans l'ordre de la déclaration de l'expert ; une zone que le référentiel n'a plus n'est pas inventée.
+    zones_de_travail: idsZones
+      .map((zid) => ((zonesRes.data ?? []) as Array<{ id: string; name: string; kind: string }>).find((z) => z.id === zid))
+      .filter((z): z is { id: string; name: string; kind: string } => !!z)
+      .map((z) => libelleZoneServeur({ kind: z.kind, name: tBDD(translations, 'work_zones', z.id, 'name', z.name) }, locale)),
   }
 
   // L'ÉCRAN OÙ UN ADMINISTRATEUR APPROUVE : trois listes coupées en silence à

@@ -207,7 +207,10 @@ section('2. Zones de travail : deux temps, aucun clic absorbé')
   ok(/role="radiogroup"/.test(sel) && (sel.match(/role="radio"/g) ?? []).length === 2, 'une question fermée à deux réponses')
   ok(/\{mode === 'zones' \?/.test(sel) && !/basculer\(monde\.id\)/.test(sel),
     'le monde n’est plus un bouton parmi les continents : continents et recherche n’existent qu’en « certaines zones »')
-  ok(/ajouterZone\(liste, selected, id\)/.test(sel) && /role="combobox"/.test(sel), 'les ajouts passent par ajouterZone ; la recherche est un combobox')
+  // Le lot « zones de travail » (02/10/2026, décision de Youssef) a remplacé « continents entiers + ajouter un pays » par
+  // des continents qui se déplient : un pays se coche DANS son continent — la recherche aussi (diag-lot-zones le détaille).
+  ok(/basculerPays\(liste, selected, id\)/.test(sel) && /choisirContinentEntier\(liste, selected, id, coche\)/.test(sel) && /role="combobox"/.test(sel),
+    'les choix passent par choisirContinentEntier et basculerPays (aucun clic absorbé) ; la recherche est un combobox')
   // Point 13 de la relecture : le clavier, la fermeture, la zone retirée.
   ok(/role="radiogroup"[^>]*onKeyDown=\{clavierRadio\}/.test(sel) && /'ArrowRight'/.test(sel) && /'ArrowLeft'/.test(sel)
      && (sel.match(/tabIndex=\{rangChoisi === /g) ?? []).length === 2,

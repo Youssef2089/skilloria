@@ -1,6 +1,7 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { clesModifiees } from '@/lib/profil/changements'
+import { memesZones } from '@/lib/work-zones'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
@@ -324,6 +325,11 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   if ((avantAnnonce.organization_id as string) !== orgId) {
     return json({ error: 'Forbidden', code: 'forbidden' }, 403)
   }
+  // LES ZONES SONT UN ENSEMBLE (lot zones de travail, 02/10/2026) : la même sélection dans un autre ordre garde la
+  // valeur LUE — « Annonce modifiée » ne nomme pas une zone qui n'a pas bougé.
+  if (Array.isArray(u.updates.work_zone_ids) && memesZones(u.updates.work_zone_ids as string[], avantAnnonce.work_zone_ids as string[] | null)) {
+    u.updates.work_zone_ids = avantAnnonce.work_zone_ids
+  }
   const currentStatus = avantAnnonce.status as string
   if (!(EDITABLE_STATUSES as readonly string[]).includes(currentStatus)) {
     return json(
@@ -504,6 +510,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
     translations,
     [pub],
+    locale,
   )
 
   // DTO retourné — strip organization_id (déduit du contexte, inutile au client).

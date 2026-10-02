@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **183** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
-01/10/2026 sur le lot B — ses quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
+Sur les **185** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
+02/10/2026 sur le lot « zones de travail » — ses deux migrations ne sèment rien ; sur 183, le 01/10/2026 sur le lot B — ses
+quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
 mêmes — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
 fusion du lot S1 : les mêmes — `journal_photo_et_cv` sème deux actions ; sur 179, à la fusion : 78, 65, 3346 ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
 l'action `desabonnement_email`, les propositions de conservation leurs douze lignes ; sur 175, côté S1 : 76, 63, 3306 —
@@ -4349,6 +4350,80 @@ fonction retirée, un `revoke`, une désactivation ou une suppression de lignes 
 compris, chaînes retirées avant : une mention n'est pas un appel, §E.78), un GL006 et une clé retirée d'une liste
 blanche ; deux exceptions écrites avec leur raison. Éprouvé par mutation. **Ce qu'il ne voit pas** : une restriction
 faite par le CODE (une route nouvelle qui refuse ce que l'ancienne page envoie) — celle-là se relit route par route.
+
+---
+
+<a id="e92"></a>
+### E.92 — SUR UNE BASE CONSTRUITE DEPUIS ZÉRO, LES ZONES DE TRAVAIL N'ONT AUCUN PAYS : les pays arrivent APRÈS la migration qui les rattache — staging ne le montre pas, la production le subirait. NON CORRIGÉ.
+
+**Le cas (lot zones de travail, 02/10/2026 — vu en écrivant le test de base du filtre).** `referentiel_zones_de_travail`
+(`20260901000010`) sème le monde, les six continents, puis les PAYS par `insert … select … from public.countries where
+active` — or sur une base vierge, `countries` est encore VIDE à ce moment-là : les 64 pays arrivent par
+`parametrage_de_production` (`20260916000000`), seize jours de migrations plus tard. Aucune migration ne rattache
+ensuite les pays aux continents. Résultat sur une base rejouée (`db reset --local`, et la production telle que
+[mise-en-production.md](mise-en-production.md) l'ÉTAPE 1 la construit) : `work_zones` = le monde et six continents,
+**zéro pays**. Le filtre de relecture de la migration (« pays actifs NON rattachés ») se tait : il compare à
+`countries`, vide lui aussi à ce moment. Staging ne le montre pas : sa base existait avant, `countries` y était déjà
+rempli — c'est là que Youssef a lu « 64 pays ».
+
+**Ce que ça ferait en production.** Le sélecteur n'offrirait aucun continent (un continent sans pays n'est pas offert —
+relecture du 01/10/2026, point 13) et aucune recherche ne trouverait de pays ; « Partout dans le monde » aplatirait vers
+un ensemble VIDE — et le moteur ne pose le filtre que sur un ensemble non vide : une annonce mondiale toucherait tout
+le monde, un expert mondial toutes les annonces, et aucune autre zone ne pourrait être choisie.
+
+**La leçon.** Une migration de DONNÉES qui lit une autre table est une dépendance d'ORDRE que rien n'écrit (§E.12) — et
+l'environnement de test, construit autrement que la production, la cache. **Ce qui la fermerait** (non fait — hors des
+neuf points du lot, à trancher) : une migration qui rattache aux continents les pays de `countries` absents de
+`work_zones` (la correspondance ISO de la migration d'origine, `on conflict (code) do nothing`) ; le déclencheur
+`work_zones_couverture` posé par ce lot recalculerait alors seul la couverture de chaque continent et du monde. Les
+tests de base, eux, n'en dépendent pas : `matching/zones_recoupement` prend la zone du référentiel quand elle existe et
+la crée sinon. Dette ouverte : architecture §H.7.
+
+---
+
+<a id="e93"></a>
+### E.93 — UN FORMULAIRE QUI N'ENVOIE PAS CE QUE SA PUBLICATION EXIGE : l'annonce de sous-traitance ne pouvait RIEN publier, et l'écran disait « la publication a échoué ».
+
+**Le cas (lot zones de travail, 02/10/2026 — vu à l'audit du point 3).** Le formulaire de besoin de sous-traitance
+(`SousTraitanceView`) envoyait titre, description, compétences, budget — ni BRANCHE ni ZONES. La publication les exige
+(`missingForPublish`, et la contrainte `publications_publiee_requiert_zones_check`) : chaque essai était refusé
+`missing_fields`, l'écran traduisait tout refus inconnu par « La publication a échoué. Veuillez réessayer. », et chaque
+nouvel essai créait un BROUILLON de plus. Les exigences de publication avaient été posées pour les annonces
+d'organisation, avec leur formulaire ; le jumeau n'avait pas suivi (§E.20) — et personne n'avait publié un besoin de
+bout en bout depuis.
+
+**La leçon.** Un prédicat de publication écrit UNE fois (bonne règle) ne protège que les écrans qui l'APPELLENT. Un
+écran qui publie sans l'appeler ne le découvre qu'au refus — et un refus traduit par un message générique ne se lit
+plus comme un défaut, mais comme une panne passagère. **La parade** : le formulaire appelle le MÊME prédicat avant
+d'envoyer (les champs manquants nommés sous chacun d'eux), porte la branche et le même `WorkZoneSelector` que
+l'annonce d'organisation, traduit chaque refus nommé (douze codes, quatre langues), et reprend son brouillon au lieu
+d'en créer un autre. **Gardé par** `diag-lot-zones` 9. **Ce qu'il ne voit pas** : un QUATRIÈME écran qui publierait sans
+appeler le prédicat — la règle « toute surface qui publie appelle `missingForPublish` » n'est pas balayée.
+
+---
+
+<a id="e94"></a>
+### E.94 — LE CONTRÔLE DES DEUX TEMPS NE LISAIT QUE L'ORDRE D'UNE SECONDE LIVRAISON : ce qu'une migration APRÈS restreint n'était relu par personne.
+
+**Le cas (relecteur, 02/10/2026).** `diag-deux-temps` jugeait les migrations du PREMIER temps (rien de restreint, sauf
+exception raisonnée) ; pour une migration APRÈS, il ne vérifiait que son horodatage (C). Or une migration APRÈS se
+pousse quand le code DU LOT est en ligne : elle ne doit rien refuser de ce que CE code écrit. Le lot B l'a montré à
+l'envers — sa garde `LG001` contredisait un test du premier temps (ARRÊT 25), et la liste de ceux qui écrivent
+`profile_languages` (la route, ET l'analyse du CV par `terminer_analyse_cv` → `ecrire_analyse_cv`) avait été relue à
+la main.
+
+**La parade, et sa limite dite.** Chaque restriction d'une migration APRÈS est DÉCLARÉE (`SECOND_TEMPS`) avec ses
+écrivains et le test qui les prouve ; pour une restriction sur une table, le contrôle RECALCULE les écrivains — les
+chaînes `.from('t')` suivies d'une écriture, et les appels `.rpc()` des fonctions SQL qui écrivent `t`, appels de
+fonction à fonction compris — et la liste déclarée doit lui être ÉGALE (un écrivain oublié ou parti rougit). Les
+exceptions du premier temps portent désormais leur PREUVE, vérifiée sur le commit EN LIGNE (`git show`, `git grep`) :
+`aucun_ecrivain` (la table n'est écrite ni par le code en ligne ni par celui du lot) ou `refus_nomme` (l'écriture
+restreinte est la première du geste, et son refus est rendu en code nommé). Épreuve : `--etat=journal_photo_et_cv`
+rejoue le lot B — le contrôle exige les déclarations de ses quatre migrations, et trouve pour `LG001` les deux
+écrivains relus à la main à l'ARRÊT 25. **Ce qu'il ne vérifie PAS, et le dit dans son en-tête** : que les VALEURS
+écrites passent la restriction (seul le test nommé le prouve, et seulement pour ses cas) ; une table qui n'est pas un
+littéral ; une restriction qui ne porte pas sur une table (politique de Storage, GL006, liste blanche, droit sur une
+fonction) — ses écrivains sont déclarés, pas recalculés.
 
 ---
 

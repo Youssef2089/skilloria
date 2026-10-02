@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 01/10/2026 (ARRÊT 23 — la fusion du lot S1, avec les décisions de Youssef).** Branche `feat/sprint-archi-orga`. Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 02/10/2026 (ARRÊT 26 — le lot « zones de travail et petits défauts du relecteur », à relire avant le déploiement).** Branche `lot/zones-de-travail` (depuis `feat/sprint-archi-orga`, lot B compris). Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,102 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 26 — LOT « ZONES DE TRAVAIL ET PETITS DÉFAUTS DU RELECTEUR » : NEUF POINTS FAITS, À RELIRE AVANT LE DÉPLOIEMENT (02/10/2026)
+
+Branche `lot/zones-de-travail`, créée depuis `1182e02` (tête de `feat/sprint-archi-orga`, lot B compris : GL006,
+gardes des langues et de « Autre », photos par le serveur — vérifié avant de commencer). Aucun `git push`, aucune
+écriture en base, ni Docker ni base lancés. Décisions de Youssef du 02/10/2026 sur les cinq points d'audit : sous-
+traitance option (b) — neuvième point ; relance seulement sur un vrai changement ; méthode de preuve du matching validée ;
+notification à la désactivation, exception écrite pour la réactivation ; ligne « Zones de travail » sur la fiche admin ;
+libellé neutre « Europe — tout le continent ».
+
+**Lu** (règle du 26/09) : `WorkZoneSelector`, `lib/work-zones.ts`, les migrations `referentiel_zones_de_travail`,
+`profil_annonce_multivalues` (déclencheurs, contraintes, index), `specialite_autre_publiable`, `specialite_autre_garde`,
+`specialite_autre_hors_referentiel`, `langues_liste_fermee`, `parametrage_de_production` (l'ordre des pays) ; les
+contraintes de `notifications`, `translations`, `countries`, `specialities` (baseline) ; `pool.ts`, `run-for-expert.ts`,
+`lecture-paginee.ts` ; `/api/profile` (entière), `/api/publications` (création, modification, publication), `/api/taxonomy`,
+`update-speciality`, `get-expert`, `executer-analyse.ts` ; les deux écrans de validation (ce qu'ils envoient),
+`PublicationForm`, `SousTraitanceView`, l'écran admin des spécialités et la fiche expert ; `publication-synthesis.ts`,
+`changements.ts`, `relance.ts`, `notification-statut.ts`, `inapp-labels.ts`, la cloche ; `diag-deux-temps`,
+`diag-recette-s1` (2), `diag-tests-grand-livre` ; CLAUDE.md §D, §G.4 ; reprise ARRÊTS 24 et 25 ; mise-en-production
+ÉTAPE 1. **Non relu** : le reste de `docs/`.
+
+### Ce que l'audit a trouvé
+1. Le moteur ne passe par aucune fonction SQL de filtre : `.overlaps('work_zone_countries', …)` (soit `&&`) dans les deux
+   sens, sur les colonnes que la base aplatit (`trg_*_work_zones` → `work_zone_country_codes()`).
+2. Un pays ajouté au référentiel n'était PAS couvert par un continent entier ni par le monde : la migration d'origine le
+   disait (« LIMITE CONNUE ») et confiait le recalcul à une instruction à lancer à la main.
+3. **Le besoin de sous-traitance ne pouvait rien publier** : ni branche ni zones envoyées, la publication les exige —
+   `missing_fields`, « la publication a échoué », un brouillon de plus à chaque essai (§E.93).
+4. Un enregistrement de profil sans changement RELANÇAIT la recherche d'un profil approuvé (et écrivait profil, listes,
+   audit) ; les zones se comparaient dans l'ordre que la base rend.
+5. La spécialité désactivée disparaît d'abord À L'ÉCRAN (les écrans ne reçoivent que les actives) ; la route
+   (lignes 330-348) ne concerne qu'une page ouverte avant la désactivation.
+6. La fiche admin n'affichait aucune zone ; « Mon profil » mène à l'écran de validation.
+7. **Hors des neuf points, BLOQUANT avant une base construite depuis zéro (production) — §E.92** : les 64 pays arrivent par
+   `parametrage_de_production`, APRÈS la migration qui les rattache aux continents : sur une base vierge, `work_zones` n'a
+   aucun pays. Staging n'est pas touché. Non corrigé ; ce qui le fermerait est écrit (architecture §H.7).
+
+### Les neuf points — ce qui est fait, et ce qui le prouve
+| # | Fait | Prouvé par |
+|---|---|---|
+| 1 | La saisie : la sélection au-dessus en étiquettes ; la recherche (raccourci) coche le pays dans son continent, qui se déplie ; chaque continent se déplie, « Tout le continent » en tête, une case native par pays ; lignes de 44 px ; le clavier de l'ARRÊT 24 conservé. « Tous les pays proposés » (4 langues) ; aucun mot technique | `diag-lot-zones` 1-2 (logique EXÉCUTÉE, ordre de l'écran, mots ×4) ; `diag-recette-s1` 2 ; mutations ④ ⑤ |
+| 2 | « Tout le continent » = le continent ; des pays = ces pays ; décocher un pays d'un continent entier garde les autres. Un pays ajouté plus tard : recalcul PAR DÉCLENCHEUR (`work_zones_couverture`, migration `zones_couverture_suit_le_referentiel`) | `diag-lot-zones` 1-2 ; `matching/zones_recoupement` 4a-6b ; mutation ⑭ |
+| 3 | Un composant, quatre surfaces (validation freelance et CDI, annonce d'organisation, sous-traitance). Affichage « Europe — tout le continent » : `loadReferentielLabels` (cinq routes, la langue passée), fiche admin (ligne « Zones de travail » ajoutée) — un gabarit pour l'écran et le serveur | `diag-lot-zones` 3 ; mutation ⑮ |
+| 4 | Sans changement (hors « publier ») : ni écriture du profil, ni `remplacer_listes_profil`, ni audit, ni relance ; zones en ENSEMBLE (`memesZones`, profil et annonce). Un vrai changement : une ligne « Profil modifié », relance comme avant | `diag-lot-zones` 4 ; `diag-ce-qui-change` ; mutations ⑥ ⑦ |
+| 5 | Tests de base sur le prédicat RÉEL du moteur, dans les deux sens, chemin normal, ensemble exact avec témoin écarté — Europe entière / France : retenu ; Maroc seul / France : écarté ; annonce Europe / expert France : retenu (deux sens) ; pays ajouté à l'Europe : couvert (Europe, monde), pas « France » ; recalcul idempotent ; pays désactivé : sorti | `matching/zones_recoupement.test.sql` (10) ; `diag-zones-recoupement` : le moteur et le test emploient le même prédicat, et chaque cas REJOUÉ SANS le filtre donne un autre ensemble ; mutations ① ② ③ |
+| 6 | Désactivation : chaque expert concerné notifié dans l'application, dans sa langue, lien vers la validation, variante « seule spécialité » ; échec dit (`experts_non_prevenus`). Réactivation : les traductions qui resteront DEMANDÉES avant d'écrire ; traductions corrigées écrites d'abord ; la base le tient (`specialites_reactivation_hors_autre`) | `diag-lot-zones` 6 (règle « seule » EXÉCUTÉE) ; `taxonomie/reactivation_hors_autre.test.sql` (6) ; mutations ⑧ ⑨ |
+| 7 | `langues_noms` (et `langues`) lues par pages, ordre total sur la clé, lecture incomplète = panne rejouée | `diag-lot-zones` 7 : 2 500 noms, une API qui coupe à 1 000 → 2 500 lus (EXÉCUTÉ) ; mutations ⑩ ⑪ |
+| 8 | `diag-deux-temps` : les exceptions du premier temps portent leur PREUVE, vérifiée sur le commit EN LIGNE (`aucun_ecrivain`, `refus_nomme`) ; le second temps DÉCLARE chaque restriction, ses écrivains RECALCULÉS (écritures directes et `.rpc` de fonctions qui écrivent, de fonction à fonction) et son test. Ce qu'il ne vérifie pas est écrit dans son en-tête et §E.94 | épreuve `--etat=journal_photo_et_cv` : les quatre migrations du lot B exigent leurs déclarations ; pour `LG001`, il trouve les deux écrivains relus à la main à l'ARRÊT 25 ; mutation ⑬ |
+| 9 | Le besoin de sous-traitance porte la branche et les zones (mêmes composants), vérifie avant d'envoyer, dit chaque refus (douze codes, 4 langues), reprend son brouillon, ne dit pas « publié » quand il est relu | `diag-lot-zones` 9 ; mutation ⑫ |
+
+### Les migrations nouvelles — 185 au total, les DEUX marquées AVANT, horodatées après `photo_par_le_serveur`
+- `20261002000050_zones_couverture_suit_le_referentiel` — `recalculer_couverture_des_zones(uuid[])`, le déclencheur
+  `work_zones_couverture`, une reprise (zéro ligne attendue). Exception `diag-deux-temps` : aucun code n'écrit `work_zones`.
+- `20261002000060_specialite_reactivation_hors_autre` — le déclencheur `specialites_reactivation_hors_autre`. Exception
+  écrite (décision de Youssef) : dans le fichier EN LIGNE (`1182e02`), la mise à jour de la spécialité est la première
+  écriture du geste, et son refus est rendu `specialite_autre_reservee` (400) — **précision** : le code en ligne ne le
+  DEMANDE pas avant, c'est la base qui refuse, et il traduit ce refus ; rien n'est écrit à moitié. Le code du lot, lui,
+  le demande avant d'écrire.
+- Requête de staging : ⓪ `photo_par_le_serveur` ; rien de retiré ; trois fonctions créées.
+
+### Le nombre de tests de base attendu
+**654** (62 fichiers) = 638 + 10 (`matching/zones_recoupement`) + 6 (`taxonomie/reactivation_hors_autre`). **NON exécutés
+ici** (ni Docker ni base).
+
+### L'épreuve
+- **tsc** 0 erreur (hors `.next/`) ; **next build** réussi ; **lint** 50 erreurs / 23 avertissements (le cliquet tient) ;
+  **parité i18n** verte.
+- **Série complète** : premier passage 119 verts, 5 rouges — le compte des migrations (183 → 185), une lecture dont
+  l'erreur était avalée (`/api/profile`, retirée), le gel des écritures effectives (un recalcul qui ne touche rien est
+  légitime, écrit), un contrôle qui lisait la forme d'avant de la fiche admin (`diag-parcours-expert` : la propriété
+  tient, une erreur de plus est lue) — et `diag-controles-a-rejouer`, qui rejoue ces quatre-là — corrigés ; rejouée :
+  voir la ligne du commit.
+- **Mutations : 15 sur 15 rougissent** (①-⑮ ci-dessus). La ① a d'abord fait PLANTER le processus (sortie Windows
+  0xC0000409, ni rouge ni vert) ; rejouée seule, elle rougit. Arbre restauré à chaque fois (diff identique avant et après).
+  **Non éprouvé par mutation** : la preuve `refus_nomme` sur un autre commit (il faudrait un commit en ligne fautif).
+
+### Ce qui reste, et se dit
+- **§E.92 / §H.7 — les pays absents d'une base construite depuis zéro.** À trancher avant la mise en production.
+- Une désactivation non notifiée se rejoue en réactivant puis désactivant (le message le dit).
+- `PATCH /api/publications/[id]` écrit encore une annonce inchangée (sa ligne du grand livre, non) ; la conversation
+  n'affiche pas les zones de ses annonces — antérieurs, non touchés.
+
+### Pour Youssef — dans l'ordre
+1. Lire et faire relire ce lot (le relecteur relit avant le déploiement).
+2. Docker lancé, sur `lot/zones-de-travail` : `npx supabase link --project-ref wnayuerhakekxccgimeg`,
+   `node scripts/verifier-version-postgres.mjs`, `npx supabase db reset --local`,
+   `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local` — **654 tests, tous verts**.
+3. La requête de staging (éditeur SQL de staging, lecture seule) : **aucun ÉCART** (⓪ `photo_par_le_serveur`, trois
+   fonctions créées) ; les notices du push disent « couverture des zones : 0 profil(s) et 0 annonce(s) recalculés »
+   (un autre nombre n'est pas une erreur : c'est une couverture qui était en retard).
+4. `npm run build`, `npx supabase db push`, puis `git push` aussitôt.
+5. Sur staging : choisir Europe puis la France dedans ; décocher la France d'« Europe — tout le continent » ; chercher
+   « Maroc » ; enregistrer deux fois sans rien changer (aucune nouvelle ligne au grand livre) ; une carte d'annonce
+   « Europe — tout le continent » ; la fiche admin d'un expert ; désactiver une spécialité choisie par un expert d'essai
+   (sa cloche, dans sa langue) ; publier un besoin de sous-traitance.
+6. **Avant la production** : trancher §E.92 (les pays des zones sur une base neuve).
 
 ## ⛔ ARRÊT 25 — LE REJEU LOCAL DU LOT B : CINQ ROUGES DANS UN SEUL TEST, CORRIGÉ (01/10/2026)
 

@@ -3,13 +3,18 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import {
-  ajouterZone,
+  basculerPays,
+  choisirContinentEntier,
+  continentDe,
   continentsOf,
   countryCountOf,
   dedupeCoveredZones,
+  etatDuContinent,
   expandToCountryCodes,
+  libelleDeZone,
   modeDeSelection,
   normaliserRecherche,
+  paysDe,
   retirerZone,
   worldZoneOf,
   zoneCouvrante,
@@ -20,42 +25,39 @@ const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 
 /**
  * SÉLECTEUR DE ZONES DE TRAVAIL — où l'expert ACCEPTE de travailler, où l'annonce a besoin
- * de quelqu'un. Refait à la recette staging du 01/10/2026 (point 2).
+ * de quelqu'un. Un seul composant pour TOUTES les surfaces : validation du profil (freelance,
+ * CDI), annonce d'une organisation, besoin de sous-traitance d'un expert.
  *
- * ┌─ LE DÉFAUT ──────────────────────────────────────────────────────────────┐
- * │ « Monde entier » était un bouton parmi les continents. Coché, il         │
- * │ absorbait tout : un clic sur « Europe » l'ajoutait puis le retirait      │
- * │ aussitôt (couvert par le monde). L'écran restait figé sur « Monde        │
- * │ entier », il fallait cliquer deux fois, et personne ne comprenait.       │
+ * ┌─ LES DEUX DÉFAUTS QU'IL A EUS ───────────────────────────────────────────┐
+ * │ 1. (recette S1, 01/10/2026) « Monde entier » était un bouton parmi les   │
+ * │    continents et absorbait tout clic suivant.                            │
+ * │ 2. (lot zones, 02/10/2026) « Continents entiers » et « Ajouter un pays » │
+ * │    côte à côte : Youssef a choisi Europe, a voulu choisir un pays DEDANS,│
+ * │    et n'a compris qu'après coup qu'il fallait TAPER son nom.             │
  * └──────────────────────────────────────────────────────────────────────────┘
  *
- * LA SAISIE, prise sur les plateformes comparables (le choix et sa raison :
- * docs/reprise-s1.md) — DEUX TEMPS, chacun sans piège :
+ * LA SAISIE :
+ *  ① UNE QUESTION FERMÉE, rien de coché d'avance : « partout dans le monde » OU « dans certaines
+ *    zones ». Le monde n'est jamais un bouton parmi les autres.
+ *  ② SEULEMENT pour « certaines zones » :
+ *    · EN HAUT, ce qui est choisi, en étiquettes qu'une croix retire (« Europe — tout le
+ *      continent », « Maroc ») ;
+ *    · un champ de RECHERCHE, raccourci : un pays trouvé se coche DANS son continent, qui se
+ *      déplie pour le montrer ;
+ *    · les CONTINENTS : un clic déplie la liste de leurs pays, « Tout le continent » en tête et
+ *      une case par pays. Ce qui est coché est ce qui s'enregistre (lib/work-zones.ts) : le
+ *      continent entier, ou ces pays-là. Décocher un pays d'un continent entier laisse les autres.
  *
- *  ① UNE QUESTION FERMÉE, aucune réponse cochée d'avance : « partout dans le
- *    monde » OU « dans certaines zones ». Le monde n'est plus jamais un bouton
- *    parmi les autres : aucun clic ne peut être absorbé en silence.
+ * Aussi simple au doigt qu'à la souris : des cases natives dans leur libellé, des lignes d'au moins
+ * 44 px. Au clavier (relecture du 01/10/2026, point 13 — conservé) :
+ *  · la question fermée suit le motif « groupe de boutons radio » (une tabulation, les flèches) ;
+ *  · la recherche suit le motif « combobox » (flèches, `aria-activedescendant`, Entrée, Échap), et
+ *    sa liste se FERME quand le champ perd le focus ;
+ *  · chaque continent est un bouton `aria-expanded` ; ses cases se cochent à la barre d'espace ;
+ *  · une zone que le référentiel ne propose plus reste VISIBLE, nommée comme telle, retirable.
  *
- *  ② SEULEMENT SI « certaines zones » : les continents en un clic (« Europe ·
- *    46 pays » — l'étendue est dite, pas devinée), une RECHERCHE de pays (on
- *    tape « Maroc », on choisit), et la sélection montrée en étiquettes qu'une
- *    croix retire. Un pays déjà couvert par un continent choisi le dit au lieu
- *    de s'ajouter ; un continent ajouté absorbe ses pays (`dedupeCoveredZones`).
- *
- * PRÉ-SÉLECTION NON VALIDANTE (inchangé) : une zone peut être SUGGÉRÉE, elle ne
- * compte pas tant que l'utilisateur ne l'a pas confirmée — `selected` reste vide,
- * le serveur refuse toujours. Une valeur par défaut qui validerait ferait déclarer
- * une zone que personne n'a choisie.
- *
- * AUCUNE bibliothèque : boutons et champ natifs, styles en ligne, pleine largeur
- * alignée à gauche. Chaque contrôle se joue au clavier (relecture du 01/10/2026, point 13) :
- *  · la question fermée suit le motif « groupe de boutons radio » — une seule tabulation, les
- *    flèches passent d'un choix à l'autre ET le choisissent ;
- *  · la recherche suit le motif « combobox » — les flèches parcourent les pays, l'option active
- *    est annoncée (`aria-activedescendant`), Entrée choisit, Échap ferme, et la liste se FERME
- *    quand le champ perd le focus ;
- *  · une zone que le référentiel ne propose plus (désactivée) reste VISIBLE dans la sélection,
- *    nommée comme telle, avec sa croix — jamais un « 0 pays couverts » sans explication.
+ * PRÉ-SÉLECTION NON VALIDANTE (inchangé) : une zone SUGGÉRÉE ne compte pas tant que l'utilisateur
+ * ne l'a pas confirmée. AUCUNE bibliothèque ; pleine largeur, aligné à gauche.
  */
 
 type Props = {
@@ -84,10 +86,13 @@ export default function WorkZoneSelector({
   const locale = useLocale()
   const idRecherche = useId()
   const idListe = useId()
+  const idPanneau = useId()
   const [recherche, setRecherche] = useState('')
   const [actif, setActif] = useState(0)
-  // La liste des pays n'est ouverte que tant que le champ a le focus (point 13).
+  // La liste des pays trouvés n'est ouverte que tant que le champ a le focus (point 13).
   const [ouverte, setOuverte] = useState(false)
+  // Le continent DÉPLIÉ (un seul à la fois : la liste reste lisible au doigt).
+  const [deplie, setDeplie] = useState<string | null>(null)
   const radios = useRef<Array<HTMLButtonElement | null>>([])
   // Le mode « certaines zones » choisi alors que rien n'est encore coché : la sélection seule
   // ne peut pas le dire (elle est vide), l'écran le retient.
@@ -97,13 +102,14 @@ export default function WorkZoneSelector({
   const monde = useMemo(() => worldZoneOf(liste), [liste])
   // Un continent dont aucun pays n'est proposé ne couvrirait rien : il n'est pas offert (point 13).
   const continents = useMemo(() => continentsOf(liste).filter((c) => countryCountOf(liste, c.id) > 0), [liste])
+  const trierParNom = useMemo(() => (a: WorkZone, b: WorkZone) => a.name.localeCompare(b.name, locale), [locale])
   const pays = useMemo(
     () =>
       liste
         .filter((z) => z.kind === 'country')
         .map((z) => ({ zone: z, cle: normaliserRecherche(z.name) }))
-        .sort((a, b) => a.zone.name.localeCompare(b.zone.name, locale)),
-    [liste, locale],
+        .sort((a, b) => trierParNom(a.zone, b.zone)),
+    [liste, trierParNom],
   )
   const parId = useMemo(() => new Map(liste.map((z) => [z.id, z])), [liste])
 
@@ -135,9 +141,9 @@ export default function WorkZoneSelector({
     setZonesChoisiesVides(true)
     onChange(next)
   }
-  const ajouter = (id: string) => changerZones(ajouterZone(liste, selected, id))
   const retirer = (id: string) => changerZones(retirerZone(selected, id))
-  const basculerContinent = (id: string) => (selected.includes(id) ? retirer(id) : ajouter(id))
+  const cocherContinent = (id: string, coche: boolean) => changerZones(choisirContinentEntier(liste, selected, id, coche))
+  const cocherPays = (id: string) => changerZones(basculerPays(liste, selected, id))
 
   const resultats = useMemo(() => {
     const q = normaliserRecherche(recherche)
@@ -163,9 +169,13 @@ export default function WorkZoneSelector({
   const listeOuverte = ouverte && resultats.length > 0
   const idOption = (i: number) => `${idListe}-option-${i}`
 
+  // LA RECHERCHE EST UN RACCOURCI : le pays trouvé se coche DANS son continent, qui se déplie pour
+  // le montrer coché parmi ses voisins. Déjà couvert (son continent entier est choisi) : rien ne
+  // change, et la liste l'a dit (« déjà couvert par … »).
   const choisirPays = (z: WorkZone) => {
     if (selected.includes(z.id) || zoneCouvrante(liste, selected, z.id)) return
-    ajouter(z.id)
+    cocherPays(z.id)
+    setDeplie(continentDe(liste, z.id)?.id ?? null)
     setRecherche('')
     setActif(0)
   }
@@ -199,6 +209,19 @@ export default function WorkZoneSelector({
     fontFamily: fontJakarta,
   })
 
+  // Une case et son libellé : toute la ligne se touche (44 px au moins), la case reste native.
+  const styleCase: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    minHeight: 44,
+    padding: '0 10px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    fontSize: 14,
+    color: 'var(--sk-text)',
+  }
+
   if (liste.length === 0) {
     return (
       <p style={{ margin: 0, fontSize: 13, color: 'var(--sk-muted)', fontFamily: fontJakarta }}>
@@ -225,7 +248,7 @@ export default function WorkZoneSelector({
           }}
         >
           <span style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
-            {t('suggestion_label', { zone: suggestion.name })}
+            {t('suggestion_label', { zone: libelleDeZone(suggestion, t('continent_entier')) })}
           </span>
           <button
             type="button"
@@ -253,9 +276,7 @@ export default function WorkZoneSelector({
             <Puce choisie={mode === 'monde'} />
             <span>
               <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{t('mode_monde')}</span>
-              <span style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>
-                {t('mode_monde_aide', { count: countryCountOf(liste, monde.id) })}
-              </span>
+              <span style={{ display: 'block', fontSize: 12, color: 'var(--sk-muted)', marginTop: 2 }}>{t('mode_monde_aide')}</span>
             </span>
           </button>
         ) : null}
@@ -276,29 +297,52 @@ export default function WorkZoneSelector({
         </button>
       </div>
 
-      {/* ── ② Seulement pour « certaines zones » : continents, recherche, sélection ── */}
+      {/* ── ② Seulement pour « certaines zones » : la sélection, la recherche, les continents ── */}
       {mode === 'zones' ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>{t('continents_label')}</div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {continents.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => basculerContinent(c.id)}
-                  aria-pressed={selected.includes(c.id)}
-                  style={styleEtiquette(selected.includes(c.id))}
-                >
-                  {c.name}
-                  <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>
-                    · {t('country_count', { count: countryCountOf(liste, c.id) })}
-                  </span>
-                </button>
-              ))}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Ce qui est choisi, AU-DESSUS : une étiquette par zone, une croix la retire. */}
+          {selected.length > 0 ? (
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>{t('selection_label')}</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {selected.map((id) => {
+                  const z = parId.get(id)
+                  // Une zone que le référentiel ne propose plus : NOMMÉE comme telle, retirable — jamais cachée.
+                  if (!z) {
+                    return (
+                      <span key={id} style={{ ...styleEtiquette(false), cursor: 'default', borderStyle: 'dashed' }}>
+                        {t('zone_retiree')}
+                        <button
+                          type="button"
+                          onClick={() => retirer(id)}
+                          aria-label={t('retirer', { zone: t('zone_retiree') })}
+                          style={{ border: 'none', background: 'transparent', color: 'var(--sk-muted)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 2px', minWidth: 24, minHeight: 24 }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    )
+                  }
+                  const libelle = libelleDeZone(z, t('continent_entier'))
+                  return (
+                    <span key={id} style={{ ...styleEtiquette(true), cursor: 'default' }}>
+                      {libelle}
+                      <button
+                        type="button"
+                        onClick={() => retirer(id)}
+                        aria-label={t('retirer', { zone: libelle })}
+                        style={{ border: 'none', background: 'transparent', color: 'var(--sk-accent)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 2px', minWidth: 24, minHeight: 24 }}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
             </div>
-          </div>
+          ) : null}
 
+          {/* Le raccourci : chercher un pays par son nom. */}
           <div style={{ position: 'relative' }}>
             <label htmlFor={idRecherche} style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>
               {t('recherche_label')}
@@ -328,6 +372,7 @@ export default function WorkZoneSelector({
               style={{
                 width: '100%',
                 boxSizing: 'border-box',
+                minHeight: 44,
                 padding: '10px 12px',
                 border: '1.5px solid var(--sk-border)',
                 borderRadius: 10,
@@ -356,6 +401,7 @@ export default function WorkZoneSelector({
               >
                 {resultats.map((z, i) => {
                   const couvrante = selected.includes(z.id) ? z : zoneCouvrante(liste, selected, z.id)
+                  const continent = continentDe(liste, z.id)
                   return (
                     <li
                       key={z.id}
@@ -368,8 +414,10 @@ export default function WorkZoneSelector({
                       style={{
                         display: 'flex',
                         justifyContent: 'space-between',
+                        alignItems: 'center',
                         gap: 10,
-                        padding: '8px 10px',
+                        minHeight: 40,
+                        padding: '6px 10px',
                         borderRadius: 8,
                         cursor: couvrante ? 'default' : 'pointer',
                         background: i === actif ? 'var(--sk-surface-2)' : 'transparent',
@@ -377,10 +425,13 @@ export default function WorkZoneSelector({
                         fontSize: 14,
                       }}
                     >
-                      <span>{z.name}</span>
+                      <span>
+                        {z.name}
+                        {continent ? <span style={{ color: 'var(--sk-muted)', fontSize: 12 }}> · {continent.name}</span> : null}
+                      </span>
                       {couvrante ? (
                         <span style={{ fontSize: 12 }}>
-                          {couvrante.id === z.id ? t('deja_choisi') : t('deja_couvert', { zone: couvrante.name })}
+                          {couvrante.id === z.id ? t('deja_choisi') : t('deja_couvert', { zone: libelleDeZone(couvrante, t('continent_entier')) })}
                         </span>
                       ) : null}
                     </li>
@@ -390,45 +441,88 @@ export default function WorkZoneSelector({
             ) : null}
           </div>
 
-          {selected.length > 0 ? (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>{t('selection_label')}</div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                {selected.map((id) => {
-                  const z = parId.get(id)
-                  // Une zone que le référentiel ne propose plus : NOMMÉE comme telle, retirable — jamais cachée.
-                  if (!z) {
-                    return (
-                      <span key={id} style={{ ...styleEtiquette(false), cursor: 'default', borderStyle: 'dashed' }}>
-                        {t('zone_retiree')}
-                        <button
-                          type="button"
-                          onClick={() => retirer(id)}
-                          aria-label={t('retirer', { zone: t('zone_retiree') })}
-                          style={{ border: 'none', background: 'transparent', color: 'var(--sk-muted)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0 }}
-                        >
-                          ×
-                        </button>
+          {/* Les continents : un clic déplie leurs pays, « Tout le continent » en tête. */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--sk-muted)', marginBottom: 6 }}>{t('continents_label')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {continents.map((c) => {
+                const etat = etatDuContinent(liste, selected, c.id)
+                const ouvert = deplie === c.id
+                const idCeluiCi = `${idPanneau}-${c.id}`
+                const resume = etat.entier
+                  ? t('tout_le_continent')
+                  : etat.coches.length > 0
+                    ? t('pays_choisis', { count: etat.coches.length })
+                    : null
+                return (
+                  <div
+                    key={c.id}
+                    style={{
+                      border: `1.5px solid ${etat.entier || etat.coches.length > 0 ? 'var(--sk-accent)' : 'var(--sk-border)'}`,
+                      borderRadius: 12,
+                      background: 'var(--sk-surface)',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-expanded={ouvert}
+                      aria-controls={idCeluiCi}
+                      onClick={() => setDeplie(ouvert ? null : c.id)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 10,
+                        width: '100%',
+                        minHeight: 48,
+                        padding: '8px 14px',
+                        border: 'none',
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        fontFamily: fontJakarta,
+                      }}
+                    >
+                      <span>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--sk-text)' }}>{c.name}</span>
+                        <span style={{ fontSize: 12, color: 'var(--sk-muted)' }}> · {t('country_count', { count: countryCountOf(liste, c.id) })}</span>
+                        {resume ? (
+                          <span style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--sk-accent)', marginTop: 2 }}>{resume}</span>
+                        ) : null}
                       </span>
-                    )
-                  }
-                  return (
-                    <span key={id} style={{ ...styleEtiquette(true), cursor: 'default' }}>
-                      {z.name}
-                      <button
-                        type="button"
-                        onClick={() => retirer(id)}
-                        aria-label={t('retirer', { zone: z.name })}
-                        style={{ border: 'none', background: 'transparent', color: 'var(--sk-accent)', cursor: 'pointer', fontSize: 15, lineHeight: 1, padding: 0 }}
-                      >
-                        ×
-                      </button>
-                    </span>
-                  )
-                })}
-              </div>
+                      <span aria-hidden style={{ fontSize: 14, color: 'var(--sk-muted)', transform: ouvert ? 'rotate(180deg)' : 'none' }}>▾</span>
+                    </button>
+                    {ouvert ? (
+                      <div id={idCeluiCi} role="group" aria-label={c.name} style={{ padding: '0 8px 10px', borderTop: '1px solid var(--sk-border)' }}>
+                        <label style={{ ...styleCase, fontWeight: 700, marginTop: 6 }}>
+                          <input
+                            type="checkbox"
+                            checked={etat.entier}
+                            onChange={(e) => cocherContinent(c.id, e.target.checked)}
+                            style={{ width: 18, height: 18, accentColor: 'var(--sk-accent)' }}
+                          />
+                          {t('tout_le_continent')}
+                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 2 }}>
+                          {[...paysDe(liste, c.id)].sort(trierParNom).map((p) => (
+                            <label key={p.id} style={styleCase}>
+                              <input
+                                type="checkbox"
+                                checked={etat.coches.includes(p.id)}
+                                onChange={() => cocherPays(p.id)}
+                                style={{ width: 18, height: 18, accentColor: 'var(--sk-accent)' }}
+                              />
+                              {p.name}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )
+              })}
             </div>
-          ) : null}
+          </div>
         </div>
       ) : null}
 

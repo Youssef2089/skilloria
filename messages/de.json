@@ -2882,7 +2882,8 @@
       "cv_lien_indisponible": "Der Link zum Lebenslauf konnte nicht erstellt werden. Versuchen Sie es gleich noch einmal.",
       "cv_lien_inattendu": "Der Link zum Lebenslauf wurde abgelehnt (Code {code}).",
       "experience_mission": "Auftrag für {client}",
-      "experience_client_confidentiel": "einen vertraulichen Kunden"
+      "experience_client_confidentiel": "einen vertraulichen Kunden",
+      "work_zones": "Arbeitsgebiete"
     },
     "users": {
       "title": "Benutzer",
@@ -4064,10 +4065,13 @@
     "errors": {
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
       "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
-      "publish_failed": "Die Veröffentlichung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "publish_failed": "Die Veröffentlichung ist auf unserer Seite nicht durchgegangen. Ihr Bedarf ist als Entwurf gespeichert: Versuchen Sie es gleich noch einmal.",
       "profile_check_failed": "Wir konnten den Status Ihres Profils nicht prüfen. Das ist keine Ablehnung der Verifizierung: Es wurde nichts veröffentlicht. Bitte versuchen Sie es in Kürze erneut; wenn das Problem bestehen bleibt, wenden Sie sich an den Support.",
       "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support.",
-      "expert_country_missing": "Ihr Kollaborationsbereich übernimmt die Adresse aus Ihrem Profil, und dort fehlt das Land. Ergänzen Sie es in Ihrem Profil und veröffentlichen Sie erneut: Es ist nichts verloren gegangen."
+      "expert_country_missing": "Ihr Kollaborationsbereich übernimmt die Adresse aus Ihrem Profil, und dort fehlt das Land. Ergänzen Sie es in Ihrem Profil und veröffentlichen Sie erneut: Es ist nichts verloren gegangen.",
+      "profile_not_verified": "Ihr Profil muss freigegeben sein, bevor Sie einen Unterauftragsbedarf veröffentlichen können. Es wurde nichts veröffentlicht.",
+      "durees_illisibles": "Die Veröffentlichung ist vorübergehend nicht möglich. Es wurde nichts veröffentlicht: Versuchen Sie es gleich noch einmal.",
+      "taxonomie_indisponible": "Die Liste der Bereiche und Gebiete konnte nicht geladen werden. Laden Sie die Seite neu."
     },
     "list": {
       "title": "Meine Unterauftrags-Bedarfe",
@@ -4113,7 +4117,9 @@
       "cancel": "Abbrechen",
       "closing": "Wird geschlossen…",
       "error": "Das Schließen ist fehlgeschlagen. Bitte versuchen Sie es erneut."
-    }
+    },
+    "pending_title": "Bedarf wird geprüft",
+    "pending_body": "Ihr Bedarf ist gespeichert. Unser Team prüft ihn vor der Veröffentlichung; Sie werden über die Entscheidung informiert."
   },
   "qui": {
     "meta_title": "Über uns — {name}",
@@ -4222,7 +4228,7 @@
     "action_activate": "Aktivieren",
     "action_delete": "Löschen",
     "delete_disabled_hint": "Löschen ist nicht möglich, solange Elemente damit verknüpft sind.",
-    "deactivate_spec_warning": "Dieses Fachgebiet wird von {profiles} Profil(en) und {publications} Veröffentlichung(en) verwendet. Deaktivierung bestätigen?",
+    "deactivate_spec_warning": "Dieses Fachgebiet wird von {profiles} Profil(en) und {publications} Anzeige(n) verwendet. Die Experten, die es gewählt haben, werden in der App benachrichtigt und gebeten, ein anderes zu wählen. Deaktivierung bestätigen?",
     "confirm_delete_spec": "Dieses Fachgebiet endgültig löschen?",
     "section_danger": "Löschen",
     "delete_branch_explain": "Diese Branche wird nirgends referenziert: Sie kann endgültig gelöscht werden.",
@@ -4237,7 +4243,8 @@
     "err_spec_in_use": "Fachgebiet in Verwendung: {profiles} Profil(e), {publications} Veröffentlichung(en).",
     "usage_unavailable_warning": "Wir konnten nicht lesen, was dieser Zweig noch enthält. Das heißt nicht „nichts“: wir wissen es nicht. Laden Sie die Seite neu, bevor Sie entscheiden.",
     "err_usage_unavailable": "Löschen abgelehnt: Wir konnten nicht prüfen, was dieser Zweig noch enthält. Es wurde nichts gelöscht. Bitte versuchen Sie es gleich erneut.",
-    "err_specialite_autre_reservee": "„Andere“ ist keine Spezialisierung der Referenzliste: Es ist die Option „Andere (bitte angeben)“, die Experten und Anzeigen angeboten wird. Wählen Sie einen anderen Namen."
+    "err_specialite_autre_reservee": "„Andere“ ist keine Spezialisierung der Referenzliste: Es ist die Option „Andere (bitte angeben)“, die Experten und Anzeigen angeboten wird. Wählen Sie einen anderen Namen.",
+    "err_experts_non_prevenus": "Das Fachgebiet ist deaktiviert, aber die Experten, die es gewählt hatten, konnten nicht benachrichtigt werden. Aktivieren Sie es wieder und deaktivieren Sie es erneut, um sie zu benachrichtigen."
   },
   "candidature_lifecycle": {
     "filters": {
@@ -4364,11 +4371,11 @@
     "suggestion_confirm": "Dieses Gebiet verwenden",
     "suggestion_not_applied": "Wird erst nach Ihrer Bestätigung übernommen",
     "mode_monde": "Überall auf der Welt",
-    "mode_monde_aide": "Umfasst alle {count} Länder der Liste",
+    "mode_monde_aide": "Alle angebotenen Länder",
     "mode_zones": "Nur in bestimmten Gebieten",
     "mode_zones_aide": "Wählen Sie Kontinente oder bestimmte Länder",
-    "continents_label": "Ganze Kontinente",
-    "recherche_label": "Ein Land hinzufügen",
+    "continents_label": "Nach Kontinent auswählen",
+    "recherche_label": "Land suchen",
     "recherche_placeholder": "Geben Sie einen Ländernamen ein…",
     "recherche_aucun": "Kein Land entspricht dieser Suche.",
     "deja_couvert": "Bereits abgedeckt durch {zone}",
@@ -4376,7 +4383,10 @@
     "selection_label": "Ihre Auswahl",
     "retirer": "{zone} entfernen",
     "zone_retiree": "Nicht mehr angebotene Zone",
-    "aucun_pays_couvert": "Kein Land abgedeckt: Entfernen Sie die nicht mehr angebotene Zone und wählen Sie, wo Sie arbeiten"
+    "aucun_pays_couvert": "Kein Land abgedeckt: Entfernen Sie die nicht mehr angebotene Zone und wählen Sie, wo Sie arbeiten",
+    "tout_le_continent": "Ganzer Kontinent",
+    "continent_entier": "{zone} — ganzer Kontinent",
+    "pays_choisis": "{count, plural, one {# Land ausgewählt} other {# Länder ausgewählt}}"
   },
   "matching_badge": {
     "strong": "Starke Übereinstimmung",
@@ -6142,5 +6152,10 @@
     "niveau_a_choisir": "Niveau noch zu wählen",
     "langue_hors_liste": "Sprache Nr. {rang}: Wählen Sie sie aus der Liste oder entfernen Sie die Zeile.",
     "niveau_manquant": "Sprache Nr. {rang}: Wählen Sie ihr Niveau."
+  },
+  "specialite_retiree": {
+    "titre": "Das Fachgebiet „{specialite}“ wird nicht mehr angeboten",
+    "corps": "Es erscheint nicht mehr in Ihrem Profil. Wählen Sie in Ihrem Profil ein anderes Fachgebiet, um Ihre Tätigkeit zu beschreiben.",
+    "corps_seule": "Es war Ihr einziges Fachgebiet: Ihr Profil kann erst wieder veröffentlicht werden, wenn Sie ein anderes gewählt haben. Wählen Sie eines in Ihrem Profil."
   }
 }

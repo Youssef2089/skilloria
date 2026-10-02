@@ -279,6 +279,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
     translations,
     [pub],
+    locale,
   )
   const specialityLabels = (pub.speciality_ids ?? [])
     .map((sid) => labels.specialities?.get(sid))

@@ -37,25 +37,21 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- CE PUSH, LE LOT B (relecture du 01/10/2026) : il se pousse quand le lot A est EN LIGNE — staging est alors à jour
-  -- jusqu'à journal_photo_et_cv. Quatre migrations, toutes APRÈS : grand_livre_refus_des_retirees (journaliser() refuse
-  -- les onze retirées, GL006 — redéfinie à signature identique), langues_garde (la reprise relancée, puis le déclencheur
-  -- LG001), specialite_autre_garde (la reprise « Autre », la contrainte, la garde des traductions), photo_par_le_serveur
-  -- (trois politiques d'écriture du navigateur retirées sur avatars — des politiques, pas des signatures). AUCUNE ne
-  -- supprime de signature.
+  -- CE PUSH, LE LOT « ZONES DE TRAVAIL » (02/10/2026) : staging est à jour jusqu'à photo_par_le_serveur (lot B déployé).
+  -- Deux migrations, toutes deux AVANT : zones_couverture_suit_le_referentiel (une fonction de recalcul, un déclencheur
+  -- sur work_zones, une reprise qui ne touche que les couvertures en retard) et specialite_reactivation_hors_autre (un
+  -- déclencheur sur specialities). AUCUNE ne supprime de signature.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
-  -- Une fonction REDÉFINIE à signature identique (journaliser), un déclencheur, une politique retirée et des lignes
-  -- reprises ne sont pas « créés » au sens de cette liste.
+  -- Un déclencheur et des lignes reprises ne sont pas « créés » au sens de cette liste.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'profile_languages_langue_de_la_liste'),
-      ('fonction', 'retirer_specialites_autre'),
-      ('fonction', 'translations_specialite_autre'),
-      ('contrainte', 'specialities_autre_hors_referentiel')
+      ('fonction', 'recalculer_couverture_des_zones'),
+      ('fonction', 'work_zones_couverture'),
+      ('fonction', 'specialite_reactivee_hors_autre')
     ) v(genre, nom)
   )
 
@@ -68,7 +64,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'journal_photo_et_cv',
+   'photo_par_le_serveur',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 

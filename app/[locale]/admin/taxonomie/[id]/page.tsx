@@ -324,6 +324,8 @@ export default function AdminTaxonomieDetailPage() {
     if (code === 'slug_taken') return t('err_slug_taken')
     // « Autre » n'est pas une spécialité du référentiel (recette du 01/10/2026, point 1).
     if (code === 'specialite_autre_reservee') return t('err_specialite_autre_reservee')
+    // La spécialité est désactivée, mais les experts n'ont pas été prévenus (lot zones de travail) : ça se dit.
+    if (code === 'experts_non_prevenus') return t('err_experts_non_prevenus')
     if (status === 403) return tAdmin('errors.forbidden')
     return tAdmin('errors.generic')
   }
@@ -353,6 +355,8 @@ export default function AdminTaxonomieDetailPage() {
         const payload = (await res.json().catch(() => ({}))) as { code?: string }
         if (!res.ok) {
           setSpecError(mapSpecError(payload.code, res.status))
+          // La désactivation est écrite : la liste se relit, le message reste.
+          if (payload.code === 'experts_non_prevenus') await load()
           return
         }
       }
@@ -379,6 +383,7 @@ export default function AdminTaxonomieDetailPage() {
         // Réactiver une ligne « Autre » retirée est refusé par la base, et ça se dit.
         const payload = (await res.json().catch(() => ({}))) as { code?: string }
         setSpecError(mapSpecError(payload.code, res.status))
+        if (payload.code === 'experts_non_prevenus') { setConfirmDeactivateSpec(null); await load() }
         return
       }
       setConfirmDeactivateSpec(null)

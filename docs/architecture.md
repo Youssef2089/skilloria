@@ -439,6 +439,24 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   sous le nom de la contrainte). Test : `taxonomie/autre_hors_referentiel.test.sql` (18).
 > - **`photo_par_le_serveur`** (`…000040`) — retire `avatars_auth_upload`, `_update`, `_delete`.
 
+> **LE LOT « ZONES DE TRAVAIL ET PETITS DÉFAUTS DU RELECTEUR » (02/10/2026, ARRÊT 26) — tronc, horodaté après
+> `photo_par_le_serveur`, les DEUX marquées AVANT.** Staging est à jour jusqu'à `photo_par_le_serveur` (lot B déployé) :
+> la requête de staging l'attend en ⓪ ; le code en ligne est `1182e02` (`CODE_EN_LIGNE` de `diag-deux-temps`).
+> - **`zones_couverture_suit_le_referentiel`** (`…000050`, AVANT) — `recalculer_couverture_des_zones(uuid[])` (réécrit
+>   `work_zone_ids` à l'identique pour les profils et annonces qui ont choisi l'une des zones données — NULL = toutes —,
+>   ce qui passe par la source unique `sync_work_zone_countries` ; ne touche que les lignes dont la couverture change ;
+>   rend ses comptes ; fermée au navigateur) ; le déclencheur `work_zones_couverture` (AFTER INSERT, UPDATE OF
+>   parent_id/active/country_code, DELETE sur `work_zones` : la zone, ses parents d'avant et d'après, et leurs ANCÊTRES) ;
+>   une reprise, dans son bloc, qui rattrape une couverture déjà en retard (zéro ligne attendue). Ferme la « LIMITE CONNUE,
+>   ASSUMÉE » de `referentiel_zones_de_travail` (recalcul à la main). Exception de `diag-deux-temps` : `aucun_ecrivain` —
+>   aucun code n'écrit `work_zones`, ni en ligne ni dans le lot. §D.34. Test : `matching/zones_recoupement.test.sql` (10).
+> - **`specialite_reactivation_hors_autre`** (`…000060`, AVANT par exception écrite) — `specialite_reactivee_hors_autre()`
+>   et le déclencheur `specialites_reactivation_hors_autre` (BEFORE UPDATE OF active sur `specialities`) : au passage
+>   d'inactive à active, aucune traduction du nom n'est « Autre » (`est_specialite_autre`) — 23514 sous le nom de la
+>   contrainte `specialities_autre_hors_referentiel`. Exception de `diag-deux-temps` : `refus_nomme` — dans le fichier EN
+>   LIGNE, la mise à jour de la spécialité est la première écriture du geste et `estRefusAutre()` la rend
+>   `specialite_autre_reservee` (400). §D.36. Test : `taxonomie/reactivation_hors_autre.test.sql` (6).
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **les treize fermées** (dont
@@ -3768,6 +3786,94 @@ s'affiche « une autre information ») ; le comportement « rien ne change, rien
 > siennes au même moment, et deux §D.33 écrits sans se voir se seraient heurtés à la fusion (§M1 bis). D.33 à D.39
 > restent au principal.
 
+<a id="d34"></a>
+### D.34 — LES ZONES DE TRAVAIL SE CHOISISSENT PAR CONTINENT ; CE QUI EST COCHÉ EST CE QUI S'ENREGISTRE (02/10/2026)
+
+**Le cas (staging, Youssef).** L'écran proposait côte à côte « Continents entiers » (des boutons) et « Ajouter un pays »
+(un champ à taper). Youssef a choisi Europe, a voulu ensuite choisir un pays DEDANS, et n'a compris qu'après coup qu'il
+fallait taper le nom du pays.
+
+**La règle de septembre, inchangée.** Les zones de travail sont le SEUL critère géographique du matching. Elles filtrent
+AVANT l'IA, dans les deux sens, par recoupement sur les codes pays APLATIS (`work_zone_countries && …` : `pool.ts`,
+`run-for-expert.ts`). Un continent entier compte pour tous ses pays.
+
+**La saisie (principe validé par Youssef).** Après la question fermée (partout / certaines zones — conservée, avec le
+clavier de l'ARRÊT 24), un clic sur un continent DÉPLIE ses pays : « Tout le continent » en tête, une case par pays. La
+sélection s'affiche AU-DESSUS, en étiquettes qu'une croix retire ; la recherche reste comme raccourci — le pays trouvé se
+coche DANS son continent, qui se déplie. Cases natives, lignes de 44 px au moins. « Couvre les 64 pays du référentiel »
+devient « Tous les pays proposés ». La logique vit, pure, dans `lib/work-zones.ts` (`paysDe`, `etatDuContinent`,
+`choisirContinentEntier`, `basculerPays`, `continentDe`), exécutée par `diag-lot-zones`.
+
+**Ce qui s'enregistre.** « Tout le continent » = le CONTINENT ; des pays cochés = CES pays — cocher les 46 un par un
+n'est pas « l'Europe » (un pays ajouté plus tard n'y entrerait pas). Décocher un pays d'un continent entier : le continent
+devient la liste de ses AUTRES pays. Un continent entier et le monde couvrent un pays AJOUTÉ PLUS TARD au référentiel :
+recalcul en base, par le déclencheur `work_zones_couverture` (§B.2, lot zones), jamais dans une route.
+
+**Le libellé — une formule neutre** (décision de Youssef) : « Europe — tout le continent », « Europe — whole continent »,
+« Europa — todo el continente », « Europa — ganzer Kontinent » — elle s'accorde avec tout continent, y compris un
+continent ajouté plus tard. Un gabarit (`work_zones.continent_entier`), lu par l'écran (next-intl) et par le serveur
+(`lib/zones/libelle-serveur.ts`) : étiquettes, cartes et détail d'annonce (`loadReferentielLabels`, qui reçoit la langue),
+fiche admin (`get-expert`, ligne « Zones de travail » ajoutée). Jamais la liste des pays d'un continent.
+
+**Un composant, quatre surfaces** : validation après import du CV (freelance, CDI — « Mon profil » y mène), annonce d'une
+organisation (`PublicationForm`), besoin de sous-traitance (`SousTraitanceView`, §D.37). **Gardé par** `diag-lot-zones`
+1-3, `diag-zones-recoupement` (le filtre, les deux sens, chaque cas rejoué SANS le filtre), `diag-recette-s1` 2 (le
+clavier) ; en base, `matching/zones_recoupement.test.sql`.
+
+<a id="d35"></a>
+### D.35 — UN ENREGISTREMENT DE PROFIL SANS CHANGEMENT N'ÉCRIT RIEN ET NE RELANCE RIEN (02/10/2026)
+
+**Le cas (audit du lot zones).** `/api/profile` comparait déjà les valeurs pour la ligne « Profil modifié » (§D.33), mais
+écrivait quand même le profil, remplaçait les listes envoyées, écrivait l'audit — et, pour un profil approuvé, programmait
+la relance de la recherche (une recherche payée, pour une note identique). Et les zones se comparaient DANS L'ORDRE, alors
+que la route les écrit dans l'ordre où la base rend les codes : une même sélection pouvait passer pour un changement.
+
+**La décision de Youssef.** On ne relance que si un champ ou une liste a VRAIMENT changé, zones comparées comme un
+ENSEMBLE (`memesZones`). Sans changement, et hors du geste « publier » (qui garde sa vérification) : ni écriture du profil,
+ni appel à `remplacer_listes_profil` (seules les listes qui changent sont remplacées), ni audit, ni relance — la réponse
+dit `inchange: true`. Un vrai changement de zones reste UNE ligne « Profil modifié » (le champ nommé, aucune action
+nouvelle, aucun code pays) et relance comme avant. L'annonce aussi compare ses zones comme un ensemble (`PATCH
+/api/publications/[id]`). **Gardé par** `diag-lot-zones` 4.
+
+<a id="d36"></a>
+### D.36 — UNE SPÉCIALITÉ DÉSACTIVÉE SE DIT À L'EXPERT ; RÉACTIVÉE, ELLE NE REVIENT PAS SOUS « AUTRE » (02/10/2026)
+
+**Le cas (relecteur).** Les écrans de validation ne reçoivent que les spécialités ACTIVES : une spécialité désactivée par
+l'administrateur disparaissait du profil de l'expert au prochain affichage, et de sa ligne au prochain enregistrement
+(`/api/profile`, la branche « retirées »), sans un mot. Si c'était la seule, son profil ne pouvait plus être publié.
+
+**La règle.** Au PASSAGE d'active à inactive (`update-speciality`), et à lui seul, chaque expert qui l'a dans ses
+spécialités — tous, lus par pages (`lireToutesLesLignes`, une lecture incomplète est une panne) — reçoit une notification
+`specialite_retiree` dans l'application, DANS SA LANGUE (`users.locale`, le nom de la spécialité traduit), avec un lien
+vers la validation de son profil. Variante : aucune autre spécialité ACTIVE et aucune précision « Autre » (le critère de
+publication, `lib/taxonomie/specialite-seule.ts`) → « c'était votre seule spécialité : votre profil ne peut plus être
+publié tant que vous n'en avez pas choisi une autre ». Un échec se DIT à l'administrateur (503 `experts_non_prevenus` :
+la désactivation est écrite, la liste se recharge, le message dit comment prévenir à nouveau). Canal : l'application
+seulement (le dispatcher d'e-mails ne lit que les types qu'il connaît). L'avertissement de désactivation le dit.
+
+**La réactivation.** La contrainte lit le nom et le slug, la garde du lot B l'écriture d'une traduction : une spécialité
+inactive dont la traduction anglaise est « Other » passait les deux à sa réactivation. La route DEMANDE désormais à la
+base (`contientAutre`) le nom, le slug et chaque traduction qui RESTERA, avant toute écriture ; quand le geste corrige une
+traduction, il l'écrit AVANT de réactiver. La base le tient (`specialites_reactivation_hors_autre`, 23514). Ce déclencheur
+restreint : il passe AVANT le déploiement par EXCEPTION écrite (décision de Youssef : pas de migration poussée à part),
+prouvée dans `diag-deux-temps` sur le fichier en ligne — la réactivation y est la première écriture, et son refus est
+rendu `specialite_autre_reservee` : rien n'est écrit à moitié. **Gardé par** `diag-lot-zones` 6 ; en base,
+`taxonomie/reactivation_hors_autre.test.sql`.
+
+<a id="d37"></a>
+### D.37 — L'ANNONCE DE SOUS-TRAITANCE PORTE LA BRANCHE ET LES ZONES, ET DIT CHAQUE REFUS (02/10/2026)
+
+**Le cas (audit du lot zones, §E.93).** Le formulaire n'envoyait ni branche ni zones ; la publication les exige : chaque
+essai était refusé `missing_fields`, l'écran disait « la publication a échoué », et laissait un brouillon de plus.
+
+**La décision de Youssef (option b).** Le formulaire porte la BRANCHE (la liste de l'annonce d'organisation, servie par
+`/api/taxonomy`) et les ZONES (le même `WorkZoneSelector`) ; il appelle le MÊME prédicat que `/publish`
+(`missingForPublish`) avant d'envoyer et nomme les champs manquants sous chacun d'eux ; chaque refus nommé — douze codes,
+de la création et de la publication — a sa phrase, dans les quatre langues, avec les mots de l'annonce d'organisation
+quand c'est le même refus ; « la publication a échoué » n'est que le dernier recours, et dit que le brouillon est gardé.
+Une publication refusée se reprend sur le MÊME brouillon (`PATCH`). Un besoin relu avant sa mise en ligne
+(`pending_review`) ne s'annonce pas « publié ». **Gardé par** `diag-lot-zones` 9.
+
 <a id="d40"></a>
 ### D.40 — « AUTRE » EST UNE SEULE NOTION, ET CE N'EST JAMAIS UNE LIGNE DU RÉFÉRENTIEL (recette S1, 01/10/2026)
 
@@ -3986,11 +4092,26 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
   livre : la ligne de fin n'est jamais écrite. Il reste dans `ai_spend_events`, lot par lot, SOUS LA MÊME PIÈCE et avec sa
   source (`unites_source`, mesurée ou au plancher) — la pièce relie les deux. Une ligne d'étape réintroduirait ce que la
   liste validée a retiré (§D.33).
-- Une spécialité RÉACTIVÉE dont une traduction existante serait « Other » n'est vue par aucune garde : la contrainte lit le
-  nom et le slug, la garde des traductions (lot B) l'écriture d'une traduction.
+- ~~Une spécialité RÉACTIVÉE dont une traduction existante serait « Other » n'est vue par aucune garde~~ — **FERMÉ le
+  02/10/2026 (§D.36)** : la route demande les traductions qui resteront avant d'écrire, et la base le tient.
 - Une page restée ouverte depuis le code d'avant le lot A, utilisée après le lot B : ses langues en texte libre sont
   refusées (`langue_hors_liste`, nommé) ; une annonce publiée avec « Autre » coché garde l'identifiant désactivé (aucun
   échec ; `retirer_specialites_autre()` est rejouable).
+
+**H.7 — CE QUE LE LOT « ZONES DE TRAVAIL » (02/10/2026) LAISSE OUVERT, DIT.**
+- **BLOQUANT AVANT TOUTE BASE CONSTRUITE DEPUIS ZÉRO (production) — §E.92 : les zones de travail n'y auraient AUCUN pays.**
+  `referentiel_zones_de_travail` rattache les pays de `countries`, encore vide sur une base vierge ; les 64 pays arrivent
+  par `parametrage_de_production`, après. Staging n'est pas touché (sa base existait avant). Non corrigé : hors des neuf
+  points du lot. Ce qui le fermerait : une migration qui rattache aux continents les pays de `countries` absents de
+  `work_zones` (la correspondance ISO d'origine) — le déclencheur `work_zones_couverture` recalculerait ensuite seul la
+  couverture des continents et du monde. À trancher avant la mise en production.
+- Une désactivation dont les experts n'ont pas été prévenus (`experts_non_prevenus`) ne se rejoue pas d'elle-même :
+  l'administrateur réactive puis désactive (le message le dit). Une seule notification par passage : deux désactivations
+  en deux gestes préviennent deux fois.
+- `PATCH /api/publications/[id]` écrit encore l'annonce quand rien ne change (la ligne du grand livre, elle, n'est pas
+  écrite — §D.33) ; ses zones se comparent désormais comme un ensemble. Hors du périmètre de §D.35 (le profil).
+- La conversation (`/api/me/conversations`) affiche ses annonces sans libellé de zone (`buildPublicationSynthesis` sans
+  `labels`) — antérieur au lot, non touché.
 
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 

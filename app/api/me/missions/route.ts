@@ -216,6 +216,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
     translations,
     pubsDeLaPage,
+    locale,
   )
 
   // ─── Logos d'organisation : URL SIGNÉES, en UN SEUL aller-retour ───────────

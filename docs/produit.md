@@ -255,6 +255,10 @@ vérifié qui ouvrait « Sous-traitance » par curiosité repartait avec une org
 (`organizations_personal_owner_unique_idx`) tranche les courses ; la migration
 `nettoyage_organisations_fantomes` a supprimé les fantômes — **après** le déploiement du code, sinon
 les écrans les auraient recréés dans la minute.
+**Le besoin porte une branche et des zones de travail (02/10/2026, §D.37 d'architecture).** Avant, le formulaire n'en
+envoyait aucune, la publication les exige : **aucun besoin ne pouvait être publié**, et l'écran disait « la publication
+a échoué » (§E.93). Il porte désormais la branche et le même choix de zones que l'annonce d'une organisation, nomme ce
+qui manque avant d'envoyer, dit chaque refus dans la langue de l'écran, et reprend son brouillon au lieu d'en créer un.
 
 ### P1.3 — La mise en relation et la notification
 
@@ -727,6 +731,22 @@ deux produits.
 > · **`mon-profil`** — la photo se dépose par le serveur ; chaque refus dit sa raison.
 > · **`parametres` › Notifications** — « Quand plusieurs missions vous correspondent en même temps, vous recevez un
 >   seul e-mail qui les regroupe. Les messages, eux, vous sont envoyés un par un. »
+
+> **Lot « zones de travail » du 02/10/2026** (détail : architecture §D.34 à §D.37) :
+> · **Le choix des zones** (validation du profil freelance et CDI, annonce d'une organisation, besoin de sous-traitance —
+>   le même écran partout) : après « partout dans le monde » / « dans certaines zones », un clic sur un continent
+>   **déplie ses pays**, « Tout le continent » en tête et une case par pays. Ce qui est choisi s'affiche au-dessus, en
+>   étiquettes qu'on retire d'un clic (« Europe — tout le continent », « Maroc ») ; la recherche d'un pays reste, comme
+>   raccourci, et coche le pays dans son continent. « Tout le continent » enregistre le continent (il couvrira aussi un
+>   pays ajouté plus tard) ; des pays cochés enregistrent ces pays ; décocher un pays d'un continent entier laisse les
+>   autres. « Couvre les 64 pays du référentiel » est devenu « Tous les pays proposés ».
+> · **L'affichage** — carte et détail d'une annonce, fiche admin d'un expert (ligne « Zones de travail », nouvelle) :
+>   « Europe — tout le continent », jamais la liste de ses pays.
+> · **Enregistrer sans rien changer** n'écrit rien et ne relance aucune recherche.
+> · **Une spécialité désactivée** par l'administration prévient chaque expert qui l'avait choisie, dans sa langue, dans
+>   la cloche — et lui dit si c'était sa seule spécialité (son profil ne peut alors plus être publié tant qu'il n'en a
+>   pas choisi une autre). Réactivée, elle ne peut pas revenir sous « Other », « Otra »…
+> · **Le besoin de sous-traitance** se publie enfin (branche et zones), et chaque refus se dit.
 
 ### P2.3 — Organisation (client, cabinet, ESN — un seul dashboard)
 `client`, `cabinet` et `esn` partagent **`/dashboard/entreprise`**. `/dashboard/cabinet` est une

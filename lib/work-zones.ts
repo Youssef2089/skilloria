@@ -189,6 +189,120 @@ export function retirerZone(selected: readonly string[], id: string): string[] {
   return selected.filter((v) => v !== id)
 }
 
+// ─── LA SAISIE PAR CONTINENT (lot zones de travail, 02/10/2026 — décision de Youssef) ──────────
+//
+// LE DÉFAUT : « Continents entiers » et « Ajouter un pays » côte à côte. Youssef a choisi Europe,
+// a voulu ensuite choisir un pays DEDANS, et n'a compris qu'après coup qu'il fallait taper son nom.
+//
+// LA SAISIE : un clic sur un continent DÉPLIE ses pays — « Tout le continent » en tête, une case
+// par pays. Ce qui s'enregistre est EXACTEMENT ce qui est coché :
+//   · « Tout le continent » = le CONTINENT (il couvrira aussi un pays ajouté plus tard au
+//     référentiel — le recalcul est en base, migration `zones_couverture_suit_le_referentiel`) ;
+//   · des pays cochés = CES pays, et seulement eux (cocher les 46 un par un n'est pas « l'Europe »).
+// Décocher un pays d'un continent entier laisse les AUTRES cochés : le continent devient la liste
+// de ses autres pays. Le monde, s'il était choisi, s'efface dès qu'on choisit une zone.
+
+/** Les pays proposés sous une zone (un continent), dans l'ordre du référentiel. */
+export function paysDe(zones: readonly WorkZone[], zoneId: string): WorkZone[] {
+  const enfants = new Map<string, WorkZone[]>()
+  for (const z of zones) {
+    if (!z.parent_id) continue
+    const l = enfants.get(z.parent_id)
+    if (l) l.push(z)
+    else enfants.set(z.parent_id, [z])
+  }
+  const sortie: WorkZone[] = []
+  const pile = [...(enfants.get(zoneId) ?? [])].reverse()
+  while (pile.length > 0) {
+    const z = pile.pop() as WorkZone
+    if (z.kind === 'country') sortie.push(z)
+    pile.push(...[...(enfants.get(z.id) ?? [])].reverse())
+  }
+  return sortie
+}
+
+/** Le continent d'un pays (l'ancêtre le plus proche de type continent), ou `null`. */
+export function continentDe(zones: readonly WorkZone[], id: string): WorkZone | null {
+  const parId = new Map(zones.map((z) => [z.id, z]))
+  let courant = parId.get(id)?.parent_id ?? null
+  while (courant) {
+    const z = parId.get(courant)
+    if (!z) return null
+    if (z.kind === 'continent') return z
+    courant = z.parent_id
+  }
+  return null
+}
+
+/** Ce qu'une sélection dit d'un continent : entier, ou les pays cochés (tous, s'il est entier). */
+export function etatDuContinent(
+  zones: readonly WorkZone[],
+  selected: readonly string[],
+  continentId: string,
+): { entier: boolean; coches: string[] } {
+  const pays = paysDe(zones, continentId).map((z) => z.id)
+  if (selected.includes(continentId)) return { entier: true, coches: pays }
+  return { entier: false, coches: pays.filter((id) => selected.includes(id)) }
+}
+
+/**
+ * « Tout le continent », coché ou décoché. Coché : le continent remplace ses pays déjà cochés (il
+ * les couvre tous). Décoché : le continent sort, et aucun de ses pays ne reste — « tout » décoché
+ * ne veut pas dire « tout sauf rien ».
+ */
+export function choisirContinentEntier(
+  zones: readonly WorkZone[],
+  selected: readonly string[],
+  continentId: string,
+  coche: boolean,
+): string[] {
+  const monde = zones.find((z) => z.kind === 'world')?.id
+  const sesPays = new Set(paysDe(zones, continentId).map((z) => z.id))
+  const reste = selected.filter((id) => id !== monde && id !== continentId && !sesPays.has(id))
+  return coche ? [...reste, continentId] : reste
+}
+
+/**
+ * Une case de pays. Cochée : le pays s'ajoute. Décochée : il sort — et si son continent ENTIER
+ * était choisi, le continent devient la liste de ses AUTRES pays (décocher la France de « Europe —
+ * tout le continent » laisse les 45 autres cochés).
+ */
+export function basculerPays(zones: readonly WorkZone[], selected: readonly string[], paysId: string): string[] {
+  const monde = zones.find((z) => z.kind === 'world')?.id
+  const sansMonde = selected.filter((id) => id !== monde)
+  if (sansMonde.includes(paysId)) return sansMonde.filter((id) => id !== paysId)
+  const continent = continentDe(zones, paysId)
+  if (continent && sansMonde.includes(continent.id)) {
+    const autres = paysDe(zones, continent.id).map((z) => z.id).filter((id) => id !== paysId)
+    return [...sansMonde.filter((id) => id !== continent.id), ...autres]
+  }
+  return [...sansMonde, paysId]
+}
+
+/**
+ * Le libellé AFFICHÉ d'une zone choisie : un continent se lit « Europe — tout le continent », jamais
+ * « Europe » seul (qu'on prendrait pour une précision) ni la liste de ses pays. Le gabarit vient des
+ * messages (`work_zones.continent_entier`, quatre langues) : une formule neutre, qui s'accorde avec
+ * tout continent, y compris un continent ajouté plus tard (décision de Youssef).
+ */
+export function libelleDeZone(
+  zone: { kind: string; name: string },
+  gabaritContinentEntier: string,
+): string {
+  return zone.kind === 'continent' ? gabaritContinentEntier.replace('{zone}', () => zone.name) : zone.name
+}
+
+/**
+ * Deux sélections de zones disent-elles la même chose ? Les zones forment un ENSEMBLE : l'ordre dans
+ * lequel l'écran ou la base les rend ne change rien à ce qui filtre. Sert à ne pas écrire, ni
+ * relancer, un enregistrement qui ne change rien.
+ */
+export function memesZones(a: readonly string[] | null | undefined, b: readonly string[] | null | undefined): boolean {
+  const ea = new Set(a ?? [])
+  const eb = new Set(b ?? [])
+  return ea.size === eb.size && [...ea].every((id) => eb.has(id))
+}
+
 /** Une recherche de pays insensible à la casse et aux accents (« reunion » trouve « Réunion »). */
 export function normaliserRecherche(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()

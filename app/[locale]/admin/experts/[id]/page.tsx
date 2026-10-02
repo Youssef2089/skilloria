@@ -54,6 +54,8 @@ type ExpertFull = {
   review_reason: string | null
   branches: { id: string; name: string } | null
   specialities: Array<{ id: string; name: string }> | null
+  /** Les zones de travail, déjà nommées dans la langue de l'écran (« Europe — tout le continent »). */
+  zones_de_travail?: string[] | null
   /** D6 : spécialité hors référentiel (« Autre »). */
   speciality_other: string | null
   /** D1 : écosystème (domaine) de l'expert, pour l'admin plateforme. */
@@ -137,7 +139,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const load = useCallback(async () => {
     setError(null)
     try {
-      const res = await secureFetch(`/api/admin/get-expert/${id}`, { method: 'GET' })
+      const res = await secureFetch(`/api/admin/get-expert/${id}?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
       if (!res.ok) {
         setError(t('error_load'))
         return
@@ -148,7 +150,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
       console.error('[admin/expert detail] load threw', err)
       setError(t('error_load'))
     }
-  }, [id, secureFetch, t])
+  }, [id, locale, secureFetch, t])
 
   useEffect(() => { void load() }, [load])
 
@@ -323,6 +325,7 @@ export default function AdminExpertDetailPage({ params }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, fontSize: 13 }}>
           <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('branch')}</div><div>{(pickRel(e.branches) as { name: string } | null)?.name ?? '—'}</div></div>
           <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('speciality')}</div><div>{[...(e.specialities ?? []).map((s) => s.name), ...(e.speciality_other ? [t('speciality_other_prefix', { value: e.speciality_other })] : [])].join(', ') || '—'}</div></div>
+          <div><div style={{ color: 'var(--sk-muted)', fontSize: 11 }}>{t('work_zones')}</div><div>{(e.zones_de_travail ?? []).join(', ') || '—'}</div></div>
         </div>
         {e.skills && e.skills.length > 0 && (
           <div style={{ marginTop: 12 }}>

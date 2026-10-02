@@ -2882,7 +2882,8 @@
       "cv_lien_indisponible": "The link to the CV could not be created. Try again in a moment.",
       "cv_lien_inattendu": "The link to the CV was refused (code {code}).",
       "experience_mission": "mission for {client}",
-      "experience_client_confidentiel": "a confidential client"
+      "experience_client_confidentiel": "a confidential client",
+      "work_zones": "Work zones"
     },
     "users": {
       "title": "Users",
@@ -4064,10 +4065,13 @@
     "errors": {
       "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
       "create_failed": "Could not save the need. Check the fields and try again.",
-      "publish_failed": "Publishing failed. Please try again.",
+      "publish_failed": "Publishing did not go through on our side. Your need is saved as a draft: try again in a few moments.",
       "profile_check_failed": "We could not check your profile status. This is not a verification refusal: nothing was published. Please try again in a few moments; if the problem persists, contact support.",
       "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support.",
-      "expert_country_missing": "Your collaboration space uses the address on your profile, and the country is missing there. Fill it in on your profile, then publish again: nothing has been lost."
+      "expert_country_missing": "Your collaboration space uses the address on your profile, and the country is missing there. Fill it in on your profile, then publish again: nothing has been lost.",
+      "profile_not_verified": "Your profile must be approved before you can publish a subcontracting need. Nothing was published.",
+      "durees_illisibles": "Publishing is temporarily unavailable. Nothing was published: try again in a few moments.",
+      "taxonomie_indisponible": "The list of branches and zones could not be loaded. Reload the page."
     },
     "list": {
       "title": "My subcontracting needs",
@@ -4113,7 +4117,9 @@
       "cancel": "Cancel",
       "closing": "Closing…",
       "error": "Closing failed. Please try again."
-    }
+    },
+    "pending_title": "Need under review",
+    "pending_body": "Your need is saved. Our team reviews it before it goes online; you will be notified of the decision."
   },
   "qui": {
     "meta_title": "About us — {name}",
@@ -4222,7 +4228,7 @@
     "action_activate": "Activate",
     "action_delete": "Delete",
     "delete_disabled_hint": "Deletion is not possible while items are attached to it.",
-    "deactivate_spec_warning": "This speciality is used by {profiles} profile(s) and {publications} publication(s). Confirm deactivation?",
+    "deactivate_spec_warning": "This speciality is used by {profiles} profile(s) and {publications} listing(s). The experts who chose it will be notified in the app and asked to choose another one. Confirm the deactivation?",
     "confirm_delete_spec": "Permanently delete this speciality?",
     "section_danger": "Deletion",
     "delete_branch_explain": "This branch is not referenced anywhere: it can be permanently deleted.",
@@ -4237,7 +4243,8 @@
     "err_spec_in_use": "Speciality in use: {profiles} profile(s), {publications} publication(s).",
     "usage_unavailable_warning": "We could not read what this branch still carries. That is not “nothing”: we do not know. Reload the page before deciding.",
     "err_usage_unavailable": "Deletion refused: we could not check what this branch still carries. Nothing was deleted. Please try again in a moment.",
-    "err_specialite_autre_reservee": "“Other” is not a speciality of the reference list: it is the “Other (specify)” option offered to experts and job posts. Choose another name."
+    "err_specialite_autre_reservee": "“Other” is not a speciality of the reference list: it is the “Other (specify)” option offered to experts and job posts. Choose another name.",
+    "err_experts_non_prevenus": "The speciality is deactivated, but the experts who had chosen it could not be notified. Reactivate it, then deactivate it again to notify them."
   },
   "candidature_lifecycle": {
     "filters": {
@@ -4364,11 +4371,11 @@
     "suggestion_confirm": "Use this area",
     "suggestion_not_applied": "Not applied until you confirm it",
     "mode_monde": "Anywhere in the world",
-    "mode_monde_aide": "Covers all {count} countries in the list",
+    "mode_monde_aide": "All the countries offered",
     "mode_zones": "Only in some areas",
     "mode_zones_aide": "Choose continents or specific countries",
-    "continents_label": "Whole continents",
-    "recherche_label": "Add a country",
+    "continents_label": "Choose by continent",
+    "recherche_label": "Search for a country",
     "recherche_placeholder": "Type a country name…",
     "recherche_aucun": "No country matches this search.",
     "deja_couvert": "Already covered by {zone}",
@@ -4376,7 +4383,10 @@
     "selection_label": "Your selection",
     "retirer": "Remove {zone}",
     "zone_retiree": "Zone no longer offered",
-    "aucun_pays_couvert": "No country covered: remove the zone that is no longer offered and choose where you work"
+    "aucun_pays_couvert": "No country covered: remove the zone that is no longer offered and choose where you work",
+    "tout_le_continent": "Whole continent",
+    "continent_entier": "{zone} — whole continent",
+    "pays_choisis": "{count, plural, one {# country chosen} other {# countries chosen}}"
   },
   "matching_badge": {
     "strong": "Strong match",
@@ -6142,5 +6152,10 @@
     "niveau_a_choisir": "Level to choose",
     "langue_hors_liste": "Language no. {rang}: choose it from the list, or remove the line.",
     "niveau_manquant": "Language no. {rang}: choose its level."
+  },
+  "specialite_retiree": {
+    "titre": "The speciality “{specialite}” is no longer offered",
+    "corps": "It no longer appears on your profile. Choose another speciality in your profile to describe what you do.",
+    "corps_seule": "It was your only speciality: your profile can no longer be published until you choose another one. Choose one in your profile."
   }
 }

@@ -573,6 +573,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
     translations,
     rows,
+    locale,
   )
 
   // ── Agrégat candidatures par publication (Lot 2c) ─────────────────────

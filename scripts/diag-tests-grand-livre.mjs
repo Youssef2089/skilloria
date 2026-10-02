@@ -69,6 +69,11 @@ const DECLENCHEURS = {
   profile_languages_langue_de_la_liste: "'LG001'",
   // La garde des traductions « Autre » (specialite_autre_garde, lot B) : elle tourne quand un test écrit une traduction.
   translations_specialite_autre: 'insert into public.translations',
+  // Le recalcul de couverture du référentiel des zones (lot zones de travail) : il tourne quand un test AJOUTE un pays
+  // sous un continent (matching/zones_recoupement : le pays « QZ » ajouté à l'Europe après coup).
+  work_zones_couverture: "values (v_eu, 'country', 'C_QZ', 'QZ'",
+  // La garde de réactivation « Autre » (lot zones de travail) : elle tourne quand un test attend son refus nommé.
+  specialite_reactivee_hors_autre: "'%specialities_autre_hors_referentiel%'",
 }
 
 // LE GEL — une raison par entrée (§G.8). Il ne fait que descendre.

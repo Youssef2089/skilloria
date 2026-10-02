@@ -42,6 +42,10 @@ const ok = (cond, label, hint) => {
 const L = 'LÉGITIME : écriture conditionnelle — son WHERE est la garde, zéro ligne rend'
 /** fonction:table:rang → raison. Le rang compte les écritures de CETTE table dans CETTE fonction. */
 const GEL = {
+  // Le recalcul de couverture des zones (lot zones de travail, 02/10/2026) : il ne réécrit QUE les lignes dont la couverture
+  // change — le cas ordinaire est zéro (rien n'a bougé) ; il rend son compte, que la reprise affiche.
+  'recalculer_couverture_des_zones:profiles:1': 'LÉGITIME : recalcul conditionnel (WHERE is distinct from) — zéro veut dire « couverture déjà à jour », le compte est rendu',
+  'recalculer_couverture_des_zones:publications:1': 'LÉGITIME : recalcul conditionnel (WHERE is distinct from) — zéro veut dire « couverture déjà à jour », le compte est rendu',
   'anonymiser_compte:users:1': `${L} false (compte déjà purgé ou disparu)`,
   'constater_avertissement_inactivite:users:1': `${L} false (compte anonymisé entre-temps)`,
   // ── les fonctions d'avant le socle (balayées depuis le 28/09/2026) ──

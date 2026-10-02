@@ -2882,7 +2882,8 @@
       "cv_lien_indisponible": "Le lien vers le CV n’a pas pu être créé. Réessayez dans quelques instants.",
       "cv_lien_inattendu": "Le lien vers le CV a été refusé (code {code}).",
       "experience_mission": "mission pour {client}",
-      "experience_client_confidentiel": "un client confidentiel"
+      "experience_client_confidentiel": "un client confidentiel",
+      "work_zones": "Zones de travail"
     },
     "users": {
       "title": "Utilisateurs",
@@ -4064,10 +4065,13 @@
     "errors": {
       "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
       "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
-      "publish_failed": "La publication a échoué. Veuillez réessayer.",
+      "publish_failed": "La publication n’a pas abouti de notre côté. Votre besoin est enregistré en brouillon : réessayez dans quelques instants.",
       "profile_check_failed": "Nous n’avons pas pu vérifier le statut de votre profil. Ce n’est pas un refus de validation : rien n’a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
       "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
-      "expert_country_missing": "Votre espace de collaboration reprend l'adresse de votre profil, et le pays n'y est pas renseigné. Complétez-le dans votre profil, puis republiez : rien n'a été perdu."
+      "expert_country_missing": "Votre espace de collaboration reprend l'adresse de votre profil, et le pays n'y est pas renseigné. Complétez-le dans votre profil, puis republiez : rien n'a été perdu.",
+      "profile_not_verified": "Votre profil doit être validé avant de publier un besoin de sous-traitance. Rien n’a été publié.",
+      "durees_illisibles": "La publication est momentanément indisponible. Rien n’a été publié : réessayez dans quelques instants.",
+      "taxonomie_indisponible": "La liste des branches et des zones n’a pas pu être chargée. Rechargez la page."
     },
     "list": {
       "title": "Mes besoins de sous-traitance",
@@ -4113,7 +4117,9 @@
       "cancel": "Annuler",
       "closing": "Clôture…",
       "error": "La clôture a échoué. Veuillez réessayer."
-    }
+    },
+    "pending_title": "Besoin en relecture",
+    "pending_body": "Votre besoin est enregistré. Notre équipe le relit avant sa mise en ligne ; vous serez prévenu de la décision."
   },
   "qui": {
     "meta_title": "Qui sommes-nous — {name}",
@@ -4222,7 +4228,7 @@
     "action_activate": "Activer",
     "action_delete": "Supprimer",
     "delete_disabled_hint": "Suppression impossible tant que des éléments y sont rattachés.",
-    "deactivate_spec_warning": "Cette spécialité est utilisée par {profiles} profil(s) et {publications} publication(s). Confirmer la désactivation ?",
+    "deactivate_spec_warning": "Cette spécialité est utilisée par {profiles} profil(s) et {publications} publication(s). Les experts qui l’ont choisie seront prévenus dans l’application et invités à en choisir une autre. Confirmer la désactivation ?",
     "confirm_delete_spec": "Supprimer définitivement cette spécialité ?",
     "section_danger": "Suppression",
     "delete_branch_explain": "Cette branche n'est référencée nulle part : elle peut être supprimée définitivement.",
@@ -4237,7 +4243,8 @@
     "err_spec_in_use": "Spécialité utilisée : {profiles} profil(s), {publications} publication(s).",
     "usage_unavailable_warning": "Nous n'avons pas pu lire ce que cette branche porte encore. Ce n'est pas « rien » : nous ne savons pas. Rechargez la page avant de décider.",
     "err_usage_unavailable": "Suppression refusée : nous n'avons pas pu vérifier ce que cette branche porte encore. Rien n'a été supprimé. Réessayez dans un instant.",
-    "err_specialite_autre_reservee": "« Autre » n’est pas une spécialité du référentiel : c’est l’option « Autre (préciser) » proposée aux experts et aux annonces. Choisissez un autre nom."
+    "err_specialite_autre_reservee": "« Autre » n’est pas une spécialité du référentiel : c’est l’option « Autre (préciser) » proposée aux experts et aux annonces. Choisissez un autre nom.",
+    "err_experts_non_prevenus": "La spécialité est désactivée, mais les experts qui l’avaient choisie n’ont pas pu être prévenus. Réactivez-la puis désactivez-la de nouveau pour les prévenir."
   },
   "candidature_lifecycle": {
     "filters": {
@@ -4364,11 +4371,11 @@
     "suggestion_confirm": "Utiliser cette zone",
     "suggestion_not_applied": "Non appliquée tant que vous ne l’avez pas confirmée",
     "mode_monde": "Partout dans le monde",
-    "mode_monde_aide": "Couvre les {count} pays du référentiel",
+    "mode_monde_aide": "Tous les pays proposés",
     "mode_zones": "Dans certaines zones seulement",
     "mode_zones_aide": "Choisissez des continents ou des pays précis",
-    "continents_label": "Continents entiers",
-    "recherche_label": "Ajouter un pays",
+    "continents_label": "Choisir par continent",
+    "recherche_label": "Rechercher un pays",
     "recherche_placeholder": "Tapez le nom d’un pays…",
     "recherche_aucun": "Aucun pays ne correspond à cette recherche.",
     "deja_couvert": "Déjà couvert par {zone}",
@@ -4376,7 +4383,10 @@
     "selection_label": "Votre sélection",
     "retirer": "Retirer {zone}",
     "zone_retiree": "Zone qui n’est plus proposée",
-    "aucun_pays_couvert": "Aucun pays couvert : retirez la zone qui n’est plus proposée et choisissez où vous travaillez"
+    "aucun_pays_couvert": "Aucun pays couvert : retirez la zone qui n’est plus proposée et choisissez où vous travaillez",
+    "tout_le_continent": "Tout le continent",
+    "continent_entier": "{zone} — tout le continent",
+    "pays_choisis": "{count, plural, one {# pays choisi} other {# pays choisis}}"
   },
   "matching_badge": {
     "strong": "Correspondance forte",
@@ -6142,5 +6152,10 @@
     "niveau_a_choisir": "Niveau à choisir",
     "langue_hors_liste": "Langue n° {rang} : choisissez-la dans la liste, ou retirez la ligne.",
     "niveau_manquant": "Langue n° {rang} : choisissez son niveau."
+  },
+  "specialite_retiree": {
+    "titre": "La spécialité « {specialite} » n’est plus proposée",
+    "corps": "Elle n’apparaît plus sur votre profil. Choisissez une autre spécialité dans votre profil pour décrire votre métier.",
+    "corps_seule": "C’était votre seule spécialité : votre profil ne peut plus être publié tant que vous n’en avez pas choisi une autre. Choisissez-en une dans votre profil."
   }
 }

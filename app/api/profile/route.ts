@@ -10,6 +10,7 @@ import { langueDeNotification, notifyExpertResult } from '@/lib/verification/exp
 import { LISTES_DE_PROFIL, estListeDeProfil, type ListeDeProfil } from '@/lib/lecture/liste'
 import { clesModifiees, listeModifiee } from '@/lib/profil/changements'
 import { contientAutre } from '@/lib/taxonomie/specialite-autre'
+import { memesZones } from '@/lib/work-zones'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -372,7 +373,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
           400,
         )
       }
-      patch.work_zone_ids = trouvees.map((t) => t.id)
+      // LES ZONES SONT UN ENSEMBLE (lot zones de travail, 02/10/2026) : l'ordre dans lequel la base rend les codes
+      // ne dit rien. La même sélection, dans un autre ordre, garde la valeur LUE — rien ne change, donc rien ne
+      // s'écrit au grand livre et rien ne se relance.
+      const ids = trouvees.map((t) => t.id)
+      patch.work_zone_ids = memesZones(ids, cp.work_zone_ids as string[] | null) ? cp.work_zone_ids : ids
     }
   }
   // D6 : précision libre « Autre » (bornée). Renseignée quand speciality_id est
@@ -661,11 +666,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         blocsModifies.push(cle)
       }
     }
-    const { error: listesErr } = await supabaseAdmin.rpc('remplacer_listes_profil', {
+    // UN ENREGISTREMENT SANS CHANGEMENT N'ÉCRIT RIEN (décision de Youssef, 02/10/2026) : seules les listes qui
+    // changent sont remplacées, et si aucune ne change, la base n'est pas appelée.
+    const aRemplacer = (cle: ListeDeProfil, valeur: unknown[] | null) => (blocsModifies.includes(cle) ? valeur : null)
+    const { error: listesErr } = blocsModifies.length === 0 ? { error: null } : await supabaseAdmin.rpc('remplacer_listes_profil', {
       p_profile_id: cp.id,
-      p_experiences: pExperiences,
-      p_formations: pFormations,
-      p_langues: langues,
+      p_experiences: aRemplacer('experiences', pExperiences),
+      p_formations: aRemplacer('educations', pFormations),
+      p_langues: aRemplacer('languages_structured', langues),
     })
     if (listesErr) {
       if (listesErr.code === 'LP001') {
@@ -681,7 +689,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       console.error('[profile PATCH] listes NON écrites — rien n a été modifié', { message: listesErr.message })
       return json({ error: 'Lists could not be saved', code: 'listes_non_ecrites' }, 503)
     }
-    for (const cle of LISTES_DE_PROFIL) if (cle in body) touchedBlocks.push(cle)
+    for (const cle of LISTES_DE_PROFIL) if (blocsModifies.includes(cle)) touchedBlocks.push(cle)
   }
 
   // ② Les champs simples : la valeur envoyée contre la valeur LUE avant l'écriture — seules les vraies différences
@@ -697,7 +705,10 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
 
   let updatedProfile: unknown = null
-  if (shouldUpdateScalars) {
+  // Rien ne change parmi les champs simples : on n'écrit pas (ni la ligne, ni `updated_at`) ; la réponse dit `inchange`
+  // (aucun écran ne relit le profil rendu — vérifié le 02/10/2026).
+  const ecrireLesChamps = shouldUpdateScalars && champsReellementModifies.length > 0
+  if (ecrireLesChamps) {
     const { data: updated, error: updateErr } = await supabaseAdmin
       .from('profiles')
       .update(patch)
@@ -828,6 +839,14 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     }
   }
 
+  // CE QUI A VRAIMENT CHANGÉ — un champ (valeur lue contre valeur envoyée, zones en ENSEMBLE) ou une liste. Sans
+  // changement, et hors du geste « publier », rien ne s'écrit (ni l'audit) et rien ne se relance (décision de
+  // Youssef, 02/10/2026) : la relance d'un profil approuvé coûte une recherche, pour une note identique.
+  const aChange = champsReellementModifies.length > 0 || blocsModifies.length > 0
+  if (!aChange && body.visible !== true) {
+    return json({ profile: updatedProfile, verification: null, inchange: true })
+  }
+
   await logAudit({
     piece: journal.piece,
     supabaseAdmin,
@@ -836,7 +855,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     action: 'profile_update',
     entity_type: 'profile',
     entity_id: cp.id,
-    detail: { keys: Object.keys(patch), blocks: touchedBlocks },
+    detail: { keys: champsReellementModifies, blocks: touchedBlocks },
   })
 
   // ── Matching réconcilié — déclencheur EXPERT (post-PATCH profile) ────────
@@ -968,6 +987,8 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       if (!etaitApprouve) {
         return
       }
+      // Une republication sans aucun changement ne relance pas la recherche : rien de ce qu'elle compare n'a bougé.
+      if (!aChange) return
 
       const { programmerRelance } = await import('@/lib/matching/relance')
       const prog = await programmerRelance(supabaseAdmin, cp.id, 'profil_modifie')

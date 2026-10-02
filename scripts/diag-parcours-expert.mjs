@@ -146,7 +146,8 @@ section('C. B2 — la fiche admin d’un expert s’ouvre : aucun embed sur une 
   const g = sansCommentaires(lire('app/api/admin/get-expert/[id]/route.ts'))
   ok(/'speciality_ids, speciality_other, '/.test(g) && /from\('specialities'\)\.select\('id, name, slug'\)\.in\('id', idsSpecialites\)/.test(g),
     'les spécialités se résolvent depuis speciality_ids')
-  ok(/if \(expRes\.error \|\| eduRes\.error \|\| langRes\.error \|\| spsRes\.error\)/.test(g), 'une fiche amputée n’est pas servie (les erreurs sont LUES)')
+  // Le lot zones de travail (02/10/2026) a ajouté la lecture des zones : une erreur de PLUS est lue, la propriété tient.
+  ok(/if \(expRes\.error \|\| eduRes\.error \|\| langRes\.error \|\| spsRes\.error(?: \|\| \w+\.error)*\)/.test(g), 'une fiche amputée n’est pas servie (les erreurs sont LUES)')
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

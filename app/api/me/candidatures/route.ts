@@ -234,6 +234,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     auth.supabaseAdmin as unknown as Parameters<typeof loadReferentielLabels>[0],
     translations,
     pubsDeLaPage,
+    locale,
   )
 
   // Instant unique pour toute la page : deux candidatures de la même réponse

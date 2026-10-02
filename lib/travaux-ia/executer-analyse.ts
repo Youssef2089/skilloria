@@ -9,6 +9,7 @@ import { budgetDisponible, enregistrerDepenseIA } from '@/lib/ai-budget'
 import { cvTeleverse } from '@/lib/profil/journal-profil'
 import { JournalError } from '@/lib/journal/journaliser'
 import { contexteDuTravail, echouerTravail, type Travail } from './travail'
+import { lectureIncomplete, lireToutesLesLignes } from '@/lib/matching/lecture-paginee'
 
 /**
  * L'ANALYSE D'UN CV, HORS DE LA REQUÊTE DE L'EXPERT (§D.30, §E.88).
@@ -96,17 +97,32 @@ export async function executerAnalyseCv(admin: SupabaseClient, t: Travail): Prom
   // ── 3. Le référentiel de l'écosystème — sans lui, l'analyse serait payée puis inclassable ──
   // La liste FERMÉE des langues et leurs noms connus : la règle de `code_de_langue()`, sur les mêmes lignes
   // (relecture du 01/10/2026, point 20 — plus de seconde liste dans le code).
-  const [branchRes, specialityRes, configRes, codesRes, nomsRes] = await Promise.all([
+  // LES DEUX LISTES SONT LUES EN ENTIER (relecteur, 02/10/2026) : l'API rend au plus 1 000 lignes par requête, et
+  // `langues_noms` en compte déjà 467 — au-delà de 1 000, la liste se serait coupée EN SILENCE, et une langue connue de
+  // la base n'aurait plus été rattachée. Pages de 1 000, ordre total sur la clé, compte confronté ; incomplète, la
+  // lecture est une panne de notre côté (rejouée), jamais une liste plus courte.
+  const [branchRes, specialityRes, configRes, codesLus, nomsLus] = await Promise.all([
     admin.from('branches').select('id, slug').eq('domain_id', profil.domain_id),
     admin.from('specialities').select('id, slug, active').eq('domain_id', profil.domain_id),
     admin.from('domain_configs').select('tags').eq('domain_id', profil.domain_id).maybeSingle(),
-    admin.from('langues').select('code'),
-    admin.from('langues_noms').select('nom, code'),
+    lireToutesLesLignes<{ code: string }>({
+      construire: (o) => admin.from('langues').select('code', o),
+      departageUnique: 'code',
+      identite: (l) => l.code,
+      contexte: 'liste des langues',
+    }),
+    lireToutesLesLignes<NomDeLangueConnu>({
+      construire: (o) => admin.from('langues_noms').select('nom, code', o),
+      departageUnique: 'nom',
+      identite: (l) => l.nom,
+      contexte: 'noms des langues',
+    }),
   ])
-  if (branchRes.error || specialityRes.error || configRes.error || codesRes.error || nomsRes.error) return echouer('referentiel_illisible', true)
+  if (branchRes.error || specialityRes.error || configRes.error) return echouer('referentiel_illisible', true)
+  if (codesLus.erreur || nomsLus.erreur || lectureIncomplete(codesLus) || lectureIncomplete(nomsLus)) return echouer('referentiel_illisible', true)
   const rattacher = rattacheurDeLangues(
-    ((codesRes.data ?? []) as Array<{ code: string }>).map((l) => l.code),
-    (nomsRes.data ?? []) as NomDeLangueConnu[],
+    codesLus.lignes.map((l) => l.code),
+    nomsLus.lignes,
   )
   const branches = (branchRes.data ?? []) as Array<{ id: string; slug: string }>
   const specialites = (specialityRes.data ?? []) as Array<{ id: string; slug: string; active: boolean }>

@@ -5,6 +5,7 @@ import { logAudit } from '@/lib/audit'
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { changementsTaxonomie, taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
 import { contientAutre, estRefusAutre } from '@/lib/taxonomie/specialite-autre'
+import { notifierRetraitSpecialite } from '@/lib/taxonomie/retrait-specialite'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -24,6 +25,13 @@ export const dynamic = 'force-dynamic'
  * est la colonne `name` ; EN/ES/DE upsertent dans public.translations. Une chaîne
  * vide supprime la traduction de la langue. logAudit('speciality_updated').
  * service_role. AUCUN filtre domaine.
+ *
+ * DÉSACTIVER PRÉVIENT (lot zones de travail, 02/10/2026) : au passage d'active à inactive, chaque expert qui
+ * l'avait choisie reçoit une notification dans sa langue (lib/taxonomie/retrait-specialite.ts). Prévenir en
+ * échec se DIT : 503 `experts_non_prevenus` — la désactivation, elle, est écrite.
+ * RÉACTIVER NE RAMÈNE PAS « AUTRE » : une spécialité réactivée dont une traduction EXISTANTE est « Other »,
+ * « Otra »… est refusée AVANT toute écriture (`specialite_autre_reservee`) ; la base le tient aussi
+ * (migration `specialite_reactivation_hors_autre`).
  */
 
 function json(data: unknown, status = 200): Response {
@@ -71,7 +79,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const { data: spec, error: spErr } = await auth.supabaseAdmin
     .from('specialities')
-    .select('id, branch_id, domain_id, name, slug')
+    .select('id, branch_id, domain_id, name, slug, active')
     .eq('id', id)
     .maybeSingle()
   if (spErr) {
@@ -79,7 +87,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
   if (!spec) return json({ error: 'Not found', code: 'not_found' }, 404)
-  const sp = spec as { id: string; branch_id: string; domain_id: string; name: string; slug: string }
+  const sp = spec as { id: string; branch_id: string; domain_id: string; name: string; slug: string; active: boolean }
 
   const has = (k: string) => Object.prototype.hasOwnProperty.call(body, k)
   const updates: Record<string, unknown> = {}
@@ -157,10 +165,55 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (autre === 'illisible') return json({ error: 'Rule unreadable', code: 'lecture_indisponible' }, 503)
   if (autre === 'autre') return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
 
+  // UNE SPÉCIALITÉ RÉACTIVÉE NE REVIENT PAS SOUS « AUTRE » (relecteur, 02/10/2026) : la contrainte lit le nom et le
+  // slug, la garde des traductions l'ÉCRITURE d'une traduction — une traduction « Other » déjà en base n'était vue par
+  // personne au moment de la réactivation. On la DEMANDE ici, avant d'écrire : le nom et le slug qu'elle aura, et
+  // chaque traduction qui restera (celles qu'on remplace ou efface dans ce geste ne comptent pas).
+  const reactivation = updates.active === true && sp.active === false
+  const desactivation = updates.active === false && sp.active === true
+  if (reactivation) {
+    const { data: trs, error: trsErr } = await auth.supabaseAdmin
+      .from('translations')
+      .select('locale, value')
+      .eq('table_name', 'specialities')
+      .eq('row_id', id)
+      .eq('field', 'name')
+    if (trsErr) return json({ error: 'Rule unreadable', code: 'lecture_indisponible' }, 503)
+    const remplacees = new Set([...trToUpsert.map((t) => t.locale), ...trToDelete])
+    const restantes = ((trs ?? []) as Array<{ locale: string; value: string }>).filter((t) => !remplacees.has(t.locale)).map((t) => t.value)
+    const deja = await contientAutre(auth.supabaseAdmin, [(updates.name as string | undefined) ?? sp.name, ...restantes], (updates.slug as string | undefined) ?? sp.slug)
+    if (deja === 'illisible') return json({ error: 'Rule unreadable', code: 'lecture_indisponible' }, 503)
+    if (deja === 'autre') return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
+  }
+
   // Relu AVANT l'écriture : la ligne du grand livre ne nommera que ce qui change (ARRÊT 22).
   const changements = await changementsTaxonomie(auth.supabaseAdmin, {
     table: 'specialities', id, updates, aEcrire: trToUpsert, aEffacer: trToDelete,
   })
+
+  const ecrireTraductions = async () => {
+    if (trToUpsert.length > 0) {
+      const { error: trErr } = await auth.supabaseAdmin
+        .from('translations')
+        .upsert(trToUpsert, { onConflict: 'table_name,row_id,field,locale' })
+      if (trErr) console.error('[admin:update-speciality] translations upsert failed', trErr.message)
+    }
+    if (trToDelete.length > 0) {
+      const { error: delErr } = await auth.supabaseAdmin
+        .from('translations')
+        .delete()
+        .eq('table_name', 'specialities')
+        .eq('row_id', id)
+        .eq('field', 'name')
+        .in('locale', trToDelete)
+      if (delErr) console.error('[admin:update-speciality] translations delete failed', delErr.message)
+    }
+  }
+
+  // UNE RÉACTIVATION QUI REMPLACE UNE TRADUCTION « Other » DANS LE MÊME GESTE écrit ses traductions D'ABORD : la base
+  // refuse de réactiver tant qu'une traduction « Autre » existe (migration specialite_reactivation_hors_autre), et la
+  // spécialité est encore INACTIVE — la garde des traductions ne la concerne pas. Les noms ont été DEMANDÉS plus haut.
+  if (reactivation) await ecrireTraductions()
 
   if (Object.keys(updates).length > 0) {
     updates.updated_at = new Date().toISOString()
@@ -176,22 +229,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
-  if (trToUpsert.length > 0) {
-    const { error: trErr } = await auth.supabaseAdmin
-      .from('translations')
-      .upsert(trToUpsert, { onConflict: 'table_name,row_id,field,locale' })
-    if (trErr) console.error('[admin:update-speciality] translations upsert failed', trErr.message)
-  }
-  if (trToDelete.length > 0) {
-    const { error: delErr } = await auth.supabaseAdmin
-      .from('translations')
-      .delete()
-      .eq('table_name', 'specialities')
-      .eq('row_id', id)
-      .eq('field', 'name')
-      .in('locale', trToDelete)
-    if (delErr) console.error('[admin:update-speciality] translations delete failed', delErr.message)
-  }
+  if (!reactivation) await ecrireTraductions()
 
   // Le grand livre (§D.26, phase B) : la taxonomie de l'écosystème a changé.
   const ligne = await taxonomieModifiee(auth.supabaseAdmin, journal, {
@@ -220,6 +258,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     entity_id: id,
     detail: { fields: Object.keys(updates), translations_set: trToUpsert.map((t) => t.locale), translations_cleared: trToDelete },
   })
+
+  // LES EXPERTS QUI L'AVAIENT CHOISIE SONT PRÉVENUS — au passage d'active à inactive, et à lui seul.
+  if (desactivation) {
+    const prevenir = await notifierRetraitSpecialite(auth.supabaseAdmin, { specialiteId: id, nomFr: (updates.name as string | undefined) ?? sp.name, piece: journal.piece })
+    if (!prevenir.ok) {
+      console.error('[admin:update-speciality] experts NON prévenus — la spécialité est désactivée', { id, message: prevenir.message })
+      return json({ error: 'Experts not notified', code: 'experts_non_prevenus', speciality_id: id }, 503)
+    }
+    return json({ ok: true, speciality_id: id, experts_prevenus: prevenir.prevenus }, 200)
+  }
 
   return json({ ok: true, speciality_id: id }, 200)
 }

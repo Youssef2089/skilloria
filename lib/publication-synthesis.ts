@@ -1,5 +1,6 @@
 import type { AnnonceType } from '@/types/annonce'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
+import { libelleZoneServeur } from '@/lib/zones/libelle-serveur'
 
 /**
  * SYNTHÈSE D'UNE ANNONCE — la ligne de contexte affichée sous chaque titre.
@@ -163,6 +164,8 @@ export async function loadReferentielLabels(
   },
   translations: TranslationsMap,
   rows: ReadonlyArray<{ speciality_ids?: string[] | null; work_zone_ids?: string[] | null }>,
+  // La langue de l'écran : un continent choisi se lit « Europe — tout le continent » (lot zones de travail).
+  locale: string,
 ): Promise<ReferentielLabels> {
   const specIds = [...new Set(rows.flatMap((r) => r.speciality_ids ?? []))]
   const zoneIds = [...new Set(rows.flatMap((r) => r.work_zone_ids ?? []))]
@@ -175,7 +178,7 @@ export async function loadReferentielLabels(
       // laisse plus tester l'erreur du tout — c'est ainsi qu'elle a été oubliée.
       : Promise.resolve({ data: [], error: null }),
     zoneIds.length
-      ? supabaseAdmin.from('work_zones').select('id, name').in('id', zoneIds)
+      ? supabaseAdmin.from('work_zones').select('id, name, kind').in('id', zoneIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
@@ -192,7 +195,7 @@ export async function loadReferentielLabels(
     })
   }
 
-  const table = (data: unknown, nomTable: 'specialities' | 'work_zones') =>
+  const table = (data: unknown, nomTable: 'specialities') =>
     new Map(
       ((data ?? []) as Array<{ id: string; name: string }>).map((x) => [
         x.id,
@@ -200,8 +203,17 @@ export async function loadReferentielLabels(
       ]),
     )
 
+  // UN CONTINENT CHOISI SE LIT « EUROPE — TOUT LE CONTINENT » (décision de Youssef, 02/10/2026) : ni
+  // « Europe » seul, ni la liste de ses pays. Le gabarit est celui de l'écran de saisie.
+  const zones = new Map(
+    ((zoneRes.data ?? []) as Array<{ id: string; name: string; kind: string }>).map((z) => [
+      z.id,
+      libelleZoneServeur({ kind: z.kind, name: tBDD(translations, 'work_zones', z.id, 'name', z.name) }, locale),
+    ]),
+  )
+
   return {
     specialities: table(specRes.data, 'specialities'),
-    workZones: table(zoneRes.data, 'work_zones'),
+    workZones: zones,
   }
 }

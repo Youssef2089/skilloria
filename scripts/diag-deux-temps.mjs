@@ -4,7 +4,8 @@
  * LA RÈGLE : entre le `db push` et le `git push`, le site en ligne tourne avec l'ANCIEN code sur la NOUVELLE base. Une
  * migration passée AVANT le déploiement (ou INDIFFÉRENT) ne doit donc rien refuser de ce que l'ancien code écrit : ce
  * qui restreint — une garde, une contrainte, un droit retiré, une signature supprimée, une clé ôtée d'une liste
- * blanche, un refus d'action — part dans un lot SUIVANT, dont les migrations disent « APRÈS le déploiement ».
+ * blanche, un refus d'action — part dans un lot SUIVANT, dont les migrations disent « APRÈS le déploiement ». Et une
+ * migration APRÈS se pousse quand le code DU LOT est en ligne : elle ne doit rien refuser de ce que CE code écrit.
  *
  * LE CAS QUI L'A FAIT ÉCRIRE (relecture indépendante du 01/10/2026, FEU ROUGE) : le refus GL006 des actions retirées
  * (ARRÊT 22), le déclencheur LG001 des langues et le retrait de l'écriture des photos par le navigateur (recette S1)
@@ -13,32 +14,60 @@
  * spécialité inactive qu'une page chargée avant le push enverrait encore. Personne n'avait repassé les migrations de
  * S1 à la règle à la fusion.
  *
+ * LE CAS QUI L'A FAIT COMPLÉTER (relecteur, 02/10/2026 — lot zones de travail, point 8) : pour une SECONDE livraison
+ * (le lot B, toutes ses migrations APRÈS), il ne vérifiait que l'ORDRE (C) ; ce qu'elles restreignent n'était lu par
+ * personne — le rouge de `profil/langues_liste_fermee` (ARRÊT 25) l'a montré : un test du premier temps contredisait
+ * la garde du second.
+ *
  * CE QU'IL FAIT :
  *   A. Les migrations EN ATTENTE sont celles qui suivent l'état ⓪ de la requête d'avant-push ; chacune dit son ORDRE
  *      DE PASSAGE dans son en-tête (AVANT, APRÈS, INDIFFÉRENT) ;
- *   B. dans une migration AVANT ou INDIFFÉRENT, il REFUSE, sur un objet qu'elle ne crée pas elle-même : un déclencheur,
- *      une contrainte ajoutée, une colonne passée NOT NULL, une politique retirée, une fonction supprimée, un droit
- *      retiré à service_role, un droit retiré à anon/authenticated, une désactivation ou une suppression de lignes ;
- *      partout : le refus GL006, une clé retirée d'une liste blanche du grand livre. Une exception s'écrit avec sa
- *      raison (§G.8), et le contrôle la compte ;
+ *   B. PREMIER TEMPS (AVANT ou INDIFFÉRENT) : il REFUSE, sur un objet que la migration ne crée pas elle-même, un
+ *      déclencheur, une contrainte ajoutée, une colonne passée NOT NULL, une politique retirée, une fonction supprimée,
+ *      un droit retiré (service_role, anon/authenticated), une désactivation ou une suppression de lignes au push ;
+ *      partout : le refus GL006, une clé retirée d'une liste blanche du grand livre.
+ *      Une EXCEPTION s'écrit avec sa raison (§G.8) ET SA PREUVE, vérifiée ici sur le CODE EN LIGNE — le commit déclaré
+ *      dans `CODE_EN_LIGNE`, dont la dernière migration doit être l'état ⓪ (sinon la déclaration est périmée) :
+ *        · `aucun_ecrivain` : aucune ligne du code en ligne, NI de ce lot, n'écrit la table (écritures directes et
+ *          fonctions SQL appelées par `.rpc`) ;
+ *        · `refus_nomme` : dans le fichier en ligne, l'écriture que la migration peut refuser est la PREMIÈRE du geste,
+ *          et son refus est lu par la fonction nommée qui le rend en code d'erreur — rien n'est écrit à moitié ;
+ *   B bis. SECOND TEMPS (APRÈS) : chaque restriction est DÉCLARÉE dans `SECOND_TEMPS` avec ses ÉCRIVAINS (les fichiers
+ *      du code du lot qui écrivent ce qu'elle restreint) et le TEST qui prouve que ce qu'ils écrivent passe. Pour une
+ *      restriction sur une table, la liste des écrivains est RECALCULÉE et doit être EXACTEMENT la liste déclarée (un
+ *      écrivain oublié, ou parti, rougit) ; le test doit exister et nommer l'objet restreint ;
  *   C. une migration APRÈS est horodatée après TOUTES les migrations AVANT en attente (le push les applique dans
  *      l'ordre des noms).
  *
- * CE QU'IL NE VOIT PAS, ET IL FAUT LE LIRE : une fonction REDÉFINIE dont le nouveau corps lève là où l'ancien ne levait
- * pas ; une reprise de données qui change une valeur que l'ancien code compare (un code au lieu d'un nom) ; ce que
- * le code nouveau suppose de la base. Ces cas se jugent en lisant l'ancien code (le commit déployé) contre la migration —
- * c'est ce que dit la section « Le lot A à la règle » de docs/reprise.md, migration par migration.
+ * CE QU'IL NE VOIT PAS, ET IL FAUT LE LIRE :
+ *   · que les VALEURS écrites passent la restriction : il prouve QUI écrit, pas CE QU'il écrit — ça, seul le test
+ *     nommé le prouve, et seulement pour les cas qu'il fabrique ;
+ *   · une écriture dont la table n'est pas un littéral (`.from(variable)`), un écrivain hors de app/, lib/,
+ *     components/, ou une fonction SQL qui en appelle une autre (une profondeur seulement) ;
+ *   · une restriction qui ne porte pas sur une table (une politique de Storage, GL006, une clé de liste blanche, un
+ *     droit sur une fonction) : ses écrivains sont DÉCLARÉS, pas recalculés — le contrôle vérifie qu'ils existent ;
+ *   · une fonction REDÉFINIE dont le nouveau corps lève là où l'ancien ne levait pas ; une reprise de données qui
+ *     change une valeur que l'ancien code compare (un code au lieu d'un nom) ; ce que le code nouveau suppose de la
+ *     base. Ces cas se jugent en lisant l'ancien code (le commit déployé) contre la migration.
+ *
+ *   node scripts/diag-deux-temps.mjs                 → l'état ⓪ de la requête d'avant-push
+ *   node scripts/diag-deux-temps.mjs --etat=<suffixe> → simule un autre état ⓪ (une épreuve ; les exceptions du
+ *                                                      premier temps ne sont alors pas prouvées sur un commit)
  *
  * Sortie : 0 vert · 1 rouge · 2 n'a pas tourné.
  */
 
-import { readFileSync, readdirSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { execFileSync } from 'node:child_process'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const lire = (p) => readFileSync(join(ROOT, p), 'utf8').split('\r\n').join('\n')
 const sansCommentaires = (s) => s.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n')
+const sansCommentairesTs = (s) =>
+  s.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+    .split('\n').map((l) => (/^\s*\/\//.test(l) ? '' : l.replace(/\s\/\/ .*$/, ''))).join('\n')
 
 let echecs = 0
 const ok = (cond, label, indice) => {
@@ -46,23 +75,133 @@ const ok = (cond, label, indice) => {
   else { echecs++; console.log(`  KO   ${label}${indice ? `\n       → ${indice}` : ''}`) }
 }
 
-// ── LES EXCEPTIONS — une raison chacune (§G.8). Clé : `<suffixe de migration>::<motif>`. ──
-// Le gel ne fait que descendre : les deux exceptions de `langues_liste_fermee` (le retrait re-dit sur
-// remplacer_listes_profil, la fonte des doublons de langues) sont parties quand le lot A est devenu l'état de
-// staging (⓪ journal_photo_et_cv) — leur migration n'est plus en attente.
-const EXCEPTIONS = {}
+// ── LE CODE EN LIGNE : le commit déployé sur staging, et l'état de base qui va avec (sa dernière migration). ──
+// Le lot B est en ligne (02/10/2026) : sa dernière migration est l'état ⓪ de la requête d'avant-push.
+const CODE_EN_LIGNE = { commit: '1182e02', derniere_migration: 'photo_par_le_serveur' }
 
+// ── LES EXCEPTIONS DU PREMIER TEMPS — une raison ET une preuve chacune (§G.8). Clé : `<suffixe>::<motif>`. ──
+// Le gel ne fait que descendre : une exception dont la migration n'est plus en attente rougit (« morte »).
+const EXCEPTIONS = {
+  'zones_couverture_suit_le_referentiel::trigger:work_zones': {
+    raison: 'LÉGITIME — le déclencheur ne refuse rien : il RECALCULE la couverture des profils et des annonces quand le référentiel des zones change, et aucun code (en ligne ou du lot) n’écrit work_zones — le référentiel ne s’écrit que par migration.',
+    preuve: { type: 'aucun_ecrivain', table: 'work_zones' },
+  },
+  'specialite_reactivation_hors_autre::trigger:specialities': {
+    raison: 'LÉGITIME — décision de Youssef (02/10/2026, pas de migration poussée à part) : la garde ne refuse QUE le geste qu’elle interdit — réactiver une spécialité dont une traduction est « Autre » ; le code en ligne écrit la spécialité AVANT toute traduction et rend ce refus nommé (specialite_autre_reservee), rien n’est écrit à moitié.',
+    preuve: {
+      type: 'refus_nomme',
+      fichier: 'app/api/admin/update-speciality/route.ts',
+      ecriture: /\.from\('specialities'\)\.update\(updates\)/,
+      refus: /if \(estRefusAutre\(updErr\)\) \{\s*return json\(\{[^}]*code: 'specialite_autre_reservee' \}, 400\)/,
+      ecrituresSuivantes: /\.from\('translations'\)/,
+      // Le refus de la base porte ce nom ; la fonction en ligne le reconnaît par lui.
+      nomDuRefus: { fichier: 'lib/taxonomie/specialite-autre.ts', motif: /CONTRAINTE_AUTRE = 'specialities_autre_hors_referentiel'/ },
+    },
+  },
+}
+
+// ── LE SECOND TEMPS — chaque restriction d'une migration APRÈS, déclarée. Clé : `<suffixe>::<motif>`. ──
+// { raison, ecrivains: [fichiers du code du lot qui écrivent ce qu'elle restreint], test: 'supabase/tests/…' }
+// Vide : ce lot n'a aucune migration APRÈS. (Épreuve : `--etat=journal_photo_et_cv` rejoue le lot B, et le contrôle
+// exige les déclarations de ses quatre migrations — c'est ce qu'il aurait demandé.)
+const SECOND_TEMPS = {}
+
+const argEtat = process.argv.find((a) => a.startsWith('--etat='))?.slice('--etat='.length) ?? null
 const dossier = 'supabase/migrations'
 const toutes = readdirSync(join(ROOT, dossier)).filter((f) => f.endsWith('.sql')).sort()
 const requete = sansCommentaires(lire('supabase/verifications/staging-avant-push.sql'))
-const etat = /\(\s*0,\s*'(?:[^']|'')*',\s*'([a-z0-9_]+)'/.exec(requete)?.[1]
+const etat = argEtat ?? /\(\s*0,\s*'(?:[^']|'')*',\s*'([a-z0-9_]+)'/.exec(requete)?.[1]
 const iEtat = toutes.findIndex((f) => etat && f.endsWith(`_${etat}.sql`))
 if (iEtat < 0) {
-  console.error(`✘ l'état ⓪ de la requête d'avant-push (${etat ?? 'introuvable'}) n'est pas une migration du dépôt — le contrôle ne tourne pas`)
+  console.error(`✘ l'état ⓪ (${etat ?? 'introuvable'}) n'est pas une migration du dépôt — le contrôle ne tourne pas`)
   process.exit(2)
 }
 const attente = toutes.slice(iEtat + 1)
-console.log(`\n═══ Les deux temps — ${attente.length} migration(s) en attente après « ${etat} » ═══\n`)
+console.log(`\n═══ Les deux temps — ${attente.length} migration(s) en attente après « ${etat} »${argEtat ? ' (ÉPREUVE : état simulé)' : ''} ═══\n`)
+
+// ── Le code : en ligne (un commit) ou du lot (l'arbre de travail) ──
+const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }).split('\r\n').join('\n')
+const RACINES_CODE = ['app', 'lib', 'components']
+function fichiersDuLot() {
+  const out = []
+  const parcourir = (d) => {
+    if (!existsSync(join(ROOT, d))) return
+    for (const e of readdirSync(join(ROOT, d))) {
+      const p = `${d}/${e}`
+      if (statSync(join(ROOT, p)).isDirectory()) { if (e !== 'node_modules') parcourir(p) }
+      else if (/\.(ts|tsx)$/.test(e)) out.push(p)
+    }
+  }
+  RACINES_CODE.forEach(parcourir)
+  return out
+}
+/** Un lecteur de code : `contenant(motif)` liste les fichiers qui contiennent un littéral, `lire(p)` les lit. */
+function lecteurDuLot() {
+  const fichiers = fichiersDuLot()
+  const cache = new Map()
+  const lireF = (p) => { if (!cache.has(p)) cache.set(p, lire(p)); return cache.get(p) }
+  return { nom: 'le code du lot', lire: lireF, contenant: (litteral) => fichiers.filter((p) => lireF(p).includes(litteral)) }
+}
+function lecteurDuCommit(commit) {
+  const cache = new Map()
+  const lireF = (p) => { if (!cache.has(p)) cache.set(p, git(['show', `${commit}:${p}`])); return cache.get(p) }
+  const contenant = (litteral) => {
+    try {
+      return git(['grep', '-l', '-F', '-e', litteral, commit, '--', ...RACINES_CODE]).split('\n').filter(Boolean)
+        .map((l) => l.slice(commit.length + 1)).filter((p) => /\.(ts|tsx)$/.test(p))
+    } catch (e) {
+      if (e.status === 1) return [] // git grep : aucune correspondance
+      throw e
+    }
+  }
+  return { nom: `le code en ligne (${commit})`, lire: lireF, contenant }
+}
+
+/**
+ * Les fonctions SQL qui écrivent une table, dans leur DERNIÈRE définition parmi les migrations données — directement,
+ * ou en appelant une fonction qui l'écrit (fermeture : `terminer_analyse_cv` → `ecrire_analyse_cv` → profile_languages).
+ */
+function fonctionsQuiEcrivent(table, migrations) {
+  const corps = new Map()
+  for (const f of migrations) {
+    const sql = sansCommentaires(lire(`${dossier}/${f}`))
+    for (const m of sql.matchAll(/create (?:or replace )?function public\.(\w+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)) corps.set(m[1], m[3])
+  }
+  const ecrit = new RegExp(`(?:insert\\s+into|update|delete\\s+from)\\s+(?:public\\.)?${table}\\b`, 'i')
+  const ecrivent = new Set([...corps].filter(([, c]) => ecrit.test(c)).map(([fn]) => fn))
+  for (let change = true; change;) {
+    change = false
+    for (const [fn, c] of corps) {
+      if (ecrivent.has(fn)) continue
+      if ([...ecrivent].some((g) => new RegExp(`\\bpublic\\.${g}\\(|\\b${g}\\(`).test(c))) { ecrivent.add(fn); change = true }
+    }
+  }
+  return [...ecrivent]
+}
+
+/**
+ * Les fichiers qui écrivent une table : une chaîne `.from('t')` suivie d'une écriture (insert, update, upsert, delete)
+ * avant la chaîne suivante, ou un appel `.rpc('fn')` d'une fonction SQL qui l'écrit. Commentaires retirés (§E.7).
+ */
+function ecrivainsDe(table, lecteur, migrations) {
+  const sortie = new Set()
+  for (const p of lecteur.contenant(`from('${table}')`)) {
+    const src = sansCommentairesTs(lecteur.lire(p))
+    let i = src.indexOf(`.from('${table}')`)
+    while (i >= 0) {
+      const suite = src.slice(i + 1, i + 500)
+      const fin = suite.search(/\.from\(|\n\s*\n/)
+      if (/\.(insert|update|upsert|delete)\(/.test(fin >= 0 ? suite.slice(0, fin) : suite)) { sortie.add(p); break }
+      i = src.indexOf(`.from('${table}')`, i + 1)
+    }
+  }
+  for (const fn of fonctionsQuiEcrivent(table, migrations)) {
+    for (const p of lecteur.contenant(`rpc('${fn}'`)) {
+      if (new RegExp(`\\.rpc\\('${fn}'`).test(sansCommentairesTs(lecteur.lire(p)))) sortie.add(`${p} (via ${fn})`)
+    }
+  }
+  return [...sortie].sort()
+}
 
 // ── A. l'ordre de passage de chaque migration en attente ──
 const ordres = {}
@@ -74,7 +213,7 @@ for (const f of attente) {
 const sansOrdre = attente.filter((f) => !ordres[f])
 ok(sansOrdre.length === 0, 'A. chaque migration en attente dit son ORDRE DE PASSAGE (AVANT, APRÈS, INDIFFÉRENT)', sansOrdre.join(', '))
 
-// ── B. ce qu'une migration du premier temps ne fait pas ──
+// ── Ce qu'une migration RESTREINT, sur un objet qu'elle ne crée pas : la liste des motifs, avec leur table ──
 /** Les listes blanches du grand livre, telles que la dernière migration avant `f` les laisse. */
 function listesAvant(f) {
   const r = {}
@@ -86,55 +225,138 @@ function listesAvant(f) {
   }
   return r
 }
-const exceptionsVues = new Set()
-let premierTemps = 0
-for (const f of attente) {
-  if (ordres[f] === 'APRÈS') continue
-  premierTemps++
-  const suffixe = f.replace(/^\d+_/, '').replace(/\.sql$/, '')
+function restrictions(f) {
   const sql = sansCommentaires(lire(`${dossier}/${f}`))
   const creees = new Set([...sql.matchAll(/create table (?:if not exists )?public\.(\w+)/g)].map((m) => m[1]))
   const fonctionsNeuves = new Set([...sql.matchAll(/create (?:or replace )?function public\.(\w+)\(/g)].map((m) => m[1])
     .filter((fn) => !toutes.filter((x) => x < f).some((g) => new RegExp(`function public\\.${fn}\\(`).test(lire(`${dossier}/${g}`)))))
-  const fautes = []
-  const signaler = (motif, quoi) => {
-    const cle = `${suffixe}::${motif}`
-    if (cle in EXCEPTIONS) { exceptionsVues.add(cle); return }
-    fautes.push(quoi)
-  }
-  for (const m of sql.matchAll(/create (?:constraint )?trigger\s+\w+[\s\S]*?\bon\s+(?:public\.)?(\w+)/g)) if (!creees.has(m[1])) signaler(`trigger:${m[1]}`, `un déclencheur sur ${m[1]}`)
-  for (const m of sql.matchAll(/alter table (?:only )?(?:if exists )?public\.(\w+)\s+add constraint/g)) if (!creees.has(m[1])) signaler(`constraint:${m[1]}`, `une contrainte ajoutée sur ${m[1]}`)
-  for (const m of sql.matchAll(/alter table (?:only )?public\.(\w+)[^;]*alter column[^;]*set not null/g)) if (!creees.has(m[1])) signaler(`notnull:${m[1]}`, `une colonne de ${m[1]} passée NOT NULL`)
-  for (const m of sql.matchAll(/drop policy (?:if exists )?"?(\w+)"?/g)) signaler(`policy:${m[1]}`, `la politique ${m[1]} retirée`)
-  for (const m of sql.matchAll(/drop function (?:if exists )?public\.(\w+)/g)) signaler(`dropfn:${m[1]}`, `la fonction ${m[1]} supprimée (§E.72)`)
+  const r = []
+  const poser = (motif, quoi, table = null) => r.push({ motif, quoi, table })
+  for (const m of sql.matchAll(/create (?:constraint )?trigger\s+\w+[\s\S]*?\bon\s+(?:public\.)?(\w+)/g)) if (!creees.has(m[1])) poser(`trigger:${m[1]}`, `un déclencheur sur ${m[1]}`, m[1])
+  for (const m of sql.matchAll(/alter table (?:only )?(?:if exists )?public\.(\w+)\s+add constraint/g)) if (!creees.has(m[1])) poser(`constraint:${m[1]}`, `une contrainte ajoutée sur ${m[1]}`, m[1])
+  for (const m of sql.matchAll(/alter table (?:only )?public\.(\w+)[^;]*alter column[^;]*set not null/g)) if (!creees.has(m[1])) poser(`notnull:${m[1]}`, `une colonne de ${m[1]} passée NOT NULL`, m[1])
+  for (const m of sql.matchAll(/drop policy (?:if exists )?"?(\w+)"?/g)) poser(`policy:${m[1]}`, `la politique ${m[1]} retirée`)
+  for (const m of sql.matchAll(/drop function (?:if exists )?public\.(\w+)/g)) poser(`dropfn:${m[1]}`, `la fonction ${m[1]} supprimée (§E.72)`)
   for (const m of sql.matchAll(/revoke[^;]*?\bon (?:function |table )?public\.(\w+)[^;]*?\bfrom ([^;]*);/g)) {
     if (creees.has(m[1]) || fonctionsNeuves.has(m[1])) continue
-    if (/service_role/.test(m[2])) signaler(`revoke-service:${m[1]}`, `un droit de service_role retiré sur ${m[1]}`)
-    else signaler(`revoke:${m[1]}`, `un droit retiré sur ${m[1]} (${m[2].trim()})`)
+    if (/service_role/.test(m[2])) poser(`revoke-service:${m[1]}`, `un droit de service_role retiré sur ${m[1]}`)
+    else poser(`revoke:${m[1]}`, `un droit retiré sur ${m[1]} (${m[2].trim()})`)
   }
   // Les DONNÉES changées AU PUSH : les instructions de premier niveau, les blocs `do`, et le corps des fonctions que
-  // ces blocs EXÉCUTENT (une reprise). Le corps d'une fonction seulement redéfinie s'exécute à l'appel, comme avant :
-  // il n'est pas lu ici (voir « ce qu'il ne voit pas »).
+  // ces blocs EXÉCUTENT (une reprise). Le corps d'une fonction seulement redéfinie s'exécute à l'appel, comme avant.
   const corps = new Map([...sql.matchAll(/create (?:or replace )?function public\.(\w+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)].map((m) => [m[1], m[3]]))
   const blocsDo = [...sql.matchAll(/\bdo\s+\$(\w*)\$([\s\S]*?)\$\1\$/g)].map((m) => m[2])
   // Une MENTION n'est pas un appel (§E.78) : les chaînes ('…'::regprocedure) sont retirées avant de chercher.
   const executees = new Set(blocsDo.map((b) => b.replace(/'(?:[^']|'')*'/g, "''")).flatMap((b) => [...b.matchAll(/public\.(\w+)\(/g)].map((m) => m[1])).filter((fn) => corps.has(fn)))
   const premierNiveau = sql.replace(/\$(\w*)\$[\s\S]*?\$\1\$/g, ' ')
   const auPush = [premierNiveau, ...blocsDo, ...[...executees].map((fn) => corps.get(fn))].join('\n;\n')
-  for (const m of auPush.matchAll(/update public\.(\w+)[^;]*?set\s+active\s*=\s*false/g)) if (!creees.has(m[1])) signaler(`desactive:${m[1]}`, `des lignes de ${m[1]} désactivées au push`)
-  for (const m of auPush.matchAll(/delete from public\.(\w+)/g)) if (!creees.has(m[1])) signaler(`delete:${m[1]}`, `des lignes de ${m[1]} supprimées au push`)
-  if (/errcode = 'GL006'/.test(sql)) signaler('gl006', 'le refus GL006 d’une action')
+  for (const m of auPush.matchAll(/update public\.(\w+)[^;]*?set\s+active\s*=\s*false/g)) if (!creees.has(m[1])) poser(`desactive:${m[1]}`, `des lignes de ${m[1]} désactivées au push`, m[1])
+  for (const m of auPush.matchAll(/delete from public\.(\w+)/g)) if (!creees.has(m[1])) poser(`delete:${m[1]}`, `des lignes de ${m[1]} supprimées au push`, m[1])
+  if (/errcode = 'GL006'/.test(sql)) poser('gl006', 'le refus GL006 d’une action')
   const avant = listesAvant(f)
   for (const m of sql.matchAll(/update public\.grand_livre_actions\s+set cles_detail = (array\[[\s\S]*?\])(?:::text\[\])?\s+where code = '([a-z_]+)'/g)) {
     const neuves = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1])
     const perdues = (avant[m[2]] ?? []).filter((c) => !neuves.includes(c))
-    if (perdues.length) signaler(`cles:${m[2]}`, `des clés retirées de la liste blanche de ${m[2]} : ${perdues.join(', ')}`)
+    if (perdues.length) poser(`cles:${m[2]}`, `des clés retirées de la liste blanche de ${m[2]} : ${perdues.join(', ')}`)
+  }
+  return r
+}
+
+// ── Le code en ligne : le commit déclaré, s'il correspond à l'état ⓪ (hors épreuve) ──
+let enLigne = null
+if (!argEtat) {
+  try {
+    const dernieres = git(['ls-tree', '--name-only', CODE_EN_LIGNE.commit, `${dossier}/`]).split('\n').filter((l) => l.endsWith('.sql')).sort()
+    const derniere = (dernieres.at(-1) ?? '').replace(/^.*\/\d+_/, '').replace(/\.sql$/, '')
+    ok(derniere === CODE_EN_LIGNE.derniere_migration && derniere === etat,
+      `B. le code en ligne déclaré (${CODE_EN_LIGNE.commit}) va avec l'état ⓪ — sa dernière migration est « ${derniere} »`,
+      `déclaré « ${CODE_EN_LIGNE.derniere_migration} », état ⓪ « ${etat} » : CODE_EN_LIGNE est périmé — le remettre au commit déployé`)
+    enLigne = lecteurDuCommit(CODE_EN_LIGNE.commit)
+  } catch (e) {
+    console.error(`✘ le commit en ligne ${CODE_EN_LIGNE.commit} est illisible (${e.message.split('\n')[0]}) — le contrôle ne tourne pas`)
+    process.exit(2)
+  }
+}
+const lot = lecteurDuLot()
+const migrationsEnLigne = toutes.slice(0, iEtat + 1)
+
+/** Vérifie la preuve d'une exception ; rend la liste des manquements (vide = prouvée). */
+function prouver(preuve) {
+  if (!enLigne) return ['épreuve : aucun commit en ligne pour prouver l’exception']
+  if (preuve.type === 'aucun_ecrivain') {
+    const enLigneE = ecrivainsDe(preuve.table, enLigne, migrationsEnLigne)
+    const duLot = ecrivainsDe(preuve.table, lot, toutes)
+    return [
+      ...enLigneE.map((e) => `${preuve.table} est écrite par le code en ligne : ${e}`),
+      ...duLot.map((e) => `${preuve.table} est écrite par le code du lot : ${e}`),
+    ]
+  }
+  if (preuve.type === 'refus_nomme') {
+    const src = sansCommentairesTs(enLigne.lire(preuve.fichier))
+    const iEcr = src.search(preuve.ecriture)
+    const iRefus = src.search(preuve.refus)
+    const iSuiv = src.search(preuve.ecrituresSuivantes)
+    const fautes = []
+    if (iEcr < 0) fautes.push(`l’écriture restreinte est introuvable dans ${preuve.fichier} en ligne`)
+    if (iRefus < 0 || iRefus < iEcr) fautes.push('le refus nommé ne suit pas l’écriture restreinte')
+    if (iSuiv >= 0 && iSuiv < iEcr) fautes.push('une autre écriture précède l’écriture restreinte : le refus laisserait un geste à moitié écrit')
+    if (iRefus >= 0 && iSuiv >= 0 && iSuiv < iRefus) fautes.push('une autre écriture se glisse entre l’écriture restreinte et son refus')
+    if (!preuve.nomDuRefus.motif.test(enLigne.lire(preuve.nomDuRefus.fichier))) fautes.push(`le nom du refus n’est plus reconnu par ${preuve.nomDuRefus.fichier} en ligne`)
+    return fautes
+  }
+  return [`type de preuve inconnu : ${preuve.type}`]
+}
+
+const exceptionsVues = new Set()
+const secondVues = new Set()
+let premierTemps = 0
+for (const f of attente) {
+  const suffixe = f.replace(/^\d+_/, '').replace(/\.sql$/, '')
+  const r = restrictions(f)
+  if (ordres[f] === 'APRÈS') {
+    // ── B bis. le second temps : chaque restriction déclarée, ses écrivains recalculés, son test nommé ──
+    const fautes = []
+    for (const x of r) {
+      const cle = `${suffixe}::${x.motif}`
+      const d = SECOND_TEMPS[cle]
+      if (!d) { fautes.push(`NON DÉCLARÉE : ${x.quoi} — qui l’écrit dans le code du lot, et quel test le prouve ?`); continue }
+      secondVues.add(cle)
+      if (!/^LÉGITIME — .{30,}/.test(d.raison ?? '')) fautes.push(`${cle} : la raison ne commence pas par LÉGITIME, ou ne dit rien`)
+      if (!d.test || !existsSync(join(ROOT, d.test))) fautes.push(`${cle} : le test « ${d.test ?? '?'} » n’existe pas`)
+      else if (!lire(d.test).includes(x.table ?? x.motif.split(':')[1] ?? '')) fautes.push(`${cle} : le test ${d.test} ne nomme pas ${x.table ?? x.motif}`)
+      const declares = [...(d.ecrivains ?? [])].sort()
+      if (x.table) {
+        const calcules = ecrivainsDe(x.table, lot, toutes)
+        const oublies = calcules.filter((e) => !declares.includes(e))
+        const partis = declares.filter((e) => !calcules.includes(e))
+        if (oublies.length) fautes.push(`${cle} : écrivain(s) de ${x.table} non relu(s) : ${oublies.join(', ')}`)
+        if (partis.length) fautes.push(`${cle} : écrivain(s) déclaré(s) qui n’écrivent plus ${x.table} : ${partis.join(', ')}`)
+      } else {
+        const absents = declares.filter((e) => !existsSync(join(ROOT, e.replace(/ \(via \w+\)$/, ''))))
+        if (absents.length) fautes.push(`${cle} : écrivain(s) déclaré(s) introuvable(s) : ${absents.join(', ')}`)
+        if (declares.length === 0) fautes.push(`${cle} : aucun écrivain déclaré (non recalculable : il faut les nommer)`)
+      }
+    }
+    ok(fautes.length === 0, `B bis. ${f} (APRÈS) : chaque restriction est déclarée, ses écrivains relus, son test nommé (${r.length})`, fautes.join(' · '))
+    continue
+  }
+  premierTemps++
+  const fautes = []
+  for (const x of r) {
+    const cle = `${suffixe}::${x.motif}`
+    const e = EXCEPTIONS[cle]
+    if (!e) { fautes.push(x.quoi); continue }
+    exceptionsVues.add(cle)
+    const manquements = prouver(e.preuve)
+    if (manquements.length) fautes.push(`exception ${cle} NON PROUVÉE sur ${enLigne?.nom ?? 'aucun commit'} : ${manquements.join(' ; ')}`)
   }
   ok(fautes.length === 0, `B. ${f} (${ordres[f] ?? '?'}) ne refuse rien de ce que le code en ligne écrit`, fautes.join(' · '))
 }
 const mortes = Object.keys(EXCEPTIONS).filter((k) => !exceptionsVues.has(k))
-ok(mortes.length === 0, `B. ${Object.keys(EXCEPTIONS).length} exception(s), chacune vue et raisonnée — aucune morte`, mortes.join(', '))
-ok(Object.values(EXCEPTIONS).every((r) => /^LÉGITIME — .{30,}/.test(r)), 'B. chaque exception commence par LÉGITIME et dit sa raison (§G.8)')
+ok(argEtat !== null || mortes.length === 0, `B. ${Object.keys(EXCEPTIONS).length} exception(s), chacune vue, raisonnée et prouvée — aucune morte`, mortes.join(', '))
+ok(Object.values(EXCEPTIONS).every((e) => /^LÉGITIME — .{30,}/.test(e.raison) && e.preuve?.type), 'B. chaque exception commence par LÉGITIME, dit sa raison et porte sa preuve (§G.8)')
+const mortesSecond = Object.keys(SECOND_TEMPS).filter((k) => !secondVues.has(k))
+ok(argEtat !== null || mortesSecond.length === 0, `B bis. ${Object.keys(SECOND_TEMPS).length} déclaration(s) du second temps, chacune vue — aucune morte`, mortesSecond.join(', '))
 
 // ── C. le second temps part après le premier ──
 const dernierPremier = attente.filter((f) => ordres[f] !== 'APRÈS').at(-1) ?? ''
