@@ -4260,7 +4260,9 @@ travail est refusée `missing_fields`, champs nommés, et l'écran dit que c'est
 depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (18), `diag-grand-livre`,
 `diag-journal-lisible`, et — depuis la relecture de l'ARRÊT 28 — `diag-validation-annonces` (une section par point : une
 décision déjà prise recharge vraiment la fiche et le dit après, point 6 ; « soumise le » lit `soumise_le`, pas
-`updated_at`, point 8 ; une annonce jamais jugée par l'IA dit « non
+`updated_at`, point 8 ; deux validations simultanées : la seconde relit le statut et répond « déjà traitée » — jamais
+« plafond atteint » — et ne rend la place que si l'annonce n'est pas en ligne (elle rendait la place de celle que la première
+venait de publier), point 9 ; une annonce jamais jugée par l'IA dit « non
 jugée », jamais « 0/10 », dans la liste — par `raisonsDuVerdict`, comme la fiche — et au journal, où une note 0 est la forme
 d'une vérification qui n'a pas jugé (§E.114), point 7 ; …).
 

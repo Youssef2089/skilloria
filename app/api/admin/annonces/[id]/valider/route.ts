@@ -157,9 +157,21 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
       return json({ error: 'Cannot verify active publications', code: 'active_publications_check_failed' }, 503)
     }
     if (reserve !== true) {
+      // DEUX VALIDATIONS EN MÊME TEMPS (relecture de l'ARRÊT 28, point 9) : la première a pris la place de CETTE annonce
+      // (la réservation ne renumérote pas une ligne qui en porte déjà une) — ce n'est pas un plafond atteint, c'est une
+      // décision déjà prise. Le statut relu le dit ; une lecture impossible n'invente rien (le plafond reste le motif).
+      if ((await statutRelu()) !== STATUT_EN_REVUE) {
+        return json({ error: 'Already processed', code: 'already_processed' }, 409)
+      }
       return json({ error: 'Active publications limit reached', code: 'active_publications_limit_reached' }, 409)
     }
     placeReservee = true
+  }
+  /** Le statut relu après un geste qui n'a rien touché — null s'il ne se lit pas. */
+  async function statutRelu(): Promise<string | null> {
+    const { data, error } = await auth!.supabaseAdmin.from('publications').select('status').eq('id', id).maybeSingle()
+    if (error) { console.error('[admin:annonces/valider] statut illisible après un geste nul', error.message); return null }
+    return (data as { status?: string } | null)?.status ?? null
   }
   const rendreLaPlace = async (pourquoi: string): Promise<void> => {
     if (!placeReservee) return
@@ -186,8 +198,12 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
   if (!miseEnLigne) {
-    // Un autre administrateur a tranché pendant ce temps : rien n'a été touché, rien n'est journalisé.
-    await rendreLaPlace('déjà tranchée')
+    // Un autre administrateur a tranché pendant ce temps : rien n'a été touché, rien n'est journalisé. La place n'est
+    // rendue que si l'annonce N'EST PAS en ligne : en ligne, elle porte la place que l'autre validation lui a donnée —
+    // la rendre ferait sortir du plafond une annonce publiée (relecture de l'ARRÊT 28, point 9). Statut illisible : on
+    // garde la place (sous-attribuer se rattrape à la réservation suivante, sur-attribuer non).
+    const statut = await statutRelu()
+    if (statut !== null && statut !== 'published') await rendreLaPlace('déjà tranchée, et pas en ligne')
     return json({ error: 'Already processed', code: 'already_processed' }, 409)
   }
 

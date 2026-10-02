@@ -61,6 +61,15 @@ function juger(t) {
   const appels = (t.fiche.match(/if \(!res\.ok && p\.code === 'already_processed'\) \{ await dejaTranchee\(\); return \}/g) ?? []).length
   if (appels !== 2) fautes.push(`6. valider ET refuser doivent recharger sur « déjà tranchée » (vu : ${appels} sur 2)`)
   if (!/const enRevue = a\.status === 'pending_review'/.test(t.fiche)) fautes.push('6. les boutons ne dépendent plus du statut relu')
+  // 9 — DEUX VALIDATIONS EN MÊME TEMPS : la seconde lit « déjà traitée », et ne rend pas la place de la première.
+  const blocReserve = /if \(reserve !== true\) \{([\s\S]*?)\n    \}\n    placeReservee = true/.exec(t.valider)?.[1] ?? ''
+  const iRelu = blocReserve.search(/if \(\(await statutRelu\(\)\) !== STATUT_EN_REVUE\) \{\s*return json\(\{[^}]*code: 'already_processed' \}, 409\)/)
+  const iPlafond = blocReserve.indexOf("code: 'active_publications_limit_reached'")
+  if (iRelu < 0 || iPlafond < 0 || iRelu > iPlafond) fautes.push('9. une réservation perdue au profit d’une validation simultanée se dit encore « plafond atteint »')
+  const blocNul = /if \(!miseEnLigne\) \{([\s\S]*?)\n  \}/.exec(t.valider)?.[1] ?? ''
+  if (!/const statut = await statutRelu\(\)\s*if \(statut !== null && statut !== 'published'\) await rendreLaPlace\(/.test(blocNul) || /^\s*await rendreLaPlace\(/m.test(blocNul)) {
+    fautes.push('9. la seconde validation rend la place d’une annonce que la première vient de mettre en ligne')
+  }
   // 8 — « SOUMISE LE » DIT LA SOUMISSION, jamais la dernière écriture.
   if (/soumise_le', \{ date: formatDate\(a\.updated_at\)/.test(t.fiche) || !/t\('fiche\.soumise_le', \{ date: formatDate\(a\.soumise_le\) \}\)/.test(t.fiche)) {
     fautes.push('8. la fiche date la soumission par updated_at (la dernière écriture)')
@@ -104,6 +113,8 @@ section('L’épreuve : chaque mutation fait rougir le contrôle')
     ['le journal qui redit « 0/10 »', () => muter('phrase', 'const nonJugee = note === 0', 'const nonJugee = false')],
     ['« soumise le » redevenu updated_at', () => muter('fiche', 'formatDate(a.soumise_le)', 'formatDate(a.updated_at)')],
     ['la validation qui réécrit la date de soumission', () => muter('migration', 'case when v_par_admin then p.soumise_le else now() end', 'now()')],
+    ['la place rendue sans relire le statut', () => muter('valider', "if (statut !== null && statut !== 'published') await rendreLaPlace(", "await rendreLaPlace(")],
+    ['« plafond atteint » pour une validation simultanée', () => muter('valider', 'if ((await statutRelu()) !== STATUT_EN_REVUE) {', 'if (false) {')],
     ['le refus qui oublie « déjà tranchée »', () => muter('fiche', "      if (!res.ok && p.code === 'already_processed') { await dejaTranchee(); return }\n      if (!res.ok) {\n        if (p.code === 'motif_requis'", "      if (!res.ok) {\n        if (p.code === 'motif_requis'")],
   ]
   for (const [nom, fabriquer] of EPREUVES) {
