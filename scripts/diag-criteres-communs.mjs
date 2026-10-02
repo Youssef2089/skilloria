@@ -289,6 +289,61 @@ const CODE = (() => {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+section('H bis. Le MOT suit le type d’annonce, par une seule règle (regroupement, ARRÊT 28 — §E.96 sur des libellés)')
+// ══════════════════════════════════════════════════════════════════════════
+//  La fiche de candidat disait « pour ce poste » à un besoin de sous-traitance (`mission ? mission : offre`), le suivi
+//  « mission » (`offre ? offre : mission`). Une clé déclinée par type se choisit par `motDuType` (trois cas écrits) ;
+//  une alternative à deux branches qui choisit une clé `…_mission` / `…_offre` rougit.
+const MOTS_INTERDITS = [
+  /(?:===\s*'(?:mission|offre)'|isMission)\s*\?\s*'[a-z_.]*_(?:mission|offre)'\s*:\s*'[a-z_.]*_(?:mission|offre)'/,
+  /\$\{[^}]*===\s*'(?:mission|offre)'\s*\?\s*'(?:mission|offre)'\s*:\s*'(?:mission|offre)'\s*\}/,
+]
+// Les alternatives LÉGITIMES, nommées une à une avec leur raison (§G.8) : le texte exact, retiré avant de juger.
+const MOTS_DECLARES = {
+  'components/dashboard/MissionCastingCard.tsx': {
+    texte: "pub.type === 'offre' ? 'see_offre' : 'see_mission'",
+    raison: 'LÉGITIME — le bouton de la carte « Missions recommandées » de l’EXPERT : pour lui, un besoin de sous-traitance est une mission (« Voir la mission ») ; seule l’offre CDI a un autre mot.',
+  },
+}
+function motsDuType(textes) {
+  const fautes = []
+  for (const [p, brut] of Object.entries(textes)) {
+    const d = MOTS_DECLARES[p]
+    const src = d ? brut.split(d.texte).join(' ') : brut
+    for (const re of MOTS_INTERDITS) if (re.test(src)) fautes.push(`${p} : ${re.source}`)
+  }
+  return fautes
+}
+{
+  const f = motsDuType(CODE)
+  ok(f.length === 0, `aucune clé « mission / offre » choisie par une alternative à deux branches (${Object.keys(CODE).length} fichiers lus)`, f.join(', '))
+  const morts = Object.entries(MOTS_DECLARES).filter(([p, d]) => !(CODE[p] ?? '').includes(d.texte) || !/^LÉGITIME — .{30,}/.test(d.raison)).map(([p]) => p)
+  ok(morts.length === 0, `${Object.keys(MOTS_DECLARES).length} alternative(s) déclarée(s), chacune présente et raisonnée — aucune morte`, morts.join(', '))
+  const mef = CODE['lib/annonces/mise-en-forme.ts'] ?? ''
+  ok(/export function motDuType\([\s\S]*?case 'offre': return 'offre'\s*case 'sous_traitance': return 'sous_traitance'\s*default: return 'mission'/.test(mef),
+    'motDuType écrit les trois cas (offre, sous-traitance, et le défaut mission)')
+  const lecteurs = ['components/dashboard/CandidatureCard.tsx', 'components/dashboard/SpotlightCandidateCard.tsx',
+    'components/dashboard/CandidatureDetailPanel.tsx', 'lib/candidatures/use-lifecycle-label.ts']
+  const sans = lecteurs.filter((p) => !/motDuType\(/.test(CODE[p] ?? ''))
+  ok(sans.length === 0, `les ${lecteurs.length} lecteurs des clés déclinées passent par motDuType`, sans.join(', '))
+  const LANGUES = ['fr', 'en', 'es', 'de']
+  const MSG = Object.fromEntries(LANGUES.map((l) => [l, JSON.parse(lire(`messages/${l}.json`))]))
+  const cle = (o, p) => p.split('.').reduce((a, k) => (a && typeof a === 'object' ? a[k] : undefined), o)
+  const familles = ['candidature_lifecycle.expert.selected', 'candidature_lifecycle.org.selected', 'candidatures.card.selected_section_label',
+    'candidatures.card.select_confirm_body', 'candidatures_tracking.selected_banner_title', 'candidatures_tracking.selected_banner_body',
+    'candidatures_tracking.timeline.selected']
+  const absents = familles.flatMap((fam) => ['mission', 'offre', 'sous_traitance'].flatMap((m) =>
+    LANGUES.filter((l) => typeof cle(MSG[l], `${fam}_${m}`) !== 'string').map((l) => `${fam}_${m} (${l})`)))
+  ok(absents.length === 0, `${familles.length} familles × 3 types × 4 langues : chaque texte existe`, absents.join(', '))
+  const muté = { 'components/dashboard/CandidatureCard.tsx': "t(publicationType === 'mission' ? 'selected_section_label_mission' : 'selected_section_label_offre')" }
+  ok(motsDuType(muté).length > 0, 'épreuve : « mission ? …_mission : …_offre » remis dans la fiche de candidat fait rougir')
+  const muté2 = { 'lib/candidatures/use-lifecycle-label.ts': "`${reason}_${pubType === 'offre' ? 'offre' : 'mission'}`" }
+  ok(motsDuType(muté2).length > 0, 'épreuve : « offre ? offre : mission » remis dans le cycle de vie fait rougir')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+section('G. L’épreuve : chaque mutation fait rougir le contrôle')
+// ══════════════════════════════════════════════════════════════════════════
 section('G. L’épreuve : chaque mutation fait rougir le contrôle')
 // ══════════════════════════════════════════════════════════════════════════
 {
