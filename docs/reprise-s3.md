@@ -96,6 +96,13 @@ en ligne ultérieure, si elle existe un jour, passera par ici ».
   e-mail qui ne peut pas partir juste ne part pas, et le journalise. La réponse dit à l'administrateur si la cloche a
   été écrite (« Son auteur n'a pas pu être prévenu… »), si l'auteur n'a plus de compte, ou s'il n'a pas pu être
   **lu** (alors ni la cloche ni l'e-mail ne partent — trois états distincts, aucun ne se fait passer pour un autre).
+> **MISE AU VRAI (regroupement, ARRÊT 28, puis sa relecture, points 1 et 12)** — la resoumission ci-dessous est **FAITE**,
+> avec deux écarts au changement proposé : une annonce refusée ne revient au brouillon que si un champ **QUE LE CONTRÔLE DE
+> L'IA LIT** a changé (pas « au moins un champ » : changer la branche, les spécialités ou les zones aurait fait rejuger le
+> même texte) ; et la nouvelle soumission **NE CONSOMME PAS** le compteur mensuel (décision de Youssef) — la phrase « le
+> compteur mensuel sera consommé de nouveau » décrit la règle d'avant. Détail : architecture §D.50 ; contrôle
+> `diag-resoumission`.
+
 - **Resoumission : ⛔ ARRÊT — elle demande des fichiers d'un autre périmètre.** **Le chemin n'existe pas** (vérifié) :
   `PATCH /api/publications/[id]` n'édite que `draft`, `suspended`, `archived` ; la carte d'annonce et la fiche
   d'annonce côté organisation n'envoient vers « Modifier » que ces trois statuts ; la vue Sous-traitance de l'expert
@@ -146,6 +153,20 @@ modifié ; ceux qui appellent `publier_annonce()` depuis un brouillon (`annonce_
 | série complète `node scripts/diag.mjs` | **125 verts, 0 rouge, 0 n'a pas tourné**, 6 écartés par construction (ils touchent la vraie base) — le même compte qu'au départ |
 | mutation (§G.5) | 4 mutations, 4 rouges : garde 42501 de `publier_annonce` retirée ; garde de transition de `refuser_annonce` retirée ; écriture directe du statut ajoutée à la route de refus ; phrase « validée » rendue inatteignable. Fichiers restaurés à l'identique. |
 | tests pgTAP | **non lancés** (ni Docker ni base) |
+
+> **MISE AU VRAI DE CE TABLEAU (relecture de l'ARRÊT 28, point 12)** — ce qui était vrai sur la branche S3 seule ne l'est
+> plus tout à fait après le regroupement, et deux lignes ne se vérifiaient pas :
+> · **tests pgTAP** : `annonce_refusee.test.sql` porte désormais **18** assertions (16 + la date de soumission, point 8) ;
+>   le total de la première livraison est **748** (ARRÊT 28, relecture) — « 65 fichiers, 687 » valait pour S3 seule ;
+> · **`next build`** : **vert** sur `lot/regroupement`, `.next/dev` absent — la suite du build (collecte des pages) a tourné ;
+> · **lint des fichiers du lot** : vérifié à la relecture (`npx eslint` sur les trois dossiers de S3) — aucune erreur, aucun
+>   avertissement : la ligne tient ;
+> · **série complète** : « 125 verts, le même compte qu'au départ » ne se vérifie pas (S1 et S2 mesuraient 124 au départ,
+>   un contrôle hors délai) ; la mesure qui fait foi est celle du regroupement (ARRÊT 28 de `docs/reprise.md`) ;
+> · **ce que S3 ne voyait pas** et que la relecture a corrigé : la validation n'appliquait pas le prédicat entier de la
+>   publication ni la garde de l'expert auteur (points 1 du regroupement, 3) ; une décision déjà prise ne rechargeait pas la
+>   fiche (6) ; « 0/10 » pour une annonce non jugée (7) ; « soumise le » lisait `updated_at` (8) ; deux validations
+>   simultanées rendaient la place de la première (9).
 
 ## 6. Fichiers partagés touchés (le moins possible)
 

@@ -4309,7 +4309,8 @@ sur la fiche. Gardé par `diag-echec-silencieux` C (l'appelant recensé, « indi
 **Limites dites** : une annonce refusée alors que l'offre était illimitée ne fut comptée « zéro fois » — sa resoumission
 reste gratuite même si l'offre a changé depuis ; une annonce validée par la voie AUTOMATIQUE après resoumission garde son
 ancien motif (le refus antérieur que la fiche admin montre), comme elle garde son ancien `verified_by` (§E.115). **Gardé
-par** `diag-resoumission` (bloquant, 12 mutations intégrées).
+par** `diag-resoumission` (bloquant, 16 épreuves intégrées — dont la liste des champs jugés tenue égale à l'entrée de
+l'IA, point 1 de la relecture).
 
 ---
 ---
