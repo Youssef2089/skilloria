@@ -11,7 +11,7 @@ import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTronc
 /**
  * /admin/utilisateurs/[id] — fiche d'un compte.
  *
- * Page de DÉTAIL : UN SEUL bouton Retour, global, en haut (règle projet).
+ * Page de DÉTAIL, sans bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * CE QU'ELLE N'AFFICHE PAS, ET C'EST VOULU
  *   Le NUMÉRO de téléphone n'est jamais servi par l'API (seulement
@@ -379,10 +379,6 @@ export default function AdminUserDetailPage() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
-      {/* AUCUN bouton Retour local : le <GlobalBackButton> du layout admin
-          (app/[locale]/admin/layout.tsx) en rend déjà UN, et un seul. En
-          poser un second ici donnait deux « ← Retour » empilés sur la même
-          page — exactement ce que la règle projet interdit. */}
 
       {loading ? (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--sk-muted)' }}>{t('loading')}</div>

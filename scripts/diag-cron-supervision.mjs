@@ -261,7 +261,7 @@ ok(/utc_hint/.test(screen) && /Date\.UTC/.test(screen),
   'horaires en UTC, heure locale en indication seulement',
   'afficher l’heure locale seule produirait un decalage silencieux deux fois par an')
 ok(/section_exploitation/.test(navConfig) && /taches-planifiees/.test(navConfig),
-  'l’entree de sidebar est declaree dans nav-config (menu-routes en derive)')
+  'l’entree de sidebar est declaree dans nav-config (l’en-tete en tire le nom de la page)')
 ok(!/batchs/i.test(navConfig),
   'l’ecran ne s’appelle pas « batchs »',
   'le chantier matching introduira des batchs au sens de tranches — deux sens pour un mot')

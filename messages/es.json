@@ -25,15 +25,6 @@
       "body": "Un experto se ha postulado a tu publicación «{title}»."
     }
   },
-  "back_nav": {
-    "back_to_dashboard": "← Volver al panel",
-    "back_to_feed": "← Volver a oportunidades",
-    "back_to_candidatures": "← Volver a las candidaturas",
-    "back_to_messages": "← Volver a los mensajes",
-    "back_to_annonces": "← Volver a los anuncios",
-    "back_to_experts": "← Volver a los expertos",
-    "back": "← Volver"
-  },
   "app": {
     "name": "Skilloria",
     "meta": {
@@ -79,19 +70,8 @@
       "logout": "Cerrar sesión"
     },
     "page_titles": {
-      "dashboard": "Panel",
-      "missions": "Misiones",
-      "offres": "Ofertas",
-      "candidatures": "Mis candidaturas",
-      "messages": "Mensajería",
-      "mon_profil": "Mi perfil",
       "profil": "Mi perfil",
-      "profil_valider": "Completar mi perfil",
-      "annonces": "Mis anuncios",
-      "settings": "Configuración",
-      "organisation": "Mi empresa",
-      "membres": "Miembros del equipo",
-      "offre": "Mi plan"
+      "profil_valider": "Completar mi perfil"
     },
     "topbar": {
       "status_available": "Disponible",
@@ -885,7 +865,6 @@
     },
     "page_title": "Mi perfil",
     "page_subtitle": "Vista de solo lectura de tu perfil tal como lo verán los clientes.",
-    "back_to_dashboard": "← Panel de control",
     "edit_button": "Editar mi perfil →",
     "loading": "Cargando tu perfil…",
     "error": "No se pudo cargar tu perfil.",
@@ -1523,8 +1502,7 @@
       "refuse_corps": "Tu cuenta no es de este tipo. No se ha modificado nada.",
       "indisponible_titre": "No hemos podido verificar tu acceso",
       "indisponible_corps": "La verificación de tu cuenta ha fallado. No es un rechazo: no lo sabemos. Inténtalo de nuevo en un momento.",
-      "reessayer": "Reintentar",
-      "retour_accueil": "Volver al inicio"
+      "reessayer": "Reintentar"
     }
   },
   "cdi_profile_validation": {
@@ -2030,7 +2008,6 @@
       "loading": "Cargando el anuncio…",
       "error_generic": "No se puede cargar el anuncio.",
       "error_not_found": "Este anuncio no existe o ya no está accesible.",
-      "back_to_annonces": "← Mis anuncios",
       "edit_cta": "Modificar",
       "view_candidatures_cta": "Ver candidaturas",
       "section_description": "Descripción",
@@ -2149,7 +2126,6 @@
       "button_save_draft_loading": "Guardando…",
       "button_publish": "Publicar",
       "button_publish_loading": "Publicando…",
-      "button_back_to_list": "← Volver a mis anuncios",
       "publish_disabled_reason": "Publicación no permitida — estado actual: {status}",
       "success_draft_created": "Borrador guardado.",
       "success_draft_updated": "Cambios guardados.",
@@ -2280,7 +2256,6 @@
       "master_aria_label": "Lista de tus anuncios con candidaturas"
     },
     "feed_global": {
-      "back_to_dashboard": "← Panel",
       "header_kicker": "Candidaturas",
       "header_title": "Todas tus candidaturas",
       "header_subtitle": "Vista agregada de las candidaturas recibidas en todos tus anuncios. El perfil completo solo se revela tras aceptar el intercambio.",
@@ -2299,7 +2274,6 @@
       "view_pub": "Ver anuncio"
     },
     "feed": {
-      "back_to_dashboard": "← Panel",
       "header_kicker": "Candidaturas",
       "untitled_publication": "(anuncio sin título)",
       "header_subtitle": "Candidaturas recibidas en este anuncio. El perfil completo se revela solo tras aceptar el intercambio.",
@@ -2428,7 +2402,6 @@
       "role_applicant": "Usted se postula"
     },
     "view": {
-      "back_to_inbox": "← Mensajes",
       "loading": "Cargando conversación…",
       "error_generic": "Se produjo un error. Inténtalo de nuevo.",
       "error_not_found": "Esta conversación ya no existe o no está disponible.",
@@ -2500,7 +2473,6 @@
       "more_skills": "+{count}"
     },
     "detail": {
-      "back_to_feed": "← Volver a oportunidades",
       "loading": "Cargando oportunidad…",
       "error_generic": "No se pudo cargar esta oportunidad.",
       "error_not_found": "Esta oportunidad ya no existe o no está disponible para ti.",
@@ -2780,7 +2752,6 @@
       "col_decided": "Decidida el"
     },
     "detail": {
-      "back": "← Volver al listado",
       "section_company": "Empresa",
       "section_contact": "Contacto",
       "section_verification": "Resultado de verificación",
@@ -2840,7 +2811,6 @@
       "tab_all": "Todos",
       "loading": "Cargando…",
       "empty": "Sin expertos en este filtro.",
-      "back": "Volver a expertos",
       "section_ai_verdict": "Veredicto IA",
       "section_identity": "Identidad y contacto",
       "section_profile": "Perfil profesional",
@@ -3214,7 +3184,6 @@
       "intro": "Lo que se observa. Los ajustes están en la pantalla de emparejamiento.",
       "loading": "Cargando…",
       "err_load": "No se ha podido leer el estado del motor. Inténtelo de nuevo en un momento.",
-      "back": "← Volver a la supervisión",
       "open": "Abrir",
       "since": "desde el {date}",
       "problems_title": "Lo que no funciona",
@@ -4100,7 +4069,6 @@
       "loading": "Cargando…",
       "error_generic": "Se produjo un error. Inténtelo de nuevo.",
       "error_not_found": "No se encuentra esta necesidad.",
-      "back_to_list": "Volver a mis necesidades",
       "type_label": "Subcontratación",
       "section_recap": "La necesidad",
       "field_budget": "Presupuesto",

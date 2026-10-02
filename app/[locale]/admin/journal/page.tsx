@@ -12,8 +12,8 @@ import { Acteur, Glossaire, Montant, PastilleStatut, PhraseEcriture, Quand, lien
 import type { NomsJournal } from '@/lib/journal/phrase'
 
 /**
- * /admin/journal — LE GRAND LIVRE (§D.26, phase B 2.6). Page de MENU : aucun
- * bouton Retour (règle projet) ; la pièce, elle, est une page de détail.
+ * /admin/journal — LE GRAND LIVRE (§D.26, phase B 2.6). Aucun bouton Retour
+ * (on navigue par les menus (décision de Youssef, 02/10/2026)) ; la pièce est une page de détail, son en-tête dit « Journal ».
  *
  * ⚠️ LA LECTURE EST EN BASE (`lire_grand_livre`, bornée, AD002) : l'écran ne
  *    trie, ne filtre ni ne compte rien lui-même — il affiche ce que la base rend

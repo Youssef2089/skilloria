@@ -2,7 +2,6 @@
 
 import { use, useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 
 /**
@@ -82,11 +81,6 @@ export default function SupervisionDetailPage({ params }: { params: Promise<{ su
 
   return (
     <div style={{ width: '100%', textAlign: 'left' }}>
-      <p style={{ margin: '0 0 10px' }}>
-        <Link href="/admin/supervision" style={{ fontSize: 13, color: 'var(--sk-accent)' }}>
-          {t('back')}
-        </Link>
-      </p>
       <h1 style={{ fontSize: 20, fontWeight: 600, margin: '0 0 4px', color: 'var(--sk-text)' }}>
         {t(`detail_title.${sujet}` as 'detail_title.inacheves')}
       </h1>

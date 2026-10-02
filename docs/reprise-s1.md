@@ -3,9 +3,99 @@
 > Le journal de reprise du worktree S1. `docs/reprise.md` reste au principal. Le **pourquoi** vit dans la mémoire :
 > architecture §D.40 à §D.44, pièges §E.100 à §E.105.
 
-**Dernière mise à jour : 01/10/2026.** Branche `s1/corrections-recette`, partie de `feat/sprint-archi-orga` à
-`13d1524` (déployée sur staging). Tag local `sauvegarde-avant-s1-recette` sur `7a2fd1f` (l'ancienne tête de
+**Dernière mise à jour : 02/10/2026** — ARRÊT S1-2, branche `lot/finitions-et-pays` (ci-dessous). L'ARRÊT S1-1 :
+branche `s1/corrections-recette`, partie de `feat/sprint-archi-orga` à `13d1524` (déployée sur staging). Tag local `sauvegarde-avant-s1-recette` sur `7a2fd1f` (l'ancienne tête de
 `feat/s1-ux-profil`, déjà contenue dans le tronc). Aucun `git push`, aucune écriture en base.
+
+## ⛔ ARRÊT S1-2 — FINITIONS ET LISTE DES PAYS (02/10/2026)
+
+Branche `lot/finitions-et-pays`, partie de `feat/sprint-archi-orga` à **`e27fa56`** (en ligne sur staging), arbre
+propre, `npm install` fait. Quatre sessions en parallèle : principal (`lot/criteres-annonces`), S1 (ce lot), S2
+(`lot/alertes-recommandations`), S3 (`lot/validation-annonces`). Aucun `git push`, aucune écriture en base, ni Docker
+ni base lancés.
+
+**Lu avant d'écrire** (règle de lecture) : CLAUDE.md ; docs/produit.md (le cadre de l'espace connecté, la ligne du
+journal) ; docs/architecture.md (§D.14, le tableau des cadres) ; docs/pieges.md par mots-clés (Retour, coquille) ;
+`lib/nav-config.ts`, `lib/menu-routes.ts`, `lib/auth-routing.ts`, `components/shell/*` ; les migrations des tables
+touchées par la partie B (`referentiel_zones_de_travail`, `profil_annonce_multivalues`, `parametrage_de_production`
+— les 64 pays —, `zones_couverture_suit_le_referentiel`, `zones_pays_rattaches`, la baseline pour `translations` et
+les déclencheurs) ; chaque usage de `countries` dans le code ; les tests pgTAP de `matching/` et `_fabriques.psql` ;
+`diag-deux-temps`, `diag-requete-staging`, `diag-postconditions-structure`, `diag-lot-zones`, `diag-zones-de-travail`,
+`diag-migration-donnees` (les plages) ; la requête d'avant-push.
+
+**Le départ, mesuré** (copie propre de `e27fa56` dans un worktree jetable du scratchpad — la première série avait
+tourné pendant mes premières modifications, elle ne faisait pas foi) : série **124 verts / 0 rouge**,
+`diag-lint-cliquet` en délai dépassé dans la série (lancé seul : 50/23).
+
+### PARTIE A — FINITIONS (commit 1)
+
+**1. PLUS AUCUN BOUTON « RETOUR », NULLE PART — fait.**
+- **Le mécanisme global est retiré** : `GlobalBackButton`, `NavHistoryProvider` (et sa pile en `sessionStorage`),
+  `lib/menu-routes.ts` (`isMenuRoute`, `isMessagingRoute`), `allMenuRoutes`, et dans `lib/auth-routing.ts` les trois
+  aides qui ne servaient qu'à lui (`isSafeInternalPath`, `deriveBackLabel`, `resolveBackNav` — le mécanisme `?from=`
+  était déjà mort : aucun appelant). Démonté de `DashboardShell`, du layout admin et du layout racine.
+- **Chaque retour propre à une page est retiré** — 17, en plus du bouton global. Le premier inventaire (par nom de
+  clé) en ratait cinq — les deux liens de la fiche organisation admin (`t('detail.back')`) et les trois « ← » nus du
+  CDI : il a été refait par la VALEUR des messages et par la flèche dans le code, et c'est ce que le contrôle fait :
+  · « ← Retour » de « Valider votre profil » : c'était le bouton global (retiré avec lui) ;
+  · les boutons de « récupération » des écrans d'erreur — détail d'une mission, d'une conversation, d'un besoin de
+    sous-traitance, d'une annonce, de ses candidatures, de la modification d'une annonce, des candidatures reçues, du
+    formulaire d'annonce publiée, de la fiche expert admin, de la fiche organisation admin (deux liens) ;
+  · « ← Retour à la supervision » (détail d'un sujet) ; « ← Tableau de bord » (refus de `freelance/mon-profil`) ;
+    « Retour à l'accueil » (refus de `cdi/profil`) ;
+  · **trois boutons « ← » nus** sur les écrans 403 / erreur du CDI (`cdi`, `cdi/mon-profil`, `cdi/profil/valider`).
+  Le menu reste affiché sur tous ces écrans : la barre latérale est la sortie.
+- **24 clés de messages devenues sans lecteur** retirées des quatre langues (l'espace `back_nav`, les libellés de
+  retour, et les titres `shell.page_titles` que le menu remplace) — édition sur l'objet parsé, aller-retour vérifié
+  identique à l'octet. Parité : **4 934 clés** dans chaque langue.
+- **Les commentaires de l'ancienne règle** (« Page de MENU : aucun bouton Retour (règle projet) », « le bouton Retour
+  global fourni par la coquille ») sont réécrits dans 35 fichiers : ils décrivaient un mécanisme qui n'existe plus.
+- **La règle de juin est remplacée dans la mémoire** : docs/produit.md (le cadre de l'espace connecté, la ligne du
+  journal) et docs/architecture.md (§D.14, le tableau des cadres). **CLAUDE.md ne la portait pas** (aucune ligne ne
+  parlait du bouton Retour) : rien à y remplacer. **Contrôle bloquant : `diag-aucun-retour`** (ci-dessous).
+
+**2. L'EN-TÊTE DE CHAQUE PAGE PORTE SON NOM — fait.**
+- **La cause** : `DashboardShell` tenait sa propre table « section → titre » ; `sous-traitance` n'y était pas et tombait
+  sur le titre par défaut, « Tableau de bord ». L'admin, lui, dérivait déjà son titre du menu.
+- **Le correctif** : une seule règle, dans `lib/nav-config.ts` (la source des deux barres latérales) —
+  `titreDeTableauDeBord(side, chemin)` et `titreAdmin(chemin)` : le nom de l'entrée de menu qui couvre la page (le
+  chemin le plus long qui la préfixe), **le même mot que la barre latérale** (`cleDuLibelle`, que la barre latérale
+  lit aussi). La racine (`/dashboard/<side>`) ne couvre qu'elle-même ; une page que rien ne couvre n'affiche **aucun**
+  nom (jamais « Tableau de bord » par défaut) ; deux pages hors menu sont nommées explicitement (« Mon profil » pour
+  l'import du CV, « Valider mon profil »).
+- **Vérifié sur toutes les pages de tous les profils** : les 73 `page.tsx` des trois tableaux de bord et de l'admin,
+  exécutées une à une par le contrôle (72 nommées, 1 redirection serveur déclarée — `/dashboard/cabinet`).
+- ⚠️ **Deux en-têtes changent de mot, à valider par Youssef** : ils disent désormais ce que dit leur entrée de menu —
+  « Mes candidatures » → **« Candidatures »**, « Messagerie » → **« Messages »**. Le reste est inchangé (« Mon profil »,
+  « Missions », « Offres » côté CDI, « Mes annonces », « Paramètres », « Mon entreprise », « Membres équipe », « Mon
+  offre »). Si Youssef préfère les anciens mots, c'est le libellé du MENU qui change (`shell.nav`), et les deux suivent.
+
+**Le contrôle — `scripts/diag-aucun-retour.mjs`, bloquant (la série `diag.mjs` rougit) :**
+A. le mécanisme global est parti (fichiers, noms dans le code hors commentaires, espace `back_nav`) ; B. aucun
+`router.back()`, `history.back()`, `history.go(-n)` ; C. aucune flèche « ← », `&larr;`, `←`, ni icône de flèche
+gauche dans le code ; D. chaque message dont le NOM dit « back/retour » ou dont la VALEUR commence par « ← » ou
+« Retour » est DÉCLARÉ avec sa raison (11 déclarations, aucune morte) ; E. chaque lecture d'un tel message est déclarée
+fichier par fichier, et l'espace connecté n'en lit aucun hors action vers l'avant (« Tableau de bord → » après
+l'enregistrement d'un brouillon) ; F. le nom de chaque page, EXÉCUTÉ sur les 73 pages, traduit dans les 4 langues,
+plus onze cas nommés (dont « Besoin / Sous-traitance »). **Éprouvé par mutation : 9 sur 9 rougissent** (bouton global
+remis, `router.back()`, « ← » nu, libellé « ← Retour aux offres », clé publique lue dans une page connectée, racine qui
+couvre tout, table « section → titre » remise, entrée de menu retirée, déclaration sans raison).
+Ce qu'il ne voit pas, et le dit : un retour écrit avec un mot qu'aucune règle ne reconnaît (« Revenir à… ») dans une
+clé nommée autrement ; un lien vers la page parente sans mot ni flèche.
+
+⚠️ **À TRANCHER PAR YOUSSEF — les pages PUBLIQUES.** Elles n'ont **aucun menu** : leur lien est la seule issue de la
+page, le retirer en ferait une impasse. Je les ai **gardées**, déclarées une à une dans le contrôle :
+404 (« Retour à l'accueil »), écosystème indisponible (idem), mot de passe oublié (« ← Retour à la connexion »),
+retour d'une confirmation d'adresse (« Retour à l'inscription »), confirmations d'inscription expert et organisation
+(« Retour à l'accueil »), invitation (« Retour à l'accueil »), formulaire d'inscription (« ← Changer de profil »).
+Si la décision les vise aussi, c'est une ligne chacune (et sa déclaration retirée du contrôle).
+
+**Ce que les retraits ont laissé, et nettoyé** : 11 variables devenues inutiles (`router`, `Link`, `domain`,
+`basePath`, la propriété `side` de `ConversationView`, qui ne servait qu'aux adresses de retour) — le lint des
+fichiers touchés est **identique au départ** (19 erreurs / 12 avertissements, toutes préexistantes) ; et le lint
+global **descend à 49/23** : la base du cliquet est abaissée dans le même commit (§G.5 ter). Deux diagnostics qui
+exigeaient l'ancien mécanisme sont mis à jour (`diag-admin-users` exigeait le bouton global dans le layout admin ;
+`diag-cron-supervision`, un libellé).
 
 ## ⛔ ARRÊT S1-1 — RECETTE STAGING DU PARCOURS EXPERT : LES CORRECTIONS D'ÉCRANS (01/10/2026)
 

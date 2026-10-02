@@ -25,15 +25,6 @@
       "body": "Un expert a candidaté à votre annonce « {title} »."
     }
   },
-  "back_nav": {
-    "back_to_dashboard": "← Retour au tableau de bord",
-    "back_to_feed": "← Retour aux opportunités",
-    "back_to_candidatures": "← Retour aux candidatures",
-    "back_to_messages": "← Retour aux messages",
-    "back_to_annonces": "← Retour aux annonces",
-    "back_to_experts": "← Retour aux experts",
-    "back": "← Retour"
-  },
   "app": {
     "name": "Skilloria",
     "meta": {
@@ -79,19 +70,8 @@
       "logout": "Se déconnecter"
     },
     "page_titles": {
-      "dashboard": "Tableau de bord",
-      "missions": "Missions",
-      "offres": "Offres",
-      "candidatures": "Mes candidatures",
-      "messages": "Messagerie",
-      "mon_profil": "Mon profil",
       "profil": "Mon profil",
-      "profil_valider": "Valider mon profil",
-      "annonces": "Mes annonces",
-      "settings": "Paramètres",
-      "organisation": "Mon entreprise",
-      "membres": "Membres équipe",
-      "offre": "Mon offre"
+      "profil_valider": "Valider mon profil"
     },
     "topbar": {
       "status_available": "Disponible",
@@ -885,7 +865,6 @@
     },
     "page_title": "Mon profil",
     "page_subtitle": "Aperçu en lecture seule de votre profil tel qu'il apparaîtra aux clients.",
-    "back_to_dashboard": "← Tableau de bord",
     "edit_button": "Modifier mon profil →",
     "loading": "Chargement de votre profil…",
     "error": "Impossible de charger votre profil.",
@@ -1523,8 +1502,7 @@
       "refuse_corps": "Votre compte n'est pas de ce type. Rien n'a été modifié.",
       "indisponible_titre": "Nous n'avons pas pu vérifier votre accès",
       "indisponible_corps": "La vérification de votre compte a échoué. Ce n'est pas un refus : nous ne savons pas. Réessayez dans un instant.",
-      "reessayer": "Réessayer",
-      "retour_accueil": "Retour à l'accueil"
+      "reessayer": "Réessayer"
     }
   },
   "cdi_profile_validation": {
@@ -2030,7 +2008,6 @@
       "loading": "Chargement de l'annonce…",
       "error_generic": "Impossible de charger l'annonce.",
       "error_not_found": "Cette annonce n'existe pas ou ne vous est plus accessible.",
-      "back_to_annonces": "← Mes annonces",
       "edit_cta": "Modifier",
       "view_candidatures_cta": "Voir les candidatures",
       "section_description": "Description",
@@ -2149,7 +2126,6 @@
       "button_save_draft_loading": "Enregistrement…",
       "button_publish": "Publier",
       "button_publish_loading": "Publication en cours…",
-      "button_back_to_list": "← Retour à mes annonces",
       "publish_disabled_reason": "Publication impossible — statut actuel : {status}",
       "success_draft_created": "Brouillon enregistré.",
       "success_draft_updated": "Modifications enregistrées.",
@@ -2280,7 +2256,6 @@
       "master_aria_label": "Liste de vos annonces avec candidatures"
     },
     "feed_global": {
-      "back_to_dashboard": "← Tableau de bord",
       "header_kicker": "Candidatures",
       "header_title": "Toutes vos candidatures",
       "header_subtitle": "Vue agrégée des candidatures reçues sur l'ensemble de vos annonces. Le profil complet n'est révélé qu'après acceptation de l'échange.",
@@ -2299,7 +2274,6 @@
       "view_pub": "Voir l'annonce"
     },
     "feed": {
-      "back_to_dashboard": "← Tableau de bord",
       "header_kicker": "Candidatures",
       "untitled_publication": "(annonce sans titre)",
       "header_subtitle": "Les candidatures reçues sur cette annonce. Le profil complet n'est révélé qu'après acceptation de l'échange.",
@@ -2428,7 +2402,6 @@
       "role_applicant": "Vous candidatez"
     },
     "view": {
-      "back_to_inbox": "← Messages",
       "loading": "Chargement de la conversation…",
       "error_generic": "Une erreur est survenue. Réessayez.",
       "error_not_found": "Cette conversation n'existe pas ou ne vous est plus accessible.",
@@ -2500,7 +2473,6 @@
       "more_skills": "+{count}"
     },
     "detail": {
-      "back_to_feed": "← Retour aux opportunités",
       "loading": "Chargement de l'opportunité…",
       "error_generic": "Impossible de charger cette opportunité.",
       "error_not_found": "Cette opportunité n'existe pas ou ne vous est plus accessible.",
@@ -2780,7 +2752,6 @@
       "col_decided": "Décidé le"
     },
     "detail": {
-      "back": "← Retour à la liste",
       "section_company": "Entreprise",
       "section_contact": "Contact",
       "section_verification": "Résultat de vérification",
@@ -2840,7 +2811,6 @@
       "tab_all": "Tous",
       "loading": "Chargement…",
       "empty": "Aucun expert dans ce filtre.",
-      "back": "Retour aux experts",
       "section_ai_verdict": "Verdict IA",
       "section_identity": "Identité & contact",
       "section_profile": "Profil professionnel",
@@ -3214,7 +3184,6 @@
       "intro": "Ce qui s’observe. Les réglages sont sur l’écran de mise en relation.",
       "loading": "Chargement…",
       "err_load": "Impossible de lire l’état du moteur. Réessayez dans un instant.",
-      "back": "← Retour à la supervision",
       "open": "Ouvrir",
       "since": "depuis le {date}",
       "problems_title": "Ce qui ne va pas",
@@ -4100,7 +4069,6 @@
       "loading": "Chargement…",
       "error_generic": "Une erreur est survenue. Réessayez.",
       "error_not_found": "Ce besoin est introuvable.",
-      "back_to_list": "Retour à mes besoins",
       "type_label": "Sous-traitance",
       "section_recap": "Le besoin",
       "field_budget": "Budget",

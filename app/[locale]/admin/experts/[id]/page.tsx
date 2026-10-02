@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { use } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { nomDeLangue } from '@/lib/profil/langues'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
@@ -95,7 +94,6 @@ export default function AdminExpertDetailPage({ params }: Props) {
   const tAdmin = useTranslations('admin_back_office')
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
-  const router = useRouter()
   const secureFetch = useSecureFetch()
 
   const [data, setData] = useState<Payload | null>(null)
@@ -207,7 +205,6 @@ export default function AdminExpertDetailPage({ params }: Props) {
     return (
       <div>
         <p style={{ color: 'var(--sk-red)', marginBottom: 18 }}>{error}</p>
-        <button type="button" onClick={() => router.push('/admin/experts')} style={{ padding: '10px 18px', background: 'var(--sk-text)', color: 'var(--sk-surface)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>{t('back')}</button>
       </div>
     )
   }

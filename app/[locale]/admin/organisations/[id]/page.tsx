@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { targetRoleForOrgType } from '@/lib/org-target-role'
 import LogoOrganisation from '@/components/admin/LogoOrganisation'
@@ -224,12 +224,6 @@ export default function AdminOrgDetailPage() {
   if (error === 'not_found' || (!loading && !data && !error)) {
     return (
       <div>
-        <Link
-          href="/admin/organisations"
-          style={{ fontSize: 13, color: 'var(--sk-accent)', textDecoration: 'none', marginBottom: 24, display: 'inline-block' }}
-        >
-          {t('detail.back')}
-        </Link>
         <div
           style={{
             padding: 32,
@@ -253,12 +247,6 @@ export default function AdminOrgDetailPage() {
   if (error) {
     return (
       <div>
-        <Link
-          href="/admin/organisations"
-          style={{ fontSize: 13, color: 'var(--sk-accent)', textDecoration: 'none', marginBottom: 24, display: 'inline-block' }}
-        >
-          {t('detail.back')}
-        </Link>
         <div
           role="alert"
           style={{
@@ -316,11 +304,9 @@ export default function AdminOrgDetailPage() {
 
   return (
     <div>
-      {/* AUCUN bouton Retour local : le layout admin monte déjà LE
-          <GlobalBackButton>, et un seul. Ce lien en affichait un second,
-          empilé — même défaut que celui corrigé sur /admin/utilisateurs/[id].
-          Les liens des branches « introuvable » et « erreur » ci-dessus
-          RESTENT : ce sont des sorties de secours, pas de la navigation. */}
+      {/* AUCUN bouton Retour, ici ni dans les branches « introuvable » et « erreur »
+          ci-dessus : on navigue par les menus (décision de Youssef, 02/10/2026) — la
+          barre latérale reste affichée, « Organisations » y est à un clic. */}
 
       {/* Header */}
       <div

@@ -366,10 +366,8 @@ export default function AdminPackageEditPage() {
 
   return (
     <div>
-      {/* Page de DÉTAIL → un unique bouton Retour, celui du layout admin
-          (<GlobalBackButton>). Le lien local qui vivait ici en faisait un
-          second, empilé, et pointait vers une cible FIGÉE là où le global
-          ramène à la page réellement quittée (catalogue ou collaboration). */}
+      {/* Page de DÉTAIL, sans bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
+          L'en-tête dit « Offres » ; « Offres » et « Collaboration » sont dans la barre latérale. */}
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 500, color: 'var(--sk-text)', margin: 0 }}>{pkg.name}</h1>

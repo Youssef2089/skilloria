@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import { useDomain } from '@/context/DomainContext'
 import PublicationForm from '@/components/dashboard/PublicationForm'
 import type { PublicationDraft } from '@/types/publication'
 
@@ -15,7 +13,7 @@ import type { PublicationDraft } from '@/types/publication'
  * en mode edit avec l'`initial`. Gère 3 états : loading / error / ready.
  *
  * Hard guards côté serveur (ownership + status éditable) : si l'API renvoie
- * 403/404, on affiche le message correspondant et un bouton retour.
+ * 403/404, on affiche le message correspondant (aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026)).
  */
 
 type Props = { params: Promise<{ id: string }> }
@@ -27,9 +25,7 @@ type LoadState =
 
 export default function ModifierAnnoncePage({ params }: Props) {
   const t = useTranslations('publications')
-  const router = useRouter()
   const secureFetch = useSecureFetch()
-  const domain = useDomain()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
 
   const load = useCallback(async () => {
@@ -77,23 +73,6 @@ export default function ModifierAnnoncePage({ params }: Props) {
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/entreprise')}
-          style={{
-            padding: '10px 18px',
-            background: domain.primaryColor,
-            color: 'var(--sk-surface)',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          {t('form.button_back_to_list')}
-        </button>
       </div>
     )
   }

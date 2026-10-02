@@ -181,17 +181,6 @@ export default function GlobalCandidaturesPage() {
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'inherit' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/entreprise')}
-          style={{
-            padding: '10px 18px', background: domain.primaryColor, color: 'var(--sk-surface)',
-            border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          {t('back_to_dashboard')}
-        </button>
       </div>
     )
   }

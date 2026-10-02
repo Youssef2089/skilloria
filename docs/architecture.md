@@ -1999,7 +1999,8 @@ Recensé le 21/09/2026, page par page. **85 pages** sous `app/[locale]/`, dont *
 | `app/[locale]/admin/layout.tsx` | le cadre **admin**, écrit en ligne — 24 pages |
 
 **`DashboardShell`** assemble `DashboardSidebar` (248 px, `--sk-bandeau`), `DashboardTopbar` (60 px,
-`--sk-bandeau` depuis ce lot), le `<main>` et `GlobalBackButton`.
+`--sk-bandeau` depuis ce lot) et le `<main>`. Le bouton `GlobalBackButton` a été **retiré** le 02/10/2026 : on
+navigue par les menus, et l'en-tête porte le nom de la page, dérivé du menu (`lib/nav-config.ts`).
 
 #### Les quatre cadres qui ont disparu
 
@@ -2777,8 +2778,9 @@ ont été **réécrites** parce qu'elles défendaient l'ancienne règle et se co
 <a id="d14"></a>
 
 **D.14 — UNE SEULE COQUILLE POUR TOUT L'ESPACE CONNECTÉ. AUCUNE EXCEPTION.**
-Les **66 pages** connectées portent le même cadre : `DashboardShell` — barre latérale, en-tête,
-bouton Retour. Il est monté par les **sub-layouts**, jamais par une page.
+Les **66 pages** connectées portent le même cadre : `DashboardShell` — barre latérale, en-tête
+(et, depuis le 02/10/2026, **aucun bouton Retour** : on navigue par les menus). Il est monté par les
+**sub-layouts**, jamais par une page.
 
 **L'en-tête et la barre latérale sont BEIGES**, tous deux en `--sk-bandeau`. L'en-tête était en
 `--sk-surface`, c'est-à-dire le **blanc des cartes** : deux surfaces du même cadre, deux couleurs.

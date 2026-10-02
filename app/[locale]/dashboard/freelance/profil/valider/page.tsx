@@ -1346,8 +1346,7 @@ export default function ValiderProfilPage() {
           </div>
         ) : (
           <>
-            {/* Bouton Retour local retiré : le GlobalBackButton du shell est
-                l'unique bouton Retour (règle projet). */}
+            {/* Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026). */}
             {/* ── UNE SECTION QU'ON N'A PAS SU LIRE LE DIT, ET DONNE UNE SORTIE ──
                 §E.19 : un écran qui affirme plus que ce qu'il sait enferme
                 quelqu'un dans une attente. Ici l'affirmation muette était la

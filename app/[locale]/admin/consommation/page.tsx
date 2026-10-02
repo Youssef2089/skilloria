@@ -8,7 +8,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 /**
  * /admin/consommation — CE QUE CHAQUE COMPTE A COÛTÉ CE MOIS-CI.
  *
- * Page de MENU : aucun bouton Retour (règle projet).
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * ┌─ POURQUOI CET ÉCRAN EXISTE ─────────────────────────────────────────────┐
  * │ Depuis ce lot, un compte peut être ARRÊTÉ par son propre plafond : son  │

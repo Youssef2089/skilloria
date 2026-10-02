@@ -10,8 +10,7 @@ import ReauthModal from '@/components/settings/ReauthModal'
 /**
  * /admin/utilisateurs — LE PARC DE COMPTES.
  *
- * Page de MENU : aucun bouton Retour (règle projet). Le Retour vit sur la
- * fiche, qui est la page de détail.
+ * Aucun bouton Retour, ni ici ni sur la fiche : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * Cet écran ne redit pas ce que disent Organisations et Experts : ceux-là sont
  * des files de VALIDATION, pilotées par le verification_status d'une entité

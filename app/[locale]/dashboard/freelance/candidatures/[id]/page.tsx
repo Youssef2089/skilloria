@@ -7,7 +7,7 @@ import CandidatureDetailView from '@/components/dashboard/CandidatureDetailView'
  * /dashboard/freelance/candidatures/[id] — page de détail d'une candidature
  * (wrapper thin, miroir de missions/[id]). Toute la logique vit dans
  * CandidatureDetailView ; ce wrapper passe side='freelance' + l'id résolu.
- * Passe par DashboardShell → le bouton Retour global s'affiche automatiquement.
+ * Passe par DashboardShell (aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026)).
  */
 
 type Props = { params: Promise<{ id: string }> }

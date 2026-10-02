@@ -78,68 +78,6 @@ export function dashboardUrlForUserType(userType: string | null | undefined): st
 }
 
 /**
- * Retour UNIVERSEL des vues de détail (toute la plateforme : expert, entreprise,
- * admin). Mécanisme unique : chaque point d'entrée transmet la PAGE RÉELLE
- * d'origine via `?from=<encodeURIComponent(usePathname())>` ; la vue de détail
- * calcule cible + libellé via `resolveBackNav`. La cible EST le chemin réel
- * transmis (pas une étiquette figée) ; le libellé s'adapte à la destination.
- *
- * Sécurité (anti open-redirect) : `from` n'est honoré que si c'est un chemin
- * interne valide (commence par "/", pas de "//" ni d'URL/protocole externe) —
- * sinon on retombe sur `fallback` (le parent naturel fourni par chaque vue).
- */
-export function isSafeInternalPath(p: string | null | undefined): p is string {
-  return (
-    typeof p === 'string' &&
-    p.length > 0 &&
-    p.startsWith('/') &&
-    !p.startsWith('//') &&
-    !p.includes('://') &&
-    !p.includes('\\') &&
-    !p.includes('\n') &&
-    !p.includes('\t')
-  )
-}
-
-/**
- * Dérive la clé i18n du libellé "Retour" depuis le chemin de destination.
- * Clés RELATIVES du namespace partagé `back_nav` (le consommateur fait
- * `tBack(labelKey)` avec `useTranslations('back_nav')`).
- *
- * Basé sur le dernier segment réel du chemin :
- *   - racine dashboard (freelance | cdi | entreprise | admin) → back_to_dashboard
- *   - …/missions     → back_to_feed
- *   - …/candidatures → back_to_candidatures
- *   - …/messages     → back_to_messages
- *   - …/annonces     → back_to_annonces
- *   - …/experts      → back_to_experts
- *   - sinon          → back (générique « Retour »)
- */
-export function deriveBackLabel(path: string): string {
-  const seg = path.replace(/[?#].*$/, '').replace(/\/+$/, '').split('/').pop() ?? ''
-  switch (seg) {
-    case 'missions':     return 'back_to_feed'
-    case 'candidatures': return 'back_to_candidatures'
-    case 'messages':     return 'back_to_messages'
-    case 'annonces':     return 'back_to_annonces'
-    case 'experts':      return 'back_to_experts'
-    case 'freelance':
-    case 'cdi':
-    case 'entreprise':
-    case 'admin':        return 'back_to_dashboard'
-    default:             return 'back'
-  }
-}
-
-export function resolveBackNav(
-  from: string | null | undefined,
-  fallback: string,
-): { path: string; labelKey: string } {
-  const path = isSafeInternalPath(from) ? from : fallback
-  return { path, labelKey: deriveBackLabel(path) }
-}
-
-/**
  * Inverse de dashboardUrlForUserType : à partir d'un pathname `/dashboard/<seg>/...`,
  * retourne les user_type AUTORISÉS pour ce segment, ou `null` si le segment
  * n'est pas un dashboard role-specific (ex. `/dashboard/cabinet` = redirect).

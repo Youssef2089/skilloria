@@ -16,7 +16,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * saisies via « Autre » (GET /api/admin/list-other-specialities), triées par
  * fréquence décroissante = priorité d'intégration.
  *
- * Page de MENU (dérivée de ADMIN_NAV_SECTIONS) → aucun bouton Retour.
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  */
 
 type Branch = {

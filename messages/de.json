@@ -25,15 +25,6 @@
       "body": "Eine Fachkraft hat sich auf Ihre Anzeige „{title}“ beworben."
     }
   },
-  "back_nav": {
-    "back_to_dashboard": "← Zurück zum Dashboard",
-    "back_to_feed": "← Zurück zu den Möglichkeiten",
-    "back_to_candidatures": "← Zurück zu den Bewerbungen",
-    "back_to_messages": "← Zurück zu den Nachrichten",
-    "back_to_annonces": "← Zurück zu den Anzeigen",
-    "back_to_experts": "← Zurück zu den Experten",
-    "back": "← Zurück"
-  },
   "app": {
     "name": "Skilloria",
     "meta": {
@@ -79,19 +70,8 @@
       "logout": "Abmelden"
     },
     "page_titles": {
-      "dashboard": "Dashboard",
-      "missions": "Aufträge",
-      "offres": "Stellenangebote",
-      "candidatures": "Meine Bewerbungen",
-      "messages": "Messaging",
-      "mon_profil": "Mein Profil",
       "profil": "Mein Profil",
-      "profil_valider": "Mein Profil vervollständigen",
-      "annonces": "Meine Anzeigen",
-      "settings": "Einstellungen",
-      "organisation": "Mein Unternehmen",
-      "membres": "Teammitglieder",
-      "offre": "Mein Tarif"
+      "profil_valider": "Mein Profil vervollständigen"
     },
     "topbar": {
       "status_available": "Verfügbar",
@@ -885,7 +865,6 @@
     },
     "page_title": "Mein Profil",
     "page_subtitle": "Schreibgeschützte Ansicht Ihres Profils, wie Kunden es sehen.",
-    "back_to_dashboard": "← Dashboard",
     "edit_button": "Profil bearbeiten →",
     "loading": "Ihr Profil wird geladen…",
     "error": "Ihr Profil konnte nicht geladen werden.",
@@ -1523,8 +1502,7 @@
       "refuse_corps": "Ihr Konto ist nicht von diesem Typ. Es wurde nichts geändert.",
       "indisponible_titre": "Wir konnten Ihren Zugang nicht prüfen",
       "indisponible_corps": "Die Prüfung Ihres Kontos ist fehlgeschlagen. Das ist keine Ablehnung: wir wissen es nicht. Bitte versuchen Sie es gleich erneut.",
-      "reessayer": "Erneut versuchen",
-      "retour_accueil": "Zurück zur Startseite"
+      "reessayer": "Erneut versuchen"
     }
   },
   "cdi_profile_validation": {
@@ -2030,7 +2008,6 @@
       "loading": "Anzeige wird geladen…",
       "error_generic": "Anzeige konnte nicht geladen werden.",
       "error_not_found": "Diese Anzeige existiert nicht oder ist nicht mehr zugänglich.",
-      "back_to_annonces": "← Meine Anzeigen",
       "edit_cta": "Bearbeiten",
       "view_candidatures_cta": "Bewerbungen anzeigen",
       "section_description": "Beschreibung",
@@ -2149,7 +2126,6 @@
       "button_save_draft_loading": "Speichern…",
       "button_publish": "Veröffentlichen",
       "button_publish_loading": "Wird veröffentlicht…",
-      "button_back_to_list": "← Zurück zu meinen Anzeigen",
       "publish_disabled_reason": "Veröffentlichung nicht möglich — aktueller Status: {status}",
       "success_draft_created": "Entwurf gespeichert.",
       "success_draft_updated": "Änderungen gespeichert.",
@@ -2280,7 +2256,6 @@
       "master_aria_label": "Liste Ihrer Anzeigen mit Bewerbungen"
     },
     "feed_global": {
-      "back_to_dashboard": "← Dashboard",
       "header_kicker": "Bewerbungen",
       "header_title": "Alle Ihre Bewerbungen",
       "header_subtitle": "Gesammelte Übersicht der Bewerbungen, die auf all Ihren Anzeigen eingegangen sind. Das vollständige Profil wird erst nach Annahme des Austauschs angezeigt.",
@@ -2299,7 +2274,6 @@
       "view_pub": "Anzeige ansehen"
     },
     "feed": {
-      "back_to_dashboard": "← Dashboard",
       "header_kicker": "Bewerbungen",
       "untitled_publication": "(Anzeige ohne Titel)",
       "header_subtitle": "Bewerbungen auf diese Anzeige. Das vollständige Profil wird erst nach Annahme des Austauschs sichtbar.",
@@ -2428,7 +2402,6 @@
       "role_applicant": "Sie bewerben sich"
     },
     "view": {
-      "back_to_inbox": "← Nachrichten",
       "loading": "Konversation wird geladen…",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "error_not_found": "Diese Konversation existiert nicht mehr oder ist nicht verfügbar.",
@@ -2500,7 +2473,6 @@
       "more_skills": "+{count}"
     },
     "detail": {
-      "back_to_feed": "← Zurück zu den Möglichkeiten",
       "loading": "Möglichkeit wird geladen…",
       "error_generic": "Diese Möglichkeit konnte nicht geladen werden.",
       "error_not_found": "Diese Möglichkeit existiert nicht mehr oder ist für Sie nicht mehr verfügbar.",
@@ -2780,7 +2752,6 @@
       "col_decided": "Entschieden am"
     },
     "detail": {
-      "back": "← Zurück zur Liste",
       "section_company": "Unternehmen",
       "section_contact": "Kontakt",
       "section_verification": "Verifizierungsergebnis",
@@ -2840,7 +2811,6 @@
       "tab_all": "Alle",
       "loading": "Wird geladen…",
       "empty": "Keine Experten in diesem Filter.",
-      "back": "Zurück zu Experten",
       "section_ai_verdict": "KI-Urteil",
       "section_identity": "Identität und Kontakt",
       "section_profile": "Berufliches Profil",
@@ -3214,7 +3184,6 @@
       "intro": "Was beobachtet wird. Die Einstellungen liegen auf dem Matching-Bildschirm.",
       "loading": "Wird geladen…",
       "err_load": "Der Zustand des Motors konnte nicht gelesen werden. Versuchen Sie es gleich noch einmal.",
-      "back": "← Zurück zur Überwachung",
       "open": "Öffnen",
       "since": "seit dem {date}",
       "problems_title": "Was nicht stimmt",
@@ -4100,7 +4069,6 @@
       "loading": "Wird geladen…",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
       "error_not_found": "Dieser Bedarf wurde nicht gefunden.",
-      "back_to_list": "Zurück zu meinen Bedarfen",
       "type_label": "Unterauftrag",
       "section_recap": "Der Bedarf",
       "field_budget": "Budget",

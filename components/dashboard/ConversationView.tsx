@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CorrespondantAvatar from '@/components/dashboard/CorrespondantAvatar'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
@@ -72,14 +71,13 @@ function formatDate(iso: string, locale: string): string {
 /**
  * Props :
  *   - convId   : id de la conversation à afficher
- *   - side     : freelance | entreprise (pour les URLs back)
  *   - embedded : true quand le composant est intégré dans le layout 2 panneaux
- *                de MessagesInbox (Point 6 finitions UX). Dans ce mode :
- *                  • pas de wrapper plein écran (maxWidth/padding réduits)
- *                  • pas de bouton "Retour à l'inbox" (la liste est à gauche)
+ *                de MessagesInbox (Point 6 finitions UX). Dans ce mode, pas de
+ *                wrapper plein écran (maxWidth/padding réduits).
  *                Par défaut false → comportement Lot 3 (plein écran).
+ *   (`side` ne servait qu'aux adresses de retour : retiré avec elles, 02/10/2026.)
  */
-export default function ConversationView({ convId, side, embedded = false }: { convId: string; side: 'freelance' | 'entreprise' | 'cdi'; embedded?: boolean }) {
+export default function ConversationView({ convId, embedded = false }: { convId: string; embedded?: boolean }) {
   const t = useTranslations('messages.view')
   const tPub = useTranslations('publications')
   // Les phrases qui décrivent l'ÉTAT DE VIE vivent toutes dans le même
@@ -87,7 +85,6 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   const tLifecycle = useTranslations('candidature_lifecycle')
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
-  const router = useRouter()
   const secureFetch = useSecureFetch()
 
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -96,9 +93,6 @@ export default function ConversationView({ convId, side, embedded = false }: { c
   const [sendError, setSendError] = useState<string | null>(null)
   const listRef = useRef<HTMLDivElement | null>(null)
   const lastMsgCountRef = useRef<number>(0)
-
-  // SC7b : 'cdi' partage la même base path pattern que 'freelance' (just /dashboard/{side}).
-  const basePath = side === 'entreprise' ? '/dashboard/entreprise' : `/dashboard/${side}`
 
   const load = useCallback(async (silent: boolean) => {
     if (!silent) setState({ kind: 'loading' })
@@ -197,13 +191,6 @@ export default function ConversationView({ convId, side, embedded = false }: { c
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push(`${basePath}/messages`)}
-          style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          {t('back_to_inbox')}
-        </button>
       </div>
     )
   }
@@ -256,11 +243,8 @@ export default function ConversationView({ convId, side, embedded = false }: { c
           : { maxWidth: 880, margin: '0 auto', padding: '20px 24px 60px', fontFamily: 'Inter, sans-serif', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 40px)' }
       }
     >
-      {/* AUCUN bouton Retour local : la coquille (DashboardShell) rend déjà LE
-          <GlobalBackButton>, et un seul. Ce lien-ci en aurait fait un second,
-          empilé au-dessus — exactement ce que la règle projet interdit. Le
-          bouton de la branche d'erreur, lui, RESTE : il est de récupération
-          (état sans coquille exploitable), pas de navigation. */}
+      {/* AUCUN bouton Retour, ici ni dans la branche d'erreur : on navigue par les menus (décision de Youssef, 02/10/2026) —
+          « Messages » est dans la barre latérale. */}
       {state.kind === 'ready' && state.data.troncature?.atteint && (
         <BandeauTroncature texte={tPlafond('messages_tronques', { plafond: state.data.troncature.plafond })} />
       )}

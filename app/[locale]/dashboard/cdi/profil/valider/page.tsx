@@ -1464,24 +1464,6 @@ export default function CdiValiderProfilPage() {
           >
             403
           </div>
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            style={{
-              marginTop: 16,
-              background: 'var(--sk-accent)',
-              color: 'var(--sk-sur-accent)',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 18px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            ←
-          </button>
         </div>
       </div>
     )
@@ -1554,8 +1536,7 @@ export default function CdiValiderProfilPage() {
           </div>
         ) : (
           <>
-            {/* Bouton Retour local retiré : le GlobalBackButton du shell est
-                l'unique bouton Retour (règle projet). */}
+            {/* Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026). */}
             {/* ── UNE SECTION QU'ON N'A PAS SU LIRE LE DIT, ET DONNE UNE SORTIE ──
                 §E.19 : un écran qui affirme plus que ce qu'il sait enferme
                 quelqu'un dans une attente. Ici l'affirmation muette était la

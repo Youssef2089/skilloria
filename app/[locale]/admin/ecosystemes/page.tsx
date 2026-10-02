@@ -27,7 +27,7 @@ import EcosystemeVisuelUpload from '@/components/admin/EcosystemeVisuelUpload'
  * ║ l'écran les dit à la saisie, il ne les garantit pas (§E.15).             ║
  * ╚══════════════════════════════════════════════════════════════════════════╝
  *
- * Page de MENU (dérivée de ADMIN_NAV_SECTIONS) → aucun bouton Retour.
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  */
 
 const LOCALES = ['en', 'es', 'de'] as const

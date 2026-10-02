@@ -8,8 +8,7 @@ import type { Annonce } from '@/types/annonce'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 
 /**
- * SousTraitanceListView — « Mes besoins de sous-traitance » (page de MENU, pas
- * de bouton Retour). Miroir SOBRE de la liste d'annonces org, réutilisant les
+ * SousTraitanceListView — « Mes besoins de sous-traitance » (page de MENU). Miroir SOBRE de la liste d'annonces org, réutilisant les
  * routes existantes SANS dupliquer de logique métier :
  *   - GET /api/publications            → besoins de l'org perso (filtre type)
  *   - GET /api/me/collaboration/quota  → plafond d'actives (bouton Publier)

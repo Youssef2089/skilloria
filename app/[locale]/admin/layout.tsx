@@ -8,11 +8,10 @@ import { sessionDuCompteAffiche, useGardeCompteAffiche } from '@/lib/identite/co
 import { useDomain } from '@/context/DomainContext'
 import SessionHeartbeat from '@/components/SessionHeartbeat'
 import DeletionGate from '@/components/DeletionGate'
-import GlobalBackButton from '@/components/shell/GlobalBackButton'
 import DashboardTopbar from '@/components/shell/DashboardTopbar'
 import CronComplianceBanner from '@/components/admin/CronComplianceBanner'
 import LegalFooter from '@/components/layout/LegalFooter'
-import { ADMIN_NAV_SECTIONS } from '@/lib/nav-config'
+import { ADMIN_NAV_SECTIONS, titreAdmin } from '@/lib/nav-config'
 
 /** Icônes de la sidebar admin, indexées par `iconKey` de ADMIN_NAV_SECTIONS. */
 const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
@@ -184,17 +183,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   //  (§E.20). On dérive, on ne recopie pas.
   //
   //  La correspondance prend l'entrée dont le chemin est le PLUS LONG parmi
-  //  celles qui préfixent la page courante : `/admin/packages/new` doit donner
-  //  « Offres » et non l'entrée racine. Aucun repli inventé — une page hors
-  //  menu affiche le nom du back-office.
+  //  celles qui préfixent la page courante (`titreAdmin`, lib/nav-config — la même
+  //  règle que les tableaux de bord) : `/admin/packages/new` donne « Offres » et non
+  //  l'entrée racine. Aucun repli inventé — une page hors menu affiche le nom du
+  //  back-office, et `diag-aucun-retour` vérifie qu'aucune page du dépôt n'y tombe.
   const titreDePage = (() => {
-    const entrees = ADMIN_NAV_SECTIONS.flatMap((sec) => sec.items)
-    const trouvee = entrees
-      .filter((i) => pathname === i.href || pathname.startsWith(i.href + '/') || (i.extraActivePaths ?? []).includes(pathname))
-      .sort((a, b) => b.href.length - a.href.length)[0]
-    return trouvee
-      ? t(`sidebar.${trouvee.labelKey}` as 'sidebar.nav_organisations')
-      : t('sidebar.title')
+    const cle = titreAdmin(pathname)
+    return cle ? t(`sidebar.${cle}` as 'sidebar.nav_organisations') : t('sidebar.title')
   })()
 
   const [state, setState] = useState<GuardState>({ kind: 'loading' })
@@ -396,8 +391,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </Link>
 
         {/* Nav — rendue depuis ADMIN_NAV_SECTIONS (lib/nav-config), la MEME
-            structure dont lib/menu-routes derive les routes de menu. Ajouter une
-            entree la-bas suffit : lien + absence de bouton Retour. */}
+            structure dont l'en-tete tire le nom de chaque page. Ajouter une
+            entree la-bas suffit : lien + nom de page. */}
         {ADMIN_NAV_SECTIONS.map((sec) => (
           <div key={sec.sectionKey}>
             <div
@@ -460,7 +455,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             première (§E.20). */}
         <DashboardTopbar side="admin" title={titreDePage} />
       <main className="admin-main" style={{ flex: 1, overflow: 'auto', minHeight: 0, padding: '24px 26px', minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <GlobalBackButton />
         {/* Conformité : une obligation légale désactivée est justement ce qu'on
             n'ira pas vérifier spontanément. Le bandeau vit donc ICI, sur toutes
             les pages du back-office — il doit trouver l'administrateur, pas

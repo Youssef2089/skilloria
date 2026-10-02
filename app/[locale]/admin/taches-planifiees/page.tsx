@@ -11,7 +11,7 @@ import CronScheduleModal, { type ScheduleDraft } from '@/components/admin/CronSc
  * /admin/taches-planifiees — LES TRAITEMENTS AUTOMATIQUES, TELS QUE LA BASE
  * LES EXÉCUTE.
  *
- * Page de MENU : aucun bouton Retour (règle projet).
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * POURQUOI CET ÉCRAN EXISTE
  *   Cinq tâches tournent dans pg_cron, dont deux exécutent une obligation
@@ -313,7 +313,7 @@ export default function AdminScheduledTasksPage() {
           dans le layout admin, donc DÉJÀ rendu au-dessus de cette page — et sur
           toutes les autres. En poser un second ici en donnerait deux, empilés,
           sur le seul écran où il était le moins utile : celui qu'on ouvre déjà
-          pour regarder les tâches. Même règle que le bouton Retour global. */}
+          pour regarder les tâches. Un seul bandeau, un seul endroit. */}
 
       {toast && (
         <div

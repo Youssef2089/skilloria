@@ -251,16 +251,6 @@ export default function MissionDetailView({
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center', fontFamily: 'inherit' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push(feedPath)}
-          style={{
-            padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)',
-            border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}
-        >
-          {t('back_to_feed')}
-        </button>
       </div>
     )
   }

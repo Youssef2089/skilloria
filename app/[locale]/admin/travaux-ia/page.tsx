@@ -8,7 +8,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 /**
  * /admin/travaux-ia — LES TRAVAUX D'IA QUI ATTENDENT UN HUMAIN (§D.30).
  *
- * Page de MENU : aucun bouton Retour (règle projet).
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * Depuis le 30/09/2026, l'analyse d'un CV et la vérification d'un expert sont des
  * TRAVAUX, exécutés hors de la requête de l'expert et rejoués d'eux-mêmes quand

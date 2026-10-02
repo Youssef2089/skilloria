@@ -286,24 +286,6 @@ export default function CdiProfilUploadPage() {
               {t('acces.reessayer')}
             </button>
           )}
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            style={{
-              marginTop: 16,
-              background: 'var(--sk-accent)',
-              color: 'var(--sk-sur-accent)',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 18px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            {t('acces.retour_accueil')}
-          </button>
         </div>
       </div>
     )

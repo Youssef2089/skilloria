@@ -29,7 +29,7 @@ import DashboardShell from '@/components/shell/DashboardShell'
  * CORRECTIF (bug parcours profil), miroir exact du sub-layout freelance :
  * /profil (import CV) et /profil/valider ne rendent PAS de shell inline et
  * s'affichaient nues → elles sont désormais enveloppées par le DashboardShell
- * partagé (sidebar + topbar + GlobalBackButton).
+ * partagé (sidebar + topbar).
  *
  * CONFIRMATION SC7a : cdi/page.tsx ne contient PAS de PATCH /api/profile —
  * ce trigger vit uniquement dans profil/valider qui reste intact.

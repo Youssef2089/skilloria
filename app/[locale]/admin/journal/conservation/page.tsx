@@ -6,7 +6,7 @@ import ConservationJournal from '@/components/admin/journal/ConservationJournal'
 
 /**
  * /admin/journal/conservation — COMBIEN DE TEMPS LE JOURNAL GARDE SES ÉCRITURES, ET LE NETTOYAGE (ARRÊT 22, §D.33).
- * Page de MENU (lib/nav-config.ts) : aucun bouton Retour. Séparée de la lecture du journal (décision de Youssef,
+ * Page de MENU (lib/nav-config.ts) ; aucun bouton Retour, nulle part. Séparée de la lecture du journal (décision de Youssef,
  * 01/10/2026) : on n'efface pas là où l'on enquête. Pleine largeur, alignée à gauche, la marge est celle de l'admin.
  */
 export default function ConservationJournalPage() {
