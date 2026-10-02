@@ -2179,7 +2179,7 @@
       "db_error": "Technical error. Please try again.",
       "generic": "An error occurred. Please try again.",
       "missing_fields": "Some information is missing before publishing: {fields}.",
-      "annonce_refusee_inchangee": "This posting was rejected: edit it before submitting it again (the reason is shown at the top of the page)."
+      "annonce_refusee_inchangee": "This posting was rejected: edit its content — title, description, skills, seniority, working conditions, duration or budget — before submitting it again (the reason is shown at the top of the page). Changing only the branch, specialities, zones, start date or confidentiality does not send it back for review."
     },
     "refus": {
       "titre": "This posting was not approved",

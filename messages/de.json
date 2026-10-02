@@ -2179,7 +2179,7 @@
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}.",
-      "annonce_refusee_inchangee": "Diese Anzeige wurde abgelehnt: Bearbeiten Sie sie, bevor Sie sie erneut einreichen (die Begründung steht oben auf der Seite)."
+      "annonce_refusee_inchangee": "Diese Anzeige wurde abgelehnt: Bearbeiten Sie ihren Inhalt – Titel, Beschreibung, Kompetenzen, Senioritätsstufen, Arbeitsbedingungen, Dauer oder Budget –, bevor Sie sie erneut einreichen (die Begründung steht oben auf der Seite). Nur Branche, Spezialisierungen, Zonen, Startdatum oder Vertraulichkeit zu ändern, führt zu keiner neuen Prüfung."
     },
     "refus": {
       "titre": "Diese Anzeige wurde nicht freigegeben",

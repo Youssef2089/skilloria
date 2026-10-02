@@ -62,6 +62,7 @@ const F = {
   pageRepriseCdi: 'app/[locale]/dashboard/cdi/sous-traitance/[id]/modifier/page.tsx',
   bandeau: 'components/annonces/MotifRefus.tsx',
   communs: 'lib/annonces/formulaire.ts',
+  publishable: 'lib/publications/publishable.ts',
 }
 const LANGUES = ['fr', 'en', 'es', 'de']
 const MIGRATIONS = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
@@ -106,12 +107,25 @@ function juger(t) {
 
   // A — l'édition
   if (!/const EDITABLE_STATUSES = \[[^\]]*'rejected'[^\]]*\] as const/.test(patch)) fautes.push('A. PATCH : une annonce refusée n’est pas éditable')
-  const iRefus = patch.search(/if \(resoumission && champsChanges\.length === 0\) \{\s*return json\(\s*\{[^}]*code: 'annonce_refusee_inchangee'/)
+  const iRefus = patch.search(/if \(resoumission && changesJuges\.length === 0\) \{\s*return json\(\s*\{[^}]*code: 'annonce_refusee_inchangee'/)
   const iUpdate = patch.search(/\.update\(resoumission \? \{ \.\.\.u\.updates, status: 'draft' \} : u\.updates\)/)
   if (iRefus < 0) fautes.push('A. PATCH : une annonce refusée inchangée n’est pas refusée nommément (annonce_refusee_inchangee)')
   if (iUpdate < 0) fautes.push('A. PATCH : la resoumission n’écrit pas `status: draft` dans le même update (ou l’écrit sans condition)')
   if (iRefus >= 0 && iUpdate >= 0 && iRefus > iUpdate) fautes.push('A. PATCH : le refus « inchangée » vient APRÈS l’écriture')
   if (!/const resoumission = currentStatus === 'rejected'/.test(patch)) fautes.push('A. PATCH : la resoumission ne se reconnaît plus au statut lu (`rejected`)')
+  // A bis (relecture, point 1) — seul un champ que l'IA LIT rouvre le jugement, et la liste est ÉGALE à ce que /publish lit.
+  if (!/const changesJuges = champsChanges\.filter\(\(c\) => \(CHAMPS_JUGES_PAR_LE_CONTROLE as readonly string\[\]\)\.includes\(c\)\)/.test(patch)) {
+    fautes.push('A bis. PATCH : la resoumission ne filtre plus les champs changés par ce que lit le contrôle de l’IA')
+  }
+  const listeJuges = /export const CHAMPS_JUGES_PAR_LE_CONTROLE = \[([\s\S]*?)\] as const/.exec(t[F.publishable] ?? '')?.[1]
+  const juges = new Set([...(listeJuges ?? '').matchAll(/'(\w+)'/g)].map((m) => m[1]))
+  const blocAi = /const aiInput: PublicationQualityInput = \{([\s\S]*?)\n  \}\n/.exec(publish)?.[1] ?? ''
+  const lus = new Set([...blocAi.matchAll(/\b(?:pub|criteres)\.(\w+)/g)].map((m) => m[1]).filter((c) => c !== 'type'))
+  if (!blocAi || juges.size === 0) fautes.push('A bis. la liste des champs jugés, ou l’entrée de l’IA dans /publish, est introuvable')
+  const oublies = [...lus].filter((c) => !juges.has(c))
+  const morts = [...juges].filter((c) => !lus.has(c))
+  if (oublies.length) fautes.push(`A bis. /publish passe à l’IA ${oublies.join(', ')}, absent(s) de CHAMPS_JUGES_PAR_LE_CONTROLE — modifié(s) seul(s), ils ne rouvriraient pas le jugement`)
+  if (morts.length) fautes.push(`A bis. CHAMPS_JUGES_PAR_LE_CONTROLE cite ${morts.join(', ')}, que l’IA ne lit pas — modifié(s) seul(s), ils rouvriraient le jugement du même texte`)
   const statutsEcrits = [...patch.matchAll(/status: '(\w+)'/g)].map((m) => m[1]).filter((s) => s !== 'draft')
   if (statutsEcrits.length) fautes.push(`A. PATCH écrit un autre statut que draft : ${statutsEcrits.join(', ')}`)
   if (!/motif_refus: pub\.status === 'rejected' \? pub\.review_reason : null/.test(patch)) fautes.push('A. GET : le motif n’est pas servi à l’auteur, ou l’est hors d’un refus')
@@ -209,7 +223,10 @@ section('F. L’épreuve : chaque mutation fait rougir le contrôle')
   }
   const EPREUVES = [
     ['une annonce refusée qui n’est plus éditable', () => muter(F.patch, "'archived', 'rejected'] as const", "'archived'] as const")],
-    ['la resoumission inchangée qui n’est plus refusée', () => muter(F.patch, 'if (resoumission && champsChanges.length === 0) {', 'if (false) {')],
+    ['un champ que l’IA lit oublié dans la liste des champs jugés', () => muter(F.publishable, "  'budget_max',\n", '')],
+    ['un champ que l’IA ne lit pas ajouté à la liste (les zones)', () => muter(F.publishable, "  'description',\n  'skills_required',\n", "  'description',\n  'work_zone_ids',\n  'skills_required',\n")],
+    ['la resoumission rouverte par n’importe quel champ changé', () => muter(F.patch, 'if (resoumission && changesJuges.length === 0) {', 'if (resoumission && champsChanges.length === 0) {')],
+    ['la resoumission inchangée qui n’est plus refusée', () => muter(F.patch, 'if (resoumission && changesJuges.length === 0) {', 'if (false) {')],
     ['le brouillon écrit même sans resoumission', () => muter(F.patch, '.update(resoumission ? { ...u.updates, status: \'draft\' } : u.updates)', ".update({ ...u.updates, status: 'draft' })")],
     ['le motif servi hors d’un refus', () => muter(F.patch, "motif_refus: pub.status === 'rejected' ? pub.review_reason : null", 'motif_refus: pub.review_reason')],
     ['le compteur consommé pour une resoumission', () => muter(F.publish, '&& !resoumission) {', ') {')],

@@ -1,6 +1,7 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { clesModifiees } from '@/lib/profil/changements'
+import { CHAMPS_JUGES_PAR_LE_CONTROLE } from '@/lib/publications/publishable'
 import { memesZones } from '@/lib/work-zones'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
@@ -33,16 +34,18 @@ export const maxDuration = 60
  * suspendue / archivée, ou REFUSÉE par l'administration).
  *
  * LA RESOUMISSION D'UNE ANNONCE REFUSÉE (regroupement, ARRÊT 28 — le changement minimal décrit par S3) : une annonce
- * `rejected` s'édite, et repasse en BROUILLON dans le même `update` — SEULEMENT si au moins un champ change (la route
- * compare déjà, §D.33). Inchangée, elle reste refusée : 409 `annonce_refusee_inchangee`, NOMMÉ, rien n'est écrit. La
- * publication qui suit fait juger le TEXTE MODIFIÉ par la vérification automatique, et l'anti-relance tient (un texte
- * inchangé ne se resoumet pas ; la base refuse toujours la sortie de revue à un non-administrateur). Le motif du refus
+ * `rejected` s'édite, et repasse en BROUILLON dans le même `update` — SEULEMENT si un champ QUE LE CONTRÔLE DE L'IA LIT a
+ * vraiment changé (`CHAMPS_JUGES_PAR_LE_CONTROLE`, la liste de ce que /publish lui passe ; relecture de l'ARRÊT 28,
+ * point 1). Sinon — rien de changé, ou seulement la branche, les spécialités, les zones, la date, la confidentialité —
+ * elle reste refusée : 409 `annonce_refusee_inchangee`, NOMMÉ, RIEN n'est écrit (ni l'annonce, ni le journal). La
+ * publication qui suit fait juger le TEXTE MODIFIÉ par la vérification automatique, et l'anti-relance tient (un contenu
+ * jugé inchangé ne se resoumet pas ; la base refuse toujours la sortie de revue à un non-administrateur). Le motif du refus
  * (`review_reason`) reste sur la ligne : il marque la resoumission, que /publish ne recompte pas dans le mois (décision
  * de Youssef), et la fiche admin le montre comme « refus antérieur ».
  *
  * Garde : appartenance org active (RLS publications_member_write joue en
  * défense en profondeur). On REFUSE l'édition si status hors
- * ('draft','suspended','archived') — cf. statuts gérés par l'org côté client
+ * ('draft','suspended','archived','rejected') — cf. statuts gérés par l'org côté client
  * (alignement RLS).
  *
  * Champs INTOUCHABLES par cette route : status (sauf `rejected` → `draft`, ci-dessus), verification_score,
@@ -358,7 +361,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   // annonce refusée ne revient au brouillon que modifiée (resoumission, ARRÊT 28).
   const champsChanges = clesModifiees(u.updates as Record<string, unknown>, avantAnnonce)
   const resoumission = currentStatus === 'rejected'
-  if (resoumission && champsChanges.length === 0) {
+  // Seul un champ que l'IA lit rouvre le jugement : sans lui, le même contenu serait rejugé et pourrait passer en ligne
+  // sans que ce qui a été refusé ait été revu.
+  const changesJuges = champsChanges.filter((c) => (CHAMPS_JUGES_PAR_LE_CONTROLE as readonly string[]).includes(c))
+  if (resoumission && changesJuges.length === 0) {
     return json(
       { error: 'Rejected publication unchanged', code: 'annonce_refusee_inchangee', current_status: currentStatus },
       409,

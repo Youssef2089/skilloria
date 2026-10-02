@@ -75,5 +75,30 @@ export function missingForPublish(
   return manquants
 }
 
+/**
+ * LES CHAMPS QUE LE CONTRÔLE DE QUALITÉ (L'IA) LIT — les colonnes dont `/publish` compose son entrée (`aiInput`). Le
+ * type, immuable, n'y est pas : il ne peut pas changer.
+ *
+ * LA RESOUMISSION D'UNE ANNONCE REFUSÉE (relecture de l'ARRÊT 28, point 1) : elle ne revient au brouillon que si l'un de
+ * CES champs a vraiment changé. Changer seulement la branche, les spécialités, les zones, la date ou la confidentialité
+ * ferait rejuger le MÊME texte — et une annonce refusée passerait en ligne sans que rien de ce qui a été refusé n'ait été
+ * revu. `diag-resoumission` tient cette liste ÉGALE à ce que `/publish` lit.
+ */
+export const CHAMPS_JUGES_PAR_LE_CONTROLE = [
+  'title',
+  'description',
+  'skills_required',
+  'seniorities',
+  'work_modes',
+  'jours_sur_site',
+  'jours_teletravail',
+  'temps_travail',
+  'location_note',
+  'duree_valeur',
+  'duree_unite',
+  'budget_min',
+  'budget_max',
+] as const
+
 export const estPubliable = (input: PublicationPublishableInput): boolean =>
   missingForPublish(input).length === 0

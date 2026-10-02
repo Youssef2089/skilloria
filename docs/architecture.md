@@ -4259,8 +4259,10 @@ depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refuse
 `archived`, la carte et la fiche ne menaient à « Modifier » que pour eux, la vue Sous-traitance ne connaissait pas
 `rejected`. **La règle**, le changement minimal décrit par S3 :
 - `PATCH /api/publications/[id]` édite une annonce `rejected` et la repasse en **brouillon** dans le même `update` —
-  **seulement si un champ change** (la route compare déjà, §D.33) ; inchangée, 409 `annonce_refusee_inchangee`, nommé,
-  rien n'est écrit ;
+  **seulement si un champ QUE LE CONTRÔLE DE L'IA LIT a vraiment changé** (`CHAMPS_JUGES_PAR_LE_CONTROLE`, tenue égale à
+  l'entrée de l'IA dans `/publish` ; relecture de l'ARRÊT 28, point 1 — changer seulement la branche, les spécialités, les
+  zones, la date ou la confidentialité aurait fait rejuger le MÊME texte, et une annonce refusée pouvait passer en ligne
+  sans que rien de ce qui a été refusé soit revu) ; sinon 409 `annonce_refusee_inchangee`, nommé, rien n'est écrit ;
 - la publication qui suit fait juger le **TEXTE MODIFIÉ** par la vérification automatique (rien n'est sauté) ; l'anti-
   relance tient : on ne publie que depuis un brouillon, et la base refuse la sortie de revue à un non-administrateur ;
 - **la resoumission ne compte pas une seconde fois** dans les publications du mois (décision de Youssef) : le marqueur est
