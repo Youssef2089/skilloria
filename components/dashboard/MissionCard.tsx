@@ -109,8 +109,8 @@ export default function MissionCard({
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+          {/* Le palier se lit SEUL : plus d'info-bulle sur ce libellé, sur aucune carte (lot alertes). */}
           <span
-            title={t('ai_score_tooltip')}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

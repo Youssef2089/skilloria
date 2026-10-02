@@ -16,7 +16,9 @@ import { etatRepartition, inclusExclus, type LectureRepartition } from '@/lib/ma
  * │     cherchait « analyse de CV » et ne la trouvait nulle part ;           │
  * │   · les notifications étaient fermées DEUX FOIS dans le même bloc (le    │
  * │     filtre à 10 ET la case décochée) — devant deux verrous pour une      │
- * │     porte, on ne sait plus lequel agit ;                                 │
+ * │     porte, on ne sait plus lequel agit (lot alertes : il n'y a plus      │
+ * │     AUCUN verrou — une annonce affichée prévient toujours l'expert ; le  │
+ * │     second champ ne règle plus que le palier « Correspondance forte ») ; │
  * │   · l'écran annonçait « la lecture a échoué » alors que le moteur        │
  * │     n'avait jamais tourné.                                               │
  * └────────────────────────────────────────────────────────────────────────┘
@@ -31,8 +33,8 @@ import { etatRepartition, inclusExclus, type LectureRepartition } from '@/lib/ma
 type Reglage = {
   domain_id: string
   feed_threshold: number
+  /** Le palier « Correspondance forte » — il ne décide d'aucune alerte (lot alertes). */
   notify_threshold: number
-  notify_enabled: boolean
   rerank_model: string
   rerank_batch_size: number
   domaine: { slug: string; name: string | null } | null
@@ -133,7 +135,7 @@ export default function MatchingPage() {
   const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
   const [enCours, setEnCours] = useState<string | null>(null)
   const [saisies, setSaisies] = useState<
-    Record<string, { feed: string; notify: string; enabled: boolean; model: string; batch: string }>
+    Record<string, { feed: string; notify: string; model: string; batch: string }>
   >({})
   const [argent, setArgent] = useState<Record<string, string>>({})
 
@@ -155,7 +157,6 @@ export default function MatchingPage() {
             {
               feed: String(r.feed_threshold),
               notify: String(r.notify_threshold),
-              enabled: r.notify_enabled,
               model: r.rerank_model,
               batch: String(r.rerank_batch_size),
             },
@@ -195,7 +196,6 @@ export default function MatchingPage() {
     const inchange =
       feed === r.feed_threshold &&
       notify === r.notify_threshold &&
-      s.enabled === r.notify_enabled &&
       s.model === r.rerank_model &&
       Number(s.batch) === r.rerank_batch_size
     if (inchange) return t('blocked_unchanged')
@@ -215,7 +215,6 @@ export default function MatchingPage() {
           domain_id: r.domain_id,
           feed_threshold: Number(s.feed),
           notify_threshold: Number(s.notify),
-          notify_enabled: s.enabled,
           rerank_model: s.model,
           rerank_batch_size: Number(s.batch),
         }),
@@ -449,7 +448,7 @@ export default function MatchingPage() {
 
           {/* ─── PAR ÉCOSYSTÈME ──────────────────────────────────────────── */}
           {data?.reglages.map((r) => {
-            const s = saisies[r.domain_id] ?? { feed: '', notify: '', enabled: false, model: '', batch: '' }
+            const s = saisies[r.domain_id] ?? { feed: '', notify: '', model: '', batch: '' }
             const blocage = motifDeBlocage(r)
             const modeleChange = s.model !== r.rerank_model
             const etat = etatRepartition(r.distribution)
@@ -522,51 +521,34 @@ export default function MatchingPage() {
                   </div>
                 </section>
 
-                {/* PRÉVENIR L'EXPERT — UN SEUL INTERRUPTEUR DÉCIDE.
-                    Le filtre à 10 fermait la porte une seconde fois, dans le
-                    même bloc : devant deux verrous pour une porte, on ne sait
-                    plus lequel agit. La note passe dans son propre sous-bloc,
-                    inerte tant que l'interrupteur est fermé — et elle n'est pas
-                    seulement grisée : le champ est DÉSACTIVÉ. Un champ gris mais
-                    saisissable est un champ qu'on remplit. */}
+                {/* LE PALIER « CORRESPONDANCE FORTE » — ET PLUS AUCUN INTERRUPTEUR (lot alertes).
+                    Une annonce qui s'affiche dans les recommandations prévient l'expert, toujours : la case
+                    « Envoyer un e-mail » et le filtre de notification pouvaient contredire cette règle, ils ont
+                    disparu (§D.11 : un réglage qui ne règle plus rien ne s'affiche pas). Ce champ ne règle plus
+                    que le libellé que l'expert lit sur la carte ; la règle de l'alerte est DITE, pas réglée. */}
                 <section style={carte}>
-                  <h3 style={titreBloc}>{t('notify_title')}</h3>
-                  <p style={uneLigne}>{t('notify_one_line')}</p>
+                  <h3 style={titreBloc}>{t('palier_title')}</h3>
+                  <p style={uneLigne}>{t('palier_one_line')}</p>
 
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 14, fontWeight: 600 }}>
-                    <input
-                      type="checkbox"
-                      checked={s.enabled}
-                      onChange={(e) => setSaisies((p) => ({ ...p, [r.domain_id]: { ...s, enabled: e.target.checked } }))}
-                      style={{ width: 18, height: 18 }}
-                    />
-                    {t('field_notify_enabled')}
+                  <label htmlFor={`n_${r.domain_id}`} style={etiquette}>
+                    {t('field_palier')}
                   </label>
-
-                  <div style={{ marginTop: 18, opacity: s.enabled ? 1 : 0.45 }}>
-                    <label htmlFor={`n_${r.domain_id}`} style={etiquette}>
-                      {t('field_notify')}
-                    </label>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                      <input
-                        id={`n_${r.domain_id}`}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={10}
-                        step={1}
-                        disabled={!s.enabled}
-                        value={s.notify}
-                        onChange={(e) => setSaisies((p) => ({ ...p, [r.domain_id]: { ...s, notify: e.target.value } }))}
-                        style={{ ...champ, width: 100 }}
-                      />
-                      <span style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('out_of_ten')}</span>
-                    </span>
-                    {!s.enabled && (
-                      <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '8px 0 0' }}>
-                        {t('notify_inactive')}
-                      </p>
-                    )}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      id={`n_${r.domain_id}`}
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      max={10}
+                      step={1}
+                      value={s.notify}
+                      onChange={(e) => setSaisies((p) => ({ ...p, [r.domain_id]: { ...s, notify: e.target.value } }))}
+                      style={{ ...champ, width: 100 }}
+                    />
+                    <span style={{ fontSize: 14, color: 'var(--sk-muted)' }}>{t('out_of_ten')}</span>
+                  </span>
+                  <div style={encart}>
+                    <p style={{ ...sousEtiquette, margin: 0 }}>{t('alerte_regle')}</p>
                   </div>
                 </section>
 

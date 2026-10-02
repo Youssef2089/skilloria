@@ -70,7 +70,9 @@ with
       ('contrainte', 'profiles_temps_travail_valid'),
       -- zones_liste_des_pays (S1)
       ('fonction', 'remplacer_zone_de_travail'),
-      ('contrainte', 'work_zones_code_pays_forme')
+      ('contrainte', 'work_zones_code_pays_forme'),
+      -- mission_postulee (S2)
+      ('fonction', 'mission_postulee')
     ) v(genre, nom)
   )
 

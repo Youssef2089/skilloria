@@ -86,11 +86,9 @@ export type ExpertFeedContext = {
    * partagée (§D.20), jamais d'une expression locale.
    */
   horsDuMoteur: RaisonIneligible | null
-  /**
-   * UNE NOTIFICATION PARTIRA-T-ELLE ? — `matching_settings.notify_enabled` de SON écosystème (M12).
-   * « Vous serez notifié » n'est écrit que si c'est vrai ; `null` = pas pu lire (on ne promet rien).
-   */
-  notificationsActives: boolean | null
+  // « UNE NOTIFICATION PARTIRA-T-ELLE ? » (M12) a quitté ce contexte avec `notify_enabled` (lot alertes) : une annonce
+  // qui s'affiche prévient TOUJOURS l'expert, dans la cloche. « Vous serez notifié » est donc vrai sans condition —
+  // l'e-mail, lui, suit la préférence de l'expert, qu'il règle lui-même.
 }
 
 
@@ -149,7 +147,6 @@ export async function loadExpertFeedContext(
         isOpen: false,
         derniereRecherche: null,
         horsDuMoteur: null,
-        notificationsActives: null,
       },
     }
   }
@@ -175,17 +172,6 @@ export async function loadExpertFeedContext(
         !(c.remplie as (l: Record<string, unknown>) => boolean)(ligne),
     )?.raison ?? null
 
-  const domaine = (row as { domain_id?: string | null }).domain_id ?? null
-  let notificationsActives: boolean | null = null
-  if (domaine) {
-    const { data: reglage, error: reglageErr } = await supabaseAdmin
-      .from('matching_settings')
-      .select('notify_enabled')
-      .eq('domain_id', domaine)
-      .maybeSingle()
-    if (!reglageErr && reglage) notificationsActives = (reglage as { notify_enabled?: boolean }).notify_enabled === true
-  }
-
   return {
     ok: true,
     context: {
@@ -195,7 +181,6 @@ export async function loadExpertFeedContext(
       isOpen: isApproved && !isDnd,
       derniereRecherche: etatDerniereRecherche(row),
       horsDuMoteur: isApproved ? horsDuMoteur : null,
-      notificationsActives,
     },
   }
 }
@@ -230,6 +215,7 @@ export function buildExpertMissionsSelect(opts?: {
  * Requête des matches ÉLIGIBLES de l'expert. Porte l'intégralité des règles
  * d'éligibilité côté publication :
  *   - match non décliné par l'expert       (.neq status dismissed)
+ *   - mission NON postulée par l'expert    (.eq mission_postulee false — lot alertes)
  *   - publication publiée                  (.eq publications.status)
  *   - publication NON expirée              (activePublishedOrClause — règle 30 j
  *                                           JAMAIS redéfinie ici)
@@ -255,6 +241,12 @@ export function expertMissionsQuery(
     .select(opts.select, { count: opts.count, head: opts.head })
     .eq('profile_id', profileId)
     .neq('status', 'dismissed')
+    // UNE MISSION POSTULÉE SORT DES RECOMMANDATIONS (lot alertes, freelance et CDI, accueil et « Missions ») : elle
+    // vit désormais dans le suivi des candidatures. La réconciliation GARDE le match d'une candidature (acte engagé,
+    // lib/matching/reconcile.ts) — c'est donc ICI, à la lecture, qu'il quitte le flux, et le compteur avec lui (même
+    // fonction). `mission_postulee(matches)` est un champ CALCULÉ en base (migration `mission_postulee`) : une sonde
+    // sur l'index unique (publication, profil) des candidatures, sans liste d'identifiants dans l'adresse.
+    .eq('mission_postulee', false)
     .eq('publications.status', 'published')
     .or(
       activePublishedOrClause({ vieAnnonceJours: opts.vieAnnonceJours, now: opts.now }),

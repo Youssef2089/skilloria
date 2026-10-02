@@ -282,8 +282,8 @@ export default function MissionDetailView({
             {[pub.branch_label, pub.speciality_labels.join(', ') || null, budgetText].filter(Boolean).join(' · ')}
           </div>
         </div>
+        {/* Le palier se lit SEUL : plus d'info-bulle sur ce libellé (lot alertes). */}
         <span
-          title={t('ai_score_tooltip')}
           style={{
             display: 'inline-flex', alignItems: 'center', padding: '6px 14px',
             background: `color-mix(in srgb, var(--sk-accent) 10%, transparent)`, color: 'var(--sk-accent)',

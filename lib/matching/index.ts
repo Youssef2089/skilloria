@@ -94,11 +94,13 @@ type TraceDeRun = {
   sans_matiere: number
   reranked: number
   rerank_failed: number
+  /** Les correspondances au palier « fort » (lu par `matching_threshold_health()`). */
   above_threshold: number
   matches_created: number
+  /** Les experts à qui une alerte a été DEMANDÉE — toute correspondance fraîche (lot alertes). */
   notified: number
-  notify_enabled: boolean
   feed_threshold_used: number
+  /** Le palier « Correspondance forte » en vigueur — il ne décide plus d'aucune alerte. */
   threshold_used: number
   score_p50: number | null
   score_p90: number | null
@@ -383,7 +385,6 @@ export async function runMatchingForPublication(args: {
         above_threshold: 0,
         matches_created: 0,
         notified: 0,
-        notify_enabled: s.notify_enabled,
         feed_threshold_used: s.feed_threshold,
         threshold_used: s.notify_threshold,
         // Aucun score n'a été produit : `null` dit « rien à distribuer », là où
@@ -457,7 +458,7 @@ export async function runMatchingForPublication(args: {
       profile_id: profileId,
       publication_id: publicationId,
       relevance_score: score,
-      // Le palier est figé ICI, contre le seuil EN VIGUEUR ce jour-là. Le
+      // Le palier est figé ICI, contre le palier EN VIGUEUR ce jour-là. Le
       // recalculer à l'affichage rebaptiserait des matches anciens en silence.
       relevance_tier: s.notify_threshold > 0 && score >= s.notify_threshold ? 'strong' : 'normal',
       reason: '',
@@ -498,16 +499,17 @@ export async function runMatchingForPublication(args: {
   })
 
   // ── 6. Les notifications ─────────────────────────────────────────────────
-  //  Seulement les inserts FRAIS, seulement au-dessus du seuil, et seulement si
-  //  les notifications sont ACTIVÉES. Tant que personne n'a lu la distribution,
-  //  elles ne le sont pas : notifier 12 000 personnes sur un seuil deviné est
-  //  pire que ne pas notifier encore.
+  //  UNE ANNONCE QUI S'AFFICHE DANS LES RECOMMANDATIONS PRÉVIENT L'EXPERT — dans la cloche, et par e-mail s'il l'a
+  //  activé (décision de Youssef, lot alertes). Chaque insert FRAIS est une annonce qui vient d'entrer dans son flux :
+  //  il est prévenu, quel que soit son palier. Aucun réglage ne s'interpose plus : `notify_enabled` (faux par défaut)
+  //  et le filtre de notification (8/10) laissaient une annonce affichée « Correspondance forte », pastille rouge
+  //  comprise, sans une alerte. Le seul filtre est celui du flux — ce qui ne s'affiche pas ne prévient pas.
+  //  Un ré-run ne re-prévient personne : seuls les inserts frais partent, et `notifyAndFlip` saute une paire déjà
+  //  notifiée.
   let notifies = 0
-  if (s.notify_enabled && stats.inserted.length > 0) {
-    const fortsFrais = new Set(auDessusDuSeuil.map((d) => d.profile_id))
-    const cibles = stats.inserted.filter((i) => fortsFrais.has(i.profile_id))
+  if (stats.inserted.length > 0) {
     const specs: NotifySpec[] = []
-    for (const c of cibles) {
+    for (const c of stats.inserted) {
       const p = parProfil.get(c.profile_id)
       if (!p) continue
       specs.push({
@@ -541,7 +543,6 @@ export async function runMatchingForPublication(args: {
       above_threshold: auDessusDuSeuil.length,
       matches_created: stats.inserted.length,
       notified: notifies,
-      notify_enabled: s.notify_enabled,
       feed_threshold_used: s.feed_threshold,
       threshold_used: s.notify_threshold,
       score_p50: percentile(scores, 0.5),
@@ -572,7 +573,7 @@ export async function runMatchingForPublication(args: {
 
   const resume =
     `Vivier ${vivier.profils.length} · notés ${notation.notes} · retenus ${desired.length} · ` +
-    `forts ${auDessusDuSeuil.length} · +${stats.inserted.length} ~${stats.updated} -${stats.deleted}` +
+    `forts ${auDessusDuSeuil.length} · prévenus ${notifies} · +${stats.inserted.length} ~${stats.updated} -${stats.deleted}` +
     (notation.arret ? ` · ARRÊTÉ : ${notation.arret}` : '') +
     (notation.lots_en_echec > 0 ? ` · ${notation.lots_en_echec} lot(s) NON noté(s)` : '')
 

@@ -32,7 +32,6 @@ type MissionsPayload = {
      */
     derniere_recherche?: { etat: 'echec'; raison: string; abandonnee: boolean }
     hors_du_moteur?: string
-    notifications_actives?: boolean | null
   }
 }
 
@@ -56,7 +55,6 @@ export default function CdiMissionsFeedPage() {
   const isDnd = !!live.data?.expert_status?.is_dnd
   const recherche = live.data?.expert_status?.derniere_recherche
   const horsDuMoteur = live.data?.expert_status?.hors_du_moteur ?? null
-  const notificationsActives = live.data?.expert_status?.notifications_actives === true
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 26px' }}>
@@ -111,8 +109,9 @@ export default function CdiMissionsFeedPage() {
             <EmptyState
               icon="🎯"
               title={t('empty_title')}
-              // « Vous serez notifié » n'est écrit que si une notification PARTIRA (M12).
-              body={notificationsActives ? t('empty_subtitle') : t('empty_subtitle_sans_notification')}
+              // « Vous serez notifié » est VRAI sans condition (lot alertes) : une annonce qui s'affiche prévient
+              // toujours l'expert, dans la cloche — aucun réglage ne peut plus l'éteindre (M12 est clos par la règle).
+              body={t('empty_subtitle')}
             />
           )}
         </div>

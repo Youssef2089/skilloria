@@ -367,8 +367,10 @@ section('N. M11, M12, et les mineurs')
     ok(/sessionDuCompteAffiche\(\)/.test(src), `m7 — ${voie} : la validation lit l’identité par le compte affiché`)
     ok(/<EcartsAnalyse profileId=\{profileId\} \/>/.test(src), `point 5 — ${voie} : les écarts de l’analyse sont DITS`)
     const m = sansCommentaires(lire(`app/[locale]/dashboard/${voie}/missions/page.tsx`))
-    ok(/notificationsActives \? t\('empty_subtitle'\) : t\('empty_subtitle_sans_notification'\)/.test(m) && /horsDuMoteur \? \(/.test(m),
-      `M12, m — missions ${voie} : « vous serez notifié » seulement si c’est vrai ; « hors du moteur » est dit`)
+    // M12, revu par le lot alertes : une annonce qui s'affiche prévient TOUJOURS l'expert (aucun réglage ne l'éteint
+    // plus) — « vous serez notifié » est donc vrai sans condition, et la variante « sans notification » ne s'écrit plus.
+    ok(/body=\{t\('empty_subtitle'\)\}/.test(m) && !/empty_subtitle_sans_notification|notificationsActives/.test(m) && /horsDuMoteur \? \(/.test(m),
+      `M12, m — missions ${voie} : « vous serez notifié » est vrai sans condition (lot alertes) ; « hors du moteur » est dit`)
   }
   ok(/\.or\(filtreEnAttente\)/.test(lire('lib/notifications/dispatch.ts')) && /CANAUX_OUVERTS\.map/.test(lire('lib/notifications/dispatch.ts')), 'M7 — le dispatcher n’attend que les canaux OUVERTS (une notification posée part)')
   ok(/upsert\(toInsert, \{ onConflict: 'publication_id,profile_id', ignoreDuplicates: true \}\)/.test(lire('lib/matching/reconcile.ts')), 'm9 — deux runs sur une paire ne font plus échouer le lot')

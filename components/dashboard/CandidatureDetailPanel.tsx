@@ -50,6 +50,12 @@ export type Candidature = {
   status_reason: string | null
   ai_match_score: number | null
   unlocked_at: string | null
+  /**
+   * QUI A OUVERT L'ÉCHANGE — dérivé SERVEUR (lib/candidatures/origine-devoilement.ts) : `inclus` = automatiquement au
+   * dépôt (la candidature était la mieux notée), `entreprise` = l'entreprise, `null` = on ne sait pas, et l'écran ne
+   * nomme alors personne. Optionnel au type près pour un call-site qui ne le sert pas encore.
+   */
+  devoilement?: 'inclus' | 'entreprise' | null
   selected_at: string | null
   cover_message: string | null
   created_at: string
@@ -175,7 +181,15 @@ export default function CandidatureDetailPanel({
         {(c.status === 'unlocked' || c.status === 'selected') && c.unlocked_at && (
           <TimelineStep
             icon={<IconLockOpen size={16} />}
-            label={t('timeline.unlocked')}
+            // QUI L'A OUVERT se dit — et seulement ce qu'on sait (lot alertes) : « par l'entreprise » s'écrivait aussi
+            // pour le dévoilement INCLUS, automatique au dépôt, une minute après la candidature.
+            label={
+              c.devoilement === 'inclus'
+                ? t('timeline.unlocked_inclus')
+                : c.devoilement === 'entreprise'
+                  ? t('timeline.unlocked')
+                  : t('timeline.unlocked_sans_origine')
+            }
             sub={t('unlocked_since', { time: relTime(c.unlocked_at) })}
             state="done"
             isLast={reason === 'exchange_open'}
