@@ -174,7 +174,9 @@ section('1. Une annonce qui s’affiche prévient — aucun réglage ne contredi
   const ACTIVE = /s’il l’a activé|if they turned it on|si lo activó|wenn er dies .* aktiviert/
   const fausses = LANGUES.filter((l) => !COUPE[l].test(cle(MSG[l], 'admin_matching.alerte_regle') ?? '') || ACTIVE.test(cle(MSG[l], 'admin_matching.alerte_regle') ?? ''))
   ok(fausses.length === 0, 'la règle dit que l’e-mail part sauf si l’expert l’a coupé (le défaut), dans les quatre langues', fausses.join(', '))
-
+  ok(/aucune alerte|no alert|ningún aviso|keine Benachrichtigung/.test(LANGUES.map((l) => cle(MSG[l], 'journal.valeurs.cle_reglage.notify_threshold')).join(' '))
+     && LANGUES.every((l) => !/prévenir par notification|send a notification|avisar con una notificación|für eine Benachrichtigung/.test(cle(MSG[l], 'journal.valeurs.cle_reglage.notify_threshold') ?? '')),
+    'le libellé du réglage au journal dit « l’étiquette seulement », plus « prévenir par notification » (point 5)')
   ok(/aucune ligne et reçoit tout/.test(lire('lib/notifications/preferences.ts')),
     'la règle de l’e-mail par défaut (aucune ligne = tout reçu) est toujours celle des préférences')
   // Et « vous serez notifié » est vrai sans condition : la variante qui dépendait du réglage n'est plus rendue.

@@ -5757,7 +5757,7 @@
         "max_per_window": "número de análisis permitido",
         "window_hours": "periodo (horas)",
         "feed_threshold": "nota mínima para proponer una correspondencia",
-        "notify_threshold": "nota mínima para avisar con una notificación",
+        "notify_threshold": "nota a partir de la cual un anuncio lleva la etiqueta «Coincidencia alta» (solo una etiqueta, ningún aviso)",
         "notify_enabled": "notificaciones activadas",
         "rerank_model": "modelo de clasificación",
         "rerank_batch_size": "tamaño de los lotes puntuados juntos",

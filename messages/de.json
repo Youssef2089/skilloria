@@ -5757,7 +5757,7 @@
         "max_per_window": "erlaubte Anzahl an Analysen",
         "window_hours": "Zeitraum (Stunden)",
         "feed_threshold": "Mindestnote für einen Vorschlag",
-        "notify_threshold": "Mindestnote für eine Benachrichtigung",
+        "notify_threshold": "Note, ab der eine Anzeige das Etikett „Starke Übereinstimmung“ trägt (nur ein Etikett, keine Benachrichtigung)",
         "notify_enabled": "Benachrichtigungen eingeschaltet",
         "rerank_model": "Rangfolgemodell",
         "rerank_batch_size": "Größe der gemeinsam bewerteten Gruppen",

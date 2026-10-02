@@ -5757,7 +5757,7 @@
         "max_per_window": "nombre d’analyses permis",
         "window_hours": "période (heures)",
         "feed_threshold": "note minimale pour proposer une correspondance",
-        "notify_threshold": "note minimale pour prévenir par notification",
+        "notify_threshold": "note à partir de laquelle une annonce porte l’étiquette « Correspondance forte » (une étiquette seulement, aucune alerte)",
         "notify_enabled": "notifications activées",
         "rerank_model": "modèle de classement",
         "rerank_batch_size": "taille des lots notés ensemble",

@@ -5757,7 +5757,7 @@
         "max_per_window": "number of analyses allowed",
         "window_hours": "period (hours)",
         "feed_threshold": "minimum score to suggest a match",
-        "notify_threshold": "minimum score to send a notification",
+        "notify_threshold": "score from which a listing carries the “Strong match” label (a label only, no alert)",
         "notify_enabled": "notifications on",
         "rerank_model": "ranking model",
         "rerank_batch_size": "size of the batches scored together",
