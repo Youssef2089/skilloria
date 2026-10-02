@@ -146,6 +146,20 @@ export type Phrase = { cle: string; args?: Record<string, Arg> }
 // ─── Les petites lectures, tolérantes : une ligne ancienne peut manquer de n'importe quelle clé ────────────────
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const nombre = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : typeof v === 'string' && v.trim() !== '' && Number.isFinite(Number(v)) ? Number(v) : null)
+/**
+ * LA NOTE D'UN VERDICT D'ANNONCE, AU JOURNAL — la MÊME règle que la liste et la fiche (`raisonsDuVerdict`, §E.114 ;
+ * contre-relecture de l'ARRÊT 28, point B) : une note 0 SANS AUCUN signalement est la forme qu'écrit une vérification qui
+ * n'a pas jugé (fournisseur inactif, plafond, modèle indisponible) — « non jugée » ; une note 0 AVEC des signalements est un
+ * vrai verdict — « 0/10 ». Le nombre de signalements vient de la ligne (`nb_signalements`) ; une ligne écrite avant qu'il
+ * existe ne le porte pas : on ne sait pas lequel des deux est vrai, la phrase ne donne pas de note (`null`).
+ */
+function noteDuVerdict(d: Record<string, unknown>): number | 'non_jugee' | null {
+  const note = nombre(d.verification_score)
+  if (note !== 0) return note
+  const signalements = nombre(d.nb_signalements)
+  if (signalements === null) return null
+  return signalements === 0 ? 'non_jugee' : 0
+}
 const chaine = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null)
 const vrai = (v: unknown): boolean => v === true
 const liste = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
@@ -268,11 +282,8 @@ export function phraseDe(l: LignePhrase): Phrase {
       return { cle: 'sous_traitance_creee', args: { qui, annonce: sujet(l, 'publications') } }
     case 'annonce_publiee':
     case 'sous_traitance_publiee': {
-      const note = nombre(d.verification_score)
-      // UNE NOTE 0 N'EST PAS UN VERDICT (relecture de l'ARRÊT 28, point 7 ; §E.114) : c'est la forme qu'écrit une
-      // vérification qui n'a PAS jugé (fournisseur inactif, plafond, modèle indisponible). Elle se dit « non jugée »,
-      // jamais « 0/10 ».
-      const nonJugee = note === 0
+      const note = noteDuVerdict(d)
+      const nonJugee = note === 'non_jugee'
       // La voie ADMINISTRATEUR (lot S3) : l'annonce était en revue, un administrateur l'a validée. Une ligne ancienne
       // n'a pas de voie : elle se lit comme une publication directe, ce qu'elle était.
       if (d.voie === 'administrateur') {
@@ -280,22 +291,21 @@ export function phraseDe(l: LignePhrase): Phrase {
           ? { cle: `${l.type_action}.validee`, args: { qui, annonce: sujet(l, 'publications') } }
           : nonJugee
             ? { cle: `${l.type_action}.validee_non_jugee`, args: { qui, annonce: sujet(l, 'publications') } }
-            : { cle: `${l.type_action}.validee_note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note) } }
+            : { cle: `${l.type_action}.validee_note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note as number) } }
       }
       return note === null
         ? { cle: `${l.type_action}.simple`, args: { qui, annonce: sujet(l, 'publications') } }
         : nonJugee
           ? { cle: `${l.type_action}.non_jugee`, args: { qui, annonce: sujet(l, 'publications') } }
-          : { cle: `${l.type_action}.note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note) } }
+          : { cle: `${l.type_action}.note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note as number) } }
     }
     case 'annonce_refusee': {
       // Le motif n'est jamais au journal (texte libre) : la phrase dit qu'il a été transmis, pas ce qu'il dit.
-      const note = nombre(d.verification_score)
+      const note = noteDuVerdict(d)
       const genre = d.type === 'sous_traitance' ? 'sous_traitance' : 'annonce'
-      // Une note 0 : la vérification automatique n'avait pas jugé (point 7) — « non jugée », jamais « 0/10 ».
       return note === null
         ? { cle: `annonce_refusee.${genre}`, args: { qui, annonce: sujet(l, 'publications') } }
-        : note === 0
+        : note === 'non_jugee'
           ? { cle: `annonce_refusee.${genre}_non_jugee`, args: { qui, annonce: sujet(l, 'publications') } }
           : { cle: `annonce_refusee.${genre}_note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note) } }
     }

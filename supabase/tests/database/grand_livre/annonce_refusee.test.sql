@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(18);
+select plan(19);
 
 -- Une annonce EN REVUE, par le chemin normal : brouillon, puis verdict qui ne publie pas (note 4).
 create or replace function pg_temp.en_revue(p_org uuid, p_auteur uuid, p_type text default 'mission') returns uuid
@@ -41,6 +41,8 @@ declare
   v_p5      uuid := gen_random_uuid();
   v_p6      uuid := gen_random_uuid();
   v_p7      uuid := gen_random_uuid();
+  v_st2     uuid := pg_temp.en_revue(v_org, v_auteur);
+  v_p8      uuid := gen_random_uuid();
   v_r       jsonb;
 begin
   -- ── LA GARDE D'ABORD, sur l'annonce intacte : l'auteur ne la sort pas de la revue (anti-relance). ──
@@ -71,8 +73,9 @@ begin
                  'la validation ne réécrit pas la date de soumission');
   return next ok(pg_temp.lignes(v_p1) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p1
                   and g.type_action = 'annonce_publiee' and g.sujet_id = v_valide and g.ecosysteme_id = v_dom
-                  and g.acteur_id = v_admin and g.detail ->> 'voie' = 'administrateur' and (g.detail ->> 'verification_score')::numeric = 4),
-                 'exactement UNE ligne annonce_publiee, voie administrateur, sous l''administrateur');
+                  and g.acteur_id = v_admin and g.detail ->> 'voie' = 'administrateur' and (g.detail ->> 'verification_score')::numeric = 4
+                  and (g.detail ->> 'nb_signalements')::integer = 1),
+                 'exactement UNE ligne annonce_publiee, voie administrateur, sous l''administrateur, avec le NOMBRE de signalements (1)');
   -- Appeler d'abord, relire ensuite : une sous-requête lit l'instantané du début de SON instruction (§E.74).
   v_r := public.publier_annonce(v_p2, null, 'administrateur', v_admin, 'admin', v_valide, v_dom, v_org,
                                 array['pending_review'], 'published', null, null, null);
@@ -105,8 +108,17 @@ begin
                  'refusée : statut, administrateur, date et motif (rogné) sur la ligne métier, rien en ligne');
   return next ok(pg_temp.lignes(v_p4) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p4
                   and g.type_action = 'annonce_refusee' and g.sujet_id = v_refuse and g.ecosysteme_id = v_dom
-                  and g.detail ->> 'type' = 'mission' and g.detail ->> 'organization_id' = v_org::text),
-                 'exactement UNE ligne annonce_refusee, avec le type et l''organisation');
+                  and g.detail ->> 'type' = 'mission' and g.detail ->> 'organization_id' = v_org::text
+                  and (g.detail ->> 'nb_signalements')::integer = 1),
+                 'exactement UNE ligne annonce_refusee, avec le type, l''organisation et le nombre de signalements (1)');
+  -- UNE VÉRIFICATION QUI N'A PAS JUGÉ (note 0, AUCUN signalement — contre-relecture de l'ARRÊT 28, point B) : la ligne dit
+  -- 0 signalement, et le journal la lira « non jugée » ; une note 0 AVEC des signalements serait un vrai 0/10.
+  update public.publications set verification_score = 0, verification_data = '{"score":0,"notes":"Sonde","flags":[]}'::jsonb
+   where id = v_st2;
+  perform public.refuser_annonce(v_p8, null, 'administrateur', v_admin, 'admin', v_st2, 'non jugée');
+  return next ok(exists (select 1 from public.grand_livre g where g.piece = v_p8 and g.type_action = 'annonce_refusee'
+                          and (g.detail ->> 'verification_score')::numeric = 0 and (g.detail ->> 'nb_signalements')::integer = 0),
+                 'une annonce que la vérification n''a pas jugée (note 0, aucun signalement) : la ligne porte 0 signalement');
   return next ok(not exists (select 1 from public.grand_livre g where g.piece = v_p4 and g.detail::text like '%Coordonnées%'),
                  'le motif en texte libre n''entre pas dans la ligne');
   v_r := public.refuser_annonce(v_p5, null, 'administrateur', v_admin, 'admin', v_refuse, 'encore');

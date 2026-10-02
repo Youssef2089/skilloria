@@ -48,16 +48,19 @@ insert into public.grand_livre_actions (code, famille, statut_impose, libelle_ke
   ('annonce_refusee', 'annonce', 'reussi', 'journal.actions.annonce_refusee')
 on conflict (code) do nothing;
 
+-- `nb_signalements` (contre-relecture de l'ARRÊT 28, point B) : le NOMBRE de signalements du verdict de la machine — un
+-- compte, jamais leur texte. Il dit au journal ce que la liste lit sur l'annonce : une note 0 SANS aucun signalement est
+-- une vérification qui n'a pas jugé (« non jugée », §E.114) ; une note 0 AVEC des signalements est un vrai 0/10.
 update public.grand_livre_actions
-   set cles_detail = array['type', 'organization_id', 'verification_score']::text[]
+   set cles_detail = array['type', 'organization_id', 'verification_score', 'nb_signalements']::text[]
  where code = 'annonce_refusee';
 
 update public.grand_livre_actions
-   set cles_detail = array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie']::text[]
+   set cles_detail = array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie', 'nb_signalements']::text[]
  where code = 'annonce_publiee';
 
 update public.grand_livre_actions
-   set cles_detail = array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie']::text[]
+   set cles_detail = array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie', 'nb_signalements']::text[]
  where code = 'sous_traitance_publiee';
 
 
@@ -161,7 +164,11 @@ begin
          soumise_le          = case when v_par_admin then p.soumise_le else now() end,
          published_at        = case when p_verdict = 'published' then now() else p.published_at end
    where p.id = p_publication_id
-  returning p.id, p.type, p.status, p.published_at, p.verification_method, p.verification_score into v_p;
+  returning p.id, p.type, p.status, p.published_at, p.verification_method, p.verification_score,
+            (select count(*) from jsonb_array_elements(case when jsonb_typeof(p.verification_data -> 'flags') = 'array'
+                                                            then p.verification_data -> 'flags' else '[]'::jsonb end) f
+              where jsonb_typeof(f) = 'string') as nb_signalements
+       into v_p;
   -- La ligne est VERROUILLÉE et relue juste au-dessus : zéro ligne touchée ici n'est pas un rejeu, c'est une anomalie
   -- (une politique, un déclencheur qui annule) — elle LÈVE (EC001, §E.74), elle ne rend pas null.
   get diagnostics v_n = row_count;
@@ -180,7 +187,8 @@ begin
         'verification_method', v_p.verification_method,
         'verification_score', v_p.verification_score,
         'published_at', v_p.published_at,
-        'voie', case when v_par_admin then 'administrateur' else 'automatique' end),
+        'voie', case when v_par_admin then 'administrateur' else 'automatique' end,
+        'nb_signalements', v_p.nb_signalements),
       p_piece_origine, null::numeric, null::text);
   end if;
 
@@ -229,7 +237,11 @@ begin
          review_reason = v_motif
    where p.id = p_publication_id
      and p.status = 'pending_review'
-  returning p.id, p.type, p.domain_id, p.organization_id, p.verification_score, p.verified_at into v_p;
+  returning p.id, p.type, p.domain_id, p.organization_id, p.verification_score, p.verified_at,
+            (select count(*) from jsonb_array_elements(case when jsonb_typeof(p.verification_data -> 'flags') = 'array'
+                                                            then p.verification_data -> 'flags' else '[]'::jsonb end) f
+              where jsonb_typeof(f) = 'string') as nb_signalements
+       into v_p;
   if not found then
     return null;
   end if;
@@ -241,7 +253,8 @@ begin
     jsonb_build_object(
       'type', v_p.type,
       'organization_id', v_p.organization_id,
-      'verification_score', v_p.verification_score),
+      'verification_score', v_p.verification_score,
+      'nb_signalements', v_p.nb_signalements),
     p_piece_origine, null::numeric, null::text);
 
   return jsonb_build_object('id', v_p.id, 'status', 'rejected', 'verified_at', v_p.verified_at);
@@ -274,11 +287,11 @@ begin
   end if;
   if not exists (select 1 from public.grand_livre_actions where code = 'annonce_refusee' and famille = 'annonce'
                     and statut_impose = 'reussi' and retiree_le is null
-                    and cles_detail = array['type', 'organization_id', 'verification_score']::text[]) then
+                    and cles_detail = array['type', 'organization_id', 'verification_score', 'nb_signalements']::text[]) then
     raise exception 'postcondition NON TENUE : annonce_refusee absente ou mal declaree';
   end if;
   for v_cles in select g.cles_detail from public.grand_livre_actions g where g.code in ('annonce_publiee', 'sous_traitance_publiee') loop
-    if v_cles is null or not (v_cles @> array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie']::text[]) then
+    if v_cles is null or not (v_cles @> array['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie', 'nb_signalements']::text[]) then
       raise exception 'postcondition NON TENUE : la liste blanche d''une mise en ligne ne porte pas la voie [vu : %]', v_cles;
     end if;
   end loop;

@@ -133,16 +133,17 @@ export function estTypeAction(x: unknown): x is TypeAction {
  */
 export const CLES_DETAIL = {
   // `voie` : 'automatique' (le verdict de la vérification) ou 'administrateur' (validée après revue) — dérivée en base.
-  annonce_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie'],
+  // `nb_signalements` : le NOMBRE de signalements du verdict (jamais leur texte) — une note 0 sans aucun se lit « non jugée ».
+  annonce_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie', 'nb_signalements'],
   annonce_modifiee: ['champs', 'champs[]', 'statut_annonce', 'organization_id'],
   annonce_depubliee: ['de', 'vers', 'organization_id'],
   annonce_expiree: ['vie_annonce_jours'],
   annonce_creee: ['type', 'organization_id'],
   sous_traitance_creee: ['organization_id', 'organisation_personnelle_creee'],
   // Les faces « sous-traitance » de publier_annonce() et inserer_candidature_jugee() : même détail que leur jumelle.
-  sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie'],
+  sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie', 'nb_signalements'],
   // Jamais le motif (texte libre) : il vit sur la ligne métier (`publications.review_reason`).
-  annonce_refusee: ['type', 'organization_id', 'verification_score'],
+  annonce_refusee: ['type', 'organization_id', 'verification_score', 'nb_signalements'],
   cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues', 'ecarts'],
   profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: ['champs', 'champs[]', 'blocs', 'blocs[]'],

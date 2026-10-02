@@ -88,8 +88,19 @@ function juger(t) {
   if (!/\{r\.non_jugee && \(/.test(t.ecranListe) || !/\{!r\.non_jugee && r\.note != null && \(/.test(t.ecranListe) || !/t\('admin\.non_jugee'\)/.test(t.ecranListe)) {
     fautes.push('7. l’écran de la liste affiche une note pour une annonce non jugée, ou ne dit plus « non jugée »')
   }
-  if (!/const nonJugee = note === 0/.test(t.phrase) || (t.phrase.match(/non_jugee`/g) ?? []).length < 3 || !/note === 0\s*\?\s*\{ cle: `annonce_refusee\.\$\{genre\}_non_jugee`/.test(t.phrase)) {
-    fautes.push('7. le journal dit encore « 0/10 » pour une annonce que la vérification automatique n’a pas jugée')
+  // Le journal suit la MÊME règle que la liste (contre-relecture de l'ARRÊT 28, point B) : note 0 ET aucun signalement ⇒
+  // « non jugée » ; un vrai 0/10 (des signalements) se lit 0/10. Le compte des signalements est écrit par la base.
+  const nd = /function noteDuVerdict\(d: Record<string, unknown>\): number \| 'non_jugee' \| null \{([\s\S]*?)\n\}/.exec(t.phrase)?.[1] ?? ''
+  if (!/const note = nombre\(d\.verification_score\)\s*if \(note !== 0\) return note\s*const signalements = nombre\(d\.nb_signalements\)\s*if \(signalements === null\) return null\s*return signalements === 0 \? 'non_jugee' : 0/.test(nd)) {
+    fautes.push('7. le journal ne lit plus « non jugée » comme la liste (note 0 ET aucun signalement) — un vrai 0/10 deviendrait « non jugée », ou l’inverse')
+  }
+  if ((t.phrase.match(/const note = noteDuVerdict\(d\)/g) ?? []).length !== 2 || !/const nonJugee = note === 'non_jugee'/.test(t.phrase)
+      || !/note === 'non_jugee'\s*\?\s*\{ cle: `annonce_refusee\.\$\{genre\}_non_jugee`/.test(t.phrase) || /nonJugee = note === 0/.test(t.phrase)) {
+    fautes.push('7. une mise en ligne ou un refus, au journal, ne passe plus par la règle commune (noteDuVerdict)')
+  }
+  const nbSignalements = (t.migration.match(/'nb_signalements', v_p\.nb_signalements/g) ?? []).length
+  if (nbSignalements !== 2 || (t.migration.match(/where jsonb_typeof\(f\) = 'string'\) as nb_signalements/g) ?? []).length !== 2) {
+    fautes.push(`7. publier_annonce et refuser_annonce n’écrivent pas toutes deux le nombre de signalements au journal (${nbSignalements})`)
   }
   return fautes
 }
@@ -110,7 +121,10 @@ section('L’épreuve : chaque mutation fait rougir le contrôle')
     ['« déjà tranchée » qui ne recharge plus la fiche', () => muter('fiche', '    await load()\n    setIssue({', '    setIssue({')],
     ['la liste qui sert la note brute', () => muter('liste', 'return { note: r2.note, non_jugee: r2.non_aboutie }', 'return { note: r.verification_score, non_jugee: false }')],
     ['l’écran qui affiche la note d’une annonce non jugée', () => muter('ecranListe', '{!r.non_jugee && r.note != null && (', '{r.note != null && (')],
-    ['le journal qui redit « 0/10 »', () => muter('phrase', 'const nonJugee = note === 0', 'const nonJugee = false')],
+    ['le journal qui redit « 0/10 »', () => muter('phrase', "const nonJugee = note === 'non_jugee'", 'const nonJugee = false')],
+    ['le journal qui dit « non jugée » sur un vrai 0/10', () => muter('phrase', "return signalements === 0 ? 'non_jugee' : 0", "return 'non_jugee'")],
+    ['le refus au journal qui ignore les signalements', () => muter('phrase', "      const note = noteDuVerdict(d)\n      const genre", "      const note = nombre(d.verification_score)\n      const genre")],
+    ['le refus qui n’écrit plus le nombre de signalements', () => muter('migration', "      'verification_score', v_p.verification_score,\n      'nb_signalements', v_p.nb_signalements),", "      'verification_score', v_p.verification_score),")],
     ['« soumise le » redevenu updated_at', () => muter('fiche', 'formatDate(a.soumise_le)', 'formatDate(a.updated_at)')],
     ['la validation qui réécrit la date de soumission', () => muter('migration', 'case when v_par_admin then p.soumise_le else now() end', 'now()')],
     ['la place rendue sans relire le statut', () => muter('valider', "if (statut !== null && statut !== 'published') await rendreLaPlace(", "await rendreLaPlace(")],
