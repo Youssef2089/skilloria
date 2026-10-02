@@ -4080,6 +4080,11 @@ envoyés ; contraintes de base = registre ; aucune liste recopiée ; routes ; li
 mutations), `diag-specialites-recoupement` (le moteur, le test, le prédicat en mémoire EXÉCUTÉ avec témoin), en base
 `annonces/criteres_communs.test.sql` (27) et `matching/specialites_recoupement.test.sql` (8).
 
+**Le type d'une annonce est immuable dès que le brouillon existe** (relecture de l'ARRÊT 28, point 2) : le formulaire
+bloque « Mission / Offre » après le premier enregistrement (il ne le bloquait qu'en édition), et `PATCH` refuse un type
+différent du type lu par 409 `type_immuable`, nommé ×4 — il l'ignorait en silence, et l'écran croyait l'avoir changé.
+Gardé par `diag-criteres-communs` E ter (deux épreuves).
+
 <a id="d40"></a>
 ### D.40 — « AUTRE » EST UNE SEULE NOTION, ET CE N'EST JAMAIS UNE LIGNE DU RÉFÉRENTIEL (recette S1, 01/10/2026)
 

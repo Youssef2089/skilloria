@@ -2179,7 +2179,8 @@
       "db_error": "Error técnico. Inténtalo de nuevo.",
       "generic": "Se produjo un error. Inténtalo de nuevo.",
       "missing_fields": "Falta información para publicar: {fields}.",
-      "annonce_refusee_inchangee": "Este anuncio fue rechazado: modifica su contenido —título, descripción, competencias, niveles de experiencia, condiciones de trabajo, duración o presupuesto— antes de volver a enviarlo (el motivo aparece en la parte superior de la página). Cambiar solo la rama, las especialidades, las zonas, la fecha de inicio o la confidencialidad no hace que se revise de nuevo."
+      "annonce_refusee_inchangee": "Este anuncio fue rechazado: modifica su contenido —título, descripción, competencias, niveles de experiencia, condiciones de trabajo, duración o presupuesto— antes de volver a enviarlo (el motivo aparece en la parte superior de la página). Cambiar solo la rama, las especialidades, las zonas, la fecha de inicio o la confidencialidad no hace que se revise de nuevo.",
+      "type_immuable": "El tipo de un anuncio (misión u oferta de empleo) ya no cambia una vez guardado el borrador. Para el otro tipo, crea un nuevo anuncio."
     },
     "refus": {
       "titre": "Este anuncio no ha sido validado",

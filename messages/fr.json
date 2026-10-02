@@ -2179,7 +2179,8 @@
       "db_error": "Erreur technique. Veuillez réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
       "missing_fields": "Il manque des informations pour publier : {fields}.",
-      "annonce_refusee_inchangee": "Cette annonce a été refusée : modifiez son contenu — titre, description, compétences, séniorités, conditions de travail, durée ou budget — avant de la soumettre à nouveau (le motif est affiché en haut de la page). Changer seulement la branche, les spécialités, les zones, la date de début ou la confidentialité ne la fait pas revoir."
+      "annonce_refusee_inchangee": "Cette annonce a été refusée : modifiez son contenu — titre, description, compétences, séniorités, conditions de travail, durée ou budget — avant de la soumettre à nouveau (le motif est affiché en haut de la page). Changer seulement la branche, les spécialités, les zones, la date de début ou la confidentialité ne la fait pas revoir.",
+      "type_immuable": "Le type d’une annonce (mission ou offre d’emploi) ne change plus une fois le brouillon enregistré. Pour l’autre type, créez une nouvelle annonce."
     },
     "refus": {
       "titre": "Cette annonce n’a pas été validée",

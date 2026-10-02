@@ -316,6 +316,8 @@ export function messageDeRefusCommun(code: string | undefined, tPub: Traduire, t
     case 'duree_hors_offre': return tCrit('erreurs.duree_hors_offre')
     // Une annonce refusée se resoumet MODIFIÉE (ARRÊT 28) : inchangée, le serveur ne la repasse pas en brouillon.
     case 'annonce_refusee_inchangee': return tPub('errors.annonce_refusee_inchangee')
+    // Le type d'une annonce ne change pas une fois le brouillon créé (relecture de l'ARRÊT 28, point 2).
+    case 'type_immuable': return tPub('errors.type_immuable')
     default: return null
   }
 }

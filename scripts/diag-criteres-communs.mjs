@@ -201,6 +201,15 @@ function juger(t) {
   if (/temps_travail/.test(t['lib/profile-visibility.ts'])) {
     fautes.push('E bis. le temps de travail est devenu une condition de visibilité du profil — il y est FACULTATIF')
   }
+  // E ter — LE TYPE EST IMMUABLE DÈS QUE LE BROUILLON EXISTE (relecture de l'ARRÊT 28, point 2) : l'écran le bloque après le
+  // premier enregistrement, et PATCH le refuse nommément au lieu de l'ignorer.
+  if (!/const disabled = isEdit \|\| pubId !== null/.test(t[ECRANS['annonce d’organisation']])) {
+    fautes.push('E ter. le choix du type reste actif après le premier enregistrement du brouillon')
+  }
+  const patchRoute = t['app/api/publications/[id]/route.ts']
+  const iType = patchRoute.search(/if \(body\.type !== undefined && body\.type !== avantAnnonce\.type\) \{\s*return json\([^)]*code: 'type_immuable'/)
+  const iEcr = patchRoute.search(/\.from\('publications'\)\s*\.update\(/)
+  if (iType < 0 || (iEcr >= 0 && iType > iEcr)) fautes.push('E ter. PATCH n’oppose plus `type_immuable` à un changement de type, avant toute écriture')
   // E — les routes
   const profil = t['app/api/profile/route.ts']
   for (const champ of ['seniorities', 'work_modes', 'temps_travail']) {
@@ -370,6 +379,8 @@ section('G. L’épreuve : chaque mutation fait rougir le contrôle')
     ['la spécialité qui n’est plus envoyée par l’annonce', () => muter(PARTAGES.formulaire, 'speciality_ids: v.speciality_ids', 'speciality_idz: v.speciality_ids')],
     ['les séniorités recopiées dans la validation freelance', () => muter(ECRANS['validation freelance'], 'SENIORITES.map(', "['junior', 'confirmed', 'senior', 'expert'].map(")],
     ['la branche absente du besoin de sous-traitance (le composant partagé n’est plus rendu)', () => muter(ECRANS['besoin de sous-traitance'], '<ChampsAnnonce', '<AutreChose')],
+    ['le choix du type réouvert après le premier enregistrement', () => muter(ECRANS['annonce d’organisation'], 'const disabled = isEdit || pubId !== null', 'const disabled = isEdit')],
+    ['un changement de type ignoré en silence par PATCH', () => muter('app/api/publications/[id]/route.ts', "code: 'type_immuable'", "code: 'invalid_json'")],
     ['le temps de travail qui n’est plus exigé pour publier', () => muter('lib/publications/publishable.ts', "manquants.push('temps_travail')", 'void 0')],
     ['le temps de travail exigé pour rendre un profil visible', () => {
       const t = { ...REELS }

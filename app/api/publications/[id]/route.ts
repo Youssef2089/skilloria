@@ -87,6 +87,10 @@ type Body = {
   speciality_ids?: unknown
   speciality_other?: unknown
   confidential?: unknown
+  // Le TYPE est immuable (relecture de l'ARRÊT 28, point 2) : il n'est jamais écrit ici. Envoyé et différent du type lu,
+  // il est REFUSÉ nommément (`type_immuable`) au lieu d'être ignoré en silence — l'écran qui croirait l'avoir changé saurait
+  // que non.
+  type?: unknown
 }
 
 /**
@@ -314,7 +318,7 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
     }
   }
 
-  if (Object.keys(u.updates).length === 0) {
+  if (Object.keys(u.updates).length === 0 && body.type === undefined) {
     return json({ error: 'No editable fields', code: 'invalid_json' }, 400)
   }
 
@@ -345,6 +349,12 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   // valeur LUE — « Annonce modifiée » ne nomme pas une zone qui n'a pas bougé.
   if (Array.isArray(u.updates.work_zone_ids) && memesZones(u.updates.work_zone_ids as string[], avantAnnonce.work_zone_ids as string[] | null)) {
     u.updates.work_zone_ids = avantAnnonce.work_zone_ids
+  }
+  if (body.type !== undefined && body.type !== avantAnnonce.type) {
+    return json({ error: 'The type of a publication cannot change', code: 'type_immuable', current_type: avantAnnonce.type }, 409)
+  }
+  if (Object.keys(u.updates).length === 0) {
+    return json({ error: 'No editable fields', code: 'invalid_json' }, 400)
   }
   if (avantAnnonce.type === 'offre' && u.updates.duree_valeur != null) {
     return json({ error: 'An offer has no duration', code: 'duree_hors_offre' }, 400)

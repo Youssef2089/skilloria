@@ -477,7 +477,9 @@ export default function PublicationForm(props: Props) {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {(['mission', 'offre'] as const).map((tp) => {
               const active = type === tp
-              const disabled = isEdit  // le type est immuable côté API
+              // Le type est immuable DÈS QUE LE BROUILLON EXISTE (relecture de l'ARRÊT 28, point 2) : en édition, et aussi
+              // après le premier enregistrement d'une création — le serveur refuse de le changer (`type_immuable`).
+              const disabled = isEdit || pubId !== null
               return (
                 <label
                   key={tp}
