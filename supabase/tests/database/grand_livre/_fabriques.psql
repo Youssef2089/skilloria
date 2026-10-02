@@ -157,14 +157,16 @@ begin
   return v;
 end $$;
 
--- Une annonce en brouillon (p_type : 'mission' | 'offre' | 'sous_traitance'), zone de travail lue en base.
+-- Une annonce en brouillon (p_type : 'mission' | 'offre' | 'sous_traitance'), zone de travail lue en base — une zone
+-- ACTIVE : le Royaume-Uni et Israël y restent désactivés (migration zones_liste_des_pays), et « la première par
+-- identifiant » tombait sur eux au hasard des uuid.
 create or replace function pg_temp.fab_brouillon(p_org uuid, p_type text default 'mission') returns uuid
 language plpgsql as $$
 declare
   v      uuid;
   v_zone uuid;
 begin
-  select z.id into v_zone from public.work_zones z order by z.id limit 1;
+  select z.id into v_zone from public.work_zones z where z.active order by z.id limit 1;
   if v_zone is null then raise exception 'fabrique : aucune zone de travail en base'; end if;
   insert into public.publications (organization_id, domain_id, type, title, description, work_zone_ids, status)
   values (p_org, pg_temp.fab_domaine(), p_type, 'Sonde', 'Annonce de sonde', array[v_zone], 'draft')

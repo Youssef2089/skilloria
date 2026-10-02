@@ -293,8 +293,8 @@ const C = stripComments(SRC_CHAMPS)
 console.log('— référentiel')
 ok(/create extension/.test(Z) === false, 'aucune extension supplémentaire requise')
 ok(/references public\.countries\(code\)/.test(Z),
-  'country_code porte une clé étrangère vers countries',
-  'sans elle on peut rattacher un pays qui n existe pas')
+  'country_code portait, à l’origine, une clé étrangère vers countries (remplacée par une contrainte de FORME dans zones_liste_des_pays : la liste des zones porte des pays absents de countries — diag-zones-liste-des-pays)',
+  'sans elle on pouvait rattacher un pays qui n existe pas')
 ok(/work_zones_country_code_coherence_check/.test(Z),
   'un continent ne peut pas porter de code pays (et réciproquement)')
 ok(/work_zones_racine_check/.test(Z),

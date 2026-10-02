@@ -469,6 +469,31 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   prédicat de l'index, §E.69 ; rend le nombre d'avis nouveaux ; refuse un avis sans pièce, SP003). Fermées au
 >   navigateur. §D.36. Test : `taxonomie/specialite_ecriture_et_avis.test.sql` (11).
 
+> **LE LOT « FINITIONS ET PAYS » (S1, 02/10/2026, ARRÊT S1-2) — une migration, AVANT, dans la plage de S1
+> (`20261003010000`–`…015959`).** Décisions de Youssef : la liste des zones porte tous les pays (pas de régions).
+> - **`zones_liste_des_pays`** (`…010000`, AVANT) — **la liste des zones se détache de `countries`** : la clé étrangère
+>   `work_zones.country_code → countries` est retirée, remplacée par la contrainte de forme `work_zones_code_pays_forme`
+>   (ISO 3166-1, ou ISO 3166-2 pour une nation : `GB-ENG`) ; `countries` (64 pays : adresse, organisation et sa
+>   vérification, téléphone, réglages par pays) n'est ni lue ni écrite — le Royaume-Uni y reste UN pays.
+>   `work_zones.country_code`, `profiles.work_zone_countries` et `publications.work_zone_countries` passent en `text` ;
+>   `work_zone_country_codes(uuid[])` est **supprimée et recréée**, même signature, même corps, en `text[]` (un type de
+>   retour ne se change pas par « or replace » ; aucun `.rpc` ne l'appelle) ; le déclencheur `work_zones_couverture` est
+>   retiré puis reposé À L'IDENTIQUE (PostgreSQL refuse de changer le type d'une colonne citée dans un `UPDATE OF`).
+>   **131 pays ajoutés** (membres et observateurs de l'ONU absents des 64, Israël excepté ; continent de la division M49,
+>   Amérique centrale et Caraïbes en Amérique du Nord ; noms CLDR en quatre langues) et **les quatre pays du Royaume-Uni**
+>   (Angleterre, Écosse, Pays de Galles, Irlande du Nord, en Europe) ; les 64 rattachements existants ne bougent pas
+>   (Chypre reste en Europe). `remplacer_zone_de_travail(text, text[])` (fermée au navigateur ; ZN001 zone inconnue,
+>   ZN002 remplaçante introuvable ou inactive) donne les quatre pays à chaque profil et annonce qui avait le Royaume-Uni,
+>   sans rien perdre ; puis la reprise DÉSACTIVE « Royaume-Uni » et « Israël » (le déclencheur recalcule ; une liste
+>   devenue vide ne retient personne, règle en place). **Résultat : 197 pays actifs**, sur staging comme sur une base neuve
+>   (Europe 48, Afrique 54, Asie 46, Amérique du Nord 23, Amérique du Sud 12, Océanie 14). Exceptions de
+>   `diag-deux-temps` : `aucun_ecrivain` (déclencheur reposé, contrainte, désactivation — une page chargée avant le push
+>   qui renverrait l'une des deux zones reçoit `bad_work_zone`, nommé) et `recreee` (preuve nouvelle : la fonction
+>   supprimée est recréée plus loin dans la même migration, et aucun `.rpc` ne l'appelle). Requête d'avant-push : ⑮ à ⑱
+>   (64 zones au départ ; Israël et Royaume-Uni actifs ; le COMPTE des profils et annonces qui les avaient choisis).
+>   Tests : `matching/zones_liste_des_pays.test.sql` (19) ; `matching/zones_pays_rattaches.test.sql` (5) réécrit pour
+>   l'état final (il lisait les pays actifs de `countries`). Contrôle : `diag-zones-liste-des-pays`.
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **les treize fermées** (dont

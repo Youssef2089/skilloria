@@ -258,4 +258,6 @@ for (const [obtenu, attendu, libelle] of cas) ok(obtenu === attendu, libelle, `o
 ok(MSG.fr.shell.nav.subcontract === 'Besoin / Sous-traitance', '« Besoin / Sous-traitance » est bien le libellé de la barre latérale')
 
 console.log(echecs === 0 ? '\n✓ Aucun retour, et chaque page porte son nom.' : `\n✘ ${echecs} CONTRÔLE(S) EN ÉCHEC`)
-process.exit(echecs === 0 ? 0 : 1)
+// `exitCode`, jamais `process.exit()` : sous Windows, couper le processus pendant qu'une écriture est en cours le fait
+// planter dans libuv (« UV_HANDLE_CLOSING », 0xC0000409) — un rouge devenait un muet.
+process.exitCode = echecs === 0 ? 0 : 1

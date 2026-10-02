@@ -12,7 +12,7 @@ declare
   v_profil uuid := pg_temp.fab_profil('expert');
   v_zone   uuid;
 begin
-  select z.id into v_zone from public.work_zones z order by z.id limit 1;
+  select z.id into v_zone from public.work_zones z where z.active order by z.id limit 1;
   return next ok((select coalesce(array_length(p.speciality_ids, 1), 0) = 0 and p.speciality_other = 'Sonde' from public.profiles p where p.id = v_profil),
                  'le profil fabriqué est « Autre », sans spécialité du référentiel');
   return next lives_ok(format($q$update public.profiles set

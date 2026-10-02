@@ -32,6 +32,10 @@
  *          fonctions SQL appelées par `.rpc`) ;
  *        · `refus_nomme` : dans le fichier en ligne, l'écriture que la migration peut refuser est la PREMIÈRE du geste,
  *          et son refus est lu par la fonction nommée qui le rend en code d'erreur — rien n'est écrit à moitié ;
+ *        · `recreee` : une fonction supprimée est RECRÉÉE, même nom et mêmes arguments, plus loin dans la MÊME
+ *          migration (une seule transaction : il n'existe aucun instant où elle manque), et ni le code en ligne ni
+ *          celui du lot ne l'appellent par `.rpc` (lot finitions et pays : un type de retour ne se change pas par
+ *          « or replace ») ;
  *   B bis. SECOND TEMPS (APRÈS) : chaque restriction est DÉCLARÉE dans `SECOND_TEMPS` avec ses ÉCRIVAINS (les fichiers
  *      du code du lot qui écrivent ce qu'elle restreint) et le TEST qui prouve que ce qu'ils écrivent passe. Pour une
  *      restriction sur une table, la liste des écrivains est RECALCULÉE et doit être EXACTEMENT la liste déclarée (un
@@ -82,6 +86,23 @@ const CODE_EN_LIGNE = { commit: '1182e02', derniere_migration: 'photo_par_le_ser
 // ── LES EXCEPTIONS DU PREMIER TEMPS — une raison ET une preuve chacune (§G.8). Clé : `<suffixe>::<motif>`. ──
 // Le gel ne fait que descendre : une exception dont la migration n'est plus en attente rougit (« morte »).
 const EXCEPTIONS = {
+  // ── Lot finitions et pays (S1, 02/10/2026) : la liste des zones détachée de `countries`, en `text`. ──
+  'zones_liste_des_pays::trigger:work_zones': {
+    raison: 'LÉGITIME — le déclencheur de couverture est retiré puis reposé À L’IDENTIQUE (PostgreSQL refuse de changer le type d’une colonne citée par un déclencheur) ; il ne refuse rien, et aucun code n’écrit work_zones.',
+    preuve: { type: 'aucun_ecrivain', table: 'work_zones' },
+  },
+  'zones_liste_des_pays::constraint:work_zones': {
+    raison: 'LÉGITIME — la forme du code pays (ISO 3166-1, ou 3166-2 pour une nation) remplace la clé étrangère vers countries ; toutes les lignes existantes la tiennent, et aucun code n’écrit work_zones (le référentiel ne s’écrit que par migration).',
+    preuve: { type: 'aucun_ecrivain', table: 'work_zones' },
+  },
+  'zones_liste_des_pays::desactive:work_zones': {
+    raison: 'LÉGITIME — décision de Youssef : Royaume-Uni (remplacé par ses quatre pays, donnés d’abord à qui l’avait) et Israël quittent la liste. Aucun code n’écrit work_zones. Une page chargée AVANT le push qui renverrait l’un des deux reçoit 400 bad_work_zone, NOMMÉ, que l’écran rend par son message — la règle des zones inactives, en place ; rien n’est écrit à moitié, et le code du lot étant le même, un second temps ne l’éviterait pas.',
+    preuve: { type: 'aucun_ecrivain', table: 'work_zones' },
+  },
+  'zones_liste_des_pays::dropfn:work_zone_country_codes': {
+    raison: 'LÉGITIME — l’aplatissement change de type de retour (varchar(2)[] → text[], pour les codes de nation) : supprimé et recréé, même signature et même corps, dans la même migration ; il n’est appelé que par la base (déclencheurs, recalcul), jamais par .rpc.',
+    preuve: { type: 'recreee', migration: 'zones_liste_des_pays', fonction: 'work_zone_country_codes', arguments: 'uuid[]' },
+  },
   'zones_couverture_suit_le_referentiel::trigger:work_zones': {
     raison: 'LÉGITIME — le déclencheur ne refuse rien : il RECALCULE la couverture des profils et des annonces quand le référentiel des zones change, et aucun code (en ligne ou du lot) n’écrit work_zones — le référentiel ne s’écrit que par migration.',
     preuve: { type: 'aucun_ecrivain', table: 'work_zones' },
@@ -303,6 +324,20 @@ function prouver(preuve) {
     if (iRefus >= 0 && iSuiv >= 0 && iSuiv < iRefus) fautes.push('une autre écriture se glisse entre l’écriture restreinte et son refus')
     if (!preuve.nomDuRefus.motif.test(enLigne.lire(preuve.nomDuRefus.fichier))) fautes.push(`le nom du refus n’est plus reconnu par ${preuve.nomDuRefus.fichier} en ligne`)
     return fautes
+  }
+  if (preuve.type === 'recreee') {
+    const f = toutes.filter((x) => x.endsWith(`_${preuve.migration}.sql`))
+    if (f.length !== 1) return [`migration « ${preuve.migration} » : ${f.length} correspondance(s)`]
+    const sql = sansCommentaires(lire(`${dossier}/${f[0]}`))
+    const args = preuve.arguments.replace(/[[\]()]/g, (c) => `\\${c}`)
+    const iDrop = sql.search(new RegExp(`drop function (?:if exists )?public\\.${preuve.fonction}\\(${args}\\)`))
+    const iCree = sql.search(new RegExp(`create (?:or replace )?function public\\.${preuve.fonction}\\(\\s*\\w+ ${args}\\s*\\)`))
+    const appels = [...enLigne.contenant(`rpc('${preuve.fonction}'`).map((p) => `en ligne : ${p}`), ...lot.contenant(`rpc('${preuve.fonction}'`).map((p) => `du lot : ${p}`)]
+    return [
+      ...(iDrop < 0 ? [`la suppression de ${preuve.fonction}(${preuve.arguments}) est introuvable`] : []),
+      ...(iCree < 0 || iCree < iDrop ? [`${preuve.fonction}(${preuve.arguments}) n’est pas recréée APRÈS sa suppression, dans la même migration`] : []),
+      ...appels.map((a) => `appelée par .rpc (${a})`),
+    ]
   }
   return [`type de preuve inconnu : ${preuve.type}`]
 }

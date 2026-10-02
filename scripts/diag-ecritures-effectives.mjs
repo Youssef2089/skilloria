@@ -97,6 +97,8 @@ const GEL = {
   'remplacer_listes_profil:profile_educations:1': 'LÉGITIME : remplacement d’une liste saisie — vide avant, ou annulé avec le bloc (LP001)',
   'remplacer_listes_profil:profile_languages:1': 'LÉGITIME : remplacement d’une liste saisie — vide avant, ou annulé avec le bloc (LP001)',
   // ── les reprises de la recette S1 du 01/10/2026 — rejouables, chacune rend ce qu'elle a fait ──
+  'remplacer_zone_de_travail:profiles:1': 'LÉGITIME : reprise par lot (lot finitions et pays) — zéro profil n’avait la zone remplacée (le Royaume-Uni) : rien à reprendre ; rejouée, zéro ; la fonction rend son compte',
+  'remplacer_zone_de_travail:publications:1': 'LÉGITIME : reprise par lot (lot finitions et pays) — zéro annonce n’avait la zone remplacée : rien à reprendre ; rejouée, zéro ; la fonction rend son compte',
   'retirer_specialites_autre:profiles:1': 'LÉGITIME : reprise par lot — zéro profil porte une spécialité « Autre » : rien à reprendre ; la fonction rend son compte',
   'retirer_specialites_autre:publications:1': 'LÉGITIME : reprise par lot — zéro annonce porte une spécialité « Autre » : rien à reprendre ; la fonction rend son compte',
   'retirer_specialites_autre:specialities:1': 'LÉGITIME : reprise par lot — les lignes « Autre » déjà inactives ne se désactivent pas deux fois ; rejouée, zéro ; rend son compte',

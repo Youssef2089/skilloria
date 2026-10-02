@@ -758,6 +758,15 @@ deux produits.
 >   la cloche — et lui dit si c'était sa seule spécialité (son profil ne peut alors plus être publié tant qu'il n'en a
 >   pas choisi une autre). Réactivée, elle ne peut pas revenir sous « Other », « Otra »…
 > · **Le besoin de sous-traitance** se publie enfin (branche et zones), et chaque refus se dit.
+>
+> **Lot « finitions et pays » du 02/10/2026 (S1) — la liste des pays des zones** (décisions de Youssef ; pas de régions) :
+> · **Tous les pays** : chaque État membre et observateur de l'ONU est proposé, nommé dans les quatre langues, rangé
+>   dans son continent (division de l'ONU ; l'Amérique centrale et les Caraïbes avec l'Amérique du Nord) — **197 pays**.
+> · **Le Royaume-Uni** est remplacé, dans cette liste SEULEMENT, par **Angleterre, Écosse, Pays de Galles, Irlande du
+>   Nord** : un expert « Angleterre » n'est pas proposé pour une mission en Écosse. Qui avait choisi le Royaume-Uni a
+>   reçu les quatre. Partout ailleurs (adresse, pays de l'organisation, téléphone), le Royaume-Uni reste un pays.
+> · **Israël** n'est plus proposé. Qui l'avait choisi le perd ; une liste devenue vide ne retient plus personne.
+> · « Tout le continent » et « Partout dans le monde » couvrent les pays nouveaux.
 > · **Relecture du 02/10/2026** : un continent choisi s'affichait « work_zones.continent_entier » au lieu de « Europe — tout
 >   le continent » — corrigé, et un contrôle interdit désormais tout texte appelé sans sa variable ; une annonce ou un
 >   expert dont tous les pays ont été désactivés ne sont plus mis en relation avec personne ; le besoin de sous-traitance
