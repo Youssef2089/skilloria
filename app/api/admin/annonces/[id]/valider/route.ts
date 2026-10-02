@@ -7,6 +7,7 @@ import { getOrgEntitlements } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { missingForPublish } from '@/lib/publications/publishable'
 import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne } from '@/lib/annonces/criteres'
+import { expertProfileGate, PROFILE_CHECK_UNAVAILABLE_CODE } from '@/lib/expert-verified-guard'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { runMatchingForPublication } from '@/lib/matching'
 import { siteOriginPourRequete } from '@/lib/site-url'
@@ -113,6 +114,22 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   })
   if (manquants.length > 0) {
     return json({ error: 'Publication incomplete', code: 'missing_fields', missing: manquants }, 400)
+  }
+
+  // ── LE BESOIN DE SOUS-TRAITANCE : SON AUTEUR EST-IL TOUJOURS UN EXPERT APPROUVÉ ? (relecture de l'ARRÊT 28, point 3) ──
+  //  La garde même de la publication directe (C2, `expertProfileGate`) : un besoin soumis par un expert approuvé, puis
+  //  resté en revue pendant que son profil était refusé ou remis en vérification, ne passe pas en ligne par la voie
+  //  administrateur. Une lecture impossible refuse aussi, et le dit (§E.22) ; un auteur dont le compte a disparu
+  //  (`created_by` nul) n'est pas approuvé.
+  if ((pub.type as string) === 'sous_traitance') {
+    const auteur = (pub.created_by as string | null) ?? null
+    const gate = auteur ? await expertProfileGate(auth.supabaseAdmin, auteur) : 'not_expert'
+    if (gate === 'indisponible') {
+      return json({ error: 'Could not verify the author profile', code: PROFILE_CHECK_UNAVAILABLE_CODE }, 503)
+    }
+    if (gate !== 'approved') {
+      return json({ error: 'The author is no longer an approved expert', code: 'auteur_non_approuve' }, 409)
+    }
   }
 
   // ── ① LA PLACE ACTIVE — la règle de la publication, fail-closed ─────────────────

@@ -6357,7 +6357,9 @@
       "motif_trop_long": "El motivo es demasiado largo: acórtelo.",
       "not_found": "Este anuncio no existe, o ya no existe.",
       "db_error": "La base de datos rechazó la escritura: no se ha modificado nada. Vuelva a intentarlo; si persiste, infórmelo.",
-      "forbidden": "Esta acción está reservada a los administradores."
+      "forbidden": "Esta acción está reservada a los administradores.",
+      "auteur_non_approuve": "El experto que publicó esta necesidad de subcontratación ya no es un experto aprobado (perfil rechazado, de nuevo en verificación o cuenta eliminada): la necesidad no puede publicarse. Puede rechazarla con un motivo.",
+      "profile_check_unavailable": "No se pudo leer el perfil del experto que publicó esta necesidad: no se ha publicado nada. Vuelva a intentarlo en un momento."
     },
     "avis": {
       "cloche": {

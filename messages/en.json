@@ -6357,7 +6357,9 @@
       "motif_trop_long": "The reason is too long: please shorten it.",
       "not_found": "This listing does not exist, or no longer exists.",
       "db_error": "The database refused the write: nothing was changed. Try again; if this persists, report it.",
-      "forbidden": "This action is reserved for administrators."
+      "forbidden": "This action is reserved for administrators.",
+      "auteur_non_approuve": "The expert who posted this subcontracting need is no longer an approved expert (profile rejected, back under verification, or account deleted): the need cannot go live. You can reject it with a reason.",
+      "profile_check_unavailable": "The profile of the expert who posted this need could not be read: nothing was put online. Try again in a moment."
     },
     "avis": {
       "cloche": {

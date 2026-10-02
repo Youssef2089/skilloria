@@ -4257,6 +4257,11 @@ travail est refusée `missing_fields`, champs nommés, et l'écran dit que c'est
 depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (16), `diag-grand-livre`,
 `diag-journal-lisible`.
 
+**Un besoin de sous-traitance validé par l'administrateur revérifie son auteur** (relecture de l'ARRÊT 28, point 3) : la
+garde même de `/publish` (`expertProfileGate`) — un expert qui n'est plus approuvé (refusé, remis en vérification,
+compte supprimé) rend 409 `auteur_non_approuve`, une lecture impossible 503 `profile_check_unavailable` ; deux phrases ×4
+sur la fiche. Gardé par `diag-echec-silencieux` C (l'appelant recensé, « indisponible » traité avant le verdict).
+
 <a id="d50"></a>
 ### D.50 — UNE ANNONCE REFUSÉE SE MODIFIE ET SE SOUMET À NOUVEAU ; ELLE NE COMPTE PAS DEUX FOIS (regroupement, ARRÊT 28, décision de Youssef)
 

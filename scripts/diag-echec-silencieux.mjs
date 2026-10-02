@@ -463,6 +463,8 @@ const APPELANTS_GATE = [
   'app/api/me/collaboration/quota/route.ts',
   'app/api/publications/[id]/publish/route.ts',
   'lib/collaboration/ensure-personal-org.ts',
+  // La validation d'un besoin de sous-traitance par l'administrateur (relecture de l'ARRÊT 28, point 3) : la même garde.
+  'app/api/admin/annonces/[id]/valider/route.ts',
 ]
 for (const f of APPELANTS_GATE) {
   const code = sansCommentaires(read(f))
@@ -490,7 +492,7 @@ const autres = sources.filter(
 )
 ok(
   autres.length === 0,
-  'aucun appelant de `expertProfileGate` hors des trois recensés',
+  `aucun appelant de « expertProfileGate » hors des ${APPELANTS_GATE.length} recensés`,
   autres.length ? `non traités : ${autres.join(', ')}` : undefined,
 )
 

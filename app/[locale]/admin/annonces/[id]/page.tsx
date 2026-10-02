@@ -57,7 +57,10 @@ const TYPES_ORG = ['client', 'cabinet', 'esn', 'freelance'] as const
 const STATUTS = ['draft', 'pending_review', 'published', 'suspended', 'expired', 'archived', 'rejected'] as const
 // Les refus du serveur que l'écran sait nommer — tout autre code se dit « réponse inattendue », avec son code.
 const ERREURS_CONNUES = ['already_processed', 'active_publications_limit_reached', 'active_publications_check_failed',
-  'durees_illisibles', 'motif_requis', 'motif_trop_long', 'not_found', 'db_error', 'forbidden'] as const
+  'durees_illisibles', 'motif_requis', 'motif_trop_long', 'not_found', 'db_error', 'forbidden',
+  // Un besoin de sous-traitance dont l'auteur n'est plus un expert approuvé (relecture ARRÊT 28, point 3), et la lecture
+  // de son profil impossible : deux refus distincts.
+  'auteur_non_approuve', 'profile_check_unavailable'] as const
 
 function noteCouleur(note: number | null): string {
   if (note == null) return 'var(--sk-muted)'
