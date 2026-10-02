@@ -72,7 +72,7 @@ function calculateCompletion(profile: CdiProfile | null): number {
     !!profile.branch_id,                                            // Branche
     (profile.speciality_ids?.length ?? 0) >= 1,                     // Spécialités
     (profile.seniorities?.length ?? 0) >= 1,                        // Séniorités
-    (profile.work_zone_ids?.length ?? 0) >= 1,                      // Zones de travail
+    (profile.work_zone_countries?.length ?? 0) >= 1,                // Zones de travail ACTIVES (point 10, parité freelance)
     (profile.skills?.length ?? 0) >= 3,                             // Compétences
     (profile.languages?.length ?? 0) >= 1,                          // Langues
     profile.cdi_salary_min != null && profile.cdi_salary_max != null, // Compensation (salaire)

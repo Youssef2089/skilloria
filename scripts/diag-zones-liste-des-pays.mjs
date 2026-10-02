@@ -215,6 +215,38 @@ ok(/prochain push : profils et annonces qui ont choisi le Royaume-Uni/.test(Q) &
 ok(/prochain push : zones pays actives aujourd''hui — 64/.test(Q) && /'64',\s*\(select count\(\*\)::text from public\.work_zones w where w\.kind = 'country' and w\.active\)/.test(Q),
   'une ligne vérifie que staging part des 64 zones (même liste qu’une base neuve)')
 
+// ══════════════════════════════════════════════════════════════════════════
+section('G. Une zone désactivée ne s’affiche plus, et ne compte plus (relecture de l’ARRÊT 28, point 10)')
+// ══════════════════════════════════════════════════════════════════════════
+{
+  const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, ' ').split('\n').map((l) => (/^\s*\/\//.test(l) ? '' : l)).join('\n')
+  const juger10 = (t) => {
+    const f = []
+    if (!/from\('work_zones'\)\.select\('id, name, kind, active'\)/.test(t.synthese) || !/\.filter\(\(z\) => z\.active === true\)/.test(t.synthese)) {
+      f.push('la synthèse des cartes donne un libellé à une zone désactivée')
+    }
+    if (!/\(profile\.work_zone_countries\?\.length \?\? 0\) >= 1/.test(t.freelance) || /\(profile\.work_zone_ids\?\.length \?\? 0\) >= 1/.test(t.freelance)) {
+      f.push('la complétude freelance compte une zone désactivée')
+    }
+    if (!/\(profile\.work_zone_countries\?\.length \?\? 0\) >= 1/.test(t.cdi) || /\(profile\.work_zone_ids\?\.length \?\? 0\) >= 1/.test(t.cdi)) {
+      f.push('la complétude CDI compte une zone désactivée')
+    }
+    return f
+  }
+  const T = {
+    synthese: strip(lire('lib/publication-synthesis.ts')),
+    freelance: strip(lire('app/[locale]/dashboard/freelance/page.tsx')),
+    cdi: strip(lire('app/[locale]/dashboard/cdi/page.tsx')),
+  }
+  const f = juger10(T)
+  ok(f.length === 0, 'les cartes n’affichent que des zones actives ; la complétude compte la couverture active (freelance et CDI)', f.join(' · '))
+  const M = [
+    ['la synthèse sans filtre d’activité', { ...T, synthese: T.synthese.replace('.filter((z) => z.active === true)', '') }],
+    ['la complétude CDI qui recompte la liste brute', { ...T, cdi: T.cdi.replace('profile.work_zone_countries?.length', 'profile.work_zone_ids?.length') }],
+  ]
+  for (const [nom, t] of M) ok(juger10(t).length > 0, `épreuve « ${nom} » : le contrôle rougit`)
+}
+
 console.log(echecs === 0 ? '\n✓ La liste des pays est celle de l’ONU, Israël excepté, le Royaume-Uni en quatre pays — et countries est intacte.' : `\n✘ ${echecs} CONTRÔLE(S) EN ÉCHEC`)
 // `exitCode`, jamais `process.exit()` : sous Windows, couper le processus pendant qu'une écriture est en cours le fait
 // planter dans libuv (« UV_HANDLE_CLOSING », 0xC0000409) — un rouge devenait un muet, vu en éprouvant ce contrôle.

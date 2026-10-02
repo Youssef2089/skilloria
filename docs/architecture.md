@@ -4034,6 +4034,11 @@ dont l'API sérialiserait un ensemble vide — puis pose le recoupement SANS con
 recoupement inconditionnel ; 6b et 6c rejoués sous l'ancienne règle, qui échouerait) ; en base,
 `matching/zones_recoupement.test.sql` 6b et 6c, dont les fonctions suivent le chemin du moteur.
 
+**Une zone désactivée ne s'affiche plus et ne compte plus** (relecture de l'ARRÊT 28, point 10) : la synthèse des cartes et
+des détails (`loadReferentielLabels`) ne donne un libellé qu'aux zones ACTIVES — Israël n'apparaît plus sur une annonce qui
+l'avait choisi ; la complétude des tableaux de bord freelance et CDI compte la couverture calculée en base
+(`work_zone_countries`, zones actives seulement) au lieu de la liste brute. Gardé par `diag-zones-liste-des-pays` G.
+
 <a id="d39"></a>
 ### D.39 — LES ANNONCES ONT LES MÊMES CRITÈRES QUE L'EXPERT (lot « critères des annonces », 03/10/2026)
 

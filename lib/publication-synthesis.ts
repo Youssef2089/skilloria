@@ -187,7 +187,10 @@ export async function loadReferentielLabels(
       // laisse plus tester l'erreur du tout — c'est ainsi qu'elle a été oubliée.
       : Promise.resolve({ data: [], error: null }),
     zoneIds.length
-      ? supabaseAdmin.from('work_zones').select('id, name, kind').in('id', zoneIds)
+      // Les zones ACTIVES seulement (relecture de l'ARRÊT 28, point 10) : une zone désactivée (Israël, le Royaume-Uni
+      // remplacé par ses quatre pays) ne recoupe plus personne (§D.38) — elle n'a plus de libellé, donc ne s'affiche plus
+      // sur une carte ni dans un détail.
+      ? supabaseAdmin.from('work_zones').select('id, name, kind, active').in('id', zoneIds)
       : Promise.resolve({ data: [], error: null }),
   ])
 
@@ -215,7 +218,7 @@ export async function loadReferentielLabels(
   // UN CONTINENT CHOISI SE LIT « EUROPE — TOUT LE CONTINENT » (décision de Youssef, 02/10/2026) : ni
   // « Europe » seul, ni la liste de ses pays. Le gabarit est celui de l'écran de saisie.
   const zones = new Map(
-    ((zoneRes.data ?? []) as Array<{ id: string; name: string; kind: string }>).map((z) => [
+    ((zoneRes.data ?? []) as Array<{ id: string; name: string; kind: string; active: boolean }>).filter((z) => z.active === true).map((z) => [
       z.id,
       libelleZoneServeur({ kind: z.kind, name: tBDD(translations, 'work_zones', z.id, 'name', z.name) }, locale),
     ]),

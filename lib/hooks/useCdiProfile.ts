@@ -42,6 +42,8 @@ export type CdiProfile = {
   speciality_ids: string[] | null
   /** Zones où l'expert accepte de travailler. Exigées pour être visible. */
   work_zone_ids: string[] | null
+  // La couverture calculée en base sur les zones ACTIVES — la complétude la compte (relecture de l'ARRÊT 28, point 10).
+  work_zone_countries: string[] | null
   languages: string[] | null
   location: string | null
   work_modes: WorkMode[] | null
@@ -148,6 +150,7 @@ const PROFILE_COLUMNS = [
   'branch_id',
   'speciality_ids',
   'work_zone_ids',
+  'work_zone_countries',
   'languages',
   'location',
   'work_modes',

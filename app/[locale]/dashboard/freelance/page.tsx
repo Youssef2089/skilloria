@@ -57,6 +57,9 @@ type ProfileData = {
   speciality_ids?: string[] | null
   seniorities?: string[] | null
   work_zone_ids?: string[] | null
+  // La couverture calculée en base sur les zones ACTIVES (work_zone_country_codes) : la liste brute peut ne contenir
+  // qu'une zone désactivée, qui ne retient plus personne (§D.38).
+  work_zone_countries?: string[] | null
   skills?: string[] | null
   languages?: string[] | null
 }
@@ -79,7 +82,7 @@ function computeCompletionPct(profile: ProfileData | null): number {
     !!profile.branch_id,                                  // Branche
     (profile.speciality_ids?.length ?? 0) >= 1,           // Spécialités
     (profile.seniorities?.length ?? 0) >= 1,              // Séniorités
-    (profile.work_zone_ids?.length ?? 0) >= 1,            // Zones de travail
+    (profile.work_zone_countries?.length ?? 0) >= 1,      // Zones de travail ACTIVES (point 10 : pas une zone désactivée)
     (profile.skills?.length ?? 0) >= 3,                   // Compétences
     (profile.languages?.length ?? 0) >= 1,                // Langues
     profile.tjm_min != null && profile.tjm_max != null,   // Compensation (TJM)
@@ -244,7 +247,7 @@ export default function DashboardFreelance() {
           .single(),
         supabase
           .from('profiles')
-          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi, cv_parsing_status, title, summary, branch_id, speciality_ids, seniorities, work_zone_ids, skills, languages')
+          .select('tjm_min, tjm_max, photo_url, visible, verification_status, verification_data, availability_status, verified_at, open_to_cdi, cv_parsing_status, title, summary, branch_id, speciality_ids, seniorities, work_zone_ids, work_zone_countries, skills, languages')
           .eq('user_id', session.user.id)
           .maybeSingle(),
       ])
