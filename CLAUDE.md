@@ -511,7 +511,7 @@ fichiers a cassé **55 liens** relatifs, et il les a tous nommés avant le commi
 > moitié des phrases, et aucune machine ne les aurait trouvées. Ce qui les a trouvées, c'est une
 > relecture contre le code — il n'y a pas de raccourci.
 
-**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (50 erreurs / 22 avertissements au 03/10/2026)
+**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (50 erreurs / 21 avertissements au 03/10/2026)
 vit dans [`diag-lint-cliquet`](scripts/diag-lint-cliquet.mjs), pas dans une consigne : rouge dès qu'un des
 deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commit**.
 

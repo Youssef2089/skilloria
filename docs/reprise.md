@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 02/10/2026 (ARRÊT 26 — le lot « zones de travail et petits défauts du relecteur », à relire avant le déploiement).** Branche `lot/zones-de-travail` (depuis `feat/sprint-archi-orga`, lot B compris). Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 03/10/2026 (ARRÊT 27 — le lot « les annonces ont les mêmes critères que l'expert », à relire avant le regroupement).** Branche `lot/criteres-annonces` (depuis `feat/sprint-archi-orga` à `e27fa56`, en ligne sur staging). Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,86 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 27 — LOT « LES ANNONCES ONT LES MÊMES CRITÈRES QUE L'EXPERT » : SEPT POINTS FAITS, À REGROUPER (03/10/2026)
+
+Branche `lot/criteres-annonces`, créée depuis `e27fa56` (tête de `feat/sprint-archi-orga`, en ligne sur staging —
+vérifié : arbre propre hormis `supabase/snippets/`, à Youssef, non touché). Aucun `git push`, aucune écriture en base, ni
+Docker ni base lancés. Quatre sessions en parallèle : ce lot est le PRINCIPAL (plage `20261003000000`–`…005959`) ; S1, S2
+et S3 se regroupent ensuite. **Un plantage du processus en cours de lot** : rien n'a été jeté ; l'état a été commité tel quel
+(`f1ec2f2`), puis les validations reprises.
+
+**Lu** (règle du 26/09) : CLAUDE.md ; reprise ARRÊT 26 ; architecture §B (lot zones), §C.2, §D.37, §D.38, §H (H.0, H.1,
+H.7) ; pièges §E.95 et le paragraphe de `diag-migration-donnees` ; produit §P1.2 bis, §P2.2 (fin), §P3.2. Code et migrations :
+`publications` et `profiles` (baseline, `profil_annonce_multivalues`, `collaboration_experts`, déclencheurs),
+`specialities`/`branches` (baseline), `_fabriques.psql`, `zones_recoupement.test.sql` ; les trois routes d'annonces,
+`/api/profile`, `pool.ts`, `run-for-expert.ts`, `publication-synthesis.ts`, `audience.ts`, `secure-fetch.ts`, `auth-guard.ts`
+(les codes) ; `PublicationForm`, `SousTraitanceView`, les deux écrans de validation, « Mon profil » (deux), les cartes et
+détails qui affichent mode, durée ou budget ; `diag-deux-temps`, `diag-lot-zones`, `diag-lot2-socle`,
+`diag-zones-recoupement`, `diag-ecritures-effectives`, `diag-recette-s1`, `diag-memoire-exacte`, `diag-lint-cliquet`.
+**Non relu** : le reste de `docs/`.
+
+### Les sept points — ce qui est fait, et ce qui le prouve
+| # | Fait | Prouvé par |
+|---|---|---|
+| 1 | **Spécialités** : choix multiples, AU MOINS UNE (ou « Autre (préciser) »), sur l'annonce d'organisation et le besoin de sous-traitance, valeurs de l'expert filtrées par branche (`optionsSpecialites`, partagée avec les deux écrans de validation). Exigées par `missingForPublish` (route et écrans). Le moteur les filtrait déjà dès qu'une annonce en déclare ; le prédicat en mémoire du sens expert → annonces est sorti dans `lib/matching/recoupement.ts` pour être EXÉCUTÉ | `matching/specialites_recoupement.test.sql` (8, deux sens, chemin du moteur, témoin écarté à chaque cas) ; `diag-specialites-recoupement` (le moteur, le test, le prédicat exécuté avec et sans filtre) ; `diag-lot2-socle` (le prédicat exécuté) |
+| 2 | **Mode de travail** : choix multiples (`publications.work_modes`, la colonne et les valeurs du profil) ; « Hybride » précise ses jours sur site / en télétravail (1 à 6 chacun, 7 au plus), exigés pour publier ; ne filtre pas | `annonces/criteres_communs.test.sql` B1, B4-B6, B10 ; `diag-criteres-communs` ; `diag-lot2-socle` |
+| 3 | **Temps plein / partiel** : champ à part (`temps_travail`), choix multiples, facultatif, sur les deux écrans d'annonce ET la validation freelance et CDI, affiché dans « Mon profil » (deux) ; libellés de Youssef ×4 ; ne filtre pas | test B2, B3, B11 ; `diag-criteres-communs` F (libellés exacts ×4) |
+| 4 | **Durée** : un nombre (1-999) et une unité ; affichée avec son unité par `libelleDuree` (cartes, détail mission, détail de besoin, détail d'annonce d'organisation, suivi de candidature par la ligne de synthèse et la carte de candidature) ; jamais pour une offre CDI (contrainte et refus nommé `duree_hors_offre`). Reprise : `lire_duree` lit ce qui se lit, l'illisible est NOMMÉ | test B7-B9, C1-C7, D1-D5 |
+| 5 | **Les mêmes champs partout** : `ChampsAnnonce` rendu par les deux écrans d'annonce ; contrôle BLOQUANT des trois écrans (quatre fichiers) | `diag-criteres-communs` A-E + épreuve intégrée de 8 mutations, toutes rouges |
+| 6 | **Budget** : l'unité suit le type partout (`budgetUnitForAnnonce`) — la route des annonces, la synthèse et ses pastilles, trois cartes, deux détails, deux fiches de candidat ; deux tables d'unités par type supprimées (§E.96) | `diag-criteres-communs` H (tout le code lu ; épreuve) |
+| 7 | `diag-lot-zones` section 9 : la garde d'identité n'est plus écartée en bloc ; cinq codes nommés, chacun avec sa raison | `diag-lot-zones` 9 vert ; mutation M7 |
+
+### La migration — 188 au total
+- `20261003000000_annonce_criteres_communs` (AVANT) — détail §B (architecture). Exception `diag-deux-temps` nouvelle :
+  preuve `colonnes_neuves` (la migration crée chaque colonne, nullable ou à défaut vide ; chaque contrainte en garde une ;
+  aucun écrivain de la table dans le code EN LIGNE `e27fa56` ne les nomme ; le test les nomme). `CODE_EN_LIGNE` remis à
+  `e27fa56`/`specialite_ecriture_et_avis_une_fois` ; les deux exceptions de l'ARRÊT 26, mortes, retirées.
+- Requête de staging : ⓪ `specialite_ecriture_et_avis_une_fois` ; rien de retiré ; deux fonctions et six contraintes créées.
+
+### L'épreuve
+- **tsc** 0 erreur (hors `.next/`) ; **next build** réussi ; **lint** 50 erreurs / 21 avertissements (la base du cliquet
+  abaissée de 23 à 21 : le formulaire d'annonce réécrit et une carte de mission en perdent deux) ; **parité i18n** verte.
+- **Série complète** : premier passage 122 verts, 3 rouges, 2 hors délai — le compte des migrations (187 → 188), le gel des
+  écritures effectives (la reprise, idempotente, touche légitimement zéro ligne — écrit avec sa raison), un contrôle qui
+  attendait l'import de « Autre » dans le formulaire d'annonce (il est dans le composant partagé : la propriété tient) ;
+  corrigés. Second passage : **125 verts, 0 rouge** ; les deux contrôles hors délai du lanceur, lancés seuls : verts
+  (`diag-lint-cliquet` ; `diag-controles-a-rejouer`, 22 contrôles rejoués).
+- **Mutations : 11 sur 11 rougissent**, arbre restauré à l'identique à chaque fois — M1 le filtre du vivier, M2 le prédicat
+  en mémoire, M3 le test de base (`diag-specialites-recoupement`) ; M4 une colonne neuve à défaut non vide, M5 une colonne
+  que le code en ligne nomme (`diag-deux-temps`, preuve `colonnes_neuves`) ; M6 une liste du registre qui diverge de la
+  base, M9 l'unité recalculée dans une carte, M10 le temps de travail plus envoyé par la validation CDI
+  (`diag-criteres-communs`) ; M7 une raison retirée de la section 9 (`diag-lot-zones`) ; M8 la spécialité plus exigée
+  (`diag-lot2-socle`) ; M11 une entrée du gel retirée (`diag-ecritures-effectives`). Plus les huit épreuves intégrées de
+  `diag-criteres-communs` et la sienne pour l'unité du budget.
+- **Ce que le contrôle a trouvé** : une dixième dérivation de l'unité du budget, une table d'unités morte dans
+  `MissionCard` (`void formatBudget`) — supprimée.
+
+### Le nombre de tests de base attendu
+**706** (66 fichiers) = 671 + 27 (`annonces/criteres_communs`) + 8 (`matching/specialites_recoupement`). **NON exécutés
+ici** (ni Docker ni base).
+
+### Ce qui reste, et se dit (architecture §H.8)
+- La spécialité obligatoire n'est pas tenue en base (le code en ligne publie sans) : lot SUIVANT, APRÈS, avec la décision
+  sur les annonces déjà publiées sans spécialité.
+- `work_mode` et `duration` (texte) : plus lues ni écrites ; à supprimer dans un lot suivant.
+- **Mon choix, à confirmer par Youssef** : le temps de travail est à choix MULTIPLES et facultatif (la consigne ne disait ni
+  l'un ni l'autre) ; une annonce « Autre » seule ne restreint pas la spécialité.
+- Vu, non corrigé (périmètre S2) : `CandidatureCard` dit « pour ce poste » à un besoin de sous-traitance (§H.8) ;
+  `AnnonceCard` dit le budget deux fois (même unité désormais).
+
+### Pour Youssef — dans l'ordre (après le regroupement des quatre branches)
+1. Lire et faire relire ce lot.
+2. Docker lancé : `npx supabase link --project-ref wnayuerhakekxccgimeg`, `node scripts/verifier-version-postgres.mjs`,
+   `npx supabase db reset --local`, `npx supabase db lint -s public --level error` (sortie vide),
+   `npx supabase test db --local` — **706 tests** pour ce lot seul (plus ceux de S1, S2, S3 au regroupement), tous verts.
+3. La requête de staging (lecture seule) : aucun ÉCART. Au push, la notice « critères des annonces : N mode(s) de travail
+   repris, M durée(s) reprise(s) », et, s'il y en a, la liste NOMMÉE des durées illisibles (à faire corriger dans l'annonce).
+4. `npm run build`, `npx supabase db push`, `git push` aussitôt — puis, dans l'éditeur SQL,
+   `select public.reprendre_criteres_annonces();` (rattrape une annonce enregistrée par l'ancien code pendant la fenêtre).
+5. Sur staging : publier une annonce « Hybride » sans jours (refus nommé), avec 3 + 2 ; une offre CDI (pas de champ durée) ;
+   un besoin de sous-traitance avec spécialité, durée « 6 mois », budget — sa carte et son détail disent « /jour » ; la
+   validation d'un expert freelance et CDI : « Temps de travail », puis « Mon profil ».
 
 ## ⛔ ARRÊT 26 — LOT « ZONES DE TRAVAIL ET PETITS DÉFAUTS DU RELECTEUR » : NEUF POINTS FAITS, À RELIRE AVANT LE DÉPLOIEMENT (02/10/2026)
 
