@@ -410,7 +410,7 @@ trois — un découpage par `user_type` l'aurait privé du réglage correspondan
 Regroupement : **digest** pour les opportunités (anti-rafale : un run peut produire 20 matches d'un
 coup), **un envoi par élément** pour les messages.
 **Seul le canal e-mail est ouvert** (§D.2). **Depuis le lot alertes (S2, 02/10/2026, §D.48), une annonce qui s'affiche
-prévient** : chaque correspondance FRAÎCHE pose son avis dans la cloche, et part par e-mail si l'expert l'a activé —
+prévient** : chaque correspondance FRAÎCHE pose son avis dans la cloche, et part par e-mail sauf si l'expert a coupé ces e-mails (ils partent par défaut) —
 aucun réglage ne le contredit (`notify_enabled` n'est plus lu). C'était l'inverse jusque-là : l'interrupteur valait
 `false` sur chaque écosystème, et personne n'était notifié, alors que l'écran montrait « Correspondance forte ».
 
@@ -964,7 +964,7 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 |---|---|---|---|
 | **Filtre** du flux | **0 / 10** (tout profil éligible entre) | `matching_settings.feed_threshold` | **Back-office** `/admin/matching` — **il TRIE** |
 | Palier « **Correspondance forte** » | **8 / 10** | `matching_settings.notify_threshold` (le nom de la colonne reste, §D.9) | **Back-office** — un **libellé** à l'écran, il ne décide d'**aucune** alerte (§D.48) |
-| Alerte d'une annonce recommandée | **toujours** — chaque correspondance fraîche prévient (cloche ; e-mail si l'expert l'a activé) | **Code** (`lib/matching/index.ts`, `run-for-expert.ts`) | **Personne** — décision de Youssef, aucun réglage ne la contredit ; `notify_enabled` est **inerte** |
+| Alerte d'une annonce recommandée | **toujours** — chaque correspondance fraîche prévient (cloche ; e-mail sauf si l'expert l'a coupé — il part par défaut) | **Code** (`lib/matching/index.ts`, `run-for-expert.ts`) | **Personne** — décision de Youssef, aucun réglage ne la contredit ; `notify_enabled` est **inerte** |
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |

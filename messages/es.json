@@ -4449,7 +4449,7 @@
     "palier_title": "«Coincidencia alta»",
     "palier_one_line": "A partir de esta nota, el anuncio lleva la etiqueta «Coincidencia alta» en la tarjeta del experto. No decide ninguna alerta.",
     "field_palier": "Nota a partir de la cual un anuncio es una «Coincidencia alta»",
-    "alerte_regle": "Todo anuncio que aparece en la lista de un experto le avisa: en la campana de la aplicación, y por correo si lo activó en sus ajustes. Ningún ajuste de esta página lo impide.",
+    "alerte_regle": "Todo anuncio que aparece en la lista de un experto le avisa: en la campana de la aplicación, y por correo, salvo que haya desactivado esos correos en sus ajustes (se envían por defecto). Ningún ajuste de esta página lo impide.",
     "technical_title": "Parámetros técnicos",
     "technical_one_line": "Modelo de clasificación, tamaño de los lotes. No son decisiones de producto: cambian cuando el proveedor cambia sus límites.",
     "field_model": "Modelo de clasificación",

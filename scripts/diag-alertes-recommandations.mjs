@@ -168,6 +168,15 @@ section('1. Une annonce qui s’affiche prévient — aucun réglage ne contredi
   ok(textes.every(dans4), 'les textes du palier et de la règle existent dans les quatre langues', textes.filter((c) => !dans4(c)).join(', '))
   const seuil = LANGUES.filter((l) => /seuil|threshold|umbral|schwelle/i.test(textes.map((c) => cle(MSG[l], c)).join(' ')))
   ok(seuil.length === 0, 'le mot « seuil » n’y apparaît dans aucune langue (§D.9)', seuil.join(', '))
+  // (4) LA RÈGLE DIT LA VÉRITÉ SUR L'E-MAIL (relecture de l'ARRÊT 28, point 4) : il part à tout expert qui ne l'a pas
+  //     COUPÉ (lib/notifications/preferences.ts : aucune ligne = tout reçu) — jamais « s'il l'a activé ».
+  const COUPE = { fr: /sauf s’il a coupé/, en: /unless they turned these emails off/, es: /salvo que haya desactivado/, de: /außer er hat diese E-Mails/ }
+  const ACTIVE = /s’il l’a activé|if they turned it on|si lo activó|wenn er dies .* aktiviert/
+  const fausses = LANGUES.filter((l) => !COUPE[l].test(cle(MSG[l], 'admin_matching.alerte_regle') ?? '') || ACTIVE.test(cle(MSG[l], 'admin_matching.alerte_regle') ?? ''))
+  ok(fausses.length === 0, 'la règle dit que l’e-mail part sauf si l’expert l’a coupé (le défaut), dans les quatre langues', fausses.join(', '))
+
+  ok(/aucune ligne et reçoit tout/.test(lire('lib/notifications/preferences.ts')),
+    'la règle de l’e-mail par défaut (aucune ligne = tout reçu) est toujours celle des préférences')
   // Et « vous serez notifié » est vrai sans condition : la variante qui dépendait du réglage n'est plus rendue.
   for (const voie of ['freelance', 'cdi']) {
     const m = sansCommentaires(lire(`app/[locale]/dashboard/${voie}/missions/page.tsx`))

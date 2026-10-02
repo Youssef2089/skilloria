@@ -4449,7 +4449,7 @@
     "palier_title": "“Strong match”",
     "palier_one_line": "From this score on, the listing carries the “Strong match” label on the expert’s card. It decides no alert.",
     "field_palier": "Score from which a listing is a “Strong match”",
-    "alerte_regle": "Every listing that appears in an expert’s list notifies them: in the app’s bell, and by email if they turned it on in their settings. No setting on this page can prevent it.",
+    "alerte_regle": "Every listing that appears in an expert’s list notifies them: in the app’s bell, and by email — unless they turned these emails off in their settings (they are sent by default). No setting on this page can prevent it.",
     "technical_title": "Technical parameters",
     "technical_one_line": "Ranking model, batch size. These are not product decisions: they change when the provider changes its limits.",
     "field_model": "Ranking model",

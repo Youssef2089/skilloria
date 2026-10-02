@@ -4449,7 +4449,7 @@
     "palier_title": "« Correspondance forte »",
     "palier_one_line": "À partir de cette note, l’annonce porte l’étiquette « Correspondance forte » sur la carte de l’expert. Elle ne décide d’aucune alerte.",
     "field_palier": "Note à partir de laquelle une annonce est une « Correspondance forte »",
-    "alerte_regle": "Toute annonce qui apparaît dans la liste d’un expert le prévient : dans la cloche de l’application, et par e-mail s’il l’a activé dans ses paramètres. Aucun réglage de cette page ne l’empêche.",
+    "alerte_regle": "Toute annonce qui apparaît dans la liste d’un expert le prévient : dans la cloche de l’application, et par e-mail — sauf s’il a coupé ces e-mails dans ses paramètres (ils partent par défaut). Aucun réglage de cette page ne l’empêche.",
     "technical_title": "Paramètres techniques",
     "technical_one_line": "Modèle de classement, taille des lots. Ce ne sont pas des décisions produit : ils se changent quand le fournisseur change ses limites.",
     "field_model": "Modèle de classement",

@@ -4449,7 +4449,7 @@
     "palier_title": "„Starke Übereinstimmung“",
     "palier_one_line": "Ab dieser Note trägt die Anzeige auf der Karte des Experten das Etikett „Starke Übereinstimmung“. Sie entscheidet über keine Benachrichtigung.",
     "field_palier": "Note, ab der eine Anzeige eine „Starke Übereinstimmung“ ist",
-    "alerte_regle": "Jede Anzeige, die in der Liste eines Experten erscheint, benachrichtigt ihn: in der Glocke der Anwendung und per E-Mail, wenn er dies in seinen Einstellungen aktiviert hat. Keine Einstellung auf dieser Seite verhindert das.",
+    "alerte_regle": "Jede Anzeige, die in der Liste eines Experten erscheint, benachrichtigt ihn: in der Glocke der Anwendung und per E-Mail – außer er hat diese E-Mails in seinen Einstellungen abgeschaltet (sie werden standardmäßig versendet). Keine Einstellung auf dieser Seite verhindert das.",
     "technical_title": "Technische Parameter",
     "technical_one_line": "Ranking-Modell, Stapelgröße. Das sind keine Produktentscheidungen: Sie ändern sich, wenn der Anbieter seine Grenzen ändert.",
     "field_model": "Ranking-Modell",

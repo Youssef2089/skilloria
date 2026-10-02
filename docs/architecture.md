@@ -1366,8 +1366,8 @@ jamais écrit ([lib/publications/expiry.ts](../lib/publications/expiry.ts), sour
 
 ### C.3 Mise en relation et notification
 > **LA NOTIFICATION, DEPUIS LE LOT ALERTES (S2, 02/10/2026, §D.48)** : chaque correspondance FRAÎCHE — une annonce qui
-> vient d'entrer dans le flux de l'expert — pose son avis dans la cloche et appelle le dispatcher (l'e-mail si l'expert
-> l'a activé), dans les deux sens du moteur (`lib/matching/index.ts`, `run-for-expert.ts`). Avant, l'avis exigeait
+> vient d'entrer dans le flux de l'expert — pose son avis dans la cloche et appelle le dispatcher (l'e-mail sauf si l'expert
+> l'a coupé — il part par défaut, `lib/notifications/preferences.ts`), dans les deux sens du moteur (`lib/matching/index.ts`, `run-for-expert.ts`). Avant, l'avis exigeait
 > `notify_enabled` (faux par défaut, ouvert par aucune migration) ET le palier « fort » : l'écran montrait
 > « Correspondance forte » et une pastille rouge, et rien ne partait. `notify_enabled` n'est plus lu nulle part (colonne
 > inerte) ; `notify_threshold` ne décide plus que du PALIER affiché ; le filtre du flux décide désormais AUSSI de qui est
@@ -4233,7 +4233,7 @@ source, la migration, le test) et `matching/zones_liste_des_pays.test.sql` (19).
 **Le cas (Mehdi, staging).** Une mission affichée « Correspondance forte », une pastille rouge sur « Missions », et ni
 cloche ni e-mail : l'alerte exigeait `notify_enabled` (faux par défaut) ET le palier « fort », le palier ne lisait que
 `notify_threshold`. Deux réglages gouvernaient ce qui est montré et ce qui prévient (§E.111). **La règle** : chaque
-correspondance FRAÎCHE prévient (cloche, et e-mail si l'expert l'a activé), dans les deux sens ; `notify_enabled` n'est
+correspondance FRAÎCHE prévient (cloche, et e-mail sauf si l'expert l'a coupé — il part par défaut), dans les deux sens ; `notify_enabled` n'est
 plus lu (inerte ; sa suppression, si décidée, part dans un lot APRÈS) ; `notify_threshold` ne règle que le PALIER
 « Correspondance forte » ; `/admin/matching` le dit et n'offre plus la case. **Elle renverse §P4.3** (« volontairement
 inactif ») : la volumétrie redevient un sujet, et c'est le FILTRE du flux (0 par défaut) qui décide désormais aussi de qui
