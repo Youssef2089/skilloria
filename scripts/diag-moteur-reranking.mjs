@@ -217,7 +217,8 @@ const EXPERT = read('lib/matching/run-for-expert.ts')
 
 for (const [motif, libelle] of [
   [/eq\('branch_id'/, 'la branche'],
-  [/overlaps\('speciality_ids'/, 'les spécialités'],
+  // La règle symétrique « Autre » (relecture de l'ARRÊT 28, point 11) : un .or() — l'expert sans spécialité, ou le recoupement.
+  [/q\.or\(`speciality_ids\.eq\.\{\},speciality_ids\.ov\./, 'les spécialités'],
   [/overlaps\('seniorities'/, 'les séniorités'],
   [/overlaps\('work_zone_countries'/, 'les zones de travail'],
   [/open_to_freelance|open_to_cdi/, 'l ouverture croisée, déclarée par l expert'],

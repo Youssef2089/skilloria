@@ -198,7 +198,7 @@ section('3. Toutes les surfaces, le même composant ; l’affichage dit le conti
     && !(/import ChampsAnnonce\b[^\n]*from '@\/components\/annonces\/ChampsAnnonce'/.test(lire(p)) && /<ChampsAnnonce\b/.test(lire(p)) && rendLeSelecteur(champsAnnonce)))
   ok(sans.length === 0, 'validation (freelance, CDI), annonce d’organisation, sous-traitance : le MÊME WorkZoneSelector', sans.join(', '))
   const synth = sansCommentaires(lire('lib/publication-synthesis.ts'))
-  ok(/from\('work_zones'\)\.select\('id, name, kind'\)/.test(synth) && /libelleZoneServeur\(\{ kind: z\.kind, name: tBDD\(translations, 'work_zones'/.test(synth),
+  ok(/from\('work_zones'\)\.select\('id, name, kind, active'\)/.test(synth) && /libelleZoneServeur\(\{ kind: z\.kind, name: tBDD\(translations, 'work_zones'/.test(synth),
     'cartes et détail d’annonce : le libellé d’une zone passe par « {zone} — tout le continent » (loadReferentielLabels)')
   const appels = ['app/api/me/candidatures/route.ts', 'app/api/me/missions/route.ts', 'app/api/me/missions/[id]/route.ts', 'app/api/publications/route.ts', 'app/api/publications/[id]/route.ts']
     .filter((p) => !/loadReferentielLabels\([\s\S]{0,200}translations,\s*[\w[\]]+,\s*locale,\s*\)/.test(sansCommentaires(lire(p))))
