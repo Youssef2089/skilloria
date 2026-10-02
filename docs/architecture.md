@@ -1295,7 +1295,8 @@ Le matching est relancé via `after()` (§E.5).
 séniorités **facultatives**, vide = « aucune contrainte sur cet axe », pas « personne ».
 **Spécialités OBLIGATOIRES depuis le 03/10/2026** (§D.39) — au moins une du référentiel ou « Autre » précisé, exigées par
 `missingForPublish` (pas encore en base, §H.8) ; un ensemble d'identifiants vide (« Autre » seul, annonces d'avant) n'y
-contraint rien. Et « Hybride » exige sa répartition. L'annonce d'une organisation et le besoin de sous-traitance partagent
+contraint rien. Le **temps de travail** est exigé aussi (décision du 03/10/2026, §D.39 ; pas encore en base). Et
+« Hybride » exige sa répartition. L'annonce d'une organisation et le besoin de sous-traitance partagent
 leurs champs (`ChampsAnnonce`) et leur validation (`lib/annonces/formulaire.ts`).
 **Une liste de PAYS vide ne retient personne, dans les deux sens** (§D.38, relecture du 02/10/2026) : le moteur le dit
 avant toute requête, et pose le recoupement des zones sans condition.
@@ -3964,8 +3965,10 @@ texte libre, affiché « 6 » sans unité ; la carte du besoin de sous-traitance
    coché. Ne filtre pas (décision de septembre).
 3. **TEMPS PLEIN OU TEMPS PARTIEL** : un champ à part (`temps_travail`, `plein`/`partiel`), sur les deux écrans
    d'annonce ET sur le profil (validation freelance et CDI, « Mon profil »). **Choix multiples** des deux côtés (une
-   annonce qui coche les deux accepte l'un ou l'autre ; un expert aussi) — c'est mon choix, à confirmer : la consigne ne
-   disait pas « multiple » ; facultatif. Ne filtre pas. Libellés fixés par Youssef, quatre langues.
+   annonce qui coche les deux accepte l'un ou l'autre ; un expert aussi). **OBLIGATOIRE sur l'annonce** d'une organisation
+   et sur le besoin de sous-traitance (`missingForPublish` : la route `/publish` et les deux écrans ; refus nommé, quatre
+   langues), **FACULTATIF sur le profil** — décision de Youssef du 03/10/2026, gardée par `diag-criteres-communs` (E bis).
+   Pas encore en base (§H.8). Ne filtre pas. Libellés fixés par Youssef, quatre langues.
 4. **DURÉE** : un nombre (1 à 999) et une unité (jours, semaines, mois, années), affichée PARTOUT avec son unité, par une
    seule mise en mots (`libelleDuree`, lib/annonces/mise-en-forme.ts — cartes, détails, suivi de candidature ; S3 la
    reprend pour l'admin). Une offre CDI n'en a pas (`publications_offre_sans_duree`). Les durées en texte libre sont
@@ -4226,10 +4229,11 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
   `labels`) — antérieur au lot, non touché.
 
 **H.8 — CE QUE LE LOT « CRITÈRES DES ANNONCES » (03/10/2026, ARRÊT 27) LAISSE OUVERT, DIT.**
-- **La spécialité obligatoire n'est pas tenue EN BASE.** Le code en ligne (`e27fa56`) publie sans spécialité : une
-  contrainte « publiée ⇒ au moins une spécialité ou une précision » refuserait ce qu'il écrit (§E.72), et les annonces déjà
-  publiées sans spécialité la feraient échouer. Elle part dans un lot SUIVANT, marqué APRÈS, avec la décision de ce que
-  deviennent ces annonces (les lister ? les dépublier ?) — à trancher par Youssef.
+- **La spécialité et le temps de travail obligatoires ne sont pas tenus EN BASE.** Le code en ligne (`e27fa56`) publie sans
+  eux : une contrainte « publiée ⇒ au moins une spécialité (ou une précision) et un temps de travail » refuserait ce qu'il
+  écrit (§E.72), et les annonces déjà publiées sans eux la feraient échouer. Elle part dans la SECONDE livraison, marquée
+  APRÈS, après le regroupement (décision de Youssef, 03/10/2026), avec la suppression de `work_mode` et `duration` et la
+  décision de ce que deviennent ces annonces (les lister ? les dépublier ?).
 - **`publications.work_mode` et `publications.duration`** ne sont plus lues ni écrites par le code du lot ; le code en ligne
   les écrit encore. Leur suppression : un lot suivant (APRÈS), une fois ce déploiement en ligne.
 - **La fenêtre du déploiement** : une annonce enregistrée par l'ANCIEN code entre le `db push` et le `git push` garde son

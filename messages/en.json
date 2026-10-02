@@ -6231,7 +6231,8 @@
       "referentiel_indisponible": "Branches, specialities and work zones could not be loaded. Reload the page.",
       "reseau": "The connection to the server failed. Check your connection and try again.",
       "refus_inconnu": "The server refused to save (code: {code}).",
-      "reponse_sans_identifiant": "The posting was sent, but the server did not return its identifier. Reload your postings list."
+      "reponse_sans_identifiant": "The posting was sent, but the server did not return its identifier. Reload your postings list.",
+      "temps_travail": "Choose full-time, part-time, or both"
     }
   }
 }

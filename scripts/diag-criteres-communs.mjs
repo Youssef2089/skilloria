@@ -77,7 +77,8 @@ const MIGRATIONS = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => 
 function textesReels() {
   const t = {}
   for (const p of [...Object.values(ECRANS), ...Object.values(PARTAGES), 'app/api/profile/route.ts',
-    'app/api/publications/route.ts', 'app/api/publications/[id]/route.ts', 'lib/annonces/criteres.ts', 'lib/criteres/specialites.ts']) {
+    'app/api/publications/route.ts', 'app/api/publications/[id]/route.ts', 'lib/annonces/criteres.ts', 'lib/criteres/specialites.ts',
+    'lib/publications/publishable.ts', 'lib/profile-visibility.ts', 'app/api/publications/[id]/publish/route.ts']) {
     t[p] = sansCommentaires(lire(p))
   }
   t.__migrations = MIGRATIONS.map((f) => sansCommentairesSql(lire(`supabase/migrations/${f}`))).join('\n;\n')
@@ -187,6 +188,18 @@ function juger(t) {
     }
     // Les spécialités construites à la main (le filtre par branche recopié) — la source est optionsSpecialites.
     if (/\.filter\(\(?(?:s|sp)\)? => (?:s|sp)\.branch_id === /.test(t[p])) fautes.push(`D. ${p} filtre les spécialités par branche lui-même`)
+  }
+  // E bis — LE TEMPS DE TRAVAIL (décision de Youssef, 03/10/2026) : OBLIGATOIRE sur une annonce (le prédicat de
+  // publication, que la route /publish et les deux écrans appliquent), FACULTATIF sur le profil de l'expert.
+  if (!/if \(\(input\.temps_travail\?\.length \?\? 0\) === 0\) manquants\.push\('temps_travail'\)/.test(t['lib/publications/publishable.ts'])) {
+    fautes.push('E bis. le temps de travail n’est plus exigé pour publier une annonce')
+  }
+  if (!/temps_travail: criteres\.temps_travail,/.test(t['app/api/publications/[id]/publish/route.ts'])
+      || !/temps_travail: v\.temps_travail,\n\s*jours_sur_site/.test(t[PARTAGES.formulaire])) {
+    fautes.push('E bis. la route /publish ou les écrans ne passent plus le temps de travail au prédicat de publication')
+  }
+  if (/temps_travail/.test(t['lib/profile-visibility.ts'])) {
+    fautes.push('E bis. le temps de travail est devenu une condition de visibilité du profil — il y est FACULTATIF')
   }
   // E — les routes
   const profil = t['app/api/profile/route.ts']
@@ -302,6 +315,12 @@ section('G. L’épreuve : chaque mutation fait rougir le contrôle')
     ['la spécialité qui n’est plus envoyée par l’annonce', () => muter(PARTAGES.formulaire, 'speciality_ids: v.speciality_ids', 'speciality_idz: v.speciality_ids')],
     ['les séniorités recopiées dans la validation freelance', () => muter(ECRANS['validation freelance'], 'SENIORITES.map(', "['junior', 'confirmed', 'senior', 'expert'].map(")],
     ['la branche absente du besoin de sous-traitance (le composant partagé n’est plus rendu)', () => muter(ECRANS['besoin de sous-traitance'], '<ChampsAnnonce', '<AutreChose')],
+    ['le temps de travail qui n’est plus exigé pour publier', () => muter('lib/publications/publishable.ts', "manquants.push('temps_travail')", 'void 0')],
+    ['le temps de travail exigé pour rendre un profil visible', () => {
+      const t = { ...REELS }
+      t['lib/profile-visibility.ts'] += "\nif (!input.temps_travail?.length) manquants.push('temps_travail')\n"
+      return t
+    }],
   ]
   for (const [nom, fabriquer] of EPREUVES) {
     const t = fabriquer()

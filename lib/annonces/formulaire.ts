@@ -233,6 +233,7 @@ export function manquantsPourPublier(v: ValeursAnnonce): PublicationPublishableF
     speciality_other: v.speciality_ids.includes(SPECIALITY_OTHER) ? v.speciality_other : null,
     work_zone_ids: v.work_zone_ids,
     work_modes: v.work_modes,
+    temps_travail: v.temps_travail,
     jours_sur_site: r.sur_site === null || Number.isNaN(r.sur_site) ? null : r.sur_site,
     jours_teletravail: r.teletravail === null || Number.isNaN(r.teletravail) ? null : r.teletravail,
   })
@@ -260,6 +261,7 @@ export function messageDeSaisie(champ: ChampAnnonce, code: CodeErreurSaisie, tPu
         case 'branch_id': return tPub('form.field_errors.branch_id')
         case 'work_zone_ids': return tPub('form.field_errors.work_zone_ids')
         case 'speciality_ids': return tCrit('erreurs.speciality_ids')
+        case 'temps_travail': return tCrit('erreurs.temps_travail')
         default: return tCrit('erreurs.champ_obligatoire')
       }
   }
@@ -287,6 +289,7 @@ export function libelleChampPubliable(champ: PublicationPublishableField, tPub: 
     case 'speciality_ids': return tCrit('champs.specialites')
     case 'work_zone_ids': return tPub('form.field_work_zones')
     case 'repartition_hybride': return tCrit('champs.repartition')
+    case 'temps_travail': return tCrit('champs.temps_travail')
   }
 }
 

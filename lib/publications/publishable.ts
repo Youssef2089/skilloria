@@ -20,6 +20,10 @@
 //     écrit (§E.72) — elle part dans un lot suivant (dette §H, architecture).
 //   • SÉNIORITÉS : facultatives — un ensemble vide y signifie « aucune contrainte sur cet axe ».
 //   • RÉPARTITION HYBRIDE : exigée quand « Hybride » est coché (des jours sur site ET en télétravail par semaine).
+//   • TEMPS DE TRAVAIL : OBLIGATOIRE sur l'annonce d'une organisation et sur le besoin de sous-traitance (décision de
+//     Youssef, 03/10/2026 — temps plein, temps partiel, ou les deux) ; FACULTATIF sur le profil de l'expert. Il ne filtre
+//     pas la mise en relation. Comme la spécialité, la base ne le garantit pas encore : la garde part dans la seconde
+//     livraison (le code en ligne publie sans lui).
 
 export type PublicationPublishableInput = {
   title: string | null | undefined
@@ -29,6 +33,7 @@ export type PublicationPublishableInput = {
   speciality_other: string | null | undefined
   work_zone_ids: readonly string[] | null | undefined
   work_modes: readonly string[] | null | undefined
+  temps_travail: readonly string[] | null | undefined
   jours_sur_site: number | null | undefined
   jours_teletravail: number | null | undefined
 }
@@ -41,6 +46,7 @@ export const PUBLICATION_PUBLISHABLE_FIELDS = [
   'speciality_ids',
   'work_zone_ids',
   'repartition_hybride',
+  'temps_travail',
 ] as const
 
 export type PublicationPublishableField = (typeof PUBLICATION_PUBLISHABLE_FIELDS)[number]
@@ -65,6 +71,7 @@ export function missingForPublish(
   if ((input.work_modes ?? []).includes('hybrid') && (input.jours_sur_site == null || input.jours_teletravail == null)) {
     manquants.push('repartition_hybride')
   }
+  if ((input.temps_travail?.length ?? 0) === 0) manquants.push('temps_travail')
   return manquants
 }
 

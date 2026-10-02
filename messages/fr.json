@@ -6231,7 +6231,8 @@
       "referentiel_indisponible": "Les branches, spécialités et zones de travail n’ont pas pu être chargées. Rechargez la page.",
       "reseau": "La connexion au serveur a échoué. Vérifiez votre connexion et réessayez.",
       "refus_inconnu": "Le serveur a refusé l’enregistrement (code : {code}).",
-      "reponse_sans_identifiant": "L’annonce a été envoyée, mais le serveur n’a pas rendu son identifiant. Rechargez la liste de vos annonces."
+      "reponse_sans_identifiant": "L’annonce a été envoyée, mais le serveur n’a pas rendu son identifiant. Rechargez la liste de vos annonces.",
+      "temps_travail": "Choisissez temps plein, temps partiel, ou les deux"
     }
   }
 }

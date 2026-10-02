@@ -6231,7 +6231,8 @@
       "referentiel_indisponible": "No se han podido cargar las ramas, especialidades y zonas de trabajo. Recargue la página.",
       "reseau": "La conexión con el servidor ha fallado. Compruebe su conexión e inténtelo de nuevo.",
       "refus_inconnu": "El servidor ha rechazado el guardado (código: {code}).",
-      "reponse_sans_identifiant": "El anuncio se ha enviado, pero el servidor no ha devuelto su identificador. Recargue la lista de sus anuncios."
+      "reponse_sans_identifiant": "El anuncio se ha enviado, pero el servidor no ha devuelto su identificador. Recargue la lista de sus anuncios.",
+      "temps_travail": "Elija jornada completa, tiempo parcial o ambas"
     }
   }
 }

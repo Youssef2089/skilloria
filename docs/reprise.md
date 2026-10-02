@@ -80,7 +80,7 @@ détails qui affichent mode, durée ou budget ; `diag-deux-temps`, `diag-lot-zon
 |---|---|---|
 | 1 | **Spécialités** : choix multiples, AU MOINS UNE (ou « Autre (préciser) »), sur l'annonce d'organisation et le besoin de sous-traitance, valeurs de l'expert filtrées par branche (`optionsSpecialites`, partagée avec les deux écrans de validation). Exigées par `missingForPublish` (route et écrans). Le moteur les filtrait déjà dès qu'une annonce en déclare ; le prédicat en mémoire du sens expert → annonces est sorti dans `lib/matching/recoupement.ts` pour être EXÉCUTÉ | `matching/specialites_recoupement.test.sql` (8, deux sens, chemin du moteur, témoin écarté à chaque cas) ; `diag-specialites-recoupement` (le moteur, le test, le prédicat exécuté avec et sans filtre) ; `diag-lot2-socle` (le prédicat exécuté) |
 | 2 | **Mode de travail** : choix multiples (`publications.work_modes`, la colonne et les valeurs du profil) ; « Hybride » précise ses jours sur site / en télétravail (1 à 6 chacun, 7 au plus), exigés pour publier ; ne filtre pas | `annonces/criteres_communs.test.sql` B1, B4-B6, B10 ; `diag-criteres-communs` ; `diag-lot2-socle` |
-| 3 | **Temps plein / partiel** : champ à part (`temps_travail`), choix multiples, facultatif, sur les deux écrans d'annonce ET la validation freelance et CDI, affiché dans « Mon profil » (deux) ; libellés de Youssef ×4 ; ne filtre pas | test B2, B3, B11 ; `diag-criteres-communs` F (libellés exacts ×4) |
+| 3 | **Temps plein / partiel** : champ à part (`temps_travail`), choix multiples, sur les deux écrans d'annonce ET la validation freelance et CDI, affiché dans « Mon profil » (deux) ; libellés de Youssef ×4 ; ne filtre pas. **Décision du 03/10/2026 : OBLIGATOIRE sur l'annonce et le besoin de sous-traitance** (formulaire et serveur, refus nommé ×4), **FACULTATIF sur le profil** | test B2, B3, B11 ; `diag-criteres-communs` E bis (exigé pour publier, jamais pour le profil ; deux épreuves) et F ; `diag-lot2-socle` (le prédicat exécuté) ; mutations M12, M13 |
 | 4 | **Durée** : un nombre (1-999) et une unité ; affichée avec son unité par `libelleDuree` (cartes, détail mission, détail de besoin, détail d'annonce d'organisation, suivi de candidature par la ligne de synthèse et la carte de candidature) ; jamais pour une offre CDI (contrainte et refus nommé `duree_hors_offre`). Reprise : `lire_duree` lit ce qui se lit, l'illisible est NOMMÉ | test B7-B9, C1-C7, D1-D5 |
 | 5 | **Les mêmes champs partout** : `ChampsAnnonce` rendu par les deux écrans d'annonce ; contrôle BLOQUANT des trois écrans (quatre fichiers) | `diag-criteres-communs` A-E + épreuve intégrée de 8 mutations, toutes rouges |
 | 6 | **Budget** : l'unité suit le type partout (`budgetUnitForAnnonce`) — la route des annonces, la synthèse et ses pastilles, trois cartes, deux détails, deux fiches de candidat ; deux tables d'unités par type supprimées (§E.96) | `diag-criteres-communs` H (tout le code lu ; épreuve) |
@@ -119,8 +119,22 @@ ici** (ni Docker ni base).
 - La spécialité obligatoire n'est pas tenue en base (le code en ligne publie sans) : lot SUIVANT, APRÈS, avec la décision
   sur les annonces déjà publiées sans spécialité.
 - `work_mode` et `duration` (texte) : plus lues ni écrites ; à supprimer dans un lot suivant.
-- **Mon choix, à confirmer par Youssef** : le temps de travail est à choix MULTIPLES et facultatif (la consigne ne disait ni
-  l'un ni l'autre) ; une annonce « Autre » seule ne restreint pas la spécialité.
+- ~~Mon choix, à confirmer par Youssef~~ — **TRANCHÉ le 03/10/2026** : le temps de travail est à choix MULTIPLES,
+  OBLIGATOIRE sur l'annonce et le besoin de sous-traitance, FACULTATIF sur le profil ; une annonce « Autre » seule ne
+  restreint pas la spécialité (validé tel quel). La garde en base du temps de travail part dans la seconde livraison, avec
+  la spécialité obligatoire et la suppression de `work_mode` et `duration`.
+
+### Les décisions de Youssef sur les deux questions (03/10/2026) — ce qui a changé
+- `missingForPublish` exige `temps_travail` (nouveau champ `temps_travail` de la publiabilité) ; la route `/publish` le lui
+  passe ; les deux écrans d'annonce l'exigent avant d'envoyer (`erreursDeSaisie`), l'astérisque et l'erreur sous le champ
+  (« Choisissez temps plein, temps partiel, ou les deux », `criteres.erreurs.temps_travail`, quatre langues), et un refus
+  `missing_fields` de `/publish` le nomme (« Temps de travail »). Le profil n'en dépend pas (`profile-visibility` inchangé).
+- Aucune migration, aucun test de base nouveau : **706 tests attendus**, inchangé.
+- Épreuve (reprise après le plantage, ARRÊT 28 étape 0 — le code était écrit, rien n'était validé ni commité) : **tsc**
+  0 erreur ; **next build** réussi ; **lint** 50/21 (cliquet vert) ; **parité i18n** 5 016 clés ; **série complète**
+  126 verts, 0 rouge, 1 hors délai (`diag-controles-a-rejouer`, lancé seul : 95 rejoués, tous verts) ; mutations M12
+  (`missingForPublish` sans le temps de travail → `diag-criteres-communs` et `diag-lot2-socle` rouges, rejouée à la
+  reprise) et M13 (le temps de travail exigé pour le profil → `diag-criteres-communs` rouge, épreuve intégrée).
 - Vu, non corrigé (périmètre S2) : `CandidatureCard` dit « pour ce poste » à un besoin de sous-traitance (§H.8) ;
   `AnnonceCard` dit le budget deux fois (même unité désormais).
 

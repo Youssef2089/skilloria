@@ -241,10 +241,13 @@ console.log('\n— annonce')
 // LA SPÉCIALITÉ EST EXIGÉE DEPUIS LE 03/10/2026 (décision de Youssef, §D.39) — au moins une du référentiel, ou « Autre »
 // précisé ; la répartition, quand « Hybride » est coché. Les séniorités restent facultatives (vide = aucune contrainte).
 const ANNONCE = { title: 'T', description: 'D', branch_id: 'b', speciality_ids: ['s'], speciality_other: null,
-  work_zone_ids: ['z'], work_modes: [], jours_sur_site: null, jours_teletravail: null }
+  work_zone_ids: ['z'], work_modes: [], temps_travail: ['plein'], jours_sur_site: null, jours_teletravail: null }
 eq(missingForPublish(ANNONCE).length, 0, 'annonce complète')
 eq(missingForPublish({ ...ANNONCE, work_zone_ids: [] }).join(','), 'work_zone_ids', 'sans zone : refusée')
 eq(missingForPublish({ ...ANNONCE, speciality_ids: [] }).join(','), 'speciality_ids', 'sans spécialité : refusée (§D.39)')
+eq(missingForPublish({ ...ANNONCE, temps_travail: [] }).join(','), 'temps_travail',
+  'sans temps de travail : refusée (décision de Youssef, 03/10/2026)')
+eq(missingForPublish({ ...ANNONCE, temps_travail: ['plein', 'partiel'] }).length, 0, 'temps plein ET partiel : acceptée')
 eq(missingForPublish({ ...ANNONCE, speciality_ids: [], speciality_other: 'FinOps' }).length, 0,
   '« Autre » précisé seul suffit — les valeurs de l’expert (§D.40)')
 eq(missingForPublish({ ...ANNONCE, work_modes: ['hybrid'] }).join(','), 'repartition_hybride',

@@ -765,7 +765,7 @@ deux produits.
 > · **L'annonce d'une organisation et le besoin de sous-traitance** ont les mêmes champs, sur toute la largeur : au moins
 >   une **spécialité** (les mêmes que l'expert, celles de la branche choisie, « Autre (préciser) » compris) ; les **modes de
 >   travail** se cochent (plusieurs possibles) et « Hybride » demande les **jours sur site et en télétravail** par semaine ;
->   le **temps de travail** ; la **durée** en un nombre et une unité (jours, semaines, mois, années) — pas pour une offre
+>   le **temps de travail** (obligatoire sur une annonce, facultatif sur le profil) ; la **durée** en un nombre et une unité (jours, semaines, mois, années) — pas pour une offre
 >   CDI. Chaque refus se dit sous son champ.
 > · **Partout** (cartes, détail, suivi de candidature) : la durée s'affiche avec son unité (« 6 mois »), « Hybride (3 j sur
 >   site · 2 j en télétravail) », le temps de travail ; le budget d'un besoin de sous-traitance dit « /jour ».

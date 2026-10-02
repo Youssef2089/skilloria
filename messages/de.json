@@ -6231,7 +6231,8 @@
       "referentiel_indisponible": "Bereiche, Spezialisierungen und Arbeitsgebiete konnten nicht geladen werden. Laden Sie die Seite neu.",
       "reseau": "Die Verbindung zum Server ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
       "refus_inconnu": "Der Server hat das Speichern abgelehnt (Code: {code}).",
-      "reponse_sans_identifiant": "Die Anzeige wurde gesendet, aber der Server hat ihre Kennung nicht zurückgegeben. Laden Sie Ihre Anzeigenliste neu."
+      "reponse_sans_identifiant": "Die Anzeige wurde gesendet, aber der Server hat ihre Kennung nicht zurückgegeben. Laden Sie Ihre Anzeigenliste neu.",
+      "temps_travail": "Wählen Sie Vollzeit, Teilzeit oder beides"
     }
   }
 }

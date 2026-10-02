@@ -272,8 +272,15 @@ export default function ChampsAnnonce({ type, valeurs: v, changer, erreurs, refe
         </div>
 
         <div style={{ marginBottom: 18 }}>
-          <span id="sk-annonce-temps" style={libelle}>{t('champs.temps_travail')}</span>
-          <ChoixTempsTravail idGroupe="sk-annonce-temps" valeur={v.temps_travail} onChange={(next) => changer('temps_travail', next)} />
+          {/* OBLIGATOIRE sur une annonce (décision de Youssef, 03/10/2026) : temps plein, temps partiel, ou les deux. */}
+          <span id="sk-annonce-temps" style={libelle}>{t('champs.temps_travail')} *</span>
+          <ChoixTempsTravail
+            idGroupe="sk-annonce-temps"
+            valeur={v.temps_travail}
+            onChange={(next) => changer('temps_travail', next)}
+            invalide={!!erreurs.temps_travail}
+          />
+          {erreurs.temps_travail ? <div style={erreurTexte}>{erreurs.temps_travail}</div> : null}
         </div>
 
         <div style={grille}>

@@ -170,8 +170,8 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   //
   // Même prédicat que le formulaire (lib/publications/publishable.ts) : une
   // copie dériverait, et l'écran finirait par contredire le serveur.
-  // Les critères de l'annonce, lus une fois (§D.39) : la spécialité est exigée (au moins une, ou « Autre » précisé), et
-  // la répartition quand « Hybride » est coché.
+  // Les critères de l'annonce, lus une fois (§D.39) : la spécialité est exigée (au moins une, ou « Autre » précisé), le
+  // temps de travail aussi (décision de Youssef, 03/10/2026), et la répartition quand « Hybride » est coché.
   const criteres = criteresDeLaLigne(pub as unknown as Record<string, unknown>)
   const manquants = missingForPublish({
     title: pub.title as string | null,
@@ -181,6 +181,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     speciality_other: pub.speciality_other as string | null,
     work_zone_ids: (pub.work_zone_ids as string[] | null) ?? [],
     work_modes: criteres.work_modes,
+    temps_travail: criteres.temps_travail,
     jours_sur_site: criteres.jours_sur_site,
     jours_teletravail: criteres.jours_teletravail,
   })
