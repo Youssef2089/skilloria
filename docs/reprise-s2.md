@@ -66,7 +66,7 @@ lot APRÈS, si Youssef le décide.
 | `npm run build` | **Compilation réussie** (« Compiled successfully »), puis la vérification des types bute sur **le même fichier généré** `.next/dev/types/validator.ts`. Sa suppression (`.next/dev`, non versionné, recréé par `next dev`) **m'a été refusée** : je ne l'ai pas retentée. Étape ③ de Youssef ci-dessous. |
 | Cliquet du lint | **50/23**, base inchangée (mesurée seule : dans la série, ESLint plante sous la charge — déjà le cas sur `e27fa56`). |
 | Parité i18n, clés, variables | `diag-parite-i18n`, `diag-cles-i18n`, `diag-variables-i18n` : verts. |
-| Série `diag-*` | Départ (`e27fa56`) : **124 verts, 0 rouge**, 1 qui n'a pas tourné (`diag-lint-cliquet`, ESLint sous charge), 6 écartés. Lot : voir « La série du lot » ci-dessous. |
+| Série `diag-*` | Départ (`e27fa56`) : **124 verts, 0 rouge**, 1 qui n'a pas tourné (`diag-lint-cliquet`, ESLint sous charge), 6 écartés. **Lot : 125 verts (dont le nouveau `diag-alertes-recommandations`), 0 rouge**, 6 écartés, 1 qui n'a pas tourné dans le lanceur : `diag-controles-a-rejouer` (délai de 120 s) — **relancé seul : 100 diagnostics rejoués sur les fichiers du lot, tous verts**. Le lint, mesuré seul, est vert (50/23). `diag-memoire-a-jour --base=e27fa56` : vert. |
 
 ### Contradictions et fichiers partagés — signalés
 
