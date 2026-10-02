@@ -91,7 +91,7 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
 6. La fiche admin n'affichait aucune zone ; « Mon profil » mène à l'écran de validation.
 7. **Hors des neuf points, BLOQUANT avant une base construite depuis zéro (production) — §E.92** : les 64 pays arrivent par
    `parametrage_de_production`, APRÈS la migration qui les rattache aux continents : sur une base vierge, `work_zones` n'a
-   aucun pays. Staging n'est pas touché. Non corrigé ; ce qui le fermerait est écrit (architecture §H.7).
+   aucun pays. Staging n'est pas touché. **RÉSOLU dans ce lot** (décision de Youssef, 02/10/2026) — voir « Le complément ».
 
 ### Les neuf points — ce qui est fait, et ce qui le prouve
 | # | Fait | Prouvé par |
@@ -114,11 +114,29 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
   écriture du geste, et son refus est rendu `specialite_autre_reservee` (400) — **précision** : le code en ligne ne le
   DEMANDE pas avant, c'est la base qui refuse, et il traduit ce refus ; rien n'est écrit à moitié. Le code du lot, lui,
   le demande avant d'écrire.
-- Requête de staging : ⓪ `photo_par_le_serveur` ; rien de retiré ; trois fonctions créées.
+- `20261002000070_zones_pays_rattaches` — le complément ci-dessous (§E.92, résolu).
+- Requête de staging : ⓪ `photo_par_le_serveur` ; trois migrations en attente ; rien de retiré ; trois fonctions créées
+  (la troisième migration n'ajoute que des lignes).
+
+### Le complément — les pays d'une base neuve (§E.92, RÉSOLU ; décision de Youssef, 02/10/2026, avant la relecture)
+- **La migration** `20261002000070_zones_pays_rattaches` (AVANT, après les deux autres) : chaque pays ACTIF de `countries`
+  sans zone est rattaché à son continent par la MÊME correspondance ISO que la migration d'origine (196 couples recopiés,
+  vérifiés égaux un à un), même code, même slug, traductions en/es/de recopiées de `countries`. Rien de déjà rattaché
+  n'est touché (`not exists` sur le code pays, `on conflict do nothing`, aucun update ni delete). Son message : « zones de
+  travail : 0 pays rattaché(s) à leur continent, 0 traduction(s) posée(s) » sur staging ; « 64 pays rattaché(s) … 192
+  traduction(s) » sur une base neuve. Un pays actif resté sans continent se NOMME dans une seconde ligne.
+- **Le test** `matching/zones_pays_rattaches.test.sql` (5), sur la base que `db reset` construit depuis zéro : un référentiel
+  de pays non vide (garde contre le vide) ; chaque pays actif sous un continent ; « Partout dans le monde » couvre tous les
+  pays actifs (l'aplatissement réel) ; un expert « Partout dans le monde » aussi (chemin normal) ; chaque pays actif
+  traduit. **Sans la migration, 2 à 5 échouent** (aucune zone pays) — compté positivement, pour qu'aucune ne passe à vide.
+- **Gardé par** `diag-lot-zones` 2 bis ; `diag-deux-temps` vert (trois migrations du premier temps, rien de restreint) ;
+  `diag-requete-staging` vert. **Mutations : 5 sur 5 rougissent** (un couple changé, la garde « pas déjà rattaché »
+  retirée, la cible du conflit, le message, le filtre des pays actifs) — la deuxième passait d'abord : le contrôle trouvait
+  le même `not exists` dans le filet de fin de migration ; il est ancré sur l'insertion (§E.8).
 
 ### Le nombre de tests de base attendu
-**654** (62 fichiers) = 638 + 10 (`matching/zones_recoupement`) + 6 (`taxonomie/reactivation_hors_autre`). **NON exécutés
-ici** (ni Docker ni base).
+**659** (63 fichiers) = 638 + 10 (`matching/zones_recoupement`) + 6 (`taxonomie/reactivation_hors_autre`) + 5
+(`matching/zones_pays_rattaches`). **NON exécutés ici** (ni Docker ni base).
 
 ### L'épreuve
 - **tsc** 0 erreur (hors `.next/`) ; **next build** réussi ; **lint** 50 erreurs / 23 avertissements (le cliquet tient) ;
@@ -133,7 +151,7 @@ ici** (ni Docker ni base).
   **Non éprouvé par mutation** : la preuve `refus_nomme` sur un autre commit (il faudrait un commit en ligne fautif).
 
 ### Ce qui reste, et se dit
-- **§E.92 / §H.7 — les pays absents d'une base construite depuis zéro.** À trancher avant la mise en production.
+- ~~§E.92 / §H.7 — les pays absents d'une base construite depuis zéro~~ — **résolu dans ce lot** (le complément ci-dessus).
 - Une désactivation non notifiée se rejoue en réactivant puis désactivant (le message le dit).
 - `PATCH /api/publications/[id]` écrit encore une annonce inchangée (sa ligne du grand livre, non) ; la conversation
   n'affiche pas les zones de ses annonces — antérieurs, non touchés.
@@ -142,16 +160,20 @@ ici** (ni Docker ni base).
 1. Lire et faire relire ce lot (le relecteur relit avant le déploiement).
 2. Docker lancé, sur `lot/zones-de-travail` : `npx supabase link --project-ref wnayuerhakekxccgimeg`,
    `node scripts/verifier-version-postgres.mjs`, `npx supabase db reset --local`,
-   `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local` — **654 tests, tous verts**.
+   `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local` — **659 tests, tous verts**.
+   Pendant le `db reset`, la migration `zones_pays_rattaches` dit « 64 pays rattaché(s) à leur continent ».
 3. La requête de staging (éditeur SQL de staging, lecture seule) : **aucun ÉCART** (⓪ `photo_par_le_serveur`, trois
    fonctions créées) ; les notices du push disent « couverture des zones : 0 profil(s) et 0 annonce(s) recalculés »
-   (un autre nombre n'est pas une erreur : c'est une couverture qui était en retard).
+   (un autre nombre n'est pas une erreur : c'est une couverture qui était en retard) et « zones de travail : 0 pays
+   rattaché(s) à leur continent » (un autre nombre dit que staging avait des pays sans continent — ils le sont désormais ;
+   une seconde ligne « pays actifs SANS continent » nomme ceux que la correspondance ne connaît pas).
 4. `npm run build`, `npx supabase db push`, puis `git push` aussitôt.
 5. Sur staging : choisir Europe puis la France dedans ; décocher la France d'« Europe — tout le continent » ; chercher
    « Maroc » ; enregistrer deux fois sans rien changer (aucune nouvelle ligne au grand livre) ; une carte d'annonce
    « Europe — tout le continent » ; la fiche admin d'un expert ; désactiver une spécialité choisie par un expert d'essai
    (sa cloche, dans sa langue) ; publier un besoin de sous-traitance.
-6. **Avant la production** : trancher §E.92 (les pays des zones sur une base neuve).
+6. ~~Avant la production : trancher §E.92~~ — fait dans ce lot : en production, l'ÉTAPE 1 (les migrations depuis zéro) dira
+   « 64 pays rattaché(s) à leur continent ».
 
 ## ⛔ ARRÊT 25 — LE REJEU LOCAL DU LOT B : CINQ ROUGES DANS UN SEUL TEST, CORRIGÉ (01/10/2026)
 

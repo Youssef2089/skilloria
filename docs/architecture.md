@@ -440,7 +440,7 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > - **`photo_par_le_serveur`** (`…000040`) — retire `avatars_auth_upload`, `_update`, `_delete`.
 
 > **LE LOT « ZONES DE TRAVAIL ET PETITS DÉFAUTS DU RELECTEUR » (02/10/2026, ARRÊT 26) — tronc, horodaté après
-> `photo_par_le_serveur`, les DEUX marquées AVANT.** Staging est à jour jusqu'à `photo_par_le_serveur` (lot B déployé) :
+> `photo_par_le_serveur`, les TROIS marquées AVANT.** Staging est à jour jusqu'à `photo_par_le_serveur` (lot B déployé) :
 > la requête de staging l'attend en ⓪ ; le code en ligne est `1182e02` (`CODE_EN_LIGNE` de `diag-deux-temps`).
 > - **`zones_couverture_suit_le_referentiel`** (`…000050`, AVANT) — `recalculer_couverture_des_zones(uuid[])` (réécrit
 >   `work_zone_ids` à l'identique pour les profils et annonces qui ont choisi l'une des zones données — NULL = toutes —,
@@ -456,6 +456,11 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   contrainte `specialities_autre_hors_referentiel`. Exception de `diag-deux-temps` : `refus_nomme` — dans le fichier EN
 >   LIGNE, la mise à jour de la spécialité est la première écriture du geste et `estRefusAutre()` la rend
 >   `specialite_autre_reservee` (400). §D.36. Test : `taxonomie/reactivation_hors_autre.test.sql` (6).
+> - **`zones_pays_rattaches`** (`…000070`, AVANT) — §E.92, RÉSOLU : rattache à son continent chaque pays ACTIF de
+>   `countries` sans zone (la correspondance ISO d'origine, recopiée, vérifiée égale par `diag-lot-zones`), avec ses
+>   traductions ; ne touche à rien de ce qui est rattaché ; « 0 pays rattaché(s) » sur staging, 64 sur une base neuve ; le
+>   déclencheur de couverture tourne pour chaque pays ajouté. Insertion seule dans une table qu'aucun code n'écrit : rien de
+>   restreint. Test : `matching/zones_pays_rattaches.test.sql` (5), après `db reset`.
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -4099,12 +4104,9 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
   échec ; `retirer_specialites_autre()` est rejouable).
 
 **H.7 — CE QUE LE LOT « ZONES DE TRAVAIL » (02/10/2026) LAISSE OUVERT, DIT.**
-- **BLOQUANT AVANT TOUTE BASE CONSTRUITE DEPUIS ZÉRO (production) — §E.92 : les zones de travail n'y auraient AUCUN pays.**
-  `referentiel_zones_de_travail` rattache les pays de `countries`, encore vide sur une base vierge ; les 64 pays arrivent
-  par `parametrage_de_production`, après. Staging n'est pas touché (sa base existait avant). Non corrigé : hors des neuf
-  points du lot. Ce qui le fermerait : une migration qui rattache aux continents les pays de `countries` absents de
-  `work_zones` (la correspondance ISO d'origine) — le déclencheur `work_zones_couverture` recalculerait ensuite seul la
-  couverture des continents et du monde. À trancher avant la mise en production.
+- ~~**BLOQUANT AVANT TOUTE BASE CONSTRUITE DEPUIS ZÉRO (production) — §E.92 : les zones de travail n'y auraient AUCUN
+  pays.**~~ — **RÉSOLU le 02/10/2026, dans ce lot (décision de Youssef)** : la migration `zones_pays_rattaches` rattache
+  chaque pays actif sans zone (§B.2, lot zones), prouvé après `db reset` par `matching/zones_pays_rattaches.test.sql`.
 - Une désactivation dont les experts n'ont pas été prévenus (`experts_non_prevenus`) ne se rejoue pas d'elle-même :
   l'administrateur réactive puis désactive (le message le dit). Une seule notification par passage : deux désactivations
   en deux gestes préviennent deux fois.

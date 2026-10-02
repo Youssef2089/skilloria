@@ -332,7 +332,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.89](docs/pieges.md#e89) | LA SÉRIE « STATIQUE » LISAIT LA VRAIE BASE, ET LA BASE N'ATTEIGNAIT PAS LE SITE — deux angles morts de l'exploitation : quatre scripts lisaient `.env.local` à chaque série ; chaque tâche planifiée recevait un 401 de la protection de la racine, perdu avant la réconciliation de la nuit. |
 | [E.90](docs/pieges.md#e90) | UNE PHRASE QUI COLLE UN NOM À UNE PRÉPOSITION CASSE LA GRAMMAIRE SUR LE REPLI : « de le profil », « a el anuncio », un datif allemand — vu en lisant les phrases, pas par le contrôle. |
 | [E.91](docs/pieges.md#e91) | LA RÈGLE DES DEUX TEMPS NE VISAIT QUE LES VALEURS : un déclencheur (`LG001`), une politique retirée (photos), une ligne désactivée (« Autre ») restreignent aussi ce que le code en ligne écrit — trois migrations fusionnées dans le lot d'avant, et un rapport qui disait « aucun geste n'échoue ». `diag-deux-temps` pose la question à chaque migration en attente. |
-| [E.92](docs/pieges.md#e92) | SUR UNE BASE CONSTRUITE DEPUIS ZÉRO, LES ZONES DE TRAVAIL N'ONT AUCUN PAYS : les 64 pays arrivent APRÈS la migration qui les rattache — staging ne le montre pas, la production le subirait. **NON CORRIGÉ** (architecture §H.7). |
+| [E.92](docs/pieges.md#e92) | SUR UNE BASE CONSTRUITE DEPUIS ZÉRO, LES ZONES DE TRAVAIL N'ONT AUCUN PAYS : les 64 pays arrivent APRÈS la migration qui les rattache — staging ne le montre pas, la production le subirait. **RÉSOLU le 02/10/2026** : la migration `zones_pays_rattaches` rattache chaque pays sans zone (0 sur staging, 64 sur une base neuve), prouvé après `db reset`. |
 | [E.93](docs/pieges.md#e93) | UN FORMULAIRE QUI N'ENVOIE PAS CE QUE SA PUBLICATION EXIGE : l'annonce de sous-traitance ne pouvait rien publier (ni branche ni zones), et l'écran disait « la publication a échoué ». |
 | [E.94](docs/pieges.md#e94) | LE CONTRÔLE DES DEUX TEMPS NE LISAIT QUE L'ORDRE D'UNE SECONDE LIVRAISON : ce qu'une migration APRÈS restreint n'était relu par personne — les écrivains sont désormais recalculés et les exceptions prouvées sur le commit en ligne. |
 | [E.100](docs/pieges.md#e100) | UNE LIGNE DE DONNÉES PORTAIT LE NOM D'UNE OPTION D'ÉCRAN : deux « Autre » (l'option « Autre (préciser) » et une spécialité « Autre » semée), deux comportements, un mot — la contrainte en base ferme la jumelle. *(Les pièges du worktree S1 commencent à E.100.)* |
@@ -416,7 +416,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 185 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 186 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé

@@ -38,9 +38,10 @@ with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
   -- CE PUSH, LE LOT « ZONES DE TRAVAIL » (02/10/2026) : staging est à jour jusqu'à photo_par_le_serveur (lot B déployé).
-  -- Deux migrations, toutes deux AVANT : zones_couverture_suit_le_referentiel (une fonction de recalcul, un déclencheur
-  -- sur work_zones, une reprise qui ne touche que les couvertures en retard) et specialite_reactivation_hors_autre (un
-  -- déclencheur sur specialities). AUCUNE ne supprime de signature.
+  -- Trois migrations, toutes AVANT : zones_couverture_suit_le_referentiel (une fonction de recalcul, un déclencheur
+  -- sur work_zones, une reprise qui ne touche que les couvertures en retard), specialite_reactivation_hors_autre (un
+  -- déclencheur sur specialities) et zones_pays_rattaches (des LIGNES de work_zones et leurs traductions, pour les pays
+  -- sans continent — aucune sur staging : « 0 pays rattaché(s) »). AUCUNE ne supprime de signature.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),

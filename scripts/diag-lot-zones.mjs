@@ -143,6 +143,39 @@ ok(/role="radiogroup"[^>]*onKeyDown=\{clavierRadio\}/.test(SEL) && (SEL.match(/t
 }
 
 // ══════════════════════════════════════════════════════════════════════════
+section('2 bis. Les pays d’une base construite depuis zéro sont rattachés (§E.92, résolu)')
+// ══════════════════════════════════════════════════════════════════════════
+{
+  const correspondance = (sql) => {
+    const i = sql.indexOf('iso_continent(country_code, continent_code) as (values')
+    const fin = "('VU','OC'),('WS','OC')"
+    const bloc = i < 0 ? '' : sql.slice(i, sql.indexOf(fin, i) + fin.length)
+    return [...bloc.matchAll(/\('([A-Z]{2})','([A-Z]{2})'\)/g)].map((m) => `${m[1]}>${m[2]}`)
+  }
+  const origine = correspondance(migration('referentiel_zones_de_travail'))
+  const m = migration('zones_pays_rattaches')
+  const neuve = correspondance(m)
+  ok(origine.length > 190 && neuve.join() === origine.join(),
+    `le MÊME rattachement que la migration d’origine (${neuve.length} couples, égaux un à un et dans l’ordre)`)
+  // ANCRÉ sur l'insertion (§E.8) : le filet de fin de migration porte le même `not exists`, et un contrôle lâché sur
+  // tout le fichier restait vert quand la garde de l'insertion était retirée (trouvé par mutation).
+  const insertion = m.slice(m.indexOf('ajoutes as ('), m.indexOf('returning id, country_code'))
+  ok(/and not exists \(select 1 from public\.work_zones w where w\.country_code = co\.code\)\s*on conflict \(code\) do nothing\s*$/.test(insertion)
+     && !/\bupdate public\.|\bdelete from public\./.test(m),
+    'rien de ce qui est DÉJÀ rattaché n’est touché : seuls les pays sans zone, aucun update, aucun delete')
+  ok(/raise notice 'zones de travail : % pays rattaché\(s\)/.test(m), 'elle dit ce qu’elle a fait : « N pays rattaché(s) » (0 sur staging, 64 sur une base neuve)')
+  ok(/join public\.work_zones cont on cont\.code = ic\.continent_code and cont\.kind = 'continent'/.test(m) && /where co\.active = true/.test(m),
+    'chaque pays ACTIF, sous son CONTINENT')
+  const fichiers = readdirSync(join(ROOT, 'supabase', 'migrations')).sort()
+  const rang = (s) => fichiers.findIndex((f) => f.endsWith(`_${s}.sql`))
+  ok(rang('zones_pays_rattaches') > rang('zones_couverture_suit_le_referentiel') && rang('zones_pays_rattaches') > rang('specialite_reactivation_hors_autre'),
+    'horodatée après les deux migrations du lot (le déclencheur de couverture tourne pour chaque pays ajouté)')
+  const t = sansCommentairesSql(lire('supabase/tests/database/matching/zones_pays_rattaches.test.sql'))
+  ok(/select plan\(5\)/.test(t) && /cardinality\(v_actifs\) > 0/.test(t) && /public\.work_zone_country_codes\(array\[v_monde\]\), v_actifs/.test(t),
+    'le test de base : une garde contre le vide, chaque pays actif sous un continent, « Partout dans le monde » = tous les pays actifs')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
 section('3. Toutes les surfaces, le même composant ; l’affichage dit le continent entier')
 // ══════════════════════════════════════════════════════════════════════════
 {

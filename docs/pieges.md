@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **185** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
-02/10/2026 sur le lot « zones de travail » — ses deux migrations ne sèment rien ; sur 183, le 01/10/2026 sur le lot B — ses
+Sur les **186** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
+02/10/2026 sur le lot « zones de travail » — ses trois migrations n'ajoutent aucune insertion analysable : le rattachement des
+pays vit dans un bloc `do` ; sur 183, le 01/10/2026 sur le lot B — ses
 quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
 mêmes — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
 fusion du lot S1 : les mêmes — `journal_photo_et_cv` sème deux actions ; sur 179, à la fusion : 78, 65, 3346 ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
@@ -4354,7 +4355,7 @@ faite par le CODE (une route nouvelle qui refuse ce que l'ancienne page envoie) 
 ---
 
 <a id="e92"></a>
-### E.92 — SUR UNE BASE CONSTRUITE DEPUIS ZÉRO, LES ZONES DE TRAVAIL N'ONT AUCUN PAYS : les pays arrivent APRÈS la migration qui les rattache — staging ne le montre pas, la production le subirait. NON CORRIGÉ.
+### E.92 — SUR UNE BASE CONSTRUITE DEPUIS ZÉRO, LES ZONES DE TRAVAIL N'AVAIENT AUCUN PAYS : les pays arrivent APRÈS la migration qui les rattache — staging ne le montrait pas, la production l'aurait subi. RÉSOLU (02/10/2026).
 
 **Le cas (lot zones de travail, 02/10/2026 — vu en écrivant le test de base du filtre).** `referentiel_zones_de_travail`
 (`20260901000010`) sème le monde, les six continents, puis les PAYS par `insert … select … from public.countries where
@@ -4372,12 +4373,21 @@ un ensemble VIDE — et le moteur ne pose le filtre que sur un ensemble non vide
 le monde, un expert mondial toutes les annonces, et aucune autre zone ne pourrait être choisie.
 
 **La leçon.** Une migration de DONNÉES qui lit une autre table est une dépendance d'ORDRE que rien n'écrit (§E.12) — et
-l'environnement de test, construit autrement que la production, la cache. **Ce qui la fermerait** (non fait — hors des
-neuf points du lot, à trancher) : une migration qui rattache aux continents les pays de `countries` absents de
-`work_zones` (la correspondance ISO de la migration d'origine, `on conflict (code) do nothing`) ; le déclencheur
-`work_zones_couverture` posé par ce lot recalculerait alors seul la couverture de chaque continent et du monde. Les
-tests de base, eux, n'en dépendent pas : `matching/zones_recoupement` prend la zone du référentiel quand elle existe et
-la crée sinon. Dette ouverte : architecture §H.7.
+l'environnement de test, construit autrement que la production, la cache.
+
+**RÉSOLU le 02/10/2026 (décision de Youssef : dans ce lot, avant la relecture).** La migration `zones_pays_rattaches`
+(AVANT, horodatée après les deux autres migrations du lot) rattache à son continent chaque pays ACTIF de `countries`
+qui n'a pas de zone — la MÊME correspondance ISO que la migration d'origine, recopiée telle quelle (`diag-lot-zones`
+vérifie que les 196 couples sont égaux un à un), le même code, le même slug, ses traductions en, es, de. Elle ne touche
+à rien de ce qui est déjà rattaché (`not exists` sur le code pays, `on conflict (code) do nothing`, aucun update ni
+delete) et dit ce qu'elle a fait : « 0 pays rattaché(s) » sur staging, 64 sur une base neuve ; un pays actif resté sans
+continent se NOMME. Le déclencheur `work_zones_couverture` recalcule la couverture des continents et du monde pour chaque
+pays ajouté. **Prouvé** par `matching/zones_pays_rattaches.test.sql` (5), sur la base que `db reset` construit depuis zéro
+— exactement le cas que staging ne montrait pas : une garde contre le vide (un référentiel de pays non vide), chaque pays
+actif sous un continent, « Partout dans le monde » = tous les pays actifs (l'aplatissement, puis un expert par le chemin
+normal), chaque pays actif traduit — les quatre dernières échouent sans la migration. **Ce qui n'est pas vu** : un pays
+ACTIVÉ plus tard dans `countries` sans migration (personne ne l'écrit hors migration) — la migration qui l'active doit le
+rattacher, comme celle-ci.
 
 ---
 
