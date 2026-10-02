@@ -57,6 +57,15 @@ const ADMIN_NAV_ICONS: Record<string, React.ReactNode> = {
       <path d="M4 21v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2" />
     </svg>
   ),
+  // Annonces à valider — une FEUILLE d'annonce cochée : un document qu'on examine puis qu'on tranche. Distincte de
+  // `user` (Experts) et de `building` (Organisations), ses voisines dans « Validation ». `currentColor` (§E.54).
+  annonce: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+      <path d="m9 14 2 2 4-4" />
+    </svg>
+  ),
   // Parc de comptes — GROUPE de personnes, distinct de `user` (Experts) :
   // deux entrées voisines dans la sidebar ne doivent pas porter la même icône.
   users: (

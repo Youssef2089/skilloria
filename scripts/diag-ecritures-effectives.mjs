@@ -79,7 +79,9 @@ const GEL = {
   'constater_devoilement_ferme:candidatures:1': `${L} une issue NOMMÉE — « deja » (constat déjà posé), « change » (statut changé depuis la lecture), « introuvable »`,
   'decliner_candidature:candidatures:1': `${L} false (statut hors des statuts admis)`,
   'retenir_candidature:candidatures:1': `${L} null (statut hors des statuts admis)`,
-  'publier_annonce:publications:1': `${L} null (brouillon absent ou d'une autre organisation)`,
+  // Lot S3 : publier_annonce() relit SOUS VERROU puis écrit par l'identifiant — elle exige désormais son compte
+  // (exiger_ecriture) ; c'est le refus d'une annonce en revue qui est conditionnel.
+  'refuser_annonce:publications:1': `${L} null (l'annonce n'est plus en revue : déjà tranchée par un autre administrateur, ou absente)`,
   'solder_depot_en_echec:candidature_depots:1': 'LÉGITIME : un dépôt jamais ouvert (ouverture en échec, déjà journalisée par depot.ts) n\'a pas de ligne à solder — le refus refus_depot_sans_jugement s\'écrit QUAND MÊME, sans sujet (§D.19) : l\'échec ne se perd pas',
   'verifier_telephone:users:1': `${L} false (compte absent)`,
   'inserer_candidature_jugee:candidature_depots:1': 'LÉGITIME : nettoyage sur conflit — le dépôt de cette tentative est effacé s\'il existe ; son absence (ouverture du journal en échec, déjà journalisée par depot.ts) ne change rien',

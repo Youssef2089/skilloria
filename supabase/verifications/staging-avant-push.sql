@@ -57,7 +57,10 @@ with
       ('fonction', 'specialite_reactivee_hors_autre'),
       ('fonction', 'modifier_specialite'),
       ('fonction', 'prevenir_retrait_specialite'),
-      ('index', 'notifications_retrait_specialite_une_fois')
+      ('index', 'notifications_retrait_specialite_une_fois'),
+      -- Lot S3, validation des annonces (AVANT) : le refus d'une annonce en revue — publier_annonce() est redéfinie,
+      -- signature inchangée, et n'est donc pas « créée ».
+      ('fonction', 'refuser_annonce')
     ) v(genre, nom)
   )
 

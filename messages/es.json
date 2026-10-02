@@ -2580,7 +2580,8 @@
       "nav_journal": "Libro mayor",
       "nav_depots_echec": "Depósitos fallidos",
       "nav_travaux_ia": "Tareas de IA",
-      "nav_journal_conservation": "Conservación del registro"
+      "nav_journal_conservation": "Conservación del registro",
+      "nav_annonces": "Anuncios"
     },
     "quotas_ia": {
       "title": "Cuotas de IA",
@@ -5075,7 +5076,8 @@
       "travail_ia_relance": "Trabajo de IA relanzado",
       "desabonnement_email": "Baja de un correo",
       "photo_deposee": "Foto de perfil subida",
-      "cv_consulte": "CV abierto por un administrador"
+      "cv_consulte": "CV abierto por un administrador",
+      "annonce_refusee": "Anuncio rechazado"
     },
     "familles": {
       "annonce": "Anuncios",
@@ -5229,11 +5231,15 @@
       "sous_traitance_creee": "{qui} ha creado {annonce} como borrador (necesidad de subcontratación).",
       "annonce_publiee": {
         "simple": "{qui} ha publicado {annonce}.",
-        "note": "{qui} ha publicado {annonce}, tras una verificación automática de su calidad (nota {note}/10)."
+        "note": "{qui} ha publicado {annonce}, tras una verificación automática de su calidad (nota {note}/10).",
+        "validee": "{qui} ha validado {annonce} tras la revisión y lo ha publicado.",
+        "validee_note": "{qui} ha validado {annonce} tras la revisión y lo ha publicado (la verificación automática de su calidad le había dado {note}/10)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} ha publicado {annonce} (necesidad de subcontratación).",
-        "note": "{qui} ha publicado {annonce} (necesidad de subcontratación), tras una verificación automática de su calidad (nota {note}/10)."
+        "note": "{qui} ha publicado {annonce} (necesidad de subcontratación), tras una verificación automática de su calidad (nota {note}/10).",
+        "validee": "{qui} ha validado {annonce} (necesidad de subcontratación) tras la revisión y lo ha publicado.",
+        "validee_note": "{qui} ha validado {annonce} (necesidad de subcontratación) tras la revisión y lo ha publicado (la verificación automática de su calidad le había dado {note}/10)."
       },
       "annonce_modifiee": {
         "champs": "{qui} ha modificado {annonce}: {champs}.",
@@ -5488,7 +5494,13 @@
         "depot_autre": "{qui} ha subido una foto de perfil para {profil}.",
         "remplacement_autre": "{qui} ha sustituido la foto de perfil para {profil}."
       },
-      "cv_consulte": "{qui} ha abierto, en solo lectura, el CV subido para {profil}."
+      "cv_consulte": "{qui} ha abierto, en solo lectura, el CV subido para {profil}.",
+      "annonce_refusee": {
+        "annonce": "{qui} ha rechazado {annonce} tras la revisión; el motivo se ha enviado a su autor.",
+        "annonce_note": "{qui} ha rechazado {annonce} tras la revisión (la verificación automática de su calidad le había dado {note}/10); el motivo se ha enviado a su autor.",
+        "sous_traitance": "{qui} ha rechazado {annonce} (necesidad de subcontratación) tras la revisión; el motivo se ha enviado a su autor.",
+        "sous_traitance_note": "{qui} ha rechazado {annonce} (necesidad de subcontratación) tras la revisión (la verificación automática de su calidad le había dado {note}/10); el motivo se ha enviado a su autor."
+      }
     },
     "valeurs": {
       "inconnu": "otro dato",
@@ -6164,5 +6176,151 @@
     "titre": "La especialidad «{specialite}» ya no se ofrece",
     "corps": "Ya no aparece en su perfil. Elija otra especialidad en su perfil para describir su oficio.",
     "corps_seule": "Era su única especialidad: su perfil ya no puede publicarse hasta que elija otra. Elija una en su perfil."
+  },
+  "validation_annonces": {
+    "admin": {
+      "titre": "Anuncios por validar",
+      "sous_titre": "Los anuncios de las organizaciones y las necesidades de subcontratación de los expertos que la verificación automática no publicó. Valídelos para publicarlos, o rechácelos con un motivo que se envía a su autor.",
+      "onglet_attente": "Pendientes",
+      "onglet_validees": "Validados",
+      "onglet_refusees": "Rechazados",
+      "onglet_toutes": "Todos",
+      "chargement": "Cargando…",
+      "vide_pending": "Ningún anuncio está pendiente de validación.",
+      "vide_validated": "Todavía no se ha publicado ningún anuncio.",
+      "vide_rejected": "No se ha rechazado ningún anuncio.",
+      "vide_all": "Todavía ningún anuncio ha pasado por la validación.",
+      "par_auteur": "por {auteur}",
+      "note_titre": "Nota de la verificación automática de calidad",
+      "bouton_valider": "Validar y publicar",
+      "validation_en_cours": "Publicando…",
+      "bouton_refuser": "Rechazar",
+      "refus_titre": "Motivo del rechazo",
+      "refus_aide": "Este motivo se envía al autor, en la campana de notificaciones y por correo electrónico. Indíquele qué debe cambiar.",
+      "refus_placeholder": "Por ejemplo: la descripción contiene un número de teléfono; retírelo, los intercambios pasan por la mensajería.",
+      "refus_compteur": "{n} / {max} caracteres",
+      "refus_en_cours": "Rechazando…",
+      "refus_confirmer": "Rechazar el anuncio",
+      "validee_ok": "Anuncio validado: está publicado y la búsqueda de expertos correspondientes ha comenzado.",
+      "refusee_ok": "Anuncio rechazado.",
+      "auteur_prevenu": "Su autor ha sido avisado en la aplicación; el correo se envía a continuación.",
+      "auteur_non_prevenu": "No se pudo avisar a su autor en la aplicación: aun así se intenta enviar el correo.",
+      "auteur_introuvable": "Su autor ya no tiene cuenta: no se pudo avisar a nadie.",
+      "auteur_illisible": "No se pudo identificar a su autor (lectura imposible): no se ha enviado ni la notificación ni el correo."
+    },
+    "types": {
+      "mission": "Misión",
+      "offre": "Oferta de empleo",
+      "sous_traitance": "Necesidad de subcontratación",
+      "autre": "Otro anuncio"
+    },
+    "types_organisation": {
+      "client": "Empresa",
+      "cabinet": "Agencia de selección",
+      "esn": "Consultora / Proveedor",
+      "freelance": "Experto independiente (organización personal)"
+    },
+    "statuts": {
+      "draft": "Borrador",
+      "pending_review": "Pendiente de validación",
+      "published": "Publicado",
+      "suspended": "Suspendido",
+      "expired": "Caducado",
+      "archived": "Cerrado",
+      "rejected": "Rechazado",
+      "autre": "Otro estado"
+    },
+    "voies": {
+      "automatique": "Publicado automáticamente",
+      "administrateur": "Validado por un administrador"
+    },
+    "signalements": {
+      "incoherent": "Contenido incoherente",
+      "spam": "Contenido no deseado",
+      "contact_info": "Datos de contacto personales a la vista",
+      "discriminatory": "Criterio discriminatorio",
+      "illegal": "Contenido ilegal"
+    },
+    "verdict": {
+      "titre": "Verificación automática de calidad",
+      "titre_revue": "Por qué este anuncio espera su validación",
+      "non_aboutie": "La verificación automática no pudo pronunciarse (servicio no disponible, control desactivado o límite de gasto alcanzado): el anuncio espera una revisión humana.",
+      "bloquant": "Una señal que impide cualquier publicación automática, sea cual sea la nota: {signalements}.",
+      "bloquant_titre": "Esta señal impide la publicación automática",
+      "note_insuffisante": "Nota de {note}/10, por debajo de la nota de publicación automática.",
+      "signalements": "Señales",
+      "autres": "{count, plural, one {# otra señal} other {# otras señales}}",
+      "commentaire": "Comentario de la verificación automática"
+    },
+    "fiche": {
+      "soumise_le": "enviado el {date}",
+      "titre_auteur": "Autor y organización",
+      "auteur": "Autor",
+      "auteur_inconnu": "Cuenta eliminada",
+      "email": "Correo electrónico",
+      "organisation": "Organización",
+      "type_organisation": "Tipo de organización",
+      "titre_contenu": "Contenido del anuncio",
+      "branche": "Rama",
+      "specialites": "Especialidades",
+      "specialite_autre": "Otra: {valeur}",
+      "zones": "Zonas de trabajo",
+      "precision_lieu": "Precisión sobre el lugar",
+      "competences": "Competencias solicitadas",
+      "description": "Descripción",
+      "refusee_par": "Rechazado por {par} el {date}",
+      "validee_par": "Validado por {par} el {date}: el anuncio se publicó",
+      "en_ligne_automatiquement": "Publicado automáticamente el {date}, tras la verificación de su calidad",
+      "refus_anterieur": "Rechazado una primera vez el {date} — motivo enviado al autor:",
+      "administrateur": "un administrador"
+    },
+    "erreurs": {
+      "chargement": "No se pudieron cargar los anuncios. Recargue la página; si persiste, la base de datos no responde.",
+      "reseau": "El servidor no respondió. Compruebe su conexión y vuelva a intentarlo.",
+      "inattendue": "El servidor devolvió una respuesta inesperada (código {code}). No se ha modificado nada por este lado; recargue la página antes de volver a intentarlo.",
+      "already_processed": "Este anuncio ya ha sido decidido (por usted en otra pestaña, o por otro administrador). La ficha se recarga con la decisión.",
+      "active_publications_limit_reached": "La organización ha alcanzado el máximo de anuncios activos de su oferta. El anuncio podrá publicarse en cuanto se cierre otro, o tras un cambio de oferta de la organización (pantalla «Organizaciones»).",
+      "active_publications_check_failed": "No se pudo comprobar el número de anuncios activos de la organización: no se ha publicado nada. Vuelva a intentarlo en un momento.",
+      "missing_fields": "El anuncio está incompleto (título, descripción, rama o zonas de trabajo): no puede publicarse tal como está.",
+      "durees_illisibles": "Las duraciones de la plataforma (vida de un anuncio) no se pueden leer: no se ha publicado nada. Revise la pantalla «Duraciones de la plataforma».",
+      "motif_requis": "Escriba el motivo del rechazo: se envía al autor.",
+      "motif_trop_long": "El motivo es demasiado largo: acórtelo.",
+      "not_found": "Este anuncio no existe, o ya no existe.",
+      "db_error": "La base de datos rechazó la escritura: no se ha modificado nada. Vuelva a intentarlo; si persiste, infórmelo.",
+      "forbidden": "Esta acción está reservada a los administradores."
+    },
+    "avis": {
+      "cloche": {
+        "validee": {
+          "titre": "Su anuncio «{titre}» está publicado",
+          "corps": "Tras la revisión, su anuncio «{titre}» ha sido validado y publicado. La búsqueda de expertos correspondientes ha comenzado."
+        },
+        "refusee": {
+          "titre": "Su anuncio «{titre}» no ha sido validado",
+          "corps": "Tras la revisión, su anuncio «{titre}» no se ha publicado. Motivo: {motif}"
+        }
+      },
+      "email": {
+        "validee": {
+          "sujet": "Su anuncio «{titre}» está publicado",
+          "preambule": "Ha sido validado tras la revisión.",
+          "titre": "Su anuncio está publicado",
+          "bonjour": "Hola, {prenom}:",
+          "corps": "Tras la revisión, su anuncio <strong>«{titre}»</strong> ha sido validado y publicado.",
+          "suite": "La búsqueda de expertos correspondientes ha comenzado: se le avisará de cada candidatura.",
+          "bouton": "Ver mi anuncio"
+        },
+        "refusee": {
+          "sujet": "Su anuncio «{titre}» no ha sido validado",
+          "preambule": "El motivo figura en este mensaje.",
+          "titre": "Su anuncio no ha sido validado",
+          "bonjour": "Hola, {prenom}:",
+          "corps": "Tras la revisión, su anuncio <strong>«{titre}»</strong> no se ha publicado, por el siguiente motivo:",
+          "motif": "{motif}",
+          "suite": "Encontrará su anuncio, y este motivo, en su espacio.",
+          "bouton": "Ver mi anuncio"
+        }
+      }
+    }
   }
 }

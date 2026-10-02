@@ -31,6 +31,9 @@ export const ACTIONS_JOURNAL = [
   'annonce_publiee', 'annonce_modifiee', 'annonce_depubliee', 'annonce_expiree', 'sous_traitance_publiee',
   // le brouillon — deux noms, comme la publication (migration `journal_annonce_creee`)
   'annonce_creee', 'sous_traitance_creee',
+  // le refus d'une annonce en revue par un administrateur, motif sur la ligne métier — écrit par refuser_annonce()
+  // (migration validation_annonces, lot S3 ; action validée par Youssef)
+  'annonce_refusee',
   // profil
   'cv_televerse', 'profil_publie', 'profil_modifie', 'disponibilite_basculee',
   // la remise à zéro complète du CV — lib/profil/journal-profil.ts
@@ -129,14 +132,17 @@ export function estTypeAction(x: unknown): x is TypeAction {
  * clés dans le commit qui la branche, avec la migration qui les pose en base.
  */
 export const CLES_DETAIL = {
-  annonce_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
+  // `voie` : 'automatique' (le verdict de la vérification) ou 'administrateur' (validée après revue) — dérivée en base.
+  annonce_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie'],
   annonce_modifiee: ['champs', 'champs[]', 'statut_annonce', 'organization_id'],
   annonce_depubliee: ['de', 'vers', 'organization_id'],
   annonce_expiree: ['vie_annonce_jours'],
   annonce_creee: ['type', 'organization_id'],
   sous_traitance_creee: ['organization_id', 'organisation_personnelle_creee'],
   // Les faces « sous-traitance » de publier_annonce() et inserer_candidature_jugee() : même détail que leur jumelle.
-  sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at'],
+  sous_traitance_publiee: ['type', 'organization_id', 'verification_method', 'verification_score', 'published_at', 'voie'],
+  // Jamais le motif (texte libre) : il vit sur la ligne métier (`publications.review_reason`).
+  annonce_refusee: ['type', 'organization_id', 'verification_score'],
   cv_televerse: ['octets', 'analyse', 'premier_consentement', 'experiences', 'formations', 'langues', 'ecarts'],
   profil_publie: ['deja_visible', 'verification_avant'],
   profil_modifie: ['champs', 'champs[]', 'blocs', 'blocs[]'],
