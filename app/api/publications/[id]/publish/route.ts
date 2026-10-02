@@ -17,6 +17,7 @@ import {
 } from '@/lib/expert-verified-guard'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { missingForPublish } from '@/lib/publications/publishable'
+import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne } from '@/lib/annonces/criteres'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 
 export const runtime = 'nodejs'
@@ -126,10 +127,11 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   }
 
   // ── Pré-check ownership + status publishable ────────────────────────────
-  const { data: pub, error: fetchErr } = await auth.supabaseAdmin
+  const { data: pubLue, error: fetchErr } = await auth.supabaseAdmin
     .from('publications')
     .select(
-      'id, organization_id, status, type, title, description, skills_required, seniorities, work_mode, location_note, work_zone_ids, branch_id, duration, budget_min, budget_max',
+      'id, organization_id, status, type, title, description, skills_required, seniorities, location_note, work_zone_ids, ' +
+        `branch_id, speciality_ids, speciality_other, ${COLONNES_CRITERES_ANNONCE}, budget_min, budget_max`,
     )
     // CLOISONNEMENT — ECRITURE : publier une annonce d'un autre ecosysteme
     // depuis celui-ci consommerait un quota sur des donnees invisibles ici.
@@ -141,6 +143,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     console.error('[publications:publish] fetch failed', fetchErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
   }
+  // La liste des colonnes est composée (les critères viennent de COLONNES_CRITERES_ANNONCE) : le client non typé ne
+  // déduit plus la forme de la ligne — elle se lit champ par champ, comme avant.
+  const pub = pubLue as unknown as Record<string, unknown> | null
   if (!pub) {
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
@@ -165,11 +170,19 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   //
   // Même prédicat que le formulaire (lib/publications/publishable.ts) : une
   // copie dériverait, et l'écran finirait par contredire le serveur.
+  // Les critères de l'annonce, lus une fois (§D.39) : la spécialité est exigée (au moins une, ou « Autre » précisé), et
+  // la répartition quand « Hybride » est coché.
+  const criteres = criteresDeLaLigne(pub as unknown as Record<string, unknown>)
   const manquants = missingForPublish({
     title: pub.title as string | null,
     description: pub.description as string | null,
     branch_id: pub.branch_id as string | null,
+    speciality_ids: (pub.speciality_ids as string[] | null) ?? [],
+    speciality_other: pub.speciality_other as string | null,
     work_zone_ids: (pub.work_zone_ids as string[] | null) ?? [],
+    work_modes: criteres.work_modes,
+    jours_sur_site: criteres.jours_sur_site,
+    jours_teletravail: criteres.jours_teletravail,
   })
   if (manquants.length > 0) {
     return json(
@@ -321,9 +334,19 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     description: pub.description as string,
     skills_required: (pub.skills_required as string[] | null) ?? [],
     seniorities: (pub.seniorities as string[] | null) ?? [],
-    work_mode: (pub.work_mode as string | null) ?? null,
+    // Les critères en CODES lisibles par le modèle (le prompt est en français ; ses codes aussi : jours, semaines, mois,
+    // annees, plein, partiel) — aucune mise en mots d'écran ici.
+    work_mode: criteres.work_modes.length === 0 && criteres.temps_travail.length === 0
+      ? null
+      : [
+          criteres.work_modes.join(', '),
+          criteres.jours_sur_site != null && criteres.jours_teletravail != null
+            ? `(${criteres.jours_sur_site} j sur site, ${criteres.jours_teletravail} j en télétravail par semaine)`
+            : '',
+          criteres.temps_travail.length > 0 ? `temps : ${criteres.temps_travail.join(', ')}` : '',
+        ].filter(Boolean).join(' '),
     location_note: (pub.location_note as string | null) ?? null,
-    duration: (pub.duration as string | null) ?? null,
+    duration: criteres.duree_valeur != null ? `${criteres.duree_valeur} ${criteres.duree_unite}` : null,
     budget_min: (pub.budget_min as number | null) ?? null,
     budget_max: (pub.budget_max as number | null) ?? null,
     locale: localeFromRequest(request),

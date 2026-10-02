@@ -9,6 +9,8 @@ import { logAudit } from '@/lib/audit'
 import { loadTranslations } from '@/lib/translations'
 import { loadReferentielLabels } from '@/lib/publication-synthesis'
 import { routing, type Locale } from '@/i18n/routing'
+import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne, lireCriteresAnnonce } from '@/lib/annonces/criteres'
+import { SENIORITES, valeursConnues } from '@/lib/criteres/communs'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -59,10 +61,14 @@ type Body = {
   description?: unknown
   skills_required?: unknown
   seniorities?: unknown
-  work_mode?: unknown
+  work_modes?: unknown
+  jours_sur_site?: unknown
+  jours_teletravail?: unknown
+  temps_travail?: unknown
   location_note?: unknown
   work_zone_codes?: unknown
-  duration?: unknown
+  duree_valeur?: unknown
+  duree_unite?: unknown
   start_date?: unknown
   budget_min?: unknown
   budget_max?: unknown
@@ -83,11 +89,9 @@ type Body = {
  * Un tableau VIDE est une valeur légitime : « aucune contrainte de séniorité ».
  * Jamais « ne correspond à personne » (cf. lib/publications/publishable.ts).
  */
-const SENIORITES = ['junior', 'confirmed', 'senior', 'expert'] as const
+// La liste vient de lib/criteres/communs.ts — la même que le profil de l'expert et que la contrainte de base (§D.39).
 function asSeniorities(v: unknown): string[] {
-  if (!Array.isArray(v)) return []
-  return [...new Set(v.filter((x): x is string =>
-    typeof x === 'string' && (SENIORITES as readonly string[]).includes(x)))]
+  return valeursConnues(SENIORITES, v)
 }
 
 function asUuidArray(v: unknown, maxItems: number): string[] {
@@ -166,16 +170,16 @@ function buildUpdates(body: Body): { ok: true; updates: Record<string, unknown> 
   if ('seniorities' in body) {
     updates.seniorities = asSeniorities(body.seniorities)
   }
-  if ('work_mode' in body) {
-    updates.work_mode = body.work_mode === null ? null : asString(body.work_mode)
-  }
+  // LES CRITÈRES NOUVEAUX (§D.39) — lus par la MÊME fonction que la création : modes de travail, répartition hybride,
+  // temps de travail, durée. Le TYPE n'est pas connu ici (il est relu avec l'annonce) : le refus « une offre CDI n'a
+  // pas de durée » se pose plus bas, sur la ligne lue. `work_mode` et `duration` (texte) ne s'écrivent plus.
+  const lus = lireCriteresAnnonce(body as Record<string, unknown>, null)
+  if (!lus.ok) return { ok: false, error: lus.code }
+  Object.assign(updates, lus.criteres)
   // `location` s'appelle désormais `location_note` : un texte libre d'appoint,
   // qui ne sert PAS à la mise en relation. Ce sont les zones qui la décident.
   if ('location_note' in body) {
     updates.location_note = body.location_note === null ? null : asString(body.location_note)
-  }
-  if ('duration' in body) {
-    updates.duration = body.duration === null ? null : asString(body.duration)
   }
   if ('start_date' in body) {
     const d = asIsoDateOrNull(body.start_date)
@@ -307,7 +311,8 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   const { data: pub, error: fetchErr } = await auth.supabaseAdmin
     .from('publications')
     // Les champs envoyés sont relus avec l'annonce : la ligne du grand livre ne nommera que ceux qui CHANGENT (ARRÊT 22).
-    .select(['id', 'organization_id', 'status', ...Object.keys(u.updates)].join(', '))
+    // `type` : une offre CDI n'a pas de durée, et seule la ligne lue dit le type (il est immuable).
+    .select([...new Set(['id', 'organization_id', 'status', 'type', ...Object.keys(u.updates)])].join(', '))
     // CLOISONNEMENT DANS LA RECHERCHE, pas après : une annonce d'un autre
     // écosystème devient INTROUVABLE, et la route emprunte son 404 existant.
     .eq('id', id)
@@ -329,6 +334,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   // valeur LUE — « Annonce modifiée » ne nomme pas une zone qui n'a pas bougé.
   if (Array.isArray(u.updates.work_zone_ids) && memesZones(u.updates.work_zone_ids as string[], avantAnnonce.work_zone_ids as string[] | null)) {
     u.updates.work_zone_ids = avantAnnonce.work_zone_ids
+  }
+  if (avantAnnonce.type === 'offre' && u.updates.duree_valeur != null) {
+    return json({ error: 'An offer has no duration', code: 'duree_hors_offre' }, 400)
   }
   const currentStatus = avantAnnonce.status as string
   if (!(EDITABLE_STATUSES as readonly string[]).includes(currentStatus)) {
@@ -459,10 +467,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     speciality_other: string | null
     skills_required: string[] | null
     seniorities: string[] | null
-    work_mode: string | null
     location_note: string | null
     work_zone_ids: string[] | null
-    duration: string | null
     start_date: string | null
     budget_min: number | null
     budget_max: number | null
@@ -478,7 +484,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .from('publications')
     .select(
       'id, organization_id, type, title, description, branch_id, speciality_ids, ' +
-        'speciality_other, skills_required, seniorities, work_mode, location_note, work_zone_ids, duration, start_date, ' +
+        `speciality_other, skills_required, seniorities, ${COLONNES_CRITERES_ANNONCE}, location_note, work_zone_ids, start_date, ` +
         'budget_min, budget_max, confidential, status, verification_score, ' +
         'created_at, updated_at, published_at',
     )
@@ -529,13 +535,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         speciality_other: pub.speciality_other,
         skills_required: pub.skills_required ?? [],
         seniorities: pub.seniorities ?? [],
-        work_mode: pub.work_mode,
+        ...criteresDeLaLigne(pub as unknown as Record<string, unknown>),
         location_note: pub.location_note,
         work_zone_ids: pub.work_zone_ids ?? [],
         work_zone_labels: (pub.work_zone_ids ?? [])
           .map((zid) => labels.workZones?.get(zid))
           .filter((x): x is string => !!x),
-        duration: pub.duration,
         start_date: pub.start_date,
         budget_min: pub.budget_min,
         budget_max: pub.budget_max,

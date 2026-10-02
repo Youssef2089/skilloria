@@ -8,6 +8,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
+import { budgetUnitForAnnonce, estTypeAnnonce } from '@/lib/annonces/audience'
 
 /**
  * Carte de candidature côté ORG (Lot 2c).
@@ -213,10 +214,13 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const isUnviewed = !isViewed && viewed_by_me === false
   const markCandidatureViewed = useMarkCandidatureViewed()
 
-  const rateUnit = publicationType === 'mission'
+  // L'UNITÉ SUIT LE TYPE D'ANNONCE (lot « critères des annonces », point 6) : « mission → jour, sinon an » montrait le
+  // SALAIRE d'un candidat à un besoin de sous-traitance, qui est un tarif journalier. `budgetUnitForAnnonce` décide.
+  const parJour = !estTypeAnnonce(publicationType) || budgetUnitForAnnonce(publicationType) === 'day'
+  const rateUnit = parJour
     ? tPub('budget_unit.day')
     : tPub('budget_unit.year')
-  const rateText = publicationType === 'mission'
+  const rateText = parJour
     ? formatRate(preview.tjm_min, preview.tjm_max, rateUnit)
     : formatRate(preview.salary_min, preview.salary_max, rateUnit)
 

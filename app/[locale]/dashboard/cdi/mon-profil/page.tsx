@@ -699,6 +699,7 @@ export default function CdiMonProfilPage() {
             <CdiPreferencesDisplay
               contractTypes={profile.cdi_contract_types}
               workModes={profile.work_modes}
+              tempsTravail={profile.temps_travail}
               geoMobility={profile.cdi_geo_mobility}
               companySize={profile.cdi_company_size}
               sectors={profile.cdi_sectors}

@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **187** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
-02/10/2026 sur le lot « zones de travail », relecture comprise — ses quatre migrations n'ajoutent aucune insertion analysable : le
+Sur les **188** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
+03/10/2026 sur le lot « critères des annonces » — sa migration n'ajoute aucune insertion : des colonnes, des contraintes, une
+reprise par `update` ; sur 187, le 02/10/2026 sur le lot « zones de travail », relecture comprise — ses quatre migrations n'ajoutent aucune insertion analysable : le
 rattachement des pays vit dans un bloc `do`, les avis et les traductions dans des fonctions ; sur 183, le 01/10/2026 sur le lot B — ses
 quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
 mêmes — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
@@ -4459,6 +4460,34 @@ appel sans valeurs, ou objet littéral qui en oublie une. Il s'éprouve lui-mêm
 les trois lignes du sélecteur, et **aucun autre cas** (le 02/10/2026, 276 traducteurs). **Ce qu'il ne voit pas, et
 compte** : une clé calculée (273 appels), des valeurs passées par une variable (1), un traducteur reçu en paramètre, le
 serveur qui lit les JSON directement.
+
+---
+
+<a id="e96"></a>
+### E.96 — UNE RÈGLE ÉCRITE « X ? A : B » SUR UN TYPE À TROIS VALEURS RANGE LA TROISIÈME AU HASARD.
+
+**Le cas (vu par Youssef, lot « critères des annonces », 03/10/2026).** La carte d'un besoin de sous-traitance disait
+« 600–700€/an » au-dessus de sa pastille « 600 €–700 € /jour ». L'unité du budget se dérivait du type d'annonce par une
+alternative à deux branches, écrite à NEUF endroits, de deux façons : `type === 'mission' ? 'day' : 'year'` (la route
+des annonces, le détail d'annonce de l'organisation, deux fiches de candidat) et `type === 'offre' ? 'year' : 'day'` (la
+synthèse, sa ligne de pastilles, trois cartes). Les deux étaient justes tant que le type avait DEUX valeurs. Le jour où `sous_traitance` est né,
+chaque écriture l'a rangé du côté de sa branche « sinon » : un SALAIRE pour la première forme, un tarif JOURNALIER pour la
+seconde — et la même annonce s'est affichée des deux façons sur la même carte. Deux tables d'unités en quatre langues
+ne connaissaient que `mission` et `offre` : dans le détail d'une mission, un besoin de sous-traitance était SANS unité ;
+l'autre, dans la carte de mission, n'avait plus d'appelant (`void formatBudget`) — trouvée par le contrôle, pas à l'œil.
+La bonne règle existait déjà (`budgetUnitForAnnonce`, lib/annonces/audience.ts, sur le PUBLIC du type) ; personne ne
+l'appelait. `tsc` ne dit rien : `'year'` et `'day'` sont des valeurs valides.
+
+**La leçon.** Une propriété d'un type énuméré se déclare SUR le type, une fois ; un lecteur qui la recalcule par une
+alternative écrit en réalité « la valeur X, et tout le reste » — et « tout le reste » change sans lui.
+
+**La parade.** L'unité vient de `budgetUnitForAnnonce` partout (route, cartes, détails, fiches de candidat) et la forme
+de `libelleBudget` (lib/annonces/mise-en-forme.ts) ; les deux tables d'unités sont supprimées.
+[`diag-criteres-communs`](../scripts/diag-criteres-communs.mjs) (section H) lit tout `app/`, `lib/`, `components/` et
+rougit pour une unité dérivée d'un type à la main (`=== 'mission' ? 'day'`, `=== 'offre' ? tPub('budget_unit…`, une
+table `{ mission: '/…', offre: '/…' }`) ; il s'éprouve sur la forme d'origine. **Ce qu'il ne voit pas** : une autre
+alternative sur le type pour une autre propriété (un libellé, un parcours). La règle de relecture : devant
+`type === '…' ?`, demander « et le troisième ? ».
 
 ---
 

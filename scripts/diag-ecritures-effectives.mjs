@@ -42,6 +42,11 @@ const ok = (cond, label, hint) => {
 const L = 'LÉGITIME : écriture conditionnelle — son WHERE est la garde, zéro ligne rend'
 /** fonction:table:rang → raison. Le rang compte les écritures de CETTE table dans CETTE fonction. */
 const GEL = {
+  // La reprise des critères des annonces (lot « critères des annonces », 03/10/2026) : idempotente, elle ne touche QUE ce
+  // qui n'a pas encore de valeur — zéro veut dire « rien à reprendre » (le cas d'un second passage) ; elle rend ses
+  // comptes ET nomme ce qu'elle n'a pas repris.
+  'reprendre_criteres_annonces:publications:1': 'LÉGITIME : reprise idempotente des modes de travail — zéro veut dire « rien à reprendre », le compte est rendu',
+  'reprendre_criteres_annonces:publications:2': 'LÉGITIME : reprise idempotente des durées lisibles — zéro veut dire « rien à reprendre » ; l’illisible est rendu, nommé',
   // L'écriture d'une spécialité (relecture du 02/10/2026, point 4) : la spécialité elle-même passe par exiger_ecriture ;
   // ces deux-là touchent légitimement zéro ligne.
   'modifier_specialite:translations:1': 'LÉGITIME : effacer une traduction qui n’existe pas ne touche rien — l’administrateur a vidé une langue déjà vide',

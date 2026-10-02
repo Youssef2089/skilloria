@@ -1,6 +1,8 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
+import { TEMPS_TRAVAIL, valeursConnues } from '@/lib/criteres/communs'
+import { libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 
 type ContractTypeKey = 'cdi' | 'cdd' | 'alternance'
 type GeoMobilityKey = 'local' | 'regional' | 'national' | 'international'
@@ -30,6 +32,8 @@ type BenefitKey =
 type Props = {
   contractTypes: string[] | null
   workModes: string[] | null
+  /** Temps plein / temps partiel (§D.39) — mis en mots par lib/annonces/mise-en-forme.ts, les mots de l'annonce. */
+  tempsTravail: string[] | null
   geoMobility: string | null
   companySize: string[] | null
   sectors: string[] | null
@@ -92,10 +96,12 @@ function Pill({ children, color }: { children: React.ReactNode; color: string })
 export default function CdiPreferencesDisplay(props: Props) {
   const t = useTranslations('cdi_profile_view')
   const tWorkMode = useTranslations('profile_validation.sections.availability')
+  const tCrit = useTranslations('criteres')
   const c = 'var(--sk-accent)'
 
   const contractTypes = (props.contractTypes ?? []) as ContractTypeKey[]
   const workModes = props.workModes ?? []
+  const tempsTravail = libellesTempsTravail({ temps_travail: valeursConnues(TEMPS_TRAVAIL, props.tempsTravail) }, tCrit)
   const geoMobility = props.geoMobility as GeoMobilityKey | null
   const companySize = (props.companySize ?? []) as CompanySizeKey[]
   const sectors = (props.sectors ?? []) as SectorKey[]
@@ -103,12 +109,13 @@ export default function CdiPreferencesDisplay(props: Props) {
 
   const hasContract = contractTypes.length > 0
   const hasWorkMode = workModes.length > 0
+  const hasTemps = tempsTravail.length > 0
   const hasGeo = !!geoMobility
   const hasCompany = companySize.length > 0
   const hasSectors = sectors.length > 0
   const hasBenefits = benefits.length > 0
 
-  if (!hasContract && !hasWorkMode && !hasGeo && !hasCompany && !hasSectors && !hasBenefits) {
+  if (!hasContract && !hasWorkMode && !hasTemps && !hasGeo && !hasCompany && !hasSectors && !hasBenefits) {
     return (
       <div style={{ fontSize: 14, color: 'var(--sk-muted)', fontStyle: 'italic' }}>
         {t('empty_states.no_search_preferences')}
@@ -138,6 +145,13 @@ export default function CdiPreferencesDisplay(props: Props) {
               </Pill>
             )
           })}
+        </Row>
+      )}
+      {hasTemps && (
+        <Row label={tCrit('champs.temps_travail')}>
+          {tempsTravail.map((v) => (
+            <Pill key={v} color={c}>{v}</Pill>
+          ))}
         </Row>
       )}
       {hasGeo && geoMobility && (

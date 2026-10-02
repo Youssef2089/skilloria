@@ -19,6 +19,9 @@
  */
 
 import type { CandidatureFacetCounts } from '@/lib/candidatures/facets'
+// Les critères nouveaux (modes de travail, répartition hybride, temps de travail, durée en nombre et unité) — une forme,
+// lue par lib/annonces/criteres.ts et mise en mots par lib/annonces/mise-en-forme.ts (§D.39).
+import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
 
 export type AnnonceStatus =
   | 'draft'
@@ -131,10 +134,8 @@ export type Annonce = {
    * quelque chose.
    */
   location_note: string | null
-  work_mode: string | null
-  duration: string | null
   start_date: string | null
   /** SÉNIORITÉS — multiple : une mission peut chercher « confirmé OU senior ». */
   seniorities: string[]
   confidential: boolean
-}
+} & CriteresAnnonceLus

@@ -7,6 +7,8 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
+import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
+import { libelleBudget, libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 
 /**
  * SousTraitanceDetailView — DÉTAIL d'un besoin de sous-traitance + candidatures
@@ -47,16 +49,17 @@ type PublicationDetail = {
   description: string
   skills_required: string[]
   seniorities: string[]
+  // Les spécialités du besoin (obligatoires depuis le 03/10/2026, §D.39), déjà traduites par la route.
+  speciality_labels: string[]
+  speciality_other: string | null
   // Ce sont les ZONES qui décident où l'annonce cherche ; la note de
   // localisation est une précision d'affichage et ne filtre rien.
   work_zone_labels: string[]
   location_note: string | null
-  work_mode: string | null
-  duration: string | null
   budget_min: number | null
   budget_max: number | null
   status: string
-}
+} & CriteresAnnonceLus
 
 type BucketCounts = { active: number; archived: number }
 type BucketKey = 'active' | 'archived'
@@ -71,6 +74,7 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const t = useTranslations('collaboration.detail')
   const tClose = useTranslations('collaboration.close')
   const tPub = useTranslations('publications')
+  const tCrit = useTranslations('criteres')
   const tLifecycle = useTranslations('candidature_lifecycle')
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
@@ -203,14 +207,13 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const isPublished = pub.status === 'published'
   const isClosed = pub.status === 'archived'
 
-  const budgetText = (() => {
-    const unit = tPub('budget_unit.day')
-    const { budget_min, budget_max } = pub
-    if (budget_min == null && budget_max == null) return null
-    if (budget_min != null && budget_max != null) return `${Math.round(budget_min)}-${Math.round(budget_max)}€${unit}`
-    if (budget_min != null) return `${Math.round(budget_min)}€${unit}`
-    return `${Math.round(budget_max!)}€${unit}`
-  })()
+  // LE BUDGET ET LES CRITÈRES, PAR LA MÊME ÉCRITURE QUE LA CARTE (lot « critères des annonces », §D.39, point 6) :
+  // l'unité suit le TYPE (un besoin de sous-traitance est un tarif journalier), la durée porte son unité.
+  const budgetText = libelleBudget({ ...pub, type: 'sous_traitance' }, tPub, locale)
+  const specialitesText = [...pub.speciality_labels, ...(pub.speciality_other ? [pub.speciality_other] : [])].join(', ')
+  const modesText = libellesModesTravail(pub, tCrit).join(', ')
+  const tempsText = libellesTempsTravail(pub, tCrit).join(', ')
+  const dureeText = libelleDuree(pub, tCrit)
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -274,9 +277,13 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
         <div style={{ fontSize: 14, color: 'var(--sk-text)', lineHeight: 1.65, whiteSpace: 'pre-wrap', marginBottom: pub.skills_required.length > 0 || budgetText ? 14 : 0 }}>
           {pub.description}
         </div>
-        {(budgetText || pub.work_zone_labels.length > 0 || pub.location_note || pub.seniorities.length > 0) && (
+        {(budgetText || specialitesText || modesText || tempsText || dureeText || pub.work_zone_labels.length > 0 || pub.location_note || pub.seniorities.length > 0) && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginBottom: pub.skills_required.length > 0 ? 14 : 0 }}>
             {budgetText && <Field label={t('field_budget')} value={budgetText} />}
+            {specialitesText && <Field label={tPub('form.field_speciality')} value={specialitesText} />}
+            {modesText && <Field label={tPub('form.field_work_mode')} value={modesText} />}
+            {tempsText && <Field label={tCrit('champs.temps_travail')} value={tempsText} />}
+            {dureeText && <Field label={tPub('form.field_duration')} value={dureeText} />}
             {pub.work_zone_labels.length > 0 && <Field label={tPub('form.field_work_zones')} value={pub.work_zone_labels.join(', ')} />}
             {pub.location_note && <Field label={tPub('form.field_location_note')} value={pub.location_note} />}
             {pub.seniorities.length > 0 && (

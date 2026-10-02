@@ -469,6 +469,22 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   prédicat de l'index, §E.69 ; rend le nombre d'avis nouveaux ; refuse un avis sans pièce, SP003). Fermées au
 >   navigateur. §D.36. Test : `taxonomie/specialite_ecriture_et_avis.test.sql` (11).
 
+> **LE LOT « CRITÈRES DES ANNONCES » (03/10/2026, ARRÊT 27) — tronc (plage `20261003000000`–`…005959`), horodaté après
+> `specialite_ecriture_et_avis_une_fois`, marquée AVANT.** Staging est à jour jusqu'à `specialite_ecriture_et_avis_une_fois`
+> (lot « zones de travail » déployé) : la requête de staging l'attend en ⓪ ; le code en ligne est `e27fa56`
+> (`CODE_EN_LIGNE` de `diag-deux-temps`).
+> - **`annonce_criteres_communs`** (`…000000`, AVANT) — sur `publications` : `work_modes text[]` (défaut vide),
+>   `jours_sur_site`, `jours_teletravail` (smallint, nullables), `temps_travail text[]` (défaut vide), `duree_valeur`
+>   (integer), `duree_unite` (text) ; sur `profiles` : `temps_travail text[]` (défaut vide). Six contraintes qui ne gardent
+>   que ces colonnes (listes fermées = lib/criteres/communs.ts ; répartition : avec « hybrid », 1 à 7 chacun, 7 au plus en
+>   tout ; durée : 1 à 999 et une unité, ou rien ; une offre n'a pas de durée). `lire_duree(text)` (immuable, rend zéro
+>   ligne pour ce qui ne se lit pas) et `reprendre_criteres_annonces()` (idempotente : `work_mode` connu → `work_modes`,
+>   durée lisible → nombre et unité, jamais pour une offre ; rend ce qu'elle n'a PAS repris, nommé), fermées au
+>   navigateur ; la reprise exécutée une fois dans son bloc (notices). Exception de `diag-deux-temps` : `colonnes_neuves`
+>   (preuve nouvelle — la migration crée chaque colonne, chaque contrainte en garde une, aucun écrivain en ligne de la
+>   table ne les nomme, le test les nomme). `work_mode` et `duration` gardées, commentées HÉRITÉES. §D.39.
+>   Tests : `annonces/criteres_communs.test.sql` (27), `matching/specialites_recoupement.test.sql` (8).
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **les treize fermées** (dont
@@ -1276,7 +1292,11 @@ Le matching est relancé via `after()` (§E.5).
 `publications_publiee_requiert_zones_check`.
 **Sémantique de l'ensemble vide, asymétrique et voulue** : zones de travail **obligatoires**
 (`&&` sur un ensemble vide est toujours faux → annonce publiée et silencieusement invisible) ;
-spécialités et séniorités **facultatives**, vide = « aucune contrainte sur cet axe », pas « personne ».
+séniorités **facultatives**, vide = « aucune contrainte sur cet axe », pas « personne ».
+**Spécialités OBLIGATOIRES depuis le 03/10/2026** (§D.39) — au moins une du référentiel ou « Autre » précisé, exigées par
+`missingForPublish` (pas encore en base, §H.8) ; un ensemble d'identifiants vide (« Autre » seul, annonces d'avant) n'y
+contraint rien. Et « Hybride » exige sa répartition. L'annonce d'une organisation et le besoin de sous-traitance partagent
+leurs champs (`ChampsAnnonce`) et leur validation (`lib/annonces/formulaire.ts`).
 **Une liste de PAYS vide ne retient personne, dans les deux sens** (§D.38, relecture du 02/10/2026) : le moteur le dit
 avant toute requête, et pose le recoupement des zones sans condition.
 Gate qualité IA ([lib/verification/ai-publication-quality.ts](../lib/verification/ai-publication-quality.ts)).
@@ -3922,6 +3942,53 @@ dont l'API sérialiserait un ensemble vide — puis pose le recoupement SANS con
 recoupement inconditionnel ; 6b et 6c rejoués sous l'ancienne règle, qui échouerait) ; en base,
 `matching/zones_recoupement.test.sql` 6b et 6c, dont les fonctions suivent le chemin du moteur.
 
+<a id="d39"></a>
+### D.39 — LES ANNONCES ONT LES MÊMES CRITÈRES QUE L'EXPERT (lot « critères des annonces », 03/10/2026)
+
+**Ce que Youssef a vu.** Le besoin de sous-traitance n'avait pas de spécialité ; le mode de travail était un choix UNIQUE
+sur l'annonce (`publications.work_mode`, texte) et MULTIPLE sur le profil (`profiles.work_modes`) ; la durée était un
+texte libre, affiché « 6 » sans unité ; la carte du besoin de sous-traitance disait « 600–700€/an » au-dessus de
+« 600 €–700 € /jour » (§E.96). Et chaque écran recopiait sa liste de valeurs.
+
+**Les décisions de Youssef.**
+1. **SPÉCIALITÉS** : choix multiples, **au moins une**, sur l'annonce d'une organisation (client, cabinet, ESN) et sur le
+   besoin de sous-traitance — les valeurs de l'expert, filtrées par branche (`optionsSpecialites`,
+   lib/criteres/specialites.ts ; « Autre (préciser) » compris, §D.40). Elles **filtrent** la mise en relation dans les deux
+   sens (le moteur le faisait déjà dès qu'une annonce en déclarait : `pool.ts` en SQL, `run-for-expert.ts` en mémoire,
+   sorti dans `lib/matching/recoupement.ts`). Une annonce qui n'a que « Autre » n'a pas d'identifiant : elle ne
+   restreint pas la spécialité — « vide = aucune contrainte » reste la règle des spécialités (§D.38 ne vaut que pour les
+   zones). Exigée par `missingForPublish` (la route et les deux écrans) ; **pas encore en base** (§H.8).
+2. **MODE DE TRAVAIL** : choix multiples sur les deux écrans (`publications.work_modes`, la colonne et le vocabulaire du
+   profil). « Hybride » précise sa répartition par semaine (`jours_sur_site`, `jours_teletravail` : au moins un jour
+   chacun, sept au plus à eux deux — « 3 j sur site · 2 j en télétravail »), exigée pour publier quand « Hybride » est
+   coché. Ne filtre pas (décision de septembre).
+3. **TEMPS PLEIN OU TEMPS PARTIEL** : un champ à part (`temps_travail`, `plein`/`partiel`), sur les deux écrans
+   d'annonce ET sur le profil (validation freelance et CDI, « Mon profil »). **Choix multiples** des deux côtés (une
+   annonce qui coche les deux accepte l'un ou l'autre ; un expert aussi) — c'est mon choix, à confirmer : la consigne ne
+   disait pas « multiple » ; facultatif. Ne filtre pas. Libellés fixés par Youssef, quatre langues.
+4. **DURÉE** : un nombre (1 à 999) et une unité (jours, semaines, mois, années), affichée PARTOUT avec son unité, par une
+   seule mise en mots (`libelleDuree`, lib/annonces/mise-en-forme.ts — cartes, détails, suivi de candidature ; S3 la
+   reprend pour l'admin). Une offre CDI n'en a pas (`publications_offre_sans_duree`). Les durées en texte libre sont
+   reprises quand elles se lisent (`lire_duree` : un nombre, une unité connue en quatre langues, « renouvelable »
+   toléré) ; « 6 » seul ne se lit pas (quelle unité ?) : il est NOMMÉ dans les notices du push, jamais deviné.
+5. **LES MÊMES CHAMPS PARTOUT** : l'annonce d'une organisation et le besoin de sous-traitance rendent UN composant
+   (`components/annonces/ChampsAnnonce.tsx`) sur UN état (`lib/annonces/formulaire.ts` : état, validation, corps de
+   requête, mots des refus) — seul le type diffère. Les critères communs au profil (branche, spécialités, séniorités, zones,
+   modes, temps) ont UNE liste de valeurs (`lib/criteres/communs.ts`), égale aux contraintes de base des deux tables, et
+   des composants partagés (`components/criteres/ChoixCriteres.tsx`).
+6. **BUDGET** : l'unité suit le TYPE d'annonce partout, par `budgetUnitForAnnonce` (lib/annonces/audience.ts) — la route
+   des annonces, les cartes, les détails, les fiches de candidat ; la mise en forme est une (`libelleBudget`).
+
+**Ce que la base tient (migration `annonce_criteres_communs`, AVANT).** Les colonnes et leurs contraintes
+(`publications_work_modes_valid`, `publications_temps_travail_valid`, `profiles_temps_travail_valid`,
+`publications_repartition_hybride_check`, `publications_duree_check`, `publications_offre_sans_duree`). Les colonnes
+`work_mode` et `duration` restent (le code en ligne les écrit) ; plus aucune lecture — leur suppression est un lot à part.
+
+**Gardé par** `diag-criteres-communs` (BLOQUANT : six critères × quatre écrans, présents par la source commune et
+envoyés ; contraintes de base = registre ; aucune liste recopiée ; routes ; libellés ×4 ; épreuve intégrée de huit
+mutations), `diag-specialites-recoupement` (le moteur, le test, le prédicat en mémoire EXÉCUTÉ avec témoin), en base
+`annonces/criteres_communs.test.sql` (27) et `matching/specialites_recoupement.test.sql` (8).
+
 <a id="d40"></a>
 ### D.40 — « AUTRE » EST UNE SEULE NOTION, ET CE N'EST JAMAIS UNE LIGNE DU RÉFÉRENTIEL (recette S1, 01/10/2026)
 
@@ -4157,6 +4224,26 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
   écrite — §D.33) ; ses zones se comparent désormais comme un ensemble. Hors du périmètre de §D.35 (le profil).
 - La conversation (`/api/me/conversations`) affiche ses annonces sans libellé de zone (`buildPublicationSynthesis` sans
   `labels`) — antérieur au lot, non touché.
+
+**H.8 — CE QUE LE LOT « CRITÈRES DES ANNONCES » (03/10/2026, ARRÊT 27) LAISSE OUVERT, DIT.**
+- **La spécialité obligatoire n'est pas tenue EN BASE.** Le code en ligne (`e27fa56`) publie sans spécialité : une
+  contrainte « publiée ⇒ au moins une spécialité ou une précision » refuserait ce qu'il écrit (§E.72), et les annonces déjà
+  publiées sans spécialité la feraient échouer. Elle part dans un lot SUIVANT, marqué APRÈS, avec la décision de ce que
+  deviennent ces annonces (les lister ? les dépublier ?) — à trancher par Youssef.
+- **`publications.work_mode` et `publications.duration`** ne sont plus lues ni écrites par le code du lot ; le code en ligne
+  les écrit encore. Leur suppression : un lot suivant (APRÈS), une fois ce déploiement en ligne.
+- **La fenêtre du déploiement** : une annonce enregistrée par l'ANCIEN code entre le `db push` et le `git push` garde son
+  mode et sa durée en texte, sans reprise. `select public.reprendre_criteres_annonces();` (éditeur SQL, idempotente) la
+  rattrape ; elle rend ce qu'elle ne sait pas lire.
+- **Les durées illisibles** (« 6 », « 3 à 6 mois ») sont NOMMÉES dans les notices du push et ne s'affichent plus : à faire
+  corriger dans l'annonce par son organisation.
+- **Le temps de travail du profil** relance la recherche quand il change (§D.35 : un vrai changement relance), bien qu'il ne
+  filtre pas — comme les modes de travail. Une relance pour rien coûte une recherche.
+- **La carte d'annonce** (`AnnonceCard`) dit le budget deux fois (sous-titre et pastille) — désormais avec la même unité et
+  la même forme ; sa structure est du périmètre des cartes (S2).
+- **La même classe que §E.96, sur des LIBELLÉS, vue et non corrigée** (périmètre des candidatures, S2) : `CandidatureCard`
+  choisit « mission » ou « offre » pour ses textes de sélection par `publicationType === 'mission' ? … : …` — un besoin de
+  sous-traitance y prend les mots d'une offre CDI.
 
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 

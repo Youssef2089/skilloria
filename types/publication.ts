@@ -1,19 +1,9 @@
 import type { AnnonceStatus, AnnonceType } from './annonce'
 
-/**
- * Code BDD pour les niveaux de séniorité (stocké en anglais, libellé via i18n).
- * `seniority` est une colonne `text` libre côté schéma — mais le formulaire
- * verrouille les valeurs autorisées à cette enum applicative pour cohérence
- * cross-org et matching IA correct.
- */
-export const SENIORITY_CODES = ['junior', 'confirmed', 'senior', 'expert'] as const
-export type SeniorityCode = (typeof SENIORITY_CODES)[number]
+import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
 
-/**
- * Code BDD pour les modes de travail (idem : text libre BDD, enum applicative).
- */
-export const WORK_MODE_CODES = ['remote', 'onsite', 'hybrid'] as const
-export type WorkModeCode = (typeof WORK_MODE_CODES)[number]
+// Les listes de valeurs des critères communs vivent dans lib/criteres/communs.ts — UNE liste, partagée avec le profil
+// de l'expert et les contraintes de base (§D.39). Plus aucune copie ici.
 
 /**
  * DTO complet d'une publication owner-scopée — retourné par
@@ -36,13 +26,11 @@ export type PublicationDraft = {
   speciality_other: string | null
   skills_required: string[]
   seniorities: string[]
-  work_mode: string | null
   // Texte libre d'appoint, jamais un critère de mise en relation.
   location_note: string | null
   // Zones de travail — obligatoires pour publier : une annonce sans zone ne
   // recouperait aucun expert (cf. lib/publications/publishable.ts).
   work_zone_ids: string[]
-  duration: string | null
   start_date: string | null
   budget_min: number | null
   budget_max: number | null
@@ -52,4 +40,4 @@ export type PublicationDraft = {
   created_at: string
   updated_at: string
   published_at: string | null
-}
+} & CriteresAnnonceLus

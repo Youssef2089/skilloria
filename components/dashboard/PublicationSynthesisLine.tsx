@@ -3,6 +3,12 @@
 import { useLocale, useTranslations } from 'next-intl'
 import type { PublicationSynthesis } from '@/lib/publication-synthesis'
 import {
+  libelleBudget,
+  libelleDuree,
+  libellesModesTravail,
+  libellesTempsTravail,
+} from '@/lib/annonces/mise-en-forme'
+import {
   IconCoin,
   IconMapPin,
   IconClock,
@@ -21,13 +27,16 @@ import {
  *
  * Reçoit le DTO bâti par buildPublicationSynthesis(). Affiche un chip par
  * champ non-null, dans cet ordre :
- *   1. Budget (TJM €/jour ou €/an dérivé du type)
+ *   1. Budget (€/jour ou €/an — l'unité suit le TYPE, `budgetUnitForAnnonce`)
  *   2. Lieu
- *   3. Mode de travail (remote / sur site / hybride)
- *   4. Durée (mission)
- *   5. Démarrage (date)
- *   6. Séniorité
- *   7. Label contrat (pour offre CDI : "CDI" — dérivé du type, pas de colonne)
+ *   3. Modes de travail (multiples ; « Hybride » porte sa répartition, §D.39)
+ *   4. Temps de travail (plein, partiel)
+ *   5. Durée, AVEC son unité (une offre CDI n'en a pas)
+ *   6. Démarrage (date)
+ *   7. Séniorité
+ *   8. Label contrat (pour offre CDI : "CDI" — dérivé du type, pas de colonne)
+ *
+ * Les mots viennent de lib/annonces/mise-en-forme.ts : la même écriture que le détail, le suivi et l'administration.
  *
  * Aucune couleur en dur — utilise var(--sk-*) et useDomain via le parent.
  * Mobile-first : flex-wrap natif.
@@ -35,24 +44,17 @@ import {
 
 export type PublicationSynthesisData = PublicationSynthesis
 
-function formatBudget(min: number | null, max: number | null, unit: string): string | null {
-  if (min == null && max == null) return null
-  const fmt = (v: number) => `${Math.round(v).toLocaleString('fr-FR')} €`
-  if (min != null && max != null && min !== max) return `${fmt(min)}–${fmt(max)}${unit}`
-  const v = (min ?? max) as number
-  return `${fmt(v)}${unit}`
-}
-
 /**
- * Formate le budget d'une publication avec son unité (€/jour ou €/an déjà
- * fournie). Source unique partagée — réutilisée par les cartes casting pour
- * un pied de carte budget cohérent avec les chips de synthèse.
+ * Formate le budget d'une publication avec son unité. Source unique partagée — réutilisée par les cartes casting pour
+ * un pied de carte budget cohérent avec les chips de synthèse. L'unité ET la mise en forme viennent de
+ * `libelleBudget` (lib/annonces/mise-en-forme.ts) : le type de l'annonce décide de l'unité, jamais l'appelant.
  */
 export function formatPublicationBudget(
-  pub: Pick<PublicationSynthesisData, 'budget_min' | 'budget_max'>,
-  budgetUnitLabel: string,
+  pub: Pick<PublicationSynthesisData, 'budget_min' | 'budget_max' | 'type'>,
+  tPub: (cle: string) => string,
+  locale: string,
 ): string | null {
-  return formatBudget(pub.budget_min, pub.budget_max, ` ${budgetUnitLabel}`)
+  return libelleBudget(pub, tPub, locale)
 }
 
 function formatDate(iso: string | null, locale: string): string | null {
@@ -75,33 +77,38 @@ export default function PublicationSynthesisLine({
   /**
    * Clés de chips à ne pas afficher (ex. ['budget'] pour reléguer le budget
    * ailleurs). Défaut [] → comportement inchangé (pages dédiées non impactées).
-   * Clés : budget | contract | location | work_mode | duration | start | seniority.
+   * Clés : budget | contract | work_zones | work_mode | temps_travail | duration | start | seniority.
    */
   omit?: string[]
 }) {
   const tPub = useTranslations('publications')
   const tSyn = useTranslations('publications.synthesis')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
 
   const isCdi = pub.type === 'offre'
-  const budgetUnitLabel = isCdi ? tPub('budget_unit.year') : tPub('budget_unit.day')
-  const budgetText = formatBudget(pub.budget_min, pub.budget_max, ` ${budgetUnitLabel}`)
+  // L'unité suit le TYPE (`budgetUnitForAnnonce`, dans la mise en forme) — plus jamais « offre ? an : jour » ici.
+  const budgetText = libelleBudget(pub, tPub, locale)
   const startText = formatDate(pub.start_date, locale)
 
-  const workModeLabel = (() => {
-    if (!pub.work_mode) return null
-    const key = pub.work_mode.toLowerCase()
-    try { return tPub(`form.work_mode_options.${key}` as 'form.work_mode_options.remote') }
-    catch { return pub.work_mode }
-  })()
+  // Plusieurs modes possibles : un seul chip, les modes séparés comme le reste de la ligne. L'icône dit le mode quand
+  // il n'y en a qu'un.
+  const modes = libellesModesTravail(pub, tCrit)
+  const workModeLabel = modes.length > 0 ? modes.join(' · ') : null
   const workModeIcon = (() => {
-    if (!pub.work_mode) return <IconBriefcase size={13} stroke={1.8} />
-    const key = pub.work_mode.toLowerCase()
+    if (pub.work_modes.length !== 1) return <IconBriefcase size={13} stroke={1.8} />
+    const key = pub.work_modes[0]
     if (key === 'remote') return <IconHomeBolt size={13} stroke={1.8} />
     if (key === 'onsite') return <IconBuildingSkyscraper size={13} stroke={1.8} />
     if (key === 'hybrid') return <IconArrowsExchange size={13} stroke={1.8} />
     return <IconBriefcase size={13} stroke={1.8} />
   })()
+  const tempsLabel = (() => {
+    const t = libellesTempsTravail(pub, tCrit)
+    return t.length > 0 ? t.join(' · ') : null
+  })()
+  // Une offre CDI n'a pas de durée (contrainte publications_offre_sans_duree) : rien ne s'affiche.
+  const dureeLabel = isCdi ? null : libelleDuree(pub, tCrit)
 
   const seniorityLabel = (() => {
     if (!pub.seniorities || pub.seniorities.length === 0) return null
@@ -131,7 +138,8 @@ export default function PublicationSynthesisLine({
     : pub.location_note
   if (zoneLabel) chips.push({ key: 'work_zones', icon: <IconMapPin size={iconSize} stroke={1.8} />, label: zoneLabel })
   if (workModeLabel) chips.push({ key: 'work_mode', icon: workModeIcon, label: workModeLabel })
-  if (pub.duration) chips.push({ key: 'duration', icon: <IconClock size={iconSize} stroke={1.8} />, label: pub.duration })
+  if (tempsLabel) chips.push({ key: 'temps_travail', icon: <IconBriefcase size={iconSize} stroke={1.8} />, label: tempsLabel })
+  if (dureeLabel) chips.push({ key: 'duration', icon: <IconClock size={iconSize} stroke={1.8} />, label: dureeLabel })
   if (startText) chips.push({ key: 'start', icon: <IconCalendarEvent size={iconSize} stroke={1.8} />, label: startText })
   if (seniorityLabel) chips.push({ key: 'seniority', icon: <IconBriefcase size={iconSize} stroke={1.8} />, label: seniorityLabel })
 

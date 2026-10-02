@@ -5512,7 +5512,13 @@
         "speciality_ids": "las especialidades",
         "speciality_other": "la especialidad propuesta",
         "confidential": "la confidencialidad",
-        "work_zone_ids": "las zonas de trabajo"
+        "work_zone_ids": "las zonas de trabajo",
+        "work_modes": "las modalidades de trabajo",
+        "jours_sur_site": "los días presenciales",
+        "jours_teletravail": "los días en remoto",
+        "temps_travail": "la jornada",
+        "duree_valeur": "la duración",
+        "duree_unite": "la unidad de duración"
       },
       "champ_profil": {
         "title": "el título",
@@ -5559,7 +5565,8 @@
         "educations": "las formaciones",
         "languages_structured": "los idiomas",
         "formations": "las formaciones",
-        "langues": "los idiomas"
+        "langues": "los idiomas",
+        "temps_travail": "la jornada"
       },
       "champ_dispo": {
         "availability_status": "disponibilidad para misiones",
@@ -6026,7 +6033,8 @@
       "availability": "Disponibilidad",
       "work_modes": "Modalidades de trabajo",
       "seniorities": "Niveles de experiencia",
-      "visibilite": "Criterios de publicación"
+      "visibilite": "Criterios de publicación",
+      "temps_travail": "Jornada"
     },
     "champs_visibilite": {
       "title": "el título",
@@ -6164,5 +6172,66 @@
     "titre": "La especialidad «{specialite}» ya no se ofrece",
     "corps": "Ya no aparece en su perfil. Elija otra especialidad en su perfil para describir su oficio.",
     "corps_seule": "Era su única especialidad: su perfil ya no puede publicarse hasta que elija otra. Elija una en su perfil."
+  },
+  "criteres": {
+    "modes_travail": {
+      "remote": "Remoto",
+      "onsite": "Presencial",
+      "hybrid": "Híbrido"
+    },
+    "temps_travail": {
+      "plein": "Jornada completa",
+      "partiel": "Tiempo parcial"
+    },
+    "unites_duree": {
+      "jours": "días",
+      "semaines": "semanas",
+      "mois": "meses",
+      "annees": "años"
+    },
+    "duree": {
+      "jours": "{n, plural, one {# día} other {# días}}",
+      "semaines": "{n, plural, one {# semana} other {# semanas}}",
+      "mois": "{n, plural, one {# mes} other {# meses}}",
+      "annees": "{n, plural, one {# año} other {# años}}"
+    },
+    "jours": "{n, plural, one {# día} other {# días}}",
+    "repartition": "{sur_site, plural, one {# día} other {# días}} presencial · {teletravail, plural, one {# día} other {# días}} en remoto",
+    "mode_hybride_reparti": "{mode} ({repartition})",
+    "choisir": "Elegir…",
+    "choisir_unite": "Unidad…",
+    "sections": {
+      "criteres": "A quién busca",
+      "conditions": "Condiciones"
+    },
+    "champs": {
+      "specialites": "Especialidades",
+      "temps_travail": "Jornada",
+      "repartition": "Reparto por semana",
+      "jours_sur_site": "Días presenciales",
+      "jours_teletravail": "Días en remoto",
+      "duree_valeur": "Duración (número)",
+      "duree_unite": "Unidad de duración"
+    },
+    "aides": {
+      "criteres": "Estos criterios deciden qué expertos ven el anuncio. Son los que los expertos declaran en su perfil, con los mismos valores.",
+      "repartition": "Cuántos días por semana presenciales y cuántos en remoto (siete días como máximo en total).",
+      "temps_travail_profil": "opcional, no se usa para la puesta en relación"
+    },
+    "erreurs": {
+      "speciality_ids": "Elija al menos una especialidad",
+      "precision_autre_manquante": "Especifique la especialidad «Otra»",
+      "repartition_hybride": "Indique los días presenciales y los días en remoto",
+      "repartition_hybride_invalide": "Reparto imposible: al menos un día presencial y uno en remoto, siete días como máximo en total",
+      "duree_invalide": "Duración no válida: un número entero de 1 a 999 y una unidad",
+      "duree_hors_offre": "Una oferta de empleo indefinido no tiene duración",
+      "date_invalide": "Fecha no válida",
+      "champ_obligatoire": "Este campo es obligatorio",
+      "corriger_les_champs": "Corrija los campos señalados para continuar.",
+      "referentiel_indisponible": "No se han podido cargar las ramas, especialidades y zonas de trabajo. Recargue la página.",
+      "reseau": "La conexión con el servidor ha fallado. Compruebe su conexión e inténtelo de nuevo.",
+      "refus_inconnu": "El servidor ha rechazado el guardado (código: {code}).",
+      "reponse_sans_identifiant": "El anuncio se ha enviado, pero el servidor no ha devuelto su identificador. Recargue la lista de sus anuncios."
+    }
   }
 }

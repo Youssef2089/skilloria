@@ -24,8 +24,9 @@ const jakarta = Plus_Jakarta_Sans({
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 const fontInter = 'Inter, system-ui, sans-serif'
 
-type Seniority = 'junior' | 'confirmed' | 'senior' | 'expert'
-type WorkMode = 'remote' | 'onsite' | 'hybrid'
+// Les valeurs des critères communs viennent de lib/criteres/communs.ts — la liste de l'annonce et de la base (§D.39).
+type Seniority = Seniorite
+type WorkMode = ModeTravail
 type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
 type ExperienceType = 'career' | 'project'
 
@@ -83,6 +84,9 @@ function ensureUid<T extends { _uid?: string }>(item: T): T {
 }
 
 import MultiSelectChips from '@/components/ui/MultiSelectChips'
+import { ChoixModesTravail, ChoixTempsTravail } from '@/components/criteres/ChoixCriteres'
+import { SENIORITES, TEMPS_TRAVAIL, valeursConnues, type ModeTravail, type Seniorite, type TempsTravail } from '@/lib/criteres/communs'
+import { optionsSpecialites } from '@/lib/criteres/specialites'
 import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
 import type { WorkZone } from '@/lib/work-zones'
 import {
@@ -101,8 +105,6 @@ import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
 import { languesAEnvoyer, listeDesLangues, nomDeLangue, type LangueProposee } from '@/lib/profil/langues'
 import { ChoixLangue, ChoixNiveauLangue } from '@/components/profile/ChoixLangue'
 
-const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
-const WORK_MODE_VALUES: WorkMode[] = ['remote', 'onsite', 'hybrid']
 
 const FIELD_ORDER = [
   'title',
@@ -164,6 +166,7 @@ export default function ValiderProfilPage() {
   const tLangues = useTranslations('langues')
   const tRefus = useTranslations('profil_refus')
   const tWorkZones = useTranslations('work_zones')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
 
   const SENIORITY_LABELS: Record<Seniority, string> = {
@@ -171,11 +174,6 @@ export default function ValiderProfilPage() {
     confirmed: tProfile('sections.identity.seniority_options.confirmed'),
     senior: tProfile('sections.identity.seniority_options.senior'),
     expert: tProfile('sections.identity.seniority_options.expert'),
-  }
-  const WORK_MODE_LABELS: Record<WorkMode, string> = {
-    remote: tProfile('sections.availability.work_mode_remote'),
-    onsite: tProfile('sections.availability.work_mode_onsite'),
-    hybrid: tProfile('sections.availability.work_mode_hybrid'),
   }
   const CEFR_LABELS: Record<CefrLevel, string> = {
     A1: tProfile('sections.availability.level_options.A1'),
@@ -265,6 +263,8 @@ export default function ValiderProfilPage() {
   const [skillDraft, setSkillDraft] = useState('')
   const [certifications, setCertifications] = useState<Certification[]>([])
   const [workModes, setWorkModes] = useState<WorkMode[]>([])
+  // TEMPS PLEIN OU TEMPS PARTIEL (§D.39) — un champ à part, le vocabulaire de l'annonce ; ne filtre pas la mise en relation.
+  const [tempsTravail, setTempsTravail] = useState<TempsTravail[]>([])
   const [location, setLocation] = useState('')
   const [tjmMin, setTjmMin] = useState('')
   const [tjmMax, setTjmMax] = useState('')
@@ -422,7 +422,7 @@ export default function ValiderProfilPage() {
       const { data: profile, error: profErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniorities, years_experience, skills, certifications, branch_id, speciality_ids, speciality_other, work_zone_ids, languages, location, work_modes, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, ai_consent_at, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
+          'id, title, summary, seniorities, years_experience, skills, certifications, branch_id, speciality_ids, speciality_other, work_zone_ids, languages, location, work_modes, temps_travail, tjm_min, tjm_max, availability_date, linkedin_url, cv_parsing_status, ai_consent_at, visible, phone, address_line, postal_code, city, country, birth_year, photo_url, years_total_experience, availability_status',
         )
         .eq('user_id', session.user.id)
         .single()
@@ -476,6 +476,7 @@ export default function ValiderProfilPage() {
       setWorkModes(
         Array.isArray(profile.work_modes) ? (profile.work_modes as WorkMode[]) : [],
       )
+      setTempsTravail(valeursConnues(TEMPS_TRAVAIL, profile.temps_travail))
       setLocation(profile.location ?? '')
       setTjmMin(profile.tjm_min != null ? String(profile.tjm_min) : '')
       setTjmMax(profile.tjm_max != null ? String(profile.tjm_max) : '')
@@ -628,10 +629,6 @@ export default function ValiderProfilPage() {
     () => new Map(specialities.map(s => [s.id, s])),
     [specialities],
   )
-  const filteredSpecialities = useMemo(
-    () => (branchId ? specialities.filter(s => s.branch_id === branchId) : []),
-    [branchId, specialities],
-  )
 
   const careerEntries = useMemo(
     () =>
@@ -710,10 +707,6 @@ export default function ValiderProfilPage() {
   const removeExperience = (i: number) =>
     setExperiences(experiences.filter((_, idx) => idx !== i))
 
-  const toggleWorkMode = (m: WorkMode) =>
-    setWorkModes(prev =>
-      prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m],
-    )
 
   const addEducation = () => {
     const item = emptyEducation()
@@ -895,6 +888,7 @@ export default function ValiderProfilPage() {
       ...(listesLues.includes('languages_structured') ? { languages: cleanedLanguages.map(l => l.language) } : {}),
       location: location.trim() || null,
       work_modes: workModes,
+      temps_travail: tempsTravail,
       tjm_min: tjmMin.trim() === '' ? null : Number(tjmMin),
       tjm_max: tjmMax.trim() === '' ? null : Number(tjmMax),
       availability_date: availabilityDate || null,
@@ -1675,7 +1669,7 @@ export default function ValiderProfilPage() {
                   </label>
                   <MultiSelectChips
                     ariaLabel={tProfile('field_labels_short.seniorities')}
-                    options={SENIORITY_VALUES.map(v => ({ value: v, label: SENIORITY_LABELS[v] }))}
+                    options={SENIORITES.map(v => ({ value: v, label: SENIORITY_LABELS[v] }))}
                     selected={seniorities}
                     onChange={next => setSeniorities(next as Seniority[])}
                     invalid={isMissing('seniorities')}
@@ -1724,17 +1718,8 @@ export default function ValiderProfilPage() {
                 <div ref={fieldRefs.speciality_ids} className={focusClass('speciality_ids')}>
                   <MultiSelectChips
                     ariaLabel={tProfile('field_labels_short.speciality_ids')}
-                    options={[
-                      ...filteredSpecialities.map(sp => ({ value: sp.id, label: sp.name })),
-                      // D6 : spécialité hors référentiel, proposée seulement
-                      // quand une branche est choisie.
-                      ...(branchId
-                        ? [{
-                            value: SPECIALITY_OTHER,
-                            label: tProfile('sections.expertise.speciality_other_option'),
-                          }]
-                        : []),
-                    ]}
+                    // LES SPÉCIALITÉS DE LA BRANCHE, plus « Autre (préciser) » — la liste de l'annonce (§D.39).
+                    options={optionsSpecialites(specialities, branchId, tProfile('sections.expertise.speciality_other_option'))}
                     selected={specialityIds}
                     onChange={onSpecialitiesChange}
                     invalid={isMissing('speciality_ids')}
@@ -2007,45 +1992,18 @@ export default function ValiderProfilPage() {
                     · {tProfile('sections.availability.work_modes_hint')}
                   </span>
                 </label>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  {WORK_MODE_VALUES.map(m => {
-                    const active = workModes.includes(m)
-                    return (
-                      <label
-                        key={m}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          padding: '10px 14px',
-                          border: `1.5px solid ${
-                            active
-                              ? 'var(--sk-accent)'
-                              : isMissing('work_modes')
-                                ? 'var(--sk-red)'
-                                : 'var(--sk-border)'
-                          }`,
-                          borderRadius: 10,
-                          background: active ? `color-mix(in srgb, var(--sk-accent) 6%, transparent)` : 'var(--sk-surface)',
-                          cursor: 'pointer',
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: active ? 'var(--sk-accent)' : 'var(--sk-muted)',
-                          fontFamily: fontJakarta,
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={active}
-                          onChange={() => toggleWorkMode(m)}
-                          style={{ accentColor: 'var(--sk-accent)' }}
-                        />
-                        {WORK_MODE_LABELS[m]}
-                      </label>
-                    )
-                  })}
-                </div>
+                {/* LES MODES DE TRAVAIL — le composant et les valeurs de l'annonce (§D.39). */}
+                <ChoixModesTravail valeur={workModes} onChange={setWorkModes} invalide={isMissing('work_modes')} />
                 <FieldError field="work_modes" />
+              </div>
+
+              {/* TEMPS PLEIN OU TEMPS PARTIEL — un champ à part, les valeurs de l'annonce (§D.39). Facultatif ; ne filtre pas. */}
+              <div style={{ marginBottom: 14 }}>
+                <label id="sk-profil-temps" style={labelStyle}>
+                  {tCrit('champs.temps_travail')}{' '}
+                  <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {tCrit('aides.temps_travail_profil')}</span>
+                </label>
+                <ChoixTempsTravail idGroupe="sk-profil-temps" valeur={tempsTravail} onChange={setTempsTravail} />
               </div>
 
               <div style={{ marginBottom: 14 }}>

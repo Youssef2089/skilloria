@@ -4,6 +4,7 @@ import { loadTranslations, tBDD } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { loadReferentielLabels } from '@/lib/publication-synthesis'
+import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne } from '@/lib/annonces/criteres'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { signOrgLogoUrl } from '@/lib/org-logo'
 // LA RÈGLE D'ÉLIGIBILITÉ, ÉCRITE UNE FOIS (§D.20) — l'écran la REND, il ne la
@@ -57,9 +58,7 @@ type PublicationRow = {
   work_zone_ids: string[] | null
   skills_required: string[] | null
   seniorities: string[] | null
-  work_mode: string | null
   location_note: string | null
-  duration: string | null
   start_date: string | null
   budget_min: number | null
   budget_max: number | null
@@ -190,7 +189,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         // Plus d'embed `specialities(...)` : la clé étrangère est morte avec le
         // passage au multiple. Les libellés sont résolus juste après.
         'id, type, title, description, branch_id, speciality_ids, work_zone_ids, ' +
-          'skills_required, seniorities, work_mode, location_note, duration, start_date, ' +
+          `skills_required, seniorities, ${COLONNES_CRITERES_ANNONCE}, location_note, start_date, ` +
           'budget_min, budget_max, confidential, status, published_at, organization_id, ' +
           'branches(id, name), ' +
           'organizations(id, company_name, logo_url)',
@@ -306,12 +305,12 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         speciality_labels: specialityLabels,
         skills_required: pub.skills_required ?? [],
         seniorities: pub.seniorities ?? [],
-        work_mode: pub.work_mode,
+        // Les critères (§D.39), mis en mots par l'écran (lib/annonces/mise-en-forme.ts).
+        ...criteresDeLaLigne(pub as unknown as Record<string, unknown>),
         // Ce sont les ZONES qui décident où l'annonce cherche ; la note de
         // localisation n'est qu'une précision d'affichage.
         work_zone_labels: workZoneLabels,
         location_note: pub.location_note,
-        duration: pub.duration,
         start_date: pub.start_date,
         budget_min: pub.budget_min,
         budget_max: pub.budget_max,

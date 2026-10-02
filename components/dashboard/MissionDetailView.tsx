@@ -5,6 +5,9 @@ import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import CandidatureModal from '@/components/dashboard/CandidatureModal'
+import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
+import { estTypeAnnonce } from '@/lib/annonces/audience'
+import { libelleBudget, libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 
 /**
  * MissionDetailView — détail d'une opportunité matchée (extrait SC7b Lot UX
@@ -39,18 +42,16 @@ type DetailData = {
     speciality_labels: string[]
     skills_required: string[]
     seniorities: string[]
-    work_mode: string | null
     // Ce sont les ZONES qui décident où l'annonce cherche. `location_note` est
     // une précision d'affichage, et ne filtre rien.
     work_zone_labels: string[]
     location_note: string | null
-    duration: string | null
     start_date: string | null
     budget_min: number | null
     budget_max: number | null
     confidential: boolean
     published_at: string | null
-  }
+  } & CriteresAnnonceLus
   org: { name: string | null; logo_url: string | null } | null
   candidature: { id: string; status: string; created_at: string; cover_message: string | null } | null
   /**
@@ -81,28 +82,9 @@ function translateSeniority(code: string, tForm: TForm): string {
   }
 }
 
-function translateWorkMode(code: string, tForm: TForm): string {
-  switch (code) {
-    case 'remote': return tForm('work_mode_options.remote')
-    case 'onsite': return tForm('work_mode_options.onsite')
-    case 'hybrid': return tForm('work_mode_options.hybrid')
-    default: return code
-  }
-}
-
-function formatBudget(min: number | null, max: number | null, type: string, locale: string): string {
-  if (min == null && max == null) return ''
-  const unitMap: Record<string, Record<string, string>> = {
-    fr: { mission: '/jour', offre: '/an' },
-    en: { mission: '/day', offre: '/year' },
-    es: { mission: '/día', offre: '/año' },
-    de: { mission: '/Tag', offre: '/Jahr' },
-  }
-  const unit = unitMap[locale]?.[type] ?? unitMap.fr[type] ?? ''
-  if (min != null && max != null) return `${Math.round(min)}-${Math.round(max)}€${unit}`
-  if (min != null) return `${Math.round(min)}€${unit}`
-  return `${Math.round(max!)}€${unit}`
-}
+// LE BUDGET ET LES CRITÈRES SE METTENT EN MOTS PAR lib/annonces/mise-en-forme.ts (lot « critères des annonces »,
+// §D.39) : une table d'unités écrite ICI, en quatre langues, ne connaissait que « mission » et « offre » — un besoin de
+// sous-traitance s'affichait SANS unité.
 
 export default function MissionDetailView({
   pubId,
@@ -116,6 +98,7 @@ export default function MissionDetailView({
   const tPub = useTranslations('publications')
   const tBadge = useTranslations('matching_badge')
   const tForm = useTranslations('publications.form')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
   const router = useRouter()
   const secureFetch = useSecureFetch()
@@ -267,7 +250,10 @@ export default function MissionDetailView({
 
   const { match, publication: pub, org, candidature } = state.data
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
-  const budgetText = formatBudget(pub.budget_min, pub.budget_max, pub.type, locale)
+  const budgetText = estTypeAnnonce(pub.type) ? libelleBudget({ ...pub, type: pub.type }, tPub, locale) : null
+  const modesText = libellesModesTravail(pub, tCrit).join(', ')
+  const tempsText = libellesTempsTravail(pub, tCrit).join(', ')
+  const dureeText = pub.type === 'offre' ? null : libelleDuree(pub, tCrit)
   const alreadyApplied = !!candidature
   // L'APTITUDE VIENT DU SERVEUR. Une réponse plus ancienne que ce champ (ou une
   // lecture en panne) ne doit pas fermer le bouton par défaut : c'est le
@@ -350,8 +336,11 @@ export default function MissionDetailView({
           {pub.seniorities.length > 0 && (
             <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_seniority')}</div><div>{pub.seniorities.map((s) => translateSeniority(s, tForm)).join(', ')}</div></div>
           )}
-          {pub.work_mode && (
-            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_mode')}</div><div>{translateWorkMode(pub.work_mode, tForm)}</div></div>
+          {modesText && (
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_mode')}</div><div>{modesText}</div></div>
+          )}
+          {tempsText && (
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tCrit('champs.temps_travail')}</div><div>{tempsText}</div></div>
           )}
           {pub.work_zone_labels.length > 0 && (
             <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_work_zones')}</div><div>{pub.work_zone_labels.join(', ')}</div></div>
@@ -359,8 +348,8 @@ export default function MissionDetailView({
           {pub.location_note && (
             <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_location_note')}</div><div>{pub.location_note}</div></div>
           )}
-          {pub.duration && (
-            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_duration')}</div><div>{pub.duration}</div></div>
+          {dureeText && (
+            <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_duration')}</div><div>{dureeText}</div></div>
           )}
           {pub.start_date && (
             <div><div style={{ color: 'var(--sk-muted)', fontSize: 11, marginBottom: 2 }}>{tForm('field_start_date')}</div><div>{pub.start_date}</div></div>

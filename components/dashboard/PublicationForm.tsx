@@ -1,23 +1,26 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
-import {
-  SENIORITY_CODES,
-  WORK_MODE_CODES,
-  type PublicationDraft,
-  type SeniorityCode,
-  type WorkModeCode,
-} from '@/types/publication'
+import type { PublicationDraft } from '@/types/publication'
 import type { AnnonceType } from '@/types/annonce'
-import MultiSelectChips from '@/components/ui/MultiSelectChips'
-import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
-import type { WorkZone } from '@/lib/work-zones'
-import { missingForPublish } from '@/lib/publications/publishable'
-import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
+import ChampsAnnonce, { type ReferentielAnnonce } from '@/components/annonces/ChampsAnnonce'
+import { specialitesGardees } from '@/lib/criteres/specialites'
+import {
+  VALEURS_VIDES,
+  corpsDeRequete,
+  erreursDeSaisie,
+  libelleChampPubliable,
+  messageDeRefusCommun,
+  messagesDeSaisie,
+  valeursDepuisBrouillon,
+  type ChampAnnonce,
+  type ValeursAnnonce,
+} from '@/lib/annonces/formulaire'
+import type { PublicationPublishableField } from '@/lib/publications/publishable'
 
 /**
  * Formulaire de création + édition d'une publication.
@@ -34,6 +37,12 @@ import { SPECIALITY_OTHER } from '@/lib/taxonomie/specialite-autre'
  *   - Pré-rempli depuis prop `initial`.
  *   - SAVE → PATCH. PUBLISH → PATCH puis POST publish (id déjà connu).
  *
+ * LES CHAMPS VIVENT DANS components/annonces/ChampsAnnonce.tsx (lot « critères des annonces », 03/10/2026, §D.39) :
+ * le besoin de sous-traitance rend LE MÊME composant — exactement les mêmes champs (décision de Youssef). Ce fichier ne
+ * garde que ce qui est propre à l'annonce d'une organisation : le choix du type, l'enregistrement du brouillon, la
+ * confirmation et l'écran de résultat de la publication. L'état, la validation et le corps de requête vivent dans
+ * lib/annonces/formulaire.ts, partagés avec le besoin de sous-traitance.
+ *
  * Sécurité :
  *   - Le client n'envoie JAMAIS `status` dans son body POST/PATCH.
  *   - La publication passe TOUJOURS par /publish (gate non contournable).
@@ -47,114 +56,11 @@ type Props =
   | { mode: 'create' }
   | { mode: 'edit'; initial: PublicationDraft }
 
-type FormState = {
-  type: AnnonceType
-  title: string
-  description: string
-  branch_id: string
-  // D6 : « Autre » → SPECIALITY_OTHER (sentinel) parmi les spécialités choisies.
-  speciality_ids: string[]
-  speciality_other: string
-  skills_required: string[]
-  skillInput: string
-  // Séniorités et spécialités : un ensemble VIDE veut dire « aucune contrainte
-  // sur cet axe », jamais « ne correspond à personne ». Une annonce
-  // incomplètement remplie doit chercher LARGE.
-  seniorities: SeniorityCode[]
-  work_mode: WorkModeCode | ''
-  // Zones de travail : elles, sont exigées pour publier — sans zone, l'annonce
-  // ne recouperait aucun expert.
-  work_zone_ids: string[]
-  location_note: string
-  duration: string
-  start_date: string
-  budget_min: string
-  budget_max: string
-  confidential: boolean
-}
-
-type Branch = { id: string; slug: string; name: string }
-type Speciality = { id: string; slug: string; branch_id: string; name: string }
-
-// D6 : sentinel « Autre » (spécialité hors référentiel).
-
-type TaxonomyResponse = {
-  locale: string
-  branches: Branch[]
-  specialities: Speciality[]
-  work_zones: WorkZone[]
-}
+type TaxonomyResponse = ReferentielAnnonce & { locale: string }
 
 type PublishOutcome =
   | { kind: 'published'; score: number }
   | { kind: 'pending_review'; score: number }
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function isValidIsoDate(s: string): boolean {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false
-  const d = new Date(s)
-  return Number.isFinite(d.getTime())
-}
-
-function parseBudget(s: string): number | null {
-  const t = s.trim()
-  if (t === '') return null
-  const n = Number(t)
-  return Number.isFinite(n) && n >= 0 ? n : null
-}
-
-function initialFromDraft(d: PublicationDraft): FormState {
-  return {
-    type: d.type,
-    title: d.title,
-    description: d.description,
-    branch_id: d.branch_id ?? '',
-    // D6 : aucune spécialité du référentiel mais une précision libre → « Autre ».
-    speciality_ids:
-      (d.speciality_ids ?? []).length > 0
-        ? d.speciality_ids
-        : d.speciality_other
-          ? [SPECIALITY_OTHER]
-          : [],
-    speciality_other: d.speciality_other ?? '',
-    skills_required: d.skills_required ?? [],
-    skillInput: '',
-    seniorities: (d.seniorities ?? []).filter(
-      (x): x is SeniorityCode => (SENIORITY_CODES as readonly string[]).includes(x),
-    ),
-    work_mode: (WORK_MODE_CODES as readonly string[]).includes(d.work_mode ?? '')
-      ? ((d.work_mode as WorkModeCode) ?? '')
-      : '',
-    work_zone_ids: d.work_zone_ids ?? [],
-    location_note: d.location_note ?? '',
-    duration: d.duration ?? '',
-    start_date: d.start_date ?? '',
-    budget_min: d.budget_min != null ? String(d.budget_min) : '',
-    budget_max: d.budget_max != null ? String(d.budget_max) : '',
-    confidential: d.confidential ?? false,
-  }
-}
-
-const EMPTY_STATE: FormState = {
-  type: 'mission',
-  title: '',
-  description: '',
-  branch_id: '',
-  speciality_ids: [],
-  speciality_other: '',
-  skills_required: [],
-  skillInput: '',
-  seniorities: [],
-  work_mode: '',
-  work_zone_ids: [],
-  location_note: '',
-  duration: '',
-  start_date: '',
-  budget_min: '',
-  budget_max: '',
-  confidential: false,
-}
 
 /**
  * Les refus qui viennent d'une LIMITE D'OFFRE, et non d'une saisie fautive.
@@ -171,6 +77,7 @@ export default function PublicationForm(props: Props) {
   const t = useTranslations('publications')
   const tStatus = useTranslations('publications.status')
   const tCommerce = useTranslations('commerce')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -191,15 +98,14 @@ export default function PublicationForm(props: Props) {
   const [vieAnnonceJours, setVieAnnonceJours] = useState<number | null>(null)
 
   const isEdit = props.mode === 'edit'
-  const initialState = isEdit ? initialFromDraft(props.initial) : EMPTY_STATE
   const initialStatus = isEdit ? props.initial.status : 'draft'
 
-  const [form, setForm] = useState<FormState>(initialState)
+  const [type, setType] = useState<AnnonceType>(isEdit ? props.initial.type : 'mission')
+  const [form, setForm] = useState<ValeursAnnonce>(isEdit ? valeursDepuisBrouillon(props.initial) : VALEURS_VIDES)
   const [pubId, setPubId] = useState<string | null>(isEdit ? props.initial.id : null)
   const [status, setStatus] = useState(initialStatus)
 
   const [taxonomy, setTaxonomy] = useState<TaxonomyResponse | null>(null)
-  const workZones = taxonomy?.work_zones ?? []
   const [taxonomyError, setTaxonomyError] = useState(false)
 
   const [saving, setSaving] = useState(false)
@@ -219,7 +125,7 @@ export default function PublicationForm(props: Props) {
    */
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
-  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<ChampAnnonce, string>>>({})
 
   // ── Charger taxonomie ──────────────────────────────────────────────────
   useEffect(() => {
@@ -274,12 +180,6 @@ export default function PublicationForm(props: Props) {
     }
   }, [secureFetch])
 
-  // Spécialités filtrées par branche choisie
-  const filteredSpecialities = useMemo(() => {
-    if (!taxonomy || !form.branch_id) return []
-    return taxonomy.specialities.filter((s) => s.branch_id === form.branch_id)
-  }, [taxonomy, form.branch_id])
-
   // Au changement de branche, seules les spécialités devenues hors branche
   // partent — on ne vide pas TOUTE la sélection, ce qui obligerait à tout
   // ressaisir pour une seule. « Autre » n'est rattachée à aucune branche : elle
@@ -287,112 +187,36 @@ export default function PublicationForm(props: Props) {
   useEffect(() => {
     if (!taxonomy) return
     setForm((p) => {
-      if (p.speciality_ids.length === 0) return p
-      const gardees = p.speciality_ids.filter(
-        (id) =>
-          id === SPECIALITY_OTHER ||
-          (!!p.branch_id && filteredSpecialities.some((s) => s.id === id)),
-      )
-      if (gardees.length === p.speciality_ids.length) return p
-      return { ...p, speciality_ids: gardees }
+      const gardees = specialitesGardees(p.speciality_ids, taxonomy.specialities, p.branch_id)
+      return gardees.length === p.speciality_ids.length ? p : { ...p, speciality_ids: gardees }
     })
-  }, [form.branch_id, taxonomy, filteredSpecialities])
+  }, [form.branch_id, taxonomy])
 
-  const setField = useCallback(<K extends keyof FormState>(k: K, v: FormState[K]) => {
+  const setField = useCallback(<K extends keyof ValeursAnnonce>(k: K, v: ValeursAnnonce[K]) => {
     setForm((p) => ({ ...p, [k]: v }))
-    setFieldErrors((e) => ({ ...e, [k]: undefined }))
+    setFieldErrors((e) => ({
+      ...e,
+      [k]: undefined,
+      ...(k === 'jours_sur_site' || k === 'jours_teletravail' || k === 'work_modes' ? { repartition_hybride: undefined } : null),
+      ...(k === 'duree_valeur' || k === 'duree_unite' ? { duree: undefined } : null),
+    }))
   }, [])
 
-  // ── Validation client (mimétique du serveur, UX uniquement) ────────────
-  const validate = (state: FormState): { ok: true } | { ok: false; errors: Partial<Record<keyof FormState, string>> } => {
-    const errs: Partial<Record<keyof FormState, string>> = {}
-    if (state.title.trim().length < 5 || state.title.trim().length > 200) {
-      errs.title = t('errors.invalid_title')
-    }
-    if (state.description.trim().length < 20 || state.description.trim().length > 10_000) {
-      errs.description = t('errors.invalid_description')
-    }
-    if (!state.branch_id) {
-      errs.branch_id = t('form.required_marker')
-    }
-    // SOURCE UNIQUE : exactement le prédicat que /publish applique pour
-    // refuser. Les contrôles ci-dessus sont plus fins (bornes de longueur) et
-    // gardent la main quand ils ont déjà parlé ; celui-ci garantit qu'aucun
-    // champ exigé par le serveur ne manque à l'appel du formulaire.
-    //
-    // Les ZONES en font partie : sans zone, l'annonce ne recouperait AUCUN
-    // expert et serait publiée silencieusement invisible. Cet appel prévient
-    // plus tôt, il ne remplace pas la barrière (règle 20).
-    for (const champ of missingForPublish({
-      title: state.title,
-      description: state.description,
-      branch_id: state.branch_id || null,
-      work_zone_ids: state.work_zone_ids,
-    })) {
-      if (!errs[champ]) errs[champ] = t(`form.field_errors.${champ}`)
-    }
-    // SPÉCIALITÉS et SÉNIORITÉS ne sont PAS exigées : un ensemble vide y dit
-    // « aucune contrainte sur cet axe ». Seule « Autre » impose sa précision
-    // libre, sans quoi elle ne désignerait rien (D6).
-    if (state.speciality_ids.includes(SPECIALITY_OTHER) && !state.speciality_other.trim()) {
-      errs.speciality_other = t('form.required_marker')
-    }
-    const bmin = parseBudget(state.budget_min)
-    const bmax = parseBudget(state.budget_max)
-    if (state.budget_min !== '' && bmin === null) errs.budget_min = t('errors.invalid_budget')
-    if (state.budget_max !== '' && bmax === null) errs.budget_max = t('errors.invalid_budget')
-    if (bmin !== null && bmax !== null && bmin > bmax) {
-      errs.budget_max = t('errors.budget_inverted')
-    }
-    if (state.start_date !== '' && !isValidIsoDate(state.start_date)) {
-      errs.start_date = t('errors.invalid_json')
-    }
-    if (Object.keys(errs).length > 0) return { ok: false, errors: errs }
-    return { ok: true }
-  }
-
-  // ── Construction du body POST/PATCH ────────────────────────────────────
-  const buildBody = (state: FormState, forCreate: boolean): Record<string, unknown> => {
-    const body: Record<string, unknown> = {
-      title: state.title.trim(),
-      description: state.description.trim(),
-      branch_id: state.branch_id || null,
-      speciality_ids: state.speciality_ids.filter((id) => id !== SPECIALITY_OTHER),
-      // D6 : précision libre transmise quand « Autre », sinon effacée.
-      speciality_other: state.speciality_ids.includes(SPECIALITY_OTHER)
-        ? state.speciality_other.trim()
-        : null,
-      skills_required: state.skills_required,
-      seniorities: state.seniorities,
-      work_mode: state.work_mode || null,
-      // Zones transmises en CODES stables, jamais en uuid : le serveur résout,
-      // et REFUSE un code inconnu plutôt que de tronquer en silence.
-      work_zone_codes: state.work_zone_ids
-        .map((id) => workZones.find((z) => z.id === id)?.code)
-        .filter((c): c is string => !!c),
-      location_note: state.location_note.trim() || null,
-      duration: state.duration.trim() || null,
-      start_date: state.start_date || null,
-      budget_min: parseBudget(state.budget_min),
-      budget_max: parseBudget(state.budget_max),
-      confidential: state.confidential,
-    }
-    if (forCreate) {
-      body.type = state.type
-    }
-    // Jamais de `status` envoyé.
-    return body
+  // ── Validation client (le prédicat du serveur, plus les bornes fines) ──
+  //  SOURCE UNIQUE : lib/annonces/formulaire.ts — la même que le besoin de sous-traitance.
+  const validate = (state: ValeursAnnonce): boolean => {
+    const erreurs = erreursDeSaisie(state, type)
+    setFieldErrors(messagesDeSaisie(erreurs, t, tCrit))
+    return Object.keys(erreurs).length === 0
   }
 
   // ── Codes d'erreur API → libellé ───────────────────────────────────────
   const apiErrorMessage = (code: string | undefined): string => {
+    // Les refus communs aux deux écrans (saisie, critères, statut) : lib/annonces/formulaire.ts.
+    const commun = messageDeRefusCommun(code, t, tCrit)
+    if (commun) return commun
     const known: Record<string, string> = {
-      invalid_json: t('errors.invalid_json'),
       org_required: t('errors.org_required'),
-      not_found: t('errors.not_found'),
-      forbidden: t('errors.forbidden'),
-      wrong_status: t('errors.wrong_status'),
-      bad_work_zone: t('form.field_errors.work_zone_ids'),
       // ── Refus COMMERCE (402) ────────────────────────────────────────────
       //  Ils manquaient à cette table, et le serveur les nomme pourtant depuis
       //  toujours : l'organisation qui butait sur son quota lisait « une erreur
@@ -408,15 +232,10 @@ export default function PublicationForm(props: Props) {
       //  serveur n'a PAS PU compter. Annoncer « offre pleine » serait un
       //  mensonge, et l'organisation clôturerait une annonce pour rien.
       active_publications_check_failed: t('errors.active_publications_check_failed'),
-      invalid_type: t('errors.invalid_type'),
-      invalid_title: t('errors.invalid_title'),
-      invalid_description: t('errors.invalid_description'),
-      invalid_budget: t('errors.invalid_budget'),
-      budget_inverted: t('errors.budget_inverted'),
-      verification_failed: t('errors.verification_failed'),
       db_error: t('errors.db_error'),
     }
-    return (code && known[code]) ?? t('errors.generic')
+    // Un code que l'écran ne connaît pas se NOMME, plutôt qu'« une erreur est survenue ».
+    return (code && known[code]) ?? tCrit('erreurs.refus_inconnu', { code: code ?? '—' })
   }
 
   /**
@@ -426,25 +245,24 @@ export default function PublicationForm(props: Props) {
    * Sans cela, l'organisation lisait `db_error` — la contrainte de base violée —
    * pour une annonce à laquelle il manquait simplement une zone.
    */
-  const LIBELLE_CHAMP: Record<string, string> = {
-    title: t('form.field_title'),
-    description: t('form.field_description'),
-    branch_id: t('form.field_branch'),
-    work_zone_ids: t('form.field_work_zones'),
-  }
   const messageChampsManquants = (missing: unknown): string | null => {
     if (!Array.isArray(missing) || missing.length === 0) return null
-    const noms = missing.map((m) => LIBELLE_CHAMP[String(m)]).filter(Boolean)
+    const noms = missing
+      .filter((m): m is PublicationPublishableField => typeof m === 'string')
+      .map((m) => libelleChampPubliable(m, t, tCrit))
+      .filter(Boolean)
     if (noms.length === 0) return null
     return t('errors.missing_fields', { fields: noms.join(', ') })
   }
 
   // ── Save (POST si create / PATCH si edit) ──────────────────────────────
-  const saveDraft = async (state: FormState): Promise<{ ok: true; id: string } | { ok: false }> => {
+  const saveDraft = async (state: ValeursAnnonce): Promise<{ ok: true; id: string } | { ok: false }> => {
     const isCreating = pubId == null
     const url = isCreating ? '/api/publications' : `/api/publications/${pubId}`
     const method = isCreating ? 'POST' : 'PATCH'
-    const body = buildBody(state, isCreating)
+    // Jamais de `status` envoyé ; le type seulement à la création (il est immuable).
+    const corps = corpsDeRequete(state, type, (id) => taxonomy?.work_zones.find((z) => z.id === id)?.code)
+    const body = isCreating ? { ...corps, type } : corps
     const res = await secureFetch(url, {
       method,
       headers: { 'content-type': 'application/json' },
@@ -458,7 +276,7 @@ export default function PublicationForm(props: Props) {
     }
     const newId = (payload.id as string | undefined) ?? pubId
     if (!newId) {
-      setErrorMsg(t('errors.generic'))
+      setErrorMsg(tCrit('erreurs.reponse_sans_identifiant'))
       return { ok: false }
     }
     if (isCreating) setPubId(newId)
@@ -472,10 +290,8 @@ export default function PublicationForm(props: Props) {
     setErrorMsg(null)
     setErrorCode(null)
     setSuccessMsg(null)
-    const v = validate(form)
-    if (!v.ok) {
-      setFieldErrors(v.errors)
-      setErrorMsg(t('errors.generic'))
+    if (!validate(form)) {
+      setErrorMsg(tCrit('erreurs.corriger_les_champs'))
       return
     }
     if (saving) return
@@ -489,7 +305,7 @@ export default function PublicationForm(props: Props) {
       }
     } catch (err) {
       console.error('[PublicationForm] saveDraft threw', err)
-      setErrorMsg(t('errors.generic'))
+      setErrorMsg(tCrit('erreurs.reseau'))
     } finally {
       setSaving(false)
     }
@@ -500,10 +316,8 @@ export default function PublicationForm(props: Props) {
     setErrorMsg(null)
     setErrorCode(null)
     setSuccessMsg(null)
-    const v = validate(form)
-    if (!v.ok) {
-      setFieldErrors(v.errors)
-      setErrorMsg(t('errors.generic'))
+    if (!validate(form)) {
+      setErrorMsg(tCrit('erreurs.corriger_les_champs'))
       return
     }
     setConfirmOpen(true)
@@ -546,72 +360,12 @@ export default function PublicationForm(props: Props) {
     }
   }
 
-  // ── Skill chips ─────────────────────────────────────────────────────────
-  const addSkill = () => {
-    const v = form.skillInput.trim()
-    if (!v) return
-    if (form.skills_required.includes(v)) {
-      setForm((p) => ({ ...p, skillInput: '' }))
-      return
-    }
-    if (form.skills_required.length >= 50) return
-    setForm((p) => ({ ...p, skills_required: [...p.skills_required, v], skillInput: '' }))
-  }
-  const removeSkill = (skill: string) => {
-    setForm((p) => ({ ...p, skills_required: p.skills_required.filter((s) => s !== skill) }))
-  }
-
-  // ── Styles ──────────────────────────────────────────────────────────────
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 13,
-    fontWeight: 600,
-    color: 'var(--sk-text)',
-    marginBottom: 6,
-  }
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '11px 14px',
-    fontSize: 14,
-    border: '1px solid var(--sk-border)',
-    borderRadius: 8,
-    outline: 'none',
-    fontFamily: 'inherit',
-    background: 'var(--sk-surface)',
-    color: 'var(--sk-text)',
-    boxSizing: 'border-box',
-  }
-  const errorInputBorder = '1px solid var(--sk-red)'
-  const sectionTitleStyle: React.CSSProperties = {
-    fontSize: 12,
-    fontWeight: 700,
-    textTransform: 'uppercase',
-    letterSpacing: '.08em',
-    color: 'var(--sk-muted)',
-    marginBottom: 14,
-  }
-  const sectionStyle: React.CSSProperties = {
-    background: 'var(--sk-surface)',
-    border: '0.5px solid var(--color-border-tertiary, var(--sk-border))',
-    borderRadius: 14,
-    padding: '22px 24px',
-    marginBottom: 18,
-  }
-  const fieldErrorStyle: React.CSSProperties = {
-    fontSize: 12,
-    color: 'var(--sk-red)',
-    marginTop: 4,
-  }
-  const helpStyle: React.CSSProperties = {
-    fontSize: 12,
-    color: 'var(--sk-muted)',
-    marginTop: 4,
-  }
   function radioPill(active: boolean): React.CSSProperties {
     return {
       display: 'inline-flex',
       alignItems: 'center',
       gap: 8,
+      minHeight: 44,
       padding: '10px 16px',
       border: `1.5px solid ${active ? domain.primaryColor : 'var(--sk-border)'}`,
       borderRadius: 10,
@@ -621,6 +375,7 @@ export default function PublicationForm(props: Props) {
       fontWeight: 600,
       color: active ? domain.primaryColor : 'var(--sk-muted)',
       userSelect: 'none',
+      boxSizing: 'border-box',
     }
   }
 
@@ -680,8 +435,9 @@ export default function PublicationForm(props: Props) {
   }
 
   // ── Form principal ─────────────────────────────────────────────────────
+  //  PLEINE LARGEUR (règle commune) : le formulaire occupe la largeur de la page ; ses grilles se replient.
   return (
-    <div style={{ maxWidth: 880, padding: '24px 26px 40px', fontFamily: 'inherit' }}>
+    <div style={{ width: '100%', padding: '24px 26px 40px', fontFamily: 'inherit', boxSizing: 'border-box' }}>
       <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 6, letterSpacing: '-0.3px' }}>
         {headerTitle}
       </h1>
@@ -691,7 +447,7 @@ export default function PublicationForm(props: Props) {
 
       {taxonomyError && (
         <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>
-          {t('errors.generic')}
+          {tCrit('erreurs.referentiel_indisponible')}
         </div>
       )}
 
@@ -728,15 +484,12 @@ export default function PublicationForm(props: Props) {
       )}
 
       <form id={formId} onSubmit={handleSaveDraft}>
-        {/* Section essentiels */}
-        <div style={sectionStyle}>
-          <div style={sectionTitleStyle}>{t('form.section_essentials')}</div>
-
-          {/* Type — radio pills, immuable en édition */}
-          <label style={labelStyle}>{t('form.field_type')} *</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 18, flexWrap: 'wrap' }}>
+        {/* Le TYPE — radio pills, immuable en édition. Le seul champ propre à l'annonce d'une organisation. */}
+        <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 14, padding: '22px 24px', marginBottom: 18 }}>
+          <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--sk-text)', marginBottom: 6 }}>{t('form.field_type')} *</span>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {(['mission', 'offre'] as const).map((tp) => {
-              const active = form.type === tp
+              const active = type === tp
               const disabled = isEdit  // le type est immuable côté API
               return (
                 <label
@@ -752,7 +505,7 @@ export default function PublicationForm(props: Props) {
                     name="type"
                     value={tp}
                     checked={active}
-                    onChange={() => !disabled && setField('type', tp)}
+                    onChange={() => !disabled && setType(tp)}
                     disabled={disabled}
                     style={{ display: 'none' }}
                   />
@@ -761,308 +514,10 @@ export default function PublicationForm(props: Props) {
               )
             })}
           </div>
-
-          {/* Titre */}
-          <label htmlFor="sk-title" style={labelStyle}>{t('form.field_title')} *</label>
-          <input
-            id="sk-title"
-            type="text"
-            value={form.title}
-            onChange={(e) => setField('title', e.target.value)}
-            placeholder={t('form.field_title_placeholder')}
-            maxLength={200}
-            style={{ ...inputStyle, ...(fieldErrors.title ? { border: errorInputBorder } : null), marginBottom: fieldErrors.title ? 4 : 18 }}
-          />
-          {fieldErrors.title && <div style={{ ...fieldErrorStyle, marginBottom: 14 }}>{fieldErrors.title}</div>}
-
-          {/* Description */}
-          <label htmlFor="sk-desc" style={labelStyle}>{t('form.field_description')} *</label>
-          <textarea
-            id="sk-desc"
-            value={form.description}
-            onChange={(e) => setField('description', e.target.value)}
-            placeholder={t('form.field_description_placeholder')}
-            maxLength={10_000}
-            rows={8}
-            style={{
-              ...inputStyle,
-              ...(fieldErrors.description ? { border: errorInputBorder } : null),
-              resize: 'vertical',
-              lineHeight: 1.55,
-              marginBottom: fieldErrors.description ? 4 : 4,
-            }}
-          />
-          {fieldErrors.description ? (
-            <div style={{ ...fieldErrorStyle, marginBottom: 4 }}>{fieldErrors.description}</div>
-          ) : null}
-          <div style={helpStyle}>{t('form.field_description_help')}</div>
         </div>
 
-        {/* Section contexte (branche, spec, séniorité) */}
-        <div style={sectionStyle}>
-          <div style={sectionTitleStyle}>{t('form.section_context')}</div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 18 }}>
-            <div>
-              <label htmlFor="sk-branch" style={labelStyle}>{t('form.field_branch')} *</label>
-              <select
-                id="sk-branch"
-                value={form.branch_id}
-                onChange={(e) => setField('branch_id', e.target.value)}
-                style={{ ...inputStyle, ...(fieldErrors.branch_id ? { border: errorInputBorder } : null) }}
-                disabled={!taxonomy}
-              >
-                <option value="">{t('form.field_branch_placeholder')}</option>
-                {taxonomy?.branches.map((b) => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-              {fieldErrors.branch_id && <div style={fieldErrorStyle}>{fieldErrors.branch_id}</div>}
-            </div>
-            <div>
-              {/* Plus d'astérisque : une annonce sans spécialité cherche LARGE,
-                  elle ne cherche pas « rien ». */}
-              <label style={labelStyle}>{t('form.field_speciality')}</label>
-              <MultiSelectChips
-                ariaLabel={t('form.field_speciality')}
-                options={[
-                  ...filteredSpecialities.map((sp) => ({ value: sp.id, label: sp.name })),
-                  // D6 : spécialité hors référentiel, seulement quand une
-                  // branche est choisie.
-                  ...(form.branch_id
-                    ? [{ value: SPECIALITY_OTHER, label: t('form.field_speciality_other_option') }]
-                    : []),
-                ]}
-                selected={form.speciality_ids}
-                onChange={(next) => {
-                  setField('speciality_ids', next)
-                  if (!next.includes(SPECIALITY_OTHER)) setField('speciality_other', '')
-                }}
-                emptyLabel={
-                  !form.branch_id
-                    ? t('form.field_speciality_select_branch_first')
-                    : filteredSpecialities.length === 0
-                      ? t('form.field_speciality_none_in_branch')
-                      : t('form.field_speciality_placeholder')
-                }
-              />
-
-              {form.speciality_ids.includes(SPECIALITY_OTHER) && (
-                <div style={{ marginTop: 10 }}>
-                  <label htmlFor="sk-spec-other" style={labelStyle}>{t('form.field_speciality_other_label')} *</label>
-                  <input
-                    id="sk-spec-other"
-                    type="text"
-                    value={form.speciality_other}
-                    onChange={(e) => setField('speciality_other', e.target.value)}
-                    maxLength={100}
-                    placeholder={t('form.field_speciality_other_placeholder')}
-                    style={{ ...inputStyle, ...(fieldErrors.speciality_other ? { border: errorInputBorder } : null) }}
-                  />
-                  {fieldErrors.speciality_other && <div style={fieldErrorStyle}>{fieldErrors.speciality_other}</div>}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 18 }}>
-            <div>
-              <label style={labelStyle}>{t('form.field_seniority')}</label>
-              <MultiSelectChips
-                ariaLabel={t('form.field_seniority')}
-                options={SENIORITY_CODES.map((v) => ({
-                  value: v,
-                  label: t(`form.seniority_options.${v}`),
-                }))}
-                selected={form.seniorities}
-                onChange={(next) => setField('seniorities', next as SeniorityCode[])}
-                emptyLabel={t('form.option_not_specified')}
-              />
-            </div>
-            <div>
-              <label htmlFor="sk-workmode" style={labelStyle}>{t('form.field_work_mode')}</label>
-              <select
-                id="sk-workmode"
-                value={form.work_mode}
-                onChange={(e) => setField('work_mode', e.target.value as WorkModeCode | '')}
-                style={inputStyle}
-              >
-                <option value="">{t('form.option_not_specified')}</option>
-                {WORK_MODE_CODES.map((m) => (
-                  <option key={m} value={m}>{t(`form.work_mode_options.${m}`)}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* ZONES DE TRAVAIL — placées avec branche et spécialités, parce que
-              c'est un critère de recherche comme elles, et non dans la section
-              logistique où « Localisation » les ferait passer pour une adresse. */}
-          <div style={{ marginBottom: 18 }}>
-            <label style={labelStyle}>{t('form.field_work_zones')} *</label>
-            <div style={helpStyle}>{t('form.field_work_zones_help')}</div>
-            <WorkZoneSelector
-              zones={workZones}
-              selected={form.work_zone_ids}
-              onChange={(next) => setField('work_zone_ids', next)}
-              invalid={!!fieldErrors.work_zone_ids}
-            />
-            {fieldErrors.work_zone_ids && <div style={fieldErrorStyle}>{fieldErrors.work_zone_ids}</div>}
-          </div>
-
-          {/* Skills */}
-          <label style={labelStyle}>{t('form.field_skills')}</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-            <input
-              type="text"
-              value={form.skillInput}
-              onChange={(e) => setField('skillInput', e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') { e.preventDefault(); addSkill() }
-              }}
-              placeholder={t('form.field_skills_placeholder')}
-              maxLength={100}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <button
-              type="button"
-              onClick={addSkill}
-              style={{
-                padding: '0 18px',
-                background: domain.primaryColor,
-                color: 'var(--sk-surface)',
-                border: 'none',
-                borderRadius: 8,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-              }}
-            >
-              {t('form.field_skills_add')}
-            </button>
-          </div>
-          {form.skills_required.length > 0 && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-              {form.skills_required.map((skill) => (
-                <span
-                  key={skill}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: 'var(--sk-surface-2)',
-                    color: 'var(--sk-text)',
-                    padding: '4px 10px',
-                    borderRadius: 12,
-                    fontSize: 12,
-                    fontWeight: 500,
-                  }}
-                >
-                  {skill}
-                  <button
-                    type="button"
-                    onClick={() => removeSkill(skill)}
-                    aria-label={t('form.field_skills_remove_aria', { skill })}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--sk-border)', cursor: 'pointer', padding: 0, fontSize: 14, lineHeight: 1 }}
-                  >×</button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Section logistique */}
-        <div style={sectionStyle}>
-          <div style={sectionTitleStyle}>{t('form.section_logistics')}</div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 18 }}>
-            <div>
-              {/* Le champ libre reste, mais il DIT désormais qu'il ne sert pas à
-                  la mise en relation. Sans cela, une organisation croyait
-                  filtrer avec un champ décoratif. */}
-              <label htmlFor="sk-loc" style={labelStyle}>{t('form.field_location_note')}</label>
-              <input
-                id="sk-loc"
-                type="text"
-                value={form.location_note}
-                onChange={(e) => setField('location_note', e.target.value)}
-                placeholder={t('form.field_location_note_placeholder')}
-                style={inputStyle}
-              />
-              <div style={helpStyle}>{t('form.field_location_note_help')}</div>
-            </div>
-            <div>
-              <label htmlFor="sk-dur" style={labelStyle}>{t('form.field_duration')}</label>
-              <input id="sk-dur" type="text" value={form.duration} onChange={(e) => setField('duration', e.target.value)} placeholder={t('form.field_duration_placeholder')} style={inputStyle} />
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 0 }}>
-            <div>
-              <label htmlFor="sk-start" style={labelStyle}>{t('form.field_start_date')}</label>
-              <input
-                id="sk-start"
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setField('start_date', e.target.value)}
-                style={{ ...inputStyle, ...(fieldErrors.start_date ? { border: errorInputBorder } : null) }}
-              />
-              {fieldErrors.start_date && <div style={fieldErrorStyle}>{fieldErrors.start_date}</div>}
-            </div>
-            <div>
-              <label htmlFor="sk-bmin" style={labelStyle}>{t('form.field_budget_min')}</label>
-              <input
-                id="sk-bmin"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={form.budget_min}
-                onChange={(e) => setField('budget_min', e.target.value)}
-                style={{ ...inputStyle, ...(fieldErrors.budget_min ? { border: errorInputBorder } : null) }}
-              />
-              {fieldErrors.budget_min && <div style={fieldErrorStyle}>{fieldErrors.budget_min}</div>}
-            </div>
-            <div>
-              <label htmlFor="sk-bmax" style={labelStyle}>{t('form.field_budget_max')}</label>
-              <input
-                id="sk-bmax"
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={form.budget_max}
-                onChange={(e) => setField('budget_max', e.target.value)}
-                style={{ ...inputStyle, ...(fieldErrors.budget_max ? { border: errorInputBorder } : null) }}
-              />
-              {fieldErrors.budget_max && <div style={fieldErrorStyle}>{fieldErrors.budget_max}</div>}
-            </div>
-          </div>
-          <div style={{ ...helpStyle, marginTop: 6 }}>
-            {t(`form.field_budget_help_${form.type}`)}
-          </div>
-        </div>
-
-        {/* Section avancé */}
-        <div style={sectionStyle}>
-          <div style={sectionTitleStyle}>{t('form.section_advanced')}</div>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer', marginBottom: 14 }}>
-            <input
-              type="checkbox"
-              checked={form.confidential}
-              onChange={(e) => setField('confidential', e.target.checked)}
-              style={{ marginTop: 3, accentColor: domain.primaryColor }}
-            />
-            <span style={{ fontSize: 13, color: 'var(--sk-text)', lineHeight: 1.55 }}>
-              <strong>{t('form.field_confidential')}</strong>
-              <span style={{ display: 'block', color: 'var(--sk-muted)', marginTop: 4 }}>
-                {t('form.field_confidential_help')}
-              </span>
-            </span>
-          </label>
-          <div style={{ fontSize: 12, color: 'var(--sk-muted)', lineHeight: 1.5 }}>
-            {t('form.completion_hint')}
-          </div>
-        </div>
+        {/* LES CHAMPS — exactement ceux du besoin de sous-traitance (un composant, §D.39). */}
+        <ChampsAnnonce type={type} valeurs={form} changer={setField} erreurs={fieldErrors} referentiel={taxonomy} />
 
         {/* Boutons */}
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 28 }}>

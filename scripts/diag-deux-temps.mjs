@@ -32,6 +32,11 @@
  *          fonctions SQL appelées par `.rpc`) ;
  *        · `refus_nomme` : dans le fichier en ligne, l'écriture que la migration peut refuser est la PREMIÈRE du geste,
  *          et son refus est lu par la fonction nommée qui le rend en code d'erreur — rien n'est écrit à moitié ;
+ *        · `colonnes_neuves` (lot « critères des annonces », 03/10/2026) : une contrainte qui ne garde que des colonnes
+ *          que la MÊME migration crée (nullables ou à défaut vide) ne refuse rien à qui ne les écrit pas — la migration
+ *          les crée toutes, chaque contrainte ajoutée sur la table en nomme au moins une, AUCUN écrivain de la table dans
+ *          le code en ligne (fichiers et fonctions SQL appelées par `.rpc`) ne nomme l'une d'elles, et le test nommé
+ *          existe et les nomme (il prouve qu'une écriture « à l'ancienne » passe) ;
  *   B bis. SECOND TEMPS (APRÈS) : chaque restriction est DÉCLARÉE dans `SECOND_TEMPS` avec ses ÉCRIVAINS (les fichiers
  *      du code du lot qui écrivent ce qu'elle restreint) et le TEST qui prouve que ce qu'ils écrivent passe. Pour une
  *      restriction sur une table, la liste des écrivains est RECALCULÉE et doit être EXACTEMENT la liste déclarée (un
@@ -77,25 +82,30 @@ const ok = (cond, label, indice) => {
 
 // ── LE CODE EN LIGNE : le commit déployé sur staging, et l'état de base qui va avec (sa dernière migration). ──
 // Le lot B est en ligne (02/10/2026) : sa dernière migration est l'état ⓪ de la requête d'avant-push.
-const CODE_EN_LIGNE = { commit: '1182e02', derniere_migration: 'photo_par_le_serveur' }
+// Le lot « zones de travail » (ARRÊT 26) est en ligne (03/10/2026) : sa dernière migration est l'état ⓪.
+const CODE_EN_LIGNE = { commit: 'e27fa56', derniere_migration: 'specialite_ecriture_et_avis_une_fois' }
 
 // ── LES EXCEPTIONS DU PREMIER TEMPS — une raison ET une preuve chacune (§G.8). Clé : `<suffixe>::<motif>`. ──
 // Le gel ne fait que descendre : une exception dont la migration n'est plus en attente rougit (« morte »).
+// (Les deux exceptions de l'ARRÊT 26 — zones_couverture_suit_le_referentiel, specialite_reactivation_hors_autre — sont
+// mortes avec leur déploiement : leurs migrations ne sont plus en attente.)
 const EXCEPTIONS = {
-  'zones_couverture_suit_le_referentiel::trigger:work_zones': {
-    raison: 'LÉGITIME — le déclencheur ne refuse rien : il RECALCULE la couverture des profils et des annonces quand le référentiel des zones change, et aucun code (en ligne ou du lot) n’écrit work_zones — le référentiel ne s’écrit que par migration.',
-    preuve: { type: 'aucun_ecrivain', table: 'work_zones' },
-  },
-  'specialite_reactivation_hors_autre::trigger:specialities': {
-    raison: 'LÉGITIME — décision de Youssef (02/10/2026, pas de migration poussée à part) : la garde ne refuse QUE le geste qu’elle interdit — réactiver une spécialité dont une traduction est « Autre » ; le code en ligne écrit la spécialité AVANT toute traduction et rend ce refus nommé (specialite_autre_reservee), rien n’est écrit à moitié.',
+  'annonce_criteres_communs::constraint:publications': {
+    raison: 'LÉGITIME — les cinq contraintes (modes de travail, temps de travail, répartition hybride, durée, offre sans durée) ne gardent que des colonnes que la migration CRÉE, nullables ou à défaut vide, et chacune accepte ce défaut : le code en ligne, qui ne les nomme pas, écrit toujours le défaut — rien de ce qu’il écrit ne peut être refusé.',
     preuve: {
-      type: 'refus_nomme',
-      fichier: 'app/api/admin/update-speciality/route.ts',
-      ecriture: /\.from\('specialities'\)\.update\(updates\)/,
-      refus: /if \(estRefusAutre\(updErr\)\) \{\s*return json\(\{[^}]*code: 'specialite_autre_reservee' \}, 400\)/,
-      ecrituresSuivantes: /\.from\('translations'\)/,
-      // Le refus de la base porte ce nom ; la fonction en ligne le reconnaît par lui.
-      nomDuRefus: { fichier: 'lib/taxonomie/specialite-autre.ts', motif: /CONTRAINTE_AUTRE = 'specialities_autre_hors_referentiel'/ },
+      type: 'colonnes_neuves',
+      table: 'publications',
+      colonnes: ['work_modes', 'jours_sur_site', 'jours_teletravail', 'temps_travail', 'duree_valeur', 'duree_unite'],
+      test: 'supabase/tests/database/annonces/criteres_communs.test.sql',
+    },
+  },
+  'annonce_criteres_communs::constraint:profiles': {
+    raison: 'LÉGITIME — la contrainte du temps de travail ne garde que la colonne que la migration CRÉE (défaut vide, accepté) : le code en ligne, qui ne la nomme pas, écrit toujours le défaut.',
+    preuve: {
+      type: 'colonnes_neuves',
+      table: 'profiles',
+      colonnes: ['temps_travail'],
+      test: 'supabase/tests/database/annonces/criteres_communs.test.sql',
     },
   },
 }
@@ -281,8 +291,46 @@ const lot = lecteurDuLot()
 const migrationsEnLigne = toutes.slice(0, iEtat + 1)
 
 /** Vérifie la preuve d'une exception ; rend la liste des manquements (vide = prouvée). */
-function prouver(preuve) {
+function prouver(preuve, migrationFichier) {
   if (!enLigne) return ['épreuve : aucun commit en ligne pour prouver l’exception']
+  if (preuve.type === 'colonnes_neuves') {
+    const fautes = []
+    const sql = sansCommentaires(lire(`${dossier}/${migrationFichier}`))
+    for (const c of preuve.colonnes) {
+      // Nullable (`<type>`), ou à défaut vide (`<type> not null default '{}'`) — rien d'autre : un défaut qui ne serait
+      // pas vide pourrait ne pas passer la contrainte.
+      if (!new RegExp(`add column if not exists ${c}\\s+[a-z0-9]+(?:\\[\\])?(?:\\s+not null default '\\{\\}')?\\s*[,;]`).test(sql)) {
+        fautes.push(`la colonne ${preuve.table}.${c} n’est pas créée par la migration (nullable ou à défaut vide)`)
+      }
+    }
+    const ajoutees = [...sql.matchAll(new RegExp(`alter table public\\.${preuve.table}\\s+add constraint (\\w+)\\s+check \\(([\\s\\S]*?)\\);`, 'g'))]
+    if (ajoutees.length === 0) fautes.push(`aucune contrainte ajoutée sur ${preuve.table} n’est lue`)
+    for (const [, nom, expr] of ajoutees) {
+      if (!preuve.colonnes.some((c) => new RegExp(`\\b${c}\\b`).test(expr))) fautes.push(`la contrainte ${nom} ne garde aucune colonne neuve`)
+    }
+    // Les écrivains en ligne de la table — fichiers et fonctions SQL — ne nomment aucune des colonnes neuves.
+    for (const e of ecrivainsDe(preuve.table, enLigne, migrationsEnLigne)) {
+      const fichier = e.replace(/ \(via \w+\)$/, '')
+      const src = sansCommentairesTs(enLigne.lire(fichier))
+      const nommees = preuve.colonnes.filter((c) => new RegExp(`\\b${c}\\b`).test(src))
+      if (nommees.length) fautes.push(`${e} (en ligne) nomme ${nommees.join(', ')}`)
+    }
+    const corpsEnLigne = new Map()
+    for (const g of migrationsEnLigne) {
+      for (const m of sansCommentaires(lire(`${dossier}/${g}`)).matchAll(/create (?:or replace )?function public\.(\w+)\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$/g)) corpsEnLigne.set(m[1], m[3])
+    }
+    for (const fn of fonctionsQuiEcrivent(preuve.table, migrationsEnLigne)) {
+      const nommees = preuve.colonnes.filter((c) => new RegExp(`\\b${c}\\b`).test(corpsEnLigne.get(fn) ?? ''))
+      if (nommees.length) fautes.push(`la fonction en ligne ${fn} écrit ${preuve.table} et nomme ${nommees.join(', ')}`)
+    }
+    if (!preuve.test || !existsSync(join(ROOT, preuve.test))) fautes.push(`le test « ${preuve.test ?? '?'} » n’existe pas`)
+    else {
+      const t = lire(preuve.test)
+      const absentes = preuve.colonnes.filter((c) => !t.includes(c))
+      if (absentes.length) fautes.push(`le test ${preuve.test} ne nomme pas ${absentes.join(', ')}`)
+    }
+    return fautes
+  }
   if (preuve.type === 'aucun_ecrivain') {
     const enLigneE = ecrivainsDe(preuve.table, enLigne, migrationsEnLigne)
     const duLot = ecrivainsDe(preuve.table, lot, toutes)
@@ -347,7 +395,7 @@ for (const f of attente) {
     const e = EXCEPTIONS[cle]
     if (!e) { fautes.push(x.quoi); continue }
     exceptionsVues.add(cle)
-    const manquements = prouver(e.preuve)
+    const manquements = prouver(e.preuve, f)
     if (manquements.length) fautes.push(`exception ${cle} NON PROUVÉE sur ${enLigne?.nom ?? 'aucun commit'} : ${manquements.join(' ; ')}`)
   }
   ok(fautes.length === 0, `B. ${f} (${ordres[f] ?? '?'}) ne refuse rien de ce que le code en ligne écrit`, fautes.join(' · '))

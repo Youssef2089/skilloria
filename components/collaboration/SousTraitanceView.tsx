@@ -5,9 +5,19 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useDomain } from '@/context/DomainContext'
-import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
-import type { WorkZone } from '@/lib/work-zones'
-import { missingForPublish, type PublicationPublishableField } from '@/lib/publications/publishable'
+import ChampsAnnonce, { type ReferentielAnnonce } from '@/components/annonces/ChampsAnnonce'
+import { specialitesGardees } from '@/lib/criteres/specialites'
+import {
+  VALEURS_VIDES,
+  corpsDeRequete,
+  erreursDeSaisie,
+  libelleChampPubliable,
+  messageDeRefusCommun,
+  messagesDeSaisie,
+  type ChampAnnonce,
+  type ValeursAnnonce,
+} from '@/lib/annonces/formulaire'
+import { PUBLICATION_PUBLISHABLE_FIELDS, type PublicationPublishableField } from '@/lib/publications/publishable'
 
 /**
  * SousTraitanceView — FORMULAIRE de publication d'un BESOIN de sous-traitance
@@ -40,12 +50,16 @@ import { missingForPublish, type PublicationPublishableField } from '@/lib/publi
  * avant d'envoyer avec le MÊME prédicat que le serveur, réutilise son brouillon quand la
  * publication est refusée, et DIT chaque refus — dans les quatre langues, avec les mots de
  * l'annonce d'organisation quand c'est le même refus.
+ *
+ * ⚠️ ET IL N'AVAIT PAS LES MÊMES CHAMPS (lot « critères des annonces », 03/10/2026, §D.39) : ni spécialité, ni
+ * séniorité, ni mode de travail, ni durée. Décision de Youssef : « client et collaboration entre experts ont exactement
+ * les mêmes champs ». Il rend donc LE MÊME composant que l'annonce d'une organisation (components/annonces/
+ * ChampsAnnonce.tsx), sur le même état, validé et envoyé par les mêmes fonctions (lib/annonces/formulaire.ts) ; seul le
+ * type est imposé (`sous_traitance`). `diag-criteres-communs` (BLOQUANT) compare les écrans.
  */
 
 type Phase = 'loading' | 'ready' | 'org_error' | 'published' | 'pending' | 'wall' | 'locked'
 
-/** Le référentiel servi par /api/taxonomy : les branches et les zones, déjà traduites. */
-type Referentiel = { branches: Array<{ id: string; name: string }>; work_zones: WorkZone[] }
 
 /** Limites de l'offre effective (null = illimité). */
 type QuotaLimits = {
@@ -58,22 +72,18 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   // Les mots de l'annonce d'organisation pour les mêmes champs et les mêmes refus : un vocabulaire.
   const tPub = useTranslations('publications')
   const tCommerce = useTranslations('commerce')
+  const tCrit = useTranslations('criteres')
   const secureFetch = useSecureFetch()
   const locale = useLocale()
   const domain = useDomain()
 
   const [phase, setPhase] = useState<Phase>('loading')
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [skills, setSkills] = useState('')
-  const [budgetMin, setBudgetMin] = useState('')
-  const [budgetMax, setBudgetMax] = useState('')
-  const [branchId, setBranchId] = useState('')
-  const [workZoneIds, setWorkZoneIds] = useState<string[]>([])
-  const [referentiel, setReferentiel] = useState<Referentiel | null>(null)
+  // LES CHAMPS DE L'ANNONCE D'UNE ORGANISATION, à l'identique (§D.39) : un état, celui de lib/annonces/formulaire.ts.
+  const [valeurs, setValeurs] = useState<ValeursAnnonce>(VALEURS_VIDES)
+  const [referentiel, setReferentiel] = useState<ReferentielAnnonce | null>(null)
   const [referentielIllisible, setReferentielIllisible] = useState(false)
-  // Les champs qui manquent, nommés sous chacun d'eux (le même prédicat que /publish).
-  const [manquants, setManquants] = useState<PublicationPublishableField[]>([])
+  // Les erreurs nommées sous chacun des champs (le même prédicat que /publish, plus les bornes fines).
+  const [erreurs, setErreurs] = useState<Partial<Record<ChampAnnonce, string>>>({})
   // Le brouillon déjà créé : une publication refusée se REPREND sur lui, sans en créer un autre.
   const [brouillonId, setBrouillonId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -150,9 +160,9 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
           { cache: 'no-store' },
         )
         if (!res.ok) throw new Error(`taxonomy ${res.status}`)
-        const data = (await res.json()) as Referentiel
+        const data = (await res.json()) as Partial<ReferentielAnnonce>
         if (annule) return
-        setReferentiel({ branches: data.branches ?? [], work_zones: data.work_zones ?? [] })
+        setReferentiel({ branches: data.branches ?? [], specialities: data.specialities ?? [], work_zones: data.work_zones ?? [] })
         setReferentielIllisible(false)
       } catch {
         if (!annule) setReferentielIllisible(true)
@@ -160,6 +170,26 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     })()
     return () => { annule = true }
   }, [domain.id, locale])
+
+  // Au changement de branche, seules les spécialités hors branche partent (« Autre » survit) — comme l'annonce d'une
+  // organisation.
+  useEffect(() => {
+    if (!referentiel) return
+    setValeurs((p) => {
+      const gardees = specialitesGardees(p.speciality_ids, referentiel.specialities, p.branch_id)
+      return gardees.length === p.speciality_ids.length ? p : { ...p, speciality_ids: gardees }
+    })
+  }, [valeurs.branch_id, referentiel])
+
+  const changer = useCallback(<K extends keyof ValeursAnnonce>(k: K, v: ValeursAnnonce[K]) => {
+    setValeurs((p) => ({ ...p, [k]: v }))
+    setErreurs((e) => ({
+      ...e,
+      [k]: undefined,
+      ...(k === 'jours_sur_site' || k === 'jours_teletravail' || k === 'work_modes' ? { repartition_hybride: undefined } : null),
+      ...(k === 'duree_valeur' || k === 'duree_unite' ? { duree: undefined } : null),
+    }))
+  }, [])
 
   const canSubmit = !submitting && phase === 'ready' && referentiel !== null
 
@@ -182,26 +212,18 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   }, [limits, t])
 
   // ── CHAQUE REFUS SE DIT — jamais « la publication a échoué » quand le serveur a nommé la raison ──
-  const LIBELLE_CHAMP: Record<PublicationPublishableField, string> = {
-    title: tPub('form.field_title'),
-    description: tPub('form.field_description'),
-    branch_id: tPub('form.field_branch'),
-    work_zone_ids: tPub('form.field_work_zones'),
-  }
+  const estChampPubliable = (c: unknown): c is PublicationPublishableField =>
+    typeof c === 'string' && (PUBLICATION_PUBLISHABLE_FIELDS as readonly string[]).includes(c)
   const champsManquants = (liste: unknown): string | null => {
     if (!Array.isArray(liste) || liste.length === 0) return null
-    const noms = liste.map((c) => LIBELLE_CHAMP[c as PublicationPublishableField]).filter(Boolean)
+    const noms = liste.filter(estChampPubliable).map((c) => libelleChampPubliable(c, tPub, tCrit))
     return noms.length > 0 ? tPub('errors.missing_fields', { fields: noms.join(', ') }) : null
   }
   const messageDuRefus = (code: string | undefined, repli: string): string => {
+    // Les refus communs avec l'annonce d'une organisation (saisie, critères, statut) : les mêmes phrases.
+    const commun = messageDeRefusCommun(code, tPub, tCrit)
+    if (commun) return commun
     switch (code) {
-      case 'invalid_title': return tPub('errors.invalid_title')
-      case 'invalid_description': return tPub('errors.invalid_description')
-      case 'invalid_budget': return tPub('errors.invalid_budget')
-      case 'budget_inverted': return tPub('errors.budget_inverted')
-      case 'bad_work_zone': return tPub('form.field_errors.work_zone_ids')
-      case 'wrong_status': return tPub('errors.wrong_status')
-      case 'verification_failed': return tPub('errors.verification_failed')
       // PAYS ABSENT ≠ ÉCHEC D'ENREGISTREMENT : l'espace de collaboration reprend l'adresse du profil.
       case 'expert_country_missing': return t('errors.expert_country_missing')
       case 'profile_not_verified': return t('errors.profile_not_verified')
@@ -224,36 +246,18 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   async function publish() {
     if (!canSubmit) return
     setError(null)
-    // LE MÊME PRÉDICAT QUE LE SERVEUR (lib/publications/publishable.ts), avant d'envoyer : les champs qui
-    // manquent sont NOMMÉS sous chacun d'eux, et rien ne part.
-    const manque = missingForPublish({ title, description, branch_id: branchId || null, work_zone_ids: workZoneIds })
-    setManquants(manque)
-    if (manque.length > 0) {
-      setError(champsManquants(manque))
+    // LE MÊME PRÉDICAT QUE LE SERVEUR (lib/publications/publishable.ts) ET LES MÊMES BORNES que l'annonce d'une
+    // organisation (lib/annonces/formulaire.ts), avant d'envoyer : chaque champ fautif est NOMMÉ sous lui, rien ne part.
+    const fautes = erreursDeSaisie(valeurs, 'sous_traitance')
+    setErreurs(messagesDeSaisie(fautes, tPub, tCrit))
+    if (Object.keys(fautes).length > 0) {
+      setError(tCrit('erreurs.corriger_les_champs'))
       return
     }
-    const titre = title.trim()
-    const texte = description.trim()
-    if (titre.length < 5 || titre.length > 200) { setError(tPub('errors.invalid_title')); return }
-    if (texte.length < 20 || texte.length > 10_000) { setError(tPub('errors.invalid_description')); return }
     setSubmitting(true)
     try {
-      // Les zones partent en CODES stables, jamais en uuid : le serveur résout et refuse un code inconnu.
-      const workZoneCodes = workZoneIds
-        .map((id) => referentiel?.work_zones.find((z) => z.id === id)?.code)
-        .filter((c): c is string => !!c)
-      const champs = {
-        title: titre,
-        description: texte,
-        skills_required: skills
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
-        budget_min: budgetMin.trim() === '' ? null : Number(budgetMin.trim()),
-        budget_max: budgetMax.trim() === '' ? null : Number(budgetMax.trim()),
-        branch_id: branchId,
-        work_zone_codes: workZoneCodes,
-      }
+      // Le corps de l'annonce d'une organisation, à l'identique (les zones en CODES stables, jamais en uuid).
+      const champs = corpsDeRequete(valeurs, 'sous_traitance', (id) => referentiel?.work_zones.find((z) => z.id === id)?.code)
 
       // 1. Le brouillon (type sous_traitance ; domaine implicite = celui de l'expert). Déjà créé par un essai
       //    refusé : on le MET À JOUR, on n'en crée pas un second.
@@ -291,7 +295,11 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
         }
         // Un refus de publiabilité NOMME ses champs : on les dit, sous le formulaire et sous chacun d'eux.
         if (pub.code === 'missing_fields' && Array.isArray(pub.missing)) {
-          setManquants(pub.missing.filter((c): c is PublicationPublishableField => c in LIBELLE_CHAMP))
+          const nommes = pub.missing.filter(estChampPubliable)
+          setErreurs((e) => ({
+            ...e,
+            ...Object.fromEntries(nommes.map((c) => [c, tCrit('erreurs.champ_obligatoire')])),
+          }))
           setError(champsManquants(pub.missing) ?? t('errors.publish_failed'))
           return
         }
@@ -314,25 +322,6 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     borderRadius: 16,
     padding: 24,
     maxWidth: 640,
-  }
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    fontSize: 13,
-    fontWeight: 600,
-    color: 'var(--sk-muted)',
-    marginBottom: 6,
-  }
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 12px',
-    fontSize: 14,
-    border: '1px solid var(--sk-border)',
-    borderRadius: 10,
-    outline: 'none',
-    fontFamily: 'inherit',
-    boxSizing: 'border-box',
-    color: 'var(--sk-text)',
-    background: 'var(--sk-surface)',
   }
 
   const header = (
@@ -411,69 +400,17 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
       )}
 
       {phase === 'ready' && (
-        <div style={card}>
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="st_title" style={labelStyle}>{t('form.title_label')} *</label>
-            <input id="st_title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder={t('form.title_placeholder')} style={inputStyle} />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="st_desc" style={labelStyle}>{t('form.description_label')} *</label>
-            <textarea id="st_desc" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={10_000} rows={6} placeholder={t('form.description_placeholder')} style={{ ...inputStyle, resize: 'vertical' }} />
-            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '6px 0 0' }}>{t('form.description_hint')}</p>
-          </div>
-          {/* LA BRANCHE ET LES ZONES — exigées pour publier, comme pour l'annonce d'une organisation, avec
-              les mêmes composants. Sans elles, ce formulaire ne pouvait rien publier (lot zones de travail). */}
+        // PLEINE LARGEUR : les champs occupent la largeur de la page, comme l'annonce d'une organisation.
+        <div style={{ width: '100%' }}>
+          {/* Le référentiel illisible se DIT : sans branches, spécialités ni zones, rien ne pourrait se publier. */}
           {referentielIllisible ? (
             <div role="alert" style={{ padding: '10px 14px', background: 'var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
               {t('errors.taxonomie_indisponible')}
             </div>
           ) : null}
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="st_branch" style={labelStyle}>{tPub('form.field_branch')} *</label>
-            <select
-              id="st_branch"
-              value={branchId}
-              onChange={(e) => { setBranchId(e.target.value); setManquants((m) => m.filter((c) => c !== 'branch_id')) }}
-              disabled={!referentiel}
-              aria-invalid={manquants.includes('branch_id')}
-              style={{ ...inputStyle, ...(manquants.includes('branch_id') ? { border: '1.5px solid var(--sk-red)' } : null) }}
-            >
-              <option value="">{tPub('form.field_branch_placeholder')}</option>
-              {(referentiel?.branches ?? []).map((b) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
-              ))}
-            </select>
-            {manquants.includes('branch_id') ? (
-              <p style={{ fontSize: 12, color: 'var(--sk-red)', margin: '6px 0 0' }}>{tPub('form.field_errors.branch_id')}</p>
-            ) : null}
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <span style={labelStyle}>{tPub('form.field_work_zones')} *</span>
-            <p style={{ fontSize: 12, color: 'var(--sk-muted)', margin: '0 0 8px' }}>{tPub('form.field_work_zones_help')}</p>
-            <WorkZoneSelector
-              zones={referentiel?.work_zones ?? []}
-              selected={workZoneIds}
-              onChange={(next) => { setWorkZoneIds(next); setManquants((m) => m.filter((c) => c !== 'work_zone_ids')) }}
-              invalid={manquants.includes('work_zone_ids')}
-            />
-            {manquants.includes('work_zone_ids') ? (
-              <p style={{ fontSize: 12, color: 'var(--sk-red)', margin: '6px 0 0' }}>{tPub('form.field_errors.work_zone_ids')}</p>
-            ) : null}
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="st_skills" style={labelStyle}>{t('form.skills_label')}</label>
-            <input id="st_skills" value={skills} onChange={(e) => setSkills(e.target.value)} placeholder={t('form.skills_placeholder')} style={inputStyle} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
-            <div>
-              <label htmlFor="st_bmin" style={labelStyle}>{t('form.budget_min_label')}</label>
-              <input id="st_bmin" type="number" min={0} inputMode="numeric" value={budgetMin} onChange={(e) => setBudgetMin(e.target.value)} placeholder={t('form.budget_placeholder')} style={inputStyle} />
-            </div>
-            <div>
-              <label htmlFor="st_bmax" style={labelStyle}>{t('form.budget_max_label')}</label>
-              <input id="st_bmax" type="number" min={0} inputMode="numeric" value={budgetMax} onChange={(e) => setBudgetMax(e.target.value)} placeholder={t('form.budget_placeholder')} style={inputStyle} />
-            </div>
-          </div>
+
+          {/* LES CHAMPS DE L'ANNONCE D'UNE ORGANISATION, à l'identique (un composant, §D.39). */}
+          <ChampsAnnonce type="sous_traitance" valeurs={valeurs} changer={changer} erreurs={erreurs} referentiel={referentiel} />
 
           {error && (
             <div role="alert" style={{ padding: '10px 14px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 14 }}>

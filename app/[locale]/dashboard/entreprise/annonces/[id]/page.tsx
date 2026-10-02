@@ -5,6 +5,9 @@ import { useLocale, useTranslations } from 'next-intl'
 import { Link, useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
+import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
+import { estTypeAnnonce } from '@/lib/annonces/audience'
+import { libelleBudget, libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 
 /**
  * /dashboard/entreprise/annonces/[id] — fiche détail annonce (lecture seule).
@@ -12,7 +15,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * Lot refonte dashboard org : créée pour remplir le rôle « Voir l'annonce »
  * qui pointait à tort vers la page casting (cf. fix de la page candidatures
  * org). La fiche affiche titre, type, statut, description, critères
- * (compétences, séniorité, lieu, work_mode, durée, démarrage), budget.
+ * (compétences, séniorité, lieu, modes et temps de travail, durée avec son unité, démarrage), budget.
  *
  * Source : GET /api/publications/[id] (déjà existante, projette le détail
  * complet pour les membres de l'org propriétaire).
@@ -33,10 +36,8 @@ type PublicationDetail = {
   speciality_labels: string[] | null
   skills_required: string[] | null
   seniorities: string[] | null
-  work_mode: string | null
   location_note: string | null
   work_zone_labels: string[] | null
-  duration: string | null
   start_date: string | null
   budget_min: number | null
   budget_max: number | null
@@ -46,7 +47,7 @@ type PublicationDetail = {
   created_at: string
   updated_at: string
   published_at: string | null
-}
+} & CriteresAnnonceLus
 
 type State =
   | { kind: 'loading' }
@@ -60,6 +61,7 @@ const EDITABLE_STATUSES = ['draft', 'suspended', 'archived']
 export default function AnnonceDetailPage({ params }: Props) {
   const t = useTranslations('publications.detail_org')
   const tPub = useTranslations('publications')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
   const router = useRouter()
   const domain = useDomain()
@@ -129,18 +131,13 @@ export default function AnnonceDetailPage({ params }: Props) {
   const isEditable = EDITABLE_STATUSES.includes(pub.status)
   const isPublished = pub.status === 'published'
 
-  // Budget label (unité dérivée du type, cf. /api/publications)
-  const unitSuffix = pub.type === 'mission'
-    ? tPub('budget_unit.day')
-    : tPub('budget_unit.year')
-  const budgetText = (() => {
-    const { budget_min, budget_max } = pub
-    if (budget_min == null && budget_max == null) return null
-    if (budget_min != null && budget_max != null) return `${Math.round(budget_min)}-${Math.round(budget_max)}€${unitSuffix}`
-    if (budget_min != null) return `${Math.round(budget_min)}€${unitSuffix}`
-    if (budget_max != null) return `${Math.round(budget_max)}€${unitSuffix}`
-    return null
-  })()
+  // LE BUDGET ET LES CRITÈRES, PAR lib/annonces/mise-en-forme.ts (§D.39) : l'unité suit le TYPE d'annonce
+  // (`budgetUnitForAnnonce` — « mission → jour, sinon an » rangeait la sous-traitance parmi les salaires), la durée
+  // porte son unité, les modes de travail sont multiples.
+  const budgetText = estTypeAnnonce(pub.type) ? libelleBudget({ ...pub, type: pub.type }, tPub, locale) : null
+  const modesText = libellesModesTravail(pub, tCrit).join(', ')
+  const tempsText = libellesTempsTravail(pub, tCrit).join(', ')
+  const dureeText = pub.type === 'offre' ? null : libelleDuree(pub, tCrit)
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
@@ -262,11 +259,14 @@ export default function AnnonceDetailPage({ params }: Props) {
           {pub.location_note && (
             <Field label={tPub('form.field_location_note')} value={pub.location_note} />
           )}
-          {pub.work_mode && (
-            <Field label={t('field_work_mode')} value={tPub(`work_mode.${pub.work_mode}` as 'work_mode.remote')} />
+          {modesText && (
+            <Field label={t('field_work_mode')} value={modesText} />
           )}
-          {pub.duration && (
-            <Field label={t('field_duration')} value={pub.duration} />
+          {tempsText && (
+            <Field label={tCrit('champs.temps_travail')} value={tempsText} />
+          )}
+          {dureeText && (
+            <Field label={t('field_duration')} value={dureeText} />
           )}
           {pub.start_date && (
             <Field label={t('field_start_date')} value={new Date(pub.start_date).toLocaleDateString(locale)} />

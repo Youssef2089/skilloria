@@ -15,6 +15,9 @@ import CountrySelect from '@/components/CountrySelect'
 import CompactListItem from '@/components/CompactListItem'
 import CdiStatusToggle, { type CdiStatus } from '@/components/cdi/CdiStatusToggle'
 import MultiSelectChips from '@/components/ui/MultiSelectChips'
+import { ChoixModesTravail, ChoixTempsTravail } from '@/components/criteres/ChoixCriteres'
+import { SENIORITES, TEMPS_TRAVAIL, valeursConnues, type ModeTravail, type Seniorite, type TempsTravail } from '@/lib/criteres/communs'
+import { optionsSpecialites } from '@/lib/criteres/specialites'
 import WorkZoneSelector from '@/components/ui/WorkZoneSelector'
 import type { WorkZone } from '@/lib/work-zones'
 import {
@@ -61,8 +64,9 @@ const jakarta = Plus_Jakarta_Sans({
 const fontJakarta = 'var(--font-jakarta), system-ui, sans-serif'
 const fontInter = 'Inter, system-ui, sans-serif'
 
-type Seniority = 'junior' | 'confirmed' | 'senior' | 'expert'
-type WorkMode = 'remote' | 'onsite' | 'hybrid'
+// Les valeurs des critères communs viennent de lib/criteres/communs.ts — la liste de l'annonce et de la base (§D.39).
+type Seniority = Seniorite
+type WorkMode = ModeTravail
 type CefrLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2' | 'native'
 type ExperienceType = 'career' | 'project'
 
@@ -131,8 +135,6 @@ function ensureUid<T extends { _uid?: string }>(item: T): T {
   return item._uid ? item : { ...item, _uid: uid() }
 }
 
-const SENIORITY_VALUES: Seniority[] = ['junior', 'confirmed', 'senior', 'expert']
-const WORK_MODE_VALUES: WorkMode[] = ['remote', 'onsite', 'hybrid']
 const NOTICE_PERIOD_VALUES: NoticePeriod[] = ['immediate', '1_month', '2_months', '3_months', 'negotiable']
 const GEO_MOBILITY_VALUES: GeoMobility[] = ['local', 'regional', 'national', 'international']
 const CONTRACT_TYPE_VALUES: ContractType[] = ['cdi', 'cdd', 'alternance']
@@ -215,6 +217,7 @@ export default function CdiValiderProfilPage() {
   // Évite la duplication des 30+ libellés d'options.
   const tView = useTranslations('cdi_profile_view')
   const tWorkZones = useTranslations('work_zones')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
 
   const SENIORITY_LABELS: Record<Seniority, string> = {
@@ -361,6 +364,8 @@ export default function CdiValiderProfilPage() {
   const [cdiMotivations, setCdiMotivations] = useState('')
   const [cdiCareerGoals, setCdiCareerGoals] = useState('')
   const [workModes, setWorkModes] = useState<WorkMode[]>([])
+  // TEMPS PLEIN OU TEMPS PARTIEL (§D.39) — un champ à part, le vocabulaire de l'annonce ; parité freelance/CDI (§D.14).
+  const [tempsTravail, setTempsTravail] = useState<TempsTravail[]>([])
 
   // Erreur cohérence salaires (inline, dès que les deux sont renseignés)
   const salaryMinNum = cdiSalaryMin === '' ? null : Number(cdiSalaryMin)
@@ -509,7 +514,7 @@ export default function CdiValiderProfilPage() {
             'work_zone_ids',
             'languages', 'location', 'linkedin_url', 'cv_parsing_status', 'ai_consent_at',
             'visible', 'phone', 'address_line', 'postal_code', 'city',
-            'country', 'birth_year', 'photo_url', 'work_modes',
+            'country', 'birth_year', 'photo_url', 'work_modes', 'temps_travail',
             // 14 colonnes CDI (phase 4b)
             'cdi_status', 'cdi_notice_period', 'cdi_availability_date',
             'cdi_confidential_mode', 'cdi_salary_min', 'cdi_salary_max',
@@ -595,6 +600,7 @@ export default function CdiValiderProfilPage() {
       setCdiMotivations(p.cdi_motivations ?? '')
       setCdiCareerGoals(p.cdi_career_goals ?? '')
       setWorkModes(Array.isArray(p.work_modes) ? (p.work_modes as WorkMode[]) : [])
+      setTempsTravail(valeursConnues(TEMPS_TRAVAIL, p.temps_travail))
 
       const taxonomyPromise = fetch(
         `/api/taxonomy?locale=${encodeURIComponent(locale)}&domain_id=${encodeURIComponent(domainId)}&avec=langues`,
@@ -717,10 +723,6 @@ export default function CdiValiderProfilPage() {
   const specialitiesById = useMemo(
     () => new Map(specialities.map(s => [s.id, s])),
     [specialities],
-  )
-  const filteredSpecialities = useMemo(
-    () => (branchId ? specialities.filter(s => s.branch_id === branchId) : []),
-    [branchId, specialities],
   )
 
   const careerEntries = useMemo(
@@ -1027,6 +1029,7 @@ export default function CdiValiderProfilPage() {
       cdi_motivations: cdiMotivations.trim() || null,
       cdi_career_goals: cdiCareerGoals.trim() || null,
       work_modes: workModes,
+      temps_travail: tempsTravail,
       visible,
     }
 
@@ -1894,7 +1897,7 @@ export default function CdiValiderProfilPage() {
                   </label>
                   <MultiSelectChips
                     ariaLabel={tProfile('field_labels_short.seniorities')}
-                    options={SENIORITY_VALUES.map(v => ({ value: v, label: SENIORITY_LABELS[v] }))}
+                    options={SENIORITES.map(v => ({ value: v, label: SENIORITY_LABELS[v] }))}
                     selected={seniorities}
                     onChange={next => setSeniorities(next as Seniority[])}
                     invalid={isMissing('seniorities')}
@@ -1972,17 +1975,8 @@ export default function CdiValiderProfilPage() {
                 >
                   <MultiSelectChips
                     ariaLabel={tProfile('field_labels_short.speciality_ids')}
-                    options={[
-                      ...filteredSpecialities.map(sp => ({ value: sp.id, label: sp.name })),
-                      // D6 : spécialité hors référentiel, proposée seulement
-                      // quand une branche est choisie.
-                      ...(branchId
-                        ? [{
-                            value: SPECIALITY_OTHER,
-                            label: tProfile('sections.expertise.speciality_other_option'),
-                          }]
-                        : []),
-                    ]}
+                    // LES SPÉCIALITÉS DE LA BRANCHE, plus « Autre (préciser) » — la liste de l'annonce (§D.39).
+                    options={optionsSpecialites(specialities, branchId, tProfile('sections.expertise.speciality_other_option'))}
                     selected={specialityIds}
                     onChange={onSpecialitiesChange}
                     invalid={isMissing('speciality_ids')}
@@ -2445,13 +2439,17 @@ export default function CdiValiderProfilPage() {
                     · {tProfile('sections.preferences.work_modes_hint')}
                   </span>
                 </label>
-                <ChipMultiSelect
-                  values={workModes}
-                  options={WORK_MODE_VALUES}
-                  onToggle={v => setWorkModes(toggleArrayItem(workModes, v))}
-                  getLabel={v => tProfile(`sections.preferences.work_mode_${v}`)}
-                  primaryColor={'var(--sk-accent)'}
-                />
+                {/* LES MODES DE TRAVAIL — le composant et les valeurs de l'annonce (§D.39). */}
+                <ChoixModesTravail valeur={workModes} onChange={setWorkModes} />
+              </div>
+
+              {/* TEMPS PLEIN OU TEMPS PARTIEL — un champ à part, les valeurs de l'annonce (§D.39). Facultatif ; ne filtre pas. */}
+              <div style={{ marginTop: 14 }}>
+                <label id="sk-profil-temps" style={labelStyle}>
+                  {tCrit('champs.temps_travail')}{' '}
+                  <span style={{ color: 'var(--sk-muted)', fontWeight: 400 }}>· {tCrit('aides.temps_travail_profil')}</span>
+                </label>
+                <ChoixTempsTravail idGroupe="sk-profil-temps" valeur={tempsTravail} onChange={setTempsTravail} />
               </div>
             </div>
 

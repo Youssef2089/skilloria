@@ -13,6 +13,9 @@ import { deriveLifecycleByCandidature } from '@/lib/candidatures/lifecycle-batch
 import { emptyFacetCounts, facetForLifecycle } from '@/lib/candidatures/facets'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { loadReferentielLabels } from '@/lib/publication-synthesis'
+import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne, lireCriteresAnnonce, type CriteresAnnonceLus } from '@/lib/annonces/criteres'
+import { budgetUnitForAnnonce } from '@/lib/annonces/audience'
+import { SENIORITES, valeursConnues } from '@/lib/criteres/communs'
 import type {
   Annonce,
   AnnonceBudgetUnit,
@@ -49,10 +52,14 @@ type Body = {
   description?: unknown
   skills_required?: unknown
   seniorities?: unknown
-  work_mode?: unknown
+  work_modes?: unknown
+  jours_sur_site?: unknown
+  jours_teletravail?: unknown
+  temps_travail?: unknown
   location_note?: unknown
   work_zone_codes?: unknown
-  duration?: unknown
+  duree_valeur?: unknown
+  duree_unite?: unknown
   start_date?: unknown
   budget_min?: unknown
   budget_max?: unknown
@@ -71,10 +78,10 @@ type ValidatedInput = {
   description: string
   skills_required: string[]
   seniorities: string[]
-  work_mode: string | null
+  // Les critères nouveaux (lot « critères des annonces », §D.39) — lus par lib/annonces/criteres.ts, comme au PATCH.
+  criteres: Partial<CriteresAnnonceLus>
   location_note: string | null
   work_zone_codes: string[]
-  duration: string | null
   start_date: string | null
   budget_min: number | null
   budget_max: number | null
@@ -127,11 +134,9 @@ function asUuid(v: unknown): string | null {
  * la publication impossible sans dire pourquoi. La contrainte de base
  * (publications_seniorities_check) reste la barrière finale.
  */
-const SENIORITES = ['junior', 'confirmed', 'senior', 'expert'] as const
+// La liste vient de lib/criteres/communs.ts — la même que le profil de l'expert et que la contrainte de base (§D.39).
 function asSeniorities(v: unknown): string[] {
-  if (!Array.isArray(v)) return []
-  return [...new Set(v.filter((x): x is string =>
-    typeof x === 'string' && (SENIORITES as readonly string[]).includes(x)))]
+  return valeursConnues(SENIORITES, v)
 }
 
 function asUuidArray(v: unknown, maxItems: number): string[] {
@@ -165,6 +170,9 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
   if (!description || description.length < 20 || description.length > 10_000) {
     return { ok: false, error: 'invalid_description' }
   }
+  // Les critères nouveaux : modes de travail, répartition hybride, temps de travail, durée — un refus NOMMÉ chacun.
+  const lus = lireCriteresAnnonce(body as Record<string, unknown>, typeRaw)
+  if (!lus.ok) return { ok: false, error: lus.code }
   const budget_min = asNumber(body.budget_min)
   const budget_max = asNumber(body.budget_max)
   if (budget_min != null && budget_min < 0) return { ok: false, error: 'invalid_budget' }
@@ -180,20 +188,17 @@ function validate(body: Body): { ok: true; input: ValidatedInput } | { ok: false
       description,
       skills_required: asStringArray(body.skills_required, 50, 100),
       seniorities: asSeniorities(body.seniorities),
-      work_mode: asString(body.work_mode),
+      criteres: lus.criteres,
       location_note: asString(body.location_note),
       work_zone_codes: asStringArray(body.work_zone_codes, 250, 20),
-      duration: asString(body.duration),
       start_date: asIsoDate(body.start_date),
       budget_min,
       budget_max,
       branch_id: asUuid(body.branch_id),
       speciality_ids: asUuidArray(body.speciality_ids, 20),
-      // D6 : précision libre « Autre » (bornée 100). Ignorée si une spécialité
-      // du référentiel est fournie.
-      speciality_other: asUuidArray(body.speciality_ids, 20).length > 0
-        ? null
-        : (asString(body.speciality_other)?.slice(0, 100) ?? null),
+      // D6 : précision libre « Autre » (bornée 100) — gardée AVEC les spécialités du référentiel, comme le profil de
+      // l'expert et comme la modification (§D.39 : les mêmes valeurs ; elle était effacée ici, gardée au PATCH).
+      speciality_other: asString(body.speciality_other)?.slice(0, 100) ?? null,
       confidential: body.confidential === true,
     },
   }
@@ -315,9 +320,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       description: input.description,
       skills_required: input.skills_required,
       seniorities: input.seniorities,
-      work_mode: input.work_mode,
+      // `work_mode` et `duration` (texte) ne s'écrivent plus : remplacés par les critères (§D.39, dette §H).
+      ...input.criteres,
       location_note: input.location_note,
-      duration: input.duration,
       start_date: input.start_date,
       budget_min: input.budget_min,
       budget_max: input.budget_max,
@@ -431,11 +436,11 @@ function normalizeLocale(raw: string | null): Locale {
     : routing.defaultLocale
 }
 
+// L'UNITÉ DU BUDGET SUIT LE TYPE D'ANNONCE, PAR UNE SEULE RÈGLE (lot « critères des annonces », point 6) : la
+// convention locale « mission → jour, sinon an » rangeait le besoin de sous-traitance parmi les SALAIRES — sa carte
+// disait « 600–700€/an » au-dessus de son détail « /jour ». `budgetUnitForAnnonce` (lib/annonces/audience.ts) décide.
 function budgetUnitForType(t: AnnonceType): AnnonceBudgetUnit {
-  // V1 : pas de colonne budget_unit en BDD. Convention dérivée :
-  //   mission (freelance) → tarif par jour
-  //   offre (CDI)         → salaire annuel
-  return t === 'mission' ? 'day' : 'year'
+  return budgetUnitForAnnonce(t)
 }
 
 type PublicationRow = {
@@ -449,8 +454,6 @@ type PublicationRow = {
   budget_min: number | null
   budget_max: number | null
   location_note: string | null
-  work_mode: string | null
-  duration: string | null
   start_date: string | null
   seniorities: string[] | null
   confidential: boolean | null
@@ -508,11 +511,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     auth.supabaseAdmin
       .from('publications')
       .select(
-        // Lot synthèse parlante : étendu avec location, work_mode, duration,
+        // Lot synthèse parlante : étendu avec location, les critères (modes, temps, durée — §D.39),
         // start_date, seniority, confidential — consommé par
         // buildPublicationSynthesis pour la carte AnnonceCard.
         'id, type, title, status, branch_id, speciality_ids, budget_min, budget_max, ' +
-          'location_note, work_zone_ids, work_mode, duration, start_date, seniorities, confidential, ' +
+          `location_note, work_zone_ids, ${COLONNES_CRITERES_ANNONCE}, start_date, seniorities, confidential, ` +
           'verification_score, created_at, published_at, expires_at, ' +
           'branches(id, name)',
       )
@@ -695,8 +698,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       candidatures: comptesConnus ? (aggByPub.get(row.id) ?? makeEmptyCandidatures()) : null,
       // Lot synthèse parlante
       location_note: row.location_note,
-      work_mode: row.work_mode,
-      duration: row.duration,
+      ...criteresDeLaLigne(row as unknown as Record<string, unknown>),
       start_date: row.start_date,
       seniorities: row.seniorities ?? [],
       confidential: !!row.confidential,

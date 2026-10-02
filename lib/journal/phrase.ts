@@ -44,10 +44,13 @@ export type LignePhrase = {
  */
 export const DIMENSIONS = {
   type_annonce: ['mission', 'offre', 'sous_traitance'],
+  // `work_mode` et `duration` restent : les lignes écrites avant le 03/10/2026 les nomment. Les critères qui les
+  // remplacent (§D.39) suivent.
   champ_annonce: ['title', 'description', 'skills_required', 'seniorities', 'work_mode', 'location_note', 'duration',
-    'start_date', 'budget_min', 'budget_max', 'branch_id', 'speciality_ids', 'speciality_other', 'confidential', 'work_zone_ids'],
+    'start_date', 'budget_min', 'budget_max', 'branch_id', 'speciality_ids', 'speciality_other', 'confidential', 'work_zone_ids',
+    'work_modes', 'jours_sur_site', 'jours_teletravail', 'temps_travail', 'duree_valeur', 'duree_unite'],
   champ_profil: ['title', 'summary', 'seniorities', 'years_experience', 'skills', 'certifications', 'languages', 'location',
-    'work_modes', 'tjm_min', 'tjm_max', 'availability_date', 'linkedin_url', 'phone', 'address_line', 'postal_code', 'city',
+    'work_modes', 'temps_travail', 'tjm_min', 'tjm_max', 'availability_date', 'linkedin_url', 'phone', 'address_line', 'postal_code', 'city',
     'country', 'birth_year', 'photo_url', 'years_total_experience', 'availability_status', 'branch_id', 'speciality_ids',
     'speciality_other', 'work_zone_ids', 'cdi_status', 'cdi_notice_period', 'cdi_availability_date', 'cdi_confidential_mode',
     'cdi_salary_min', 'cdi_salary_max', 'cdi_variable_pct', 'cdi_benefits', 'cdi_company_size', 'cdi_sectors',

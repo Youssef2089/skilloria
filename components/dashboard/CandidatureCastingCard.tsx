@@ -1,6 +1,6 @@
 'use client'
 
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Link } from '@/i18n/navigation'
 import { IconTrophy, IconLockOpen, IconClock, IconX } from '@tabler/icons-react'
 import Avatar from '@/components/ui/Avatar'
@@ -12,6 +12,7 @@ import {
   useCandidatureLifecycleLabel,
 } from '@/lib/candidatures/use-lifecycle-label'
 import { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
+import { libelleDuree, libellesModesTravail } from '@/lib/annonces/mise-en-forme'
 import type { MissionCardData } from './MissionCard'
 
 /**
@@ -54,6 +55,8 @@ export default function CandidatureCastingCard({
   const tCard = useTranslations('missions.card')
   const tc = useTranslations('missions.casting')
   const tPub = useTranslations('publications')
+  const tCrit = useTranslations('criteres')
+  const locale = useLocale()
   // SITE DE RENDU 3/5 — le vocabulaire expert (« Mission remportée » / « Poste
   // décroché ») vit désormais dans candidature_lifecycle.expert, indexé par la
   // RAISON dérivée, plus par le statut brut sous dashboard_{freelance,cdi}.
@@ -74,19 +77,16 @@ export default function CandidatureCastingCard({
   const PillIcon = pillKind === 'won' ? IconTrophy : pillKind === 'open' ? IconLockOpen : pillKind === 'refused' ? IconX : IconClock
   const statusLabel = lifecycleLabel(lifecycle, pub.type)
 
-  const workModeLabel = (() => {
-    if (!pub.work_mode) return null
-    const key = pub.work_mode.toLowerCase()
-    try { return tPub(`form.work_mode_options.${key}` as 'form.work_mode_options.remote') }
-    catch { return pub.work_mode }
-  })()
+  // Les critères mis en mots par lib/annonces/mise-en-forme.ts (§D.39) : les modes (multiples), la durée AVEC son unité.
+  const workModeLabel = libellesModesTravail(pub, tCrit).join(' · ') || null
+  const dureeLabel = pub.type === 'offre' ? null : libelleDuree(pub, tCrit)
   const zoneLabel = pub.work_zone_labels.length > 0
     ? pub.work_zone_labels.join(' · ')
     : pub.location_note
-  const metaParts = [zoneLabel, workModeLabel].filter(Boolean) as string[]
+  const metaParts = [zoneLabel, workModeLabel, dureeLabel].filter(Boolean) as string[]
 
-  const budgetUnit = pub.type === 'offre' ? tPub('budget_unit.year') : tPub('budget_unit.day')
-  const budgetText = formatPublicationBudget(pub, budgetUnit)
+  // L'unité suit le TYPE d'annonce (budgetUnitForAnnonce, dans la mise en forme).
+  const budgetText = formatPublicationBudget(pub, tPub, locale)
 
   const visibleSkills = skills_required.slice(0, 3)
   const extraSkills = skills_required.length - visibleSkills.length

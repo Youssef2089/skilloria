@@ -61,7 +61,7 @@ export const CAUSES_DE_LISTE = [
 /** Les champs qu'un refus de la base peut nommer (clés sous `profil_refus.champs`). */
 export const CHAMPS_NOMMES = [
   'birth_year', 'years_total_experience', 'cdi_salary_min', 'cdi_salary_max', 'cdi_variable_pct',
-  'availability', 'work_modes', 'seniorities', 'visibilite',
+  'availability', 'work_modes', 'temps_travail', 'seniorities', 'visibilite',
 ] as const
 
 type Traducteur = (cle: string, valeurs?: Record<string, string | number>) => string

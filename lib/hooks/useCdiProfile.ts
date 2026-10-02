@@ -45,6 +45,8 @@ export type CdiProfile = {
   languages: string[] | null
   location: string | null
   work_modes: WorkMode[] | null
+  /** Temps plein / temps partiel (§D.39) — le vocabulaire de l'annonce. */
+  temps_travail: string[] | null
   linkedin_url: string | null
   visible: boolean | null
   /** Ouverture croisée : voir aussi les missions freelance matchées (opt-in, défaut false). */
@@ -149,6 +151,7 @@ const PROFILE_COLUMNS = [
   'languages',
   'location',
   'work_modes',
+  'temps_travail',
   'linkedin_url',
   'visible',
   'phone',

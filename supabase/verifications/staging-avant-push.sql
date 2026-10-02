@@ -37,13 +37,12 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- CE PUSH, LE LOT « ZONES DE TRAVAIL » (02/10/2026) : staging est à jour jusqu'à photo_par_le_serveur (lot B déployé).
-  -- Quatre migrations, toutes AVANT : zones_couverture_suit_le_referentiel (une fonction de recalcul, un déclencheur
-  -- sur work_zones, une reprise qui ne touche que les couvertures en retard), specialite_reactivation_hors_autre (un
-  -- déclencheur sur specialities) et zones_pays_rattaches (des LIGNES de work_zones et leurs traductions, pour les pays
-  -- sans continent — aucune sur staging : « 0 pays rattaché(s) »), puis specialite_ecriture_et_avis_une_fois (relecture :
-  -- une colonne nullable sur specialities, deux fonctions, un index unique partiel sur notifications limité au type
-  -- specialite_retiree, que le code en ligne n'écrit pas). AUCUNE ne supprime de signature.
+  -- CE PUSH, LE LOT « CRITÈRES DES ANNONCES » (03/10/2026, ARRÊT 27) : staging est à jour jusqu'à
+  -- specialite_ecriture_et_avis_une_fois (lot « zones de travail » déployé, e27fa56).
+  -- Une migration, AVANT : annonce_criteres_communs — six colonnes neuves sur publications et une sur profiles (nullables
+  -- ou à défaut vide), six contraintes qui ne gardent qu'elles, deux fonctions (lire_duree, reprendre_criteres_annonces)
+  -- et une reprise (work_mode → work_modes, duration lisible → duree_valeur + duree_unite). AUCUNE ne supprime de
+  -- signature. (Les migrations de S1, S2 et S3 s'ajoutent ici au regroupement.)
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
@@ -52,12 +51,14 @@ with
   -- Un déclencheur et des lignes reprises ne sont pas « créés » au sens de cette liste.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
-      ('fonction', 'recalculer_couverture_des_zones'),
-      ('fonction', 'work_zones_couverture'),
-      ('fonction', 'specialite_reactivee_hors_autre'),
-      ('fonction', 'modifier_specialite'),
-      ('fonction', 'prevenir_retrait_specialite'),
-      ('index', 'notifications_retrait_specialite_une_fois')
+      ('fonction', 'lire_duree'),
+      ('fonction', 'reprendre_criteres_annonces'),
+      ('contrainte', 'publications_work_modes_valid'),
+      ('contrainte', 'publications_temps_travail_valid'),
+      ('contrainte', 'publications_repartition_hybride_check'),
+      ('contrainte', 'publications_duree_check'),
+      ('contrainte', 'publications_offre_sans_duree'),
+      ('contrainte', 'profiles_temps_travail_valid')
     ) v(genre, nom)
   )
 
@@ -70,7 +71,7 @@ from (values
 
   -- ⓪ L'état pour lequel cette requête est écrite : la dernière migration appliquée, par son NOM (§G.3).
   (0, 'état : dernière migration appliquée sur staging (sinon la requête est périmée — la remettre à jour d''abord)',
-   'photo_par_le_serveur',
+   'specialite_ecriture_et_avis_une_fois',
    (select regexp_replace(coalesce(to_jsonb(m) ->> 'name', ''), '^[0-9]+_', '')
       from supabase_migrations.schema_migrations m order by m.version desc limit 1)),
 

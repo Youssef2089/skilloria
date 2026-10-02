@@ -157,7 +157,8 @@ function buildPrompt(input: PublicationQualityInput): string {
   const description = sanitize(input.description, 10_000)
   const skills = sanitizeArray(input.skills_required, 50, 80)
   const seniority = sanitize((input.seniorities ?? []).join(', '), 100) || '(non précisé)'
-  const workMode = sanitize(input.work_mode, 50) || '(non précisé)'
+  // 200 : les modes sont multiples, avec la répartition hybride et le temps de travail (lot « critères des annonces »).
+  const workMode = sanitize(input.work_mode, 200) || '(non précisé)'
   const location = sanitize(input.location_note, 200) || '(non précisé)'
   const duration = sanitize(input.duration, 100) || '(non précisé)'
   const budget = formatBudget(input.budget_min, input.budget_max, input.type)

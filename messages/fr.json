@@ -5512,7 +5512,13 @@
         "speciality_ids": "les spécialités",
         "speciality_other": "la spécialité proposée",
         "confidential": "la confidentialité",
-        "work_zone_ids": "les zones de travail"
+        "work_zone_ids": "les zones de travail",
+        "work_modes": "les modes de travail",
+        "jours_sur_site": "les jours sur site",
+        "jours_teletravail": "les jours en télétravail",
+        "temps_travail": "le temps de travail",
+        "duree_valeur": "la durée",
+        "duree_unite": "l’unité de la durée"
       },
       "champ_profil": {
         "title": "le titre",
@@ -5559,7 +5565,8 @@
         "educations": "les formations",
         "languages_structured": "les langues",
         "formations": "les formations",
-        "langues": "les langues"
+        "langues": "les langues",
+        "temps_travail": "le temps de travail"
       },
       "champ_dispo": {
         "availability_status": "disponibilité pour des missions",
@@ -6026,7 +6033,8 @@
       "availability": "Disponibilité",
       "work_modes": "Modes de travail",
       "seniorities": "Séniorités",
-      "visibilite": "Critères de publication"
+      "visibilite": "Critères de publication",
+      "temps_travail": "Temps de travail"
     },
     "champs_visibilite": {
       "title": "le titre",
@@ -6164,5 +6172,66 @@
     "titre": "La spécialité « {specialite} » n’est plus proposée",
     "corps": "Elle n’apparaît plus sur votre profil. Choisissez une autre spécialité dans votre profil pour décrire votre métier.",
     "corps_seule": "C’était votre seule spécialité : votre profil ne peut plus être publié tant que vous n’en avez pas choisi une autre. Choisissez-en une dans votre profil."
+  },
+  "criteres": {
+    "modes_travail": {
+      "remote": "Distanciel",
+      "onsite": "Sur site",
+      "hybrid": "Hybride"
+    },
+    "temps_travail": {
+      "plein": "Temps plein",
+      "partiel": "Temps partiel"
+    },
+    "unites_duree": {
+      "jours": "jours",
+      "semaines": "semaines",
+      "mois": "mois",
+      "annees": "années"
+    },
+    "duree": {
+      "jours": "{n, plural, one {# jour} other {# jours}}",
+      "semaines": "{n, plural, one {# semaine} other {# semaines}}",
+      "mois": "{n} mois",
+      "annees": "{n, plural, one {# an} other {# ans}}"
+    },
+    "jours": "{n, plural, one {# jour} other {# jours}}",
+    "repartition": "{sur_site} j sur site · {teletravail} j en télétravail",
+    "mode_hybride_reparti": "{mode} ({repartition})",
+    "choisir": "Choisir…",
+    "choisir_unite": "Unité…",
+    "sections": {
+      "criteres": "Qui vous cherchez",
+      "conditions": "Conditions"
+    },
+    "champs": {
+      "specialites": "Spécialités",
+      "temps_travail": "Temps de travail",
+      "repartition": "Répartition par semaine",
+      "jours_sur_site": "Jours sur site",
+      "jours_teletravail": "Jours en télétravail",
+      "duree_valeur": "Durée (nombre)",
+      "duree_unite": "Unité de durée"
+    },
+    "aides": {
+      "criteres": "Ces critères décident quels experts voient l’annonce. Ce sont ceux que les experts déclarent sur leur profil, avec les mêmes valeurs.",
+      "repartition": "Combien de jours par semaine sur site, et combien en télétravail (sept jours au plus en tout).",
+      "temps_travail_profil": "facultatif, ne sert pas à la mise en relation"
+    },
+    "erreurs": {
+      "speciality_ids": "Choisissez au moins une spécialité",
+      "precision_autre_manquante": "Précisez la spécialité « Autre »",
+      "repartition_hybride": "Précisez les jours sur site et les jours en télétravail",
+      "repartition_hybride_invalide": "Répartition impossible : au moins un jour sur site et un jour en télétravail, sept jours au plus en tout",
+      "duree_invalide": "Durée invalide : un nombre entier de 1 à 999 et une unité",
+      "duree_hors_offre": "Une offre CDI n’a pas de durée",
+      "date_invalide": "Date invalide",
+      "champ_obligatoire": "Ce champ est obligatoire",
+      "corriger_les_champs": "Corrigez les champs signalés pour continuer.",
+      "referentiel_indisponible": "Les branches, spécialités et zones de travail n’ont pas pu être chargées. Rechargez la page.",
+      "reseau": "La connexion au serveur a échoué. Vérifiez votre connexion et réessayez.",
+      "refus_inconnu": "Le serveur a refusé l’enregistrement (code : {code}).",
+      "reponse_sans_identifiant": "L’annonce a été envoyée, mais le serveur n’a pas rendu son identifiant. Rechargez la liste de vos annonces."
+    }
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
@@ -42,19 +42,8 @@ export type MissionCardData = {
   skills_required?: string[]
 }
 
-function formatBudget(min: number | null, max: number | null, type: string, locale: string): string {
-  if (min == null && max == null) return ''
-  const unitMap: Record<string, Record<string, string>> = {
-    fr: { mission: '/jour', offre: '/an' },
-    en: { mission: '/day', offre: '/year' },
-    es: { mission: '/día', offre: '/año' },
-    de: { mission: '/Tag', offre: '/Jahr' },
-  }
-  const unit = unitMap[locale]?.[type] ?? unitMap.fr[type] ?? ''
-  if (min != null && max != null) return `${Math.round(min)}-${Math.round(max)}€${unit}`
-  if (min != null) return `${Math.round(min)}€${unit}`
-  return `${Math.round(max!)}€${unit}`
-}
+// (Une table d'unités par type vivait ici, sans appelant — `void formatBudget` — et ne connaissait que « mission » et
+// « offre » : retirée au lot « critères des annonces » (§E.96). Le budget de la carte passe par la ligne de synthèse.)
 
 // Deux paliers, deux traitements. Plus d'échelle de couleurs : une échelle
 // suggère une graduation, donc un nombre, donc une comparaison.
@@ -73,11 +62,9 @@ export default function MissionCard({
   const t = useTranslations('missions.card')
   const tBadge = useTranslations('matching_badge')
   const tPub = useTranslations('publications')
-  const locale = useLocale()
   const relTime = useRelativeTime()
 
   const { publication: pub, org, relevance_tier, ai_reason, match_status, matched_at } = mission
-  void formatBudget
   void matched_at
   const orgName = pub.confidential ? t('confidential_org') : org?.name ?? t('confidential_org')
   // Lot bascule badges par item : "Nouveau" = match jamais ouvert par l'expert.

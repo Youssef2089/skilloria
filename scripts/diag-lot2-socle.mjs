@@ -238,13 +238,21 @@ eq(missingForVisibility(cdi, 'expert_freelance').join(','), 'availability',
   'freelance : cdi_status ne suffit PAS — la route exige le bon champ')
 
 console.log('\n— annonce')
-eq(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: ['z'] }).length, 0,
-  'annonce complète')
-eq(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: [] }).join(','), 'work_zone_ids',
-  'sans zone : refusée')
-eq(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: ['z'] })
-  .concat(missingForPublish({ title: 'T', description: 'D', branch_id: 'b', work_zone_ids: ['z'] })).length, 0,
-  'spécialités et séniorités NON exigées — un ensemble vide y signifie « aucune contrainte »')
+// LA SPÉCIALITÉ EST EXIGÉE DEPUIS LE 03/10/2026 (décision de Youssef, §D.39) — au moins une du référentiel, ou « Autre »
+// précisé ; la répartition, quand « Hybride » est coché. Les séniorités restent facultatives (vide = aucune contrainte).
+const ANNONCE = { title: 'T', description: 'D', branch_id: 'b', speciality_ids: ['s'], speciality_other: null,
+  work_zone_ids: ['z'], work_modes: [], jours_sur_site: null, jours_teletravail: null }
+eq(missingForPublish(ANNONCE).length, 0, 'annonce complète')
+eq(missingForPublish({ ...ANNONCE, work_zone_ids: [] }).join(','), 'work_zone_ids', 'sans zone : refusée')
+eq(missingForPublish({ ...ANNONCE, speciality_ids: [] }).join(','), 'speciality_ids', 'sans spécialité : refusée (§D.39)')
+eq(missingForPublish({ ...ANNONCE, speciality_ids: [], speciality_other: 'FinOps' }).length, 0,
+  '« Autre » précisé seul suffit — les valeurs de l’expert (§D.40)')
+eq(missingForPublish({ ...ANNONCE, work_modes: ['hybrid'] }).join(','), 'repartition_hybride',
+  '« Hybride » sans répartition : refusée')
+eq(missingForPublish({ ...ANNONCE, work_modes: ['hybrid'], jours_sur_site: 3, jours_teletravail: 2 }).length, 0,
+  '« Hybride » avec sa répartition : acceptée')
+eq(missingForPublish({ ...ANNONCE }).length, 0,
+  'séniorités NON exigées — un ensemble vide y signifie « aucune contrainte »')
 
 // ══════════════════════════════════════════════════════════════════════════
 section('D. PARITÉ AVEC LA CONTRAINTE BASE — la dérive qui a coûté un push')
@@ -451,7 +459,16 @@ section('H. LA CHAÎNE DE L ANNONCE — ce qui est saisi arrive en base')
 // Ce contrôle relie les trois maillons : ce que le FORMULAIRE envoie, ce que la
 // ROUTE lit, ce que l'INSERT écrit.
 
-const FORM_ANNONCE = read('components/dashboard/PublicationForm.tsx')
+// L'annonce d'une organisation rend les champs partagés avec le besoin de sous-traitance (lot « critères des annonces »,
+// §D.39) : le corps envoyé s'écrit dans lib/annonces/formulaire.ts (`corpsDeRequete`), les champs dans
+// components/annonces/ChampsAnnonce.tsx. Les trois maillons se lisent ENSEMBLE — le formulaire doit appeler le corps.
+const FORM_ECRAN = read('components/dashboard/PublicationForm.tsx')
+const FORM_CORPS = read('lib/annonces/formulaire.ts')
+const FORM_CHAMPS = read('components/annonces/ChampsAnnonce.tsx')
+ok(/corpsDeRequete\(state, type,/.test(FORM_ECRAN) && /<ChampsAnnonce\b/.test(FORM_ECRAN),
+  'le formulaire d’annonce envoie le corps partagé et rend les champs partagés')
+const FORM_ANNONCE = [FORM_ECRAN, FORM_CORPS, FORM_CHAMPS].join('\n')
+const CRITERES_ANNONCE = read('lib/annonces/criteres.ts')
 const POST_ANNONCE = read('app/api/publications/route.ts')
 const PATCH_ANNONCE = read('app/api/publications/[id]/route.ts')
 const PUBLISH_ANNONCE = read('app/api/publications/[id]/publish/route.ts')
@@ -463,6 +480,15 @@ for (const champ of ['speciality_ids', 'seniorities', 'work_zone_codes', 'locati
   ok(new RegExp(`'${champ}' in body|body\\.${champ}\\b`).test(PATCH_ANNONCE),
     `l édition lit « ${champ} »`)
 }
+
+console.log('\n— les critères nouveaux : envoyés, lus par la MÊME fonction aux deux routes')
+for (const champ of ['work_modes', 'jours_sur_site', 'jours_teletravail', 'temps_travail', 'duree_valeur', 'duree_unite']) {
+  ok(new RegExp(`\\b${champ}:`).test(FORM_CORPS), `le formulaire envoie « ${champ} »`)
+  ok(new RegExp(`present\\('${champ}'\\)`).test(CRITERES_ANNONCE), `lireCriteresAnnonce lit « ${champ} »`)
+}
+ok(/lireCriteresAnnonce\(body as Record<string, unknown>, typeRaw\)/.test(POST_ANNONCE)
+   && /lireCriteresAnnonce\(body as Record<string, unknown>, null\)/.test(PATCH_ANNONCE),
+  'la création et l’édition lisent les critères par la même fonction')
 
 console.log('\n— rien n est validé puis jeté')
 // Les colonnes que l'INSERT de création écrit réellement.
@@ -500,13 +526,13 @@ ok(/code: 'missing_fields', missing: manquants/.test(PUBLISH_ANNONCE),
     'la garde passe AVANT l appel au modèle',
     'refuser après avoir payé la vérification IA coûte pour rien')
 }
-ok(/messageChampsManquants\(payload\.missing\)/.test(FORM_ANNONCE),
+ok(/messageChampsManquants\(payload\.missing\)/.test(FORM_ECRAN),
   'le formulaire rend ce refus lisible plutôt que « une erreur est survenue »')
 
 console.log('\n— les zones décident, la note de localisation ne décide rien')
 ok(!/form\.field_location'/.test(FORM_ANNONCE),
   'l ancien champ « Localisation » ne se présente plus comme un critère')
-ok(/field_work_zones/.test(FORM_ANNONCE), 'le formulaire propose les zones de travail')
+ok(/field_work_zones/.test(FORM_CHAMPS) && /<WorkZoneSelector/.test(FORM_CHAMPS), 'le formulaire propose les zones de travail')
 for (const cle of ['errors.missing_fields', 'form.field_work_zones', 'form.field_location_note']) {
   const absentes = LOCALES.filter((l) => !lire(MSG[l], `publications.${cle}`))
   ok(absentes.length === 0, `publications.${cle} dans les 4 langues`, absentes.join(', ') || undefined)
@@ -534,6 +560,8 @@ section('I. AUCUN CHEMIN DE CLÉ AFFICHÉ À L UTILISATEUR')
 
 const SURFACES_DU_LOT = [
   'components/dashboard/PublicationForm.tsx',
+  'components/annonces/ChampsAnnonce.tsx',
+  'components/criteres/ChoixCriteres.tsx',
   'components/dashboard/MissionDetailView.tsx',
   'components/dashboard/CandidatureCard.tsx',
   'components/collaboration/SousTraitanceDetailView.tsx',

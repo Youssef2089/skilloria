@@ -5512,7 +5512,13 @@
         "speciality_ids": "the specialities",
         "speciality_other": "the suggested speciality",
         "confidential": "confidentiality",
-        "work_zone_ids": "the work areas"
+        "work_zone_ids": "the work areas",
+        "work_modes": "the work modes",
+        "jours_sur_site": "the days on site",
+        "jours_teletravail": "the days remote",
+        "temps_travail": "the working time",
+        "duree_valeur": "the duration",
+        "duree_unite": "the duration unit"
       },
       "champ_profil": {
         "title": "the title",
@@ -5559,7 +5565,8 @@
         "educations": "the education",
         "languages_structured": "the languages",
         "formations": "the education",
-        "langues": "the languages"
+        "langues": "the languages",
+        "temps_travail": "the working time"
       },
       "champ_dispo": {
         "availability_status": "availability for missions",
@@ -6026,7 +6033,8 @@
       "availability": "Availability",
       "work_modes": "Work modes",
       "seniorities": "Seniority levels",
-      "visibilite": "Publication criteria"
+      "visibilite": "Publication criteria",
+      "temps_travail": "Working time"
     },
     "champs_visibilite": {
       "title": "the title",
@@ -6164,5 +6172,66 @@
     "titre": "The speciality “{specialite}” is no longer offered",
     "corps": "It no longer appears on your profile. Choose another speciality in your profile to describe what you do.",
     "corps_seule": "It was your only speciality: your profile can no longer be published until you choose another one. Choose one in your profile."
+  },
+  "criteres": {
+    "modes_travail": {
+      "remote": "Remote",
+      "onsite": "On-site",
+      "hybrid": "Hybrid"
+    },
+    "temps_travail": {
+      "plein": "Full-time",
+      "partiel": "Part-time"
+    },
+    "unites_duree": {
+      "jours": "days",
+      "semaines": "weeks",
+      "mois": "months",
+      "annees": "years"
+    },
+    "duree": {
+      "jours": "{n, plural, one {# day} other {# days}}",
+      "semaines": "{n, plural, one {# week} other {# weeks}}",
+      "mois": "{n, plural, one {# month} other {# months}}",
+      "annees": "{n, plural, one {# year} other {# years}}"
+    },
+    "jours": "{n, plural, one {# day} other {# days}}",
+    "repartition": "{sur_site, plural, one {# day} other {# days}} on site · {teletravail, plural, one {# day} other {# days}} remote",
+    "mode_hybride_reparti": "{mode} ({repartition})",
+    "choisir": "Choose…",
+    "choisir_unite": "Unit…",
+    "sections": {
+      "criteres": "Who you are looking for",
+      "conditions": "Conditions"
+    },
+    "champs": {
+      "specialites": "Specialities",
+      "temps_travail": "Working time",
+      "repartition": "Split per week",
+      "jours_sur_site": "Days on site",
+      "jours_teletravail": "Days remote",
+      "duree_valeur": "Duration (number)",
+      "duree_unite": "Duration unit"
+    },
+    "aides": {
+      "criteres": "These criteria decide which experts see the posting. They are the ones experts declare on their profile, with the same values.",
+      "repartition": "How many days per week on site, and how many remote (seven days at most in total).",
+      "temps_travail_profil": "optional, not used for matching"
+    },
+    "erreurs": {
+      "speciality_ids": "Choose at least one speciality",
+      "precision_autre_manquante": "Specify the “Other” speciality",
+      "repartition_hybride": "Specify the days on site and the days remote",
+      "repartition_hybride_invalide": "Impossible split: at least one day on site and one day remote, seven days at most in total",
+      "duree_invalide": "Invalid duration: a whole number from 1 to 999 and a unit",
+      "duree_hors_offre": "A permanent job offer has no duration",
+      "date_invalide": "Invalid date",
+      "champ_obligatoire": "This field is required",
+      "corriger_les_champs": "Fix the highlighted fields to continue.",
+      "referentiel_indisponible": "Branches, specialities and work zones could not be loaded. Reload the page.",
+      "reseau": "The connection to the server failed. Check your connection and try again.",
+      "refus_inconnu": "The server refused to save (code: {code}).",
+      "reponse_sans_identifiant": "The posting was sent, but the server did not return its identifier. Reload your postings list."
+    }
   }
 }

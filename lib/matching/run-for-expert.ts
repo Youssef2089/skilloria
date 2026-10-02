@@ -10,6 +10,7 @@ import { rerankerTout, type DocumentANoter } from './rerank'
 import { reconcileMatches, type ReconcileDesired } from './reconcile'
 import { notifyAndFlip, pickRel, type NotifySpec } from './shared'
 import { JournalDeRecherche } from './journal-de-recherche'
+import { annonceRetenuePourExpert } from './recoupement'
 import type { VerdictExpert } from './types'
 import {
   COLONNES_COMPTE,
@@ -382,17 +383,11 @@ async function executerRunExpert(args: {
 
   // Les critères MULTIVALUÉS de l'annonce se recoupent en mémoire : ils vivent
   // sur la ligne annonce, pas sur la ligne profil, et PostgREST ne sait pas
-  // comparer deux colonnes tableau entre elles dans un filtre.
-  const specialitesExpert = new Set(p.speciality_ids ?? [])
-  const senioritesExpert = new Set(p.seniorities ?? [])
-  const recoupe = (exigees: string[] | null, possedees: Set<string>): boolean =>
-    (exigees ?? []).length === 0 || (exigees ?? []).some((x) => possedees.has(x))
-
+  // comparer deux colonnes tableau entre elles dans un filtre. Le prédicat vit
+  // dans lib/matching/recoupement.ts, EXÉCUTÉ par diag-specialites-recoupement
+  // (les spécialités filtrent dans les deux sens, §D.39).
   const retenues = annonces.filter(
-    (a) =>
-      !tranchees.has(a.id) &&
-      recoupe(a.speciality_ids, specialitesExpert) &&
-      recoupe(a.seniorities, senioritesExpert),
+    (a) => !tranchees.has(a.id) && annonceRetenuePourExpert(a, p),
   )
 
   const requete = buildExpertDocument({

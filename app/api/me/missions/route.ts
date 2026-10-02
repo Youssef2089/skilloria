@@ -160,8 +160,8 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   // ── Matches de l'expert + jointures, statut hors 'dismissed' ───────────
   //  Lot synthèse : on étend le select publications avec les champs requis
-  //  par buildPublicationSynthesis (location, work_mode, duration, start_date,
-  //  seniority). Branches/specialities passent par la même jointure pour
+  //  par buildPublicationSynthesis (location, critères — modes, temps, durée —,
+  //  start_date, seniority). Branches/specialities passent par la même jointure pour
   //  obtenir les labels traduits via tBDD.
   //
   //  Les FILTRES (non décliné, publication publiée, non expirée, org

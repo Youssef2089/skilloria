@@ -5512,7 +5512,13 @@
         "speciality_ids": "die Spezialisierungen",
         "speciality_other": "die vorgeschlagene Spezialisierung",
         "confidential": "die Vertraulichkeit",
-        "work_zone_ids": "die Arbeitsgebiete"
+        "work_zone_ids": "die Arbeitsgebiete",
+        "work_modes": "die Arbeitsformen",
+        "jours_sur_site": "die Tage vor Ort",
+        "jours_teletravail": "die Tage remote",
+        "temps_travail": "die Arbeitszeit",
+        "duree_valeur": "die Dauer",
+        "duree_unite": "die Einheit der Dauer"
       },
       "champ_profil": {
         "title": "der Titel",
@@ -5559,7 +5565,8 @@
         "educations": "die Ausbildungen",
         "languages_structured": "die Sprachen",
         "formations": "die Ausbildungen",
-        "langues": "die Sprachen"
+        "langues": "die Sprachen",
+        "temps_travail": "die Arbeitszeit"
       },
       "champ_dispo": {
         "availability_status": "Verfügbarkeit für Projekte",
@@ -6026,7 +6033,8 @@
       "availability": "Verfügbarkeit",
       "work_modes": "Arbeitsformen",
       "seniorities": "Senioritätsstufen",
-      "visibilite": "Veröffentlichungskriterien"
+      "visibilite": "Veröffentlichungskriterien",
+      "temps_travail": "Arbeitszeit"
     },
     "champs_visibilite": {
       "title": "der Titel",
@@ -6164,5 +6172,66 @@
     "titre": "Das Fachgebiet „{specialite}“ wird nicht mehr angeboten",
     "corps": "Es erscheint nicht mehr in Ihrem Profil. Wählen Sie in Ihrem Profil ein anderes Fachgebiet, um Ihre Tätigkeit zu beschreiben.",
     "corps_seule": "Es war Ihr einziges Fachgebiet: Ihr Profil kann erst wieder veröffentlicht werden, wenn Sie ein anderes gewählt haben. Wählen Sie eines in Ihrem Profil."
+  },
+  "criteres": {
+    "modes_travail": {
+      "remote": "Remote",
+      "onsite": "Vor Ort",
+      "hybrid": "Hybrid"
+    },
+    "temps_travail": {
+      "plein": "Vollzeit",
+      "partiel": "Teilzeit"
+    },
+    "unites_duree": {
+      "jours": "Tage",
+      "semaines": "Wochen",
+      "mois": "Monate",
+      "annees": "Jahre"
+    },
+    "duree": {
+      "jours": "{n, plural, one {# Tag} other {# Tage}}",
+      "semaines": "{n, plural, one {# Woche} other {# Wochen}}",
+      "mois": "{n, plural, one {# Monat} other {# Monate}}",
+      "annees": "{n, plural, one {# Jahr} other {# Jahre}}"
+    },
+    "jours": "{n, plural, one {# Tag} other {# Tage}}",
+    "repartition": "{sur_site, plural, one {# Tag} other {# Tage}} vor Ort · {teletravail, plural, one {# Tag} other {# Tage}} remote",
+    "mode_hybride_reparti": "{mode} ({repartition})",
+    "choisir": "Auswählen…",
+    "choisir_unite": "Einheit…",
+    "sections": {
+      "criteres": "Wen Sie suchen",
+      "conditions": "Bedingungen"
+    },
+    "champs": {
+      "specialites": "Spezialisierungen",
+      "temps_travail": "Arbeitszeit",
+      "repartition": "Aufteilung pro Woche",
+      "jours_sur_site": "Tage vor Ort",
+      "jours_teletravail": "Tage remote",
+      "duree_valeur": "Dauer (Zahl)",
+      "duree_unite": "Einheit der Dauer"
+    },
+    "aides": {
+      "criteres": "Diese Kriterien entscheiden, welche Expert:innen die Anzeige sehen. Es sind dieselben, die Expert:innen in ihrem Profil angeben, mit denselben Werten.",
+      "repartition": "Wie viele Tage pro Woche vor Ort und wie viele remote (insgesamt höchstens sieben Tage).",
+      "temps_travail_profil": "optional, wird für die Vermittlung nicht verwendet"
+    },
+    "erreurs": {
+      "speciality_ids": "Wählen Sie mindestens eine Spezialisierung",
+      "precision_autre_manquante": "Geben Sie die Spezialisierung „Sonstige“ an",
+      "repartition_hybride": "Geben Sie die Tage vor Ort und die Tage remote an",
+      "repartition_hybride_invalide": "Aufteilung nicht möglich: mindestens ein Tag vor Ort und ein Tag remote, insgesamt höchstens sieben Tage",
+      "duree_invalide": "Ungültige Dauer: eine ganze Zahl von 1 bis 999 und eine Einheit",
+      "duree_hors_offre": "Eine Festanstellung hat keine Dauer",
+      "date_invalide": "Ungültiges Datum",
+      "champ_obligatoire": "Dieses Feld ist erforderlich",
+      "corriger_les_champs": "Korrigieren Sie die markierten Felder, um fortzufahren.",
+      "referentiel_indisponible": "Bereiche, Spezialisierungen und Arbeitsgebiete konnten nicht geladen werden. Laden Sie die Seite neu.",
+      "reseau": "Die Verbindung zum Server ist fehlgeschlagen. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "refus_inconnu": "Der Server hat das Speichern abgelehnt (Code: {code}).",
+      "reponse_sans_identifiant": "Die Anzeige wurde gesendet, aber der Server hat ihre Kennung nicht zurückgegeben. Laden Sie Ihre Anzeigenliste neu."
+    }
   }
 }

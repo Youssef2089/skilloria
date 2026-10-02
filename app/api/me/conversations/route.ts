@@ -4,6 +4,7 @@ import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { loadTranslations } from '@/lib/translations'
 import { routing, type Locale } from '@/i18n/routing'
 import { buildPublicationSynthesis } from '@/lib/publication-synthesis'
+import { COLONNES_CRITERES_ANNONCE } from '@/lib/annonces/criteres'
 import { maskExpertNameForOrg, type ExpertAccountState } from '@/lib/expert-name-masking'
 import { disclosurePolicyForCandidatureLifecycle } from '@/lib/expert-disclosure'
 import { signAvatarUrl } from '@/lib/avatar'
@@ -210,7 +211,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   // (3) Charger les conversations + chaîne d'identité
   //  Lot synthèse parlante SC4 : publication enrichie avec
-  //  description/seniority/work_mode/expires_at + branches/specialities pour
+  //  description/seniority/critères (§D.39)/expires_at + branches/specialities pour
   //  les labels traduits — alimenter MessageContextPanel inline complet.
   //  Aucun champ PII ajouté (juste des méta publication publiques).
   const { data: convs, error: convErr } = await auth.supabaseAdmin
@@ -227,7 +228,8 @@ export async function GET(request: NextRequest): Promise<Response> {
         'candidatures!inner(id, status, profile_id, publication_id, unlocked_at, ' +
           'profiles!inner(id, user_id, photo_url, users!profiles_user_id_fkey(id, first_name, last_name, deletion_scheduled_at, anonymized_at)), ' +
           'publications!inner(id, type, title, description, budget_min, budget_max, ' +
-            'location_note, work_zone_ids, work_mode, duration, start_date, seniorities, skills_required, ' +
+            // Les critères (§D.39) : une liste de colonnes, celle de la synthèse.
+            `location_note, work_zone_ids, ${COLONNES_CRITERES_ANNONCE}, start_date, seniorities, skills_required, ` +
             'confidential, branch_id, speciality_ids, status, published_at, expires_at, organization_id, ' +
             // Plus d'embed specialities(...) : clé étrangère morte au passage
             // au multiple. Libellés résolus par lot après le chargement.

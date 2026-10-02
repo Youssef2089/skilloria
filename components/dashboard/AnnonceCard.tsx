@@ -5,6 +5,8 @@ import { useRelativeTime } from '@/lib/use-relative-time'
 import { Link } from '@/i18n/navigation'
 import type { Annonce, AnnonceStatus } from '@/types/annonce'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from './PublicationSynthesisLine'
+import { budgetUnitForAnnonce } from '@/lib/annonces/audience'
+import { libelleBudget } from '@/lib/annonces/mise-en-forme'
 
 /**
  * Carte d'annonce du dashboard organisation.
@@ -79,19 +81,6 @@ function IconUsers({ size = 14 }: { size?: number }) {
   )
 }
 
-function formatBudget(
-  min: number | null,
-  max: number | null,
-  unit: Annonce['budget_unit'],
-  unitSuffixes: { day: string; month: string; year: string; mission: string },
-): string {
-  if (min == null && max == null) return ''
-  const suffix = unitSuffixes[unit] ?? ''
-  if (min != null && max != null) return `${Math.round(min)}-${Math.round(max)}€${suffix}`
-  if (min != null) return `${Math.round(min)}€${suffix}`
-  if (max != null) return `${Math.round(max)}€${suffix}`
-  return ''
-}
 
 export default function AnnonceCard({ annonce, basePath, href }: Props) {
   const t = useTranslations('dashboard_entreprise')
@@ -103,13 +92,10 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
   const faded = (FADED_STATUSES as readonly string[]).includes(annonce.status)
   const actionable = (ACTIONABLE_STATUSES as readonly string[]).includes(annonce.status)
 
-  const unitSuffixes = {
-    day: tPub('budget_unit.day'),
-    month: tPub('budget_unit.month'),
-    year: tPub('budget_unit.year'),
-    mission: tPub('budget_unit.mission'),
-  }
-  const budgetText = formatBudget(annonce.budget_min, annonce.budget_max, annonce.budget_unit, unitSuffixes)
+  // LE BUDGET, PAR LA MÊME ÉCRITURE QUE SES CHIPS (lot « critères des annonces », point 6) : la carte d'un besoin de
+  // sous-traitance disait « 600–700€/an » au-dessus de « 600 €–700 € /jour ». L'unité suit le TYPE d'annonce
+  // (`budgetUnitForAnnonce`), la forme est celle de lib/annonces/mise-en-forme.ts.
+  const budgetText = libelleBudget(annonce, tPub, locale) ?? ''
 
   // Sous-titre : date relative selon le statut.
   // - 'published'      → date de publication
@@ -253,11 +239,16 @@ export default function AnnonceCard({ annonce, basePath, href }: Props) {
           title: annonce.title,
           budget_min: annonce.budget_min,
           budget_max: annonce.budget_max,
-          budget_unit: annonce.type === 'offre' ? 'year' : 'day',
+          budget_unit: budgetUnitForAnnonce(annonce.type),
           work_zone_labels: annonce.work_zone_labels,
           location_note: annonce.location_note,
-          work_mode: annonce.work_mode,
-          duration: annonce.duration,
+          // Les critères (§D.39) : modes, répartition, temps de travail, durée — mis en mots par la ligne de synthèse.
+          work_modes: annonce.work_modes,
+          jours_sur_site: annonce.jours_sur_site,
+          jours_teletravail: annonce.jours_teletravail,
+          temps_travail: annonce.temps_travail,
+          duree_valeur: annonce.duree_valeur,
+          duree_unite: annonce.duree_unite,
           start_date: annonce.start_date,
           seniorities: annonce.seniorities,
           branch_label: annonce.branch_label,

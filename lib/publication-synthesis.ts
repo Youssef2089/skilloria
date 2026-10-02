@@ -1,6 +1,8 @@
 import type { AnnonceType } from '@/types/annonce'
 import { tBDD, type TranslationsMap } from '@/lib/translations'
 import { libelleZoneServeur } from '@/lib/zones/libelle-serveur'
+import { budgetUnitForAnnonce } from '@/lib/annonces/audience'
+import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne, type CriteresAnnonceLus } from '@/lib/annonces/criteres'
 
 /**
  * SYNTHÈSE D'UNE ANNONCE — la ligne de contexte affichée sous chaque titre.
@@ -22,6 +24,12 @@ import { libelleZoneServeur } from '@/lib/zones/libelle-serveur'
  *     • `location_note` : une précision affichée (« Paris ou Lyon »). Elle ne
  *       filtre rien, et le formulaire le dit à qui la saisit.
  *
+ * LES CRITÈRES COMMUNS (lot « critères des annonces », 03/10/2026, §D.39)
+ *   `work_mode` (texte, un seul) et `duration` (texte libre, affiché « 6 » sans unité) ont laissé la place aux
+ *   critères de lib/annonces/criteres.ts : les modes de travail (multiples), la répartition hybride, le temps de
+ *   travail, la durée en nombre et unité. La synthèse les PORTE ; elle ne les met pas en mots — c'est
+ *   lib/annonces/mise-en-forme.ts qui le fait, pour toutes les surfaces (cartes, détail, suivi, administration).
+ *
  * RÉSOLUTION DES LIBELLÉS
  *   L'embed PostgREST `specialities(name)` reposait sur la clé étrangère
  *   `speciality_id`, supprimée par la migration. Les libellés multiples sont
@@ -36,22 +44,19 @@ export type PublicationSynthesis = {
   title: string
   budget_min: number | null
   budget_max: number | null
-  /** Dérivé du type : 'day' pour mission (TJM €/j), 'year' pour offre (€/an). */
+  /** Dérivé du TYPE par `budgetUnitForAnnonce` : 'year' pour une offre CDI, 'day' pour une mission ou un besoin de sous-traitance. */
   budget_unit: 'day' | 'year'
   /** Zones déclarées, déjà traduites. Ce sont ELLES qui filtrent. */
   work_zone_labels: string[]
   /** Précision d'affichage. NE FILTRE RIEN. */
   location_note: string | null
-  /** 'remote' | 'onsite' | 'hybrid' (ou autre valeur libre côté BDD). */
-  work_mode: string | null
-  duration: string | null
   /** ISO date (YYYY-MM-DD) ou null. */
   start_date: string | null
   seniorities: string[]
   branch_label: string | null
   speciality_labels: string[]
   confidential: boolean
-}
+} & CriteresAnnonceLus
 
 /** Forme attendue en entrée : une ligne `publications`, propriétés tolérées absentes. */
 type PublicationLike = {
@@ -61,8 +66,6 @@ type PublicationLike = {
   budget_min: number | null
   budget_max: number | null
   location_note?: string | null
-  work_mode?: string | null
-  duration?: string | null
   start_date?: string | null
   seniorities?: string[] | null
   confidential?: boolean | null
@@ -70,6 +73,13 @@ type PublicationLike = {
   branch_id?: string | null
   speciality_ids?: string[] | null
   work_zone_ids?: string[] | null
+  // Les critères (§D.39) : lus par `criteresDeLaLigne` ; une colonne absente se lit vide.
+  work_modes?: string[] | null
+  jours_sur_site?: number | null
+  jours_teletravail?: number | null
+  temps_travail?: string[] | null
+  duree_valeur?: number | null
+  duree_unite?: string | null
 }
 
 /** Libellés déjà traduits, résolus une fois par page par l'appelant. */
@@ -113,11 +123,10 @@ export function buildPublicationSynthesis(
     title: pub.title,
     budget_min: pub.budget_min,
     budget_max: pub.budget_max,
-    budget_unit: type === 'offre' ? 'year' : 'day',
+    budget_unit: budgetUnitForAnnonce(type),
     work_zone_labels: libelles(pub.work_zone_ids, labels.workZones),
     location_note: pub.location_note ?? null,
-    work_mode: pub.work_mode ?? null,
-    duration: pub.duration ?? null,
+    ...criteresDeLaLigne(pub as unknown as Record<string, unknown>),
     start_date: pub.start_date ?? null,
     seniorities: pub.seniorities ?? [],
     branch_label,
@@ -135,7 +144,7 @@ export function buildPublicationSynthesis(
  * le passage au multiple ; les libellés se résolvent par lot (cf. en-tête).
  */
 export const PUBLICATION_SYNTHESIS_SELECT =
-  'id, type, title, budget_min, budget_max, location_note, work_zone_ids, work_mode, duration, ' +
+  `id, type, title, budget_min, budget_max, location_note, work_zone_ids, ${COLONNES_CRITERES_ANNONCE}, ` +
   'start_date, seniorities, confidential, branch_id, speciality_ids'
 
 /**

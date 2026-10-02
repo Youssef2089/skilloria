@@ -125,7 +125,13 @@ section('1. « Autre » : une seule notion, jamais une ligne du référentiel')
   }
   for (const r of ['app', 'components', 'lib']) balayer(r)
   ok(copies.length === 0, 'la sentinelle « Autre » n’est écrite qu’une fois (lib/taxonomie/specialite-autre.ts)', copies.join(', '))
-  ok(SURFACES.every((p) => /from '@\/lib\/taxonomie\/specialite-autre'/.test(lire(p))), 'les quatre écrans l’importent')
+  // L'annonce d'une organisation rend le composant de champs partagé avec le besoin de sous-traitance (lot « critères des
+  // annonces », §D.39) : la sentinelle est importée par lui — ou par la fonction des options de spécialités.
+  const importeAutre = (src) => /from '@\/lib\/taxonomie\/specialite-autre'/.test(src)
+  const champsAnnonce = lire('components/annonces/ChampsAnnonce.tsx')
+  ok(SURFACES.every((p) => importeAutre(lire(p))
+      || (/<ChampsAnnonce\b/.test(lire(p)) && importeAutre(champsAnnonce))),
+    'les quatre écrans l’importent (l’annonce d’organisation, par le composant de champs qu’elle rend)')
   // La DÉFINITION, une seule, en base (premier temps) ; l'administration la DEMANDE avant d'écrire (point 11).
   ok(/create or replace function public\.est_specialite_autre\(p_nom text, p_slug text\)/.test(migration('specialite_autre_hors_referentiel')),
     'la définition de « Autre » (est_specialite_autre) est en base, dès le premier temps')

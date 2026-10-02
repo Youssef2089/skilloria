@@ -120,6 +120,12 @@ type PatchBody = Partial<{
   languages: string[] | null
   location: string | null
   work_modes: Array<'remote' | 'onsite' | 'hybrid'>
+  /**
+   * TEMPS PLEIN OU TEMPS PARTIEL (lot « critères des annonces », 03/10/2026, §D.39) — un champ à part, choix multiples,
+   * le vocabulaire de l'annonce (lib/criteres/communs.ts). Freelance ET CDI ; ne filtre pas la mise en relation. Une
+   * valeur hors liste est refusée par la base (`profiles_temps_travail_valid`) et rendue `champ_refuse`.
+   */
+  temps_travail: Array<'plein' | 'partiel'>
   tjm_min: number | null
   tjm_max: number | null
   availability_date: string | null
@@ -244,7 +250,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const directFields: Array<keyof PatchBody> = [
     'title', 'summary', 'seniorities', 'years_experience',
     'skills', 'certifications',
-    'languages', 'location', 'work_modes', 'tjm_min', 'tjm_max',
+    'languages', 'location', 'work_modes', 'temps_travail', 'tjm_min', 'tjm_max',
     'availability_date', 'linkedin_url', 'visible',
     'phone', 'address_line', 'postal_code', 'city', 'country',
     'birth_year', 'photo_url', 'years_total_experience', 'availability_status',
@@ -729,6 +735,7 @@ export async function PATCH(request: NextRequest): Promise<Response> {
         profiles_cdi_variable_pct_check: 'cdi_variable_pct',
         profiles_availability_status_check: 'availability',
         profiles_work_modes_valid: 'work_modes',
+        profiles_temps_travail_valid: 'temps_travail',
         profiles_seniorities_check: 'seniorities',
         profiles_visible_requiert_criteres_check: 'visibilite',
       }

@@ -8,6 +8,7 @@ import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import { useOrgRole } from '@/lib/use-org-role'
 import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
+import { budgetUnitForAnnonce, estTypeAnnonce } from '@/lib/annonces/audience'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
@@ -165,10 +166,13 @@ export default function SpotlightCandidateCard({
     return null
   })()
 
-  const unit = publicationType === 'mission'
+  // L'UNITÉ SUIT LE TYPE D'ANNONCE (lot « critères des annonces », point 6) : « mission → jour, sinon an » montrait le
+  // SALAIRE d'un candidat à un besoin de sous-traitance, qui est un tarif journalier. `budgetUnitForAnnonce` décide.
+  const parJour = !estTypeAnnonce(publicationType) || budgetUnitForAnnonce(publicationType) === 'day'
+  const unit = parJour
     ? tPub('budget_unit.day')
     : tPub('budget_unit.year')
-  const rate = publicationType === 'mission'
+  const rate = parJour
     ? rateText(
         (preview.tjm_min as number | null) ?? null,
         (preview.tjm_max as number | null) ?? null,

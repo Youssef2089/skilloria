@@ -256,6 +256,9 @@ vérifié qui ouvrait « Sous-traitance » par curiosité repartait avec une org
 (`organizations_personal_owner_unique_idx`) tranche les courses ; la migration
 `nettoyage_organisations_fantomes` a supprimé les fantômes — **après** le déploiement du code, sinon
 les écrans les auraient recréés dans la minute.
+**Le besoin a exactement les champs de l'annonce d'une organisation (03/10/2026, §D.39 d'architecture)** : spécialités
+(au moins une), séniorités, modes de travail, temps de travail, durée, date de début, précision de lieu, budget par jour,
+confidentialité — un même formulaire, une même validation ; seul le type (« sous-traitance ») est imposé.
 **Le besoin porte une branche et des zones de travail (02/10/2026, §D.37 d'architecture).** Avant, le formulaire n'en
 envoyait aucune, la publication les exige : **aucun besoin ne pouvait être publié**, et l'écran disait « la publication
 a échoué » (§E.93). Il porte désormais la branche et le même choix de zones que l'annonce d'une organisation, nomme ce
@@ -754,6 +757,18 @@ deux produits.
 >   dit aussi « compte illisible », « offre de collaboration indisponible » et « session expirée » ; dans l'administration
 >   des spécialités, une modification s'écrit tout ou rien et dit la cause d'un refus, et « Prévenir les experts » ne
 >   prévient que ceux qui ne l'ont pas encore été.
+
+> **Lot « critères des annonces » du 03/10/2026** (détail : architecture §D.39) :
+> · **Validation du profil (freelance et CDI)** — un champ « Temps de travail » (Temps plein, Temps partiel, l'un ou les
+>   deux), facultatif ; les modes de travail se cochent avec le même composant que l'annonce. « Mon profil » affiche le
+>   temps de travail.
+> · **L'annonce d'une organisation et le besoin de sous-traitance** ont les mêmes champs, sur toute la largeur : au moins
+>   une **spécialité** (les mêmes que l'expert, celles de la branche choisie, « Autre (préciser) » compris) ; les **modes de
+>   travail** se cochent (plusieurs possibles) et « Hybride » demande les **jours sur site et en télétravail** par semaine ;
+>   le **temps de travail** ; la **durée** en un nombre et une unité (jours, semaines, mois, années) — pas pour une offre
+>   CDI. Chaque refus se dit sous son champ.
+> · **Partout** (cartes, détail, suivi de candidature) : la durée s'affiche avec son unité (« 6 mois »), « Hybride (3 j sur
+>   site · 2 j en télétravail) », le temps de travail ; le budget d'un besoin de sous-traitance dit « /jour ».
 
 ### P2.3 — Organisation (client, cabinet, ESN — un seul dashboard)
 `client`, `cabinet` et `esn` partagent **`/dashboard/entreprise`**. `/dashboard/cabinet` est une

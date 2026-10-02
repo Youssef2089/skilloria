@@ -20,6 +20,8 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import { listeLue, lignesOuVide, type ListeDeProfil } from '@/lib/lecture/liste'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
 import SectionHeader from '@/components/dashboard/SectionHeader'
+import { TEMPS_TRAVAIL, valeursConnues } from '@/lib/criteres/communs'
+import { libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -99,6 +101,8 @@ type Profile = {
   branch_id: string | null
   speciality_ids: string[] | null
   work_modes: WorkMode[] | null
+  // Temps plein / temps partiel (§D.39) — affiché avec les modes de travail.
+  temps_travail: string[] | null
   tjm_min: number | null
   tjm_max: number | null
   availability_date: string | null
@@ -250,6 +254,7 @@ export default function MonProfilPage() {
   const [sectionsIndisponibles, setSectionsIndisponibles] = useState<ListeDeProfil[]>([])
 
   const t = useTranslations('profile_view')
+  const tCrit = useTranslations('criteres')
   const tRefus = useTranslations('profil_refus')
   // Le MÊME libellé que la pastille et que l'étape 3 (recette du 01/10/2026, point 5) :
   // `expert_verification.badge` disait l'état avec d'autres mots, sur la même page.
@@ -348,7 +353,7 @@ export default function MonProfilPage() {
       const { data: profileData, error: profileErr } = await supabase
         .from('profiles')
         .select(
-          'id, title, summary, seniorities, years_experience, years_total_experience, skills, certifications, branch_id, speciality_ids, work_modes, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at, verification_status, review_reason',
+          'id, title, summary, seniorities, years_experience, years_total_experience, skills, certifications, branch_id, speciality_ids, work_modes, temps_travail, tjm_min, tjm_max, availability_date, availability_status, linkedin_url, visible, city, country, photo_url, cv_file_path, cv_parsing_status, ai_consent_at, verification_status, review_reason',
         )
         .eq('user_id', session.user.id)
         .maybeSingle()
@@ -843,9 +848,11 @@ export default function MonProfilPage() {
   const skills = Array.isArray(profile.skills) ? profile.skills.filter(s => s?.trim()) : []
   const certifications = Array.isArray(profile.certifications) ? profile.certifications.filter(c => c?.name?.trim()) : []
   const workModes = Array.isArray(profile.work_modes) ? profile.work_modes : []
+  // TEMPS PLEIN OU TEMPS PARTIEL, mis en mots par lib/annonces/mise-en-forme.ts — les mots de l'annonce (§D.39).
+  const tempsTravail = libellesTempsTravail({ temps_travail: valeursConnues(TEMPS_TRAVAIL, profile.temps_travail) }, tCrit)
   const hasLinks = !!profile.linkedin_url?.trim()
   const hasTjm = profile.tjm_min != null && profile.tjm_max != null
-  const hasAvailability = !!profile.availability_date || !!profile.availability_status || workModes.length > 0
+  const hasAvailability = !!profile.availability_date || !!profile.availability_status || workModes.length > 0 || tempsTravail.length > 0
   const hasExpertise = !!branchName || !!specialityName || skills.length > 0
 
   // Bloc « refusé » : affiche le motif de refus (review_reason) + CTA de
@@ -1547,6 +1554,14 @@ export default function MonProfilPage() {
                         </span>
                       ))}
                     </div>
+                  </div>
+                )}
+                {tempsTravail.length > 0 && (
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--sk-faint)', textTransform: 'uppercase', letterSpacing: '.05em', fontWeight: 600, marginBottom: 6 }}>
+                      {tCrit('champs.temps_travail')}
+                    </div>
+                    <div style={{ fontSize: 14, color: 'var(--sk-text)' }}>{tempsTravail.join(' · ')}</div>
                   </div>
                 )}
                 {profile.availability_date && (

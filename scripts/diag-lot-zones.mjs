@@ -11,7 +11,11 @@
  *   6. la spécialité désactivée prévient l'expert, dans sa langue, avec la variante « seule spécialité » (EXÉCUTÉ) ;
  *      réactivée, elle ne revient pas sous « Autre » (demandé avant d'écrire ; tenu en base) ;
  *   7. `langues_noms` est lue EN ENTIER — la pagination EXÉCUTÉE sur 2 500 noms, avec une API qui coupe à 1 000 ;
- *   9. l'annonce de sous-traitance porte la branche et les zones, et dit chaque refus.
+ *   9. l'annonce de sous-traitance porte la branche et les zones, et dit chaque refus. Depuis le lot « critères des
+ *      annonces » (03/10/2026, §D.39), elle rend LE MÊME composant que l'annonce d'une organisation
+ *      (components/annonces/ChampsAnnonce.tsx) et partage sa validation et son corps (lib/annonces/formulaire.ts) : la
+ *      propriété est la même, son ancrage a suivi. Les codes qui vont au repli portent CHACUN leur raison (§G.8) — la
+ *      garde d'identité n'est plus écartée en bloc (relecteur, 02/10/2026).
  * (5 : diag-zones-recoupement ; 8 : diag-deux-temps.)
  *
  * CE QU'IL NE VOIT PAS : un navigateur (le toucher, le clavier se lisent dans le code) ; la base (les deux migrations
@@ -186,7 +190,12 @@ section('3. Toutes les surfaces, le même composant ; l’affichage dit le conti
 {
   const SURFACES = ['app/[locale]/dashboard/freelance/profil/valider/page.tsx', 'app/[locale]/dashboard/cdi/profil/valider/page.tsx',
     'components/dashboard/PublicationForm.tsx', 'components/collaboration/SousTraitanceView.tsx']
-  const sans = SURFACES.filter((p) => !/import WorkZoneSelector from '@\/components\/ui\/WorkZoneSelector'/.test(lire(p)) || !/<WorkZoneSelector/.test(lire(p)))
+  // Le sélecteur, rendu par la surface — ou par le composant des champs d'annonce qu'elle rend (lot « critères des
+  // annonces », §D.39 : l'annonce d'organisation et le besoin de sous-traitance rendent components/annonces/ChampsAnnonce.tsx).
+  const rendLeSelecteur = (src) => /import WorkZoneSelector from '@\/components\/ui\/WorkZoneSelector'/.test(src) && /<WorkZoneSelector/.test(src)
+  const champsAnnonce = lire('components/annonces/ChampsAnnonce.tsx')
+  const sans = SURFACES.filter((p) => !rendLeSelecteur(lire(p))
+    && !(/import ChampsAnnonce\b[^\n]*from '@\/components\/annonces\/ChampsAnnonce'/.test(lire(p)) && /<ChampsAnnonce\b/.test(lire(p)) && rendLeSelecteur(champsAnnonce)))
   ok(sans.length === 0, 'validation (freelance, CDI), annonce d’organisation, sous-traitance : le MÊME WorkZoneSelector', sans.join(', '))
   const synth = sansCommentaires(lire('lib/publication-synthesis.ts'))
   ok(/from\('work_zones'\)\.select\('id, name, kind'\)/.test(synth) && /libelleZoneServeur\(\{ kind: z\.kind, name: tBDD\(translations, 'work_zones'/.test(synth),
@@ -338,16 +347,24 @@ section('9. L’annonce de sous-traitance porte la branche et les zones, et dit 
 // ══════════════════════════════════════════════════════════════════════════
 {
   const st = sansCommentaires(lire('components/collaboration/SousTraitanceView.tsx'))
-  ok(/branch_id: branchId,\s*work_zone_codes: workZoneCodes,/.test(st) && /<select\s+id="st_branch"/.test(st),
-    'le formulaire envoie la BRANCHE et les ZONES (en codes), avec la liste de branches de l’annonce d’organisation')
-  ok(/missingForPublish\(\{ title, description, branch_id: branchId \|\| null, work_zone_ids: workZoneIds \}\)/.test(st),
-    'avant d’envoyer : le MÊME prédicat que /publish, les champs manquants nommés')
+  const formulaire = sansCommentaires(lire('lib/annonces/formulaire.ts'))
+  const champs = sansCommentaires(lire('components/annonces/ChampsAnnonce.tsx'))
+  ok(/<ChampsAnnonce type="sous_traitance" valeurs=\{valeurs\}/.test(st)
+     && /corpsDeRequete\(valeurs, 'sous_traitance', \(id\) => referentiel\?\.work_zones\.find\(\(z\) => z\.id === id\)\?\.code\)/.test(st)
+     && /branch_id: v\.branch_id \|\| null,/.test(formulaire) && /work_zone_codes: v\.work_zone_ids\.map\(codeDeZone\)/.test(formulaire)
+     && /<select\s+id="sk-annonce-branche"/.test(champs) && /<WorkZoneSelector/.test(champs),
+    'le formulaire envoie la BRANCHE et les ZONES (en codes), par le composant et le corps de l’annonce d’organisation')
+  ok(/const fautes = erreursDeSaisie\(valeurs, 'sous_traitance'\)/.test(st) && /return missingForPublish\(\{/.test(formulaire)
+     && /for \(const champ of manquantsPourPublier\(v\)\)/.test(formulaire),
+    'avant d’envoyer : le MÊME prédicat que /publish (missingForPublish, par erreursDeSaisie), les champs manquants nommés')
   ok(/pub\.code === 'missing_fields' && Array\.isArray\(pub\.missing\)/.test(st) && /messageDuRefus\(pub\.code, t\('errors\.publish_failed'\)\)/.test(st),
     'un refus de /publish se DIT : les champs nommés, chaque code connu traduit — « la publication a échoué » n’est que le dernier recours')
   // LES CODES SONT DÉRIVÉS des routes que le formulaire appelle (§E.61 : une liste tenue à la main ne protège que ce
   // qu'on a pensé à lui donner — la relecture du 02/10/2026 en a trouvé deux oubliés : compte illisible, offre absente).
   const SOURCES = ['app/api/publications/route.ts', 'app/api/publications/[id]/route.ts', 'app/api/publications/[id]/publish/route.ts',
-    'lib/collaboration/ensure-personal-org.ts', 'lib/expert-verified-guard.ts', 'lib/durees.ts', 'lib/auth-guard.ts']
+    'lib/collaboration/ensure-personal-org.ts', 'lib/expert-verified-guard.ts', 'lib/durees.ts', 'lib/auth-guard.ts',
+    // Les refus des critères (lot « critères des annonces ») : rendus par les deux routes, écrits ici.
+    'lib/annonces/criteres.ts']
   const derives = new Set(SOURCES.flatMap((f) => [...sansCommentaires(lire(f)).matchAll(/(?:code|error):\s*'([a-z][a-z_]+)'|_CODE = '([a-z_]+)'/g)].map((m) => m[1] ?? m[2])))
   // Ceux qui ne passent PAS par messageDuRefus, chacun avec sa raison (§G.8).
   const AILLEURS = {
@@ -367,16 +384,24 @@ section('9. L’annonce de sous-traitance porte la branche et les zones, et dit 
     organization_lookup_failed: 'LÉGITIME — une lecture en panne (503) : de notre côté, le repli le dit',
     insufficient_role: 'LÉGITIME — l’expert est administrateur de SON organisation personnelle (ensurePersonalOrg l’y inscrit admin)',
     org_not_approved: 'LÉGITIME — levé par requireOrgApproved, qu’aucune des trois routes n’appelle',
+    // ── LA GARDE D'IDENTITÉ (lib/auth-guard.ts) — chaque code nommé, avec SA raison (relecteur, 02/10/2026 : elle était
+    //    écartée en bloc par une expression, et un code nouveau de la garde y serait entré sans que personne le lise).
+    session_superseded: 'LÉGITIME — intercepté par useSecureFetch : l’onglet se déconnecte et la page de connexion dit « session remplacée »',
+    account_suspended: 'LÉGITIME — intercepté par useSecureFetch : redirection vers la connexion, qui dit « compte suspendu »',
+    account_deletion_scheduled: 'LÉGITIME — intercepté par useSecureFetch : redirection vers la réactivation du compte',
+    account_anonymized: 'LÉGITIME — la purge RGPD bannit le login (users.anonymized_at) : seul un jeton encore en vol l’atteint, et aucune saisie ne le corrige',
+    ecosysteme_non_configure: 'LÉGITIME — le serveur est mal configuré (racine d’adresse absente, 500) : le repli « de notre côté » est exact',
   }
-  const nonDits = [...derives].filter((c) => !(c in AILLEURS) && !new RegExp(`case '${c}':`).test(st))
-    .filter((c) => !/^(invalid_id|no_changes|unauthorized|session_|compte_different|domain_mismatch|account_|deletion_|email_not|ecosysteme_|auth_)/.test(c) || ['compte_verification_indisponible'].includes(c))
+  // Un code est « dit » par le formulaire, ou par les refus COMMUNS avec l'annonce d'une organisation (lib/annonces/formulaire.ts).
+  const nonDits = [...derives].filter((c) => !(c in AILLEURS) && !new RegExp(`case '${c}':`).test(st) && !new RegExp(`case '${c}':`).test(formulaire))
   ok(derives.size > 15 && nonDits.length === 0,
     `les ${derives.size} codes que la création et la publication peuvent rendre ont chacun leur phrase, ou leur raison d’aller au repli`, nonDits.join(', '))
   ok(/case 'compte_verification_indisponible': return t\('errors\.compte_illisible'\)/.test(st) && /case 'package_missing': return t\('errors\.offre_indisponible'\)/.test(st),
     'relecture du 02/10/2026 : le compte illisible et l’offre absente disent chacun leur vérité')
   ok(LANGUES.every((l) => !/champs|fields|campos|Felder/i.test(MSG[l].collaboration.errors.create_failed)),
     'le repli de la création ne dit plus « vérifiez les champs » (chaque champ fautif est nommé par son propre code)')
-  const cles = [...clesCitees(st, 't', 'collaboration'), ...clesCitees(st, 'tPub', 'publications')].filter((c) => !dans4(c))
+  const cles = [...clesCitees(st, 't', 'collaboration'), ...clesCitees(st, 'tPub', 'publications'), ...clesCitees(st, 'tCrit', 'criteres'),
+    ...clesCitees(formulaire, 'tPub', 'publications'), ...clesCitees(formulaire, 'tCrit', 'criteres')].filter((c) => !dans4(c))
   ok(cles.length === 0, 'chaque texte du formulaire existe dans les quatre langues', cles.join(', '))
   ok(/let id = brouillonId/.test(st) && /method: 'PATCH'/.test(st) && /setBrouillonId\(id\)/.test(st),
     'une publication refusée se reprend sur le MÊME brouillon (plus un brouillon par essai)')
