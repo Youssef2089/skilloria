@@ -4064,14 +4064,17 @@
     },
     "errors": {
       "org_unavailable": "Ihr Kollaborationsbereich konnte nicht vorbereitet werden. Bitte versuchen Sie es gleich erneut.",
-      "create_failed": "Der Bedarf konnte nicht gespeichert werden. Prüfen Sie die Felder und versuchen Sie es erneut.",
+      "create_failed": "Das Speichern des Bedarfs ist auf unserer Seite nicht durchgegangen. Versuchen Sie es gleich noch einmal.",
       "publish_failed": "Die Veröffentlichung ist auf unserer Seite nicht durchgegangen. Ihr Bedarf ist als Entwurf gespeichert: Versuchen Sie es gleich noch einmal.",
       "profile_check_failed": "Wir konnten den Status Ihres Profils nicht prüfen. Das ist keine Ablehnung der Verifizierung: Es wurde nichts veröffentlicht. Bitte versuchen Sie es in Kürze erneut; wenn das Problem bestehen bleibt, wenden Sie sich an den Support.",
       "publish_check_failed": "Wir konnten die Anzahl aktiver Anzeigen Ihres Tarifs nicht prüfen. Es wurde nichts veröffentlicht. Versuchen Sie es in Kürze erneut; besteht das Problem weiterhin, wenden Sie sich an den Support.",
       "expert_country_missing": "Ihr Kollaborationsbereich übernimmt die Adresse aus Ihrem Profil, und dort fehlt das Land. Ergänzen Sie es in Ihrem Profil und veröffentlichen Sie erneut: Es ist nichts verloren gegangen.",
       "profile_not_verified": "Ihr Profil muss freigegeben sein, bevor Sie einen Unterauftragsbedarf veröffentlichen können. Es wurde nichts veröffentlicht.",
       "durees_illisibles": "Die Veröffentlichung ist vorübergehend nicht möglich. Es wurde nichts veröffentlicht: Versuchen Sie es gleich noch einmal.",
-      "taxonomie_indisponible": "Die Liste der Bereiche und Gebiete konnte nicht geladen werden. Laden Sie die Seite neu."
+      "taxonomie_indisponible": "Die Liste der Bereiche und Gebiete konnte nicht geladen werden. Laden Sie die Seite neu.",
+      "compte_illisible": "Wir konnten Ihr Konto nicht lesen. Das ist keine Ablehnung: Es wurde nichts gespeichert. Versuchen Sie es gleich noch einmal.",
+      "offre_indisponible": "Das Kollaborationsangebot ist auf der Plattform noch nicht verfügbar: Es wurde nichts gespeichert. Wenden Sie sich an den Support.",
+      "session_expiree": "Ihre Sitzung ist abgelaufen: Melden Sie sich erneut an und veröffentlichen Sie dann noch einmal. Es wurde nichts veröffentlicht."
     },
     "list": {
       "title": "Meine Unterauftrags-Bedarfe",
@@ -4244,7 +4247,11 @@
     "usage_unavailable_warning": "Wir konnten nicht lesen, was dieser Zweig noch enthält. Das heißt nicht „nichts“: wir wissen es nicht. Laden Sie die Seite neu, bevor Sie entscheiden.",
     "err_usage_unavailable": "Löschen abgelehnt: Wir konnten nicht prüfen, was dieser Zweig noch enthält. Es wurde nichts gelöscht. Bitte versuchen Sie es gleich erneut.",
     "err_specialite_autre_reservee": "„Andere“ ist keine Spezialisierung der Referenzliste: Es ist die Option „Andere (bitte angeben)“, die Experten und Anzeigen angeboten wird. Wählen Sie einen anderen Namen.",
-    "err_experts_non_prevenus": "Das Fachgebiet ist deaktiviert, aber die Experten, die es gewählt hatten, konnten nicht benachrichtigt werden. Aktivieren Sie es wieder und deaktivieren Sie es erneut, um sie zu benachrichtigen."
+    "err_experts_non_prevenus": "Das Fachgebiet ist deaktiviert, aber nicht alle Experten, die es gewählt hatten, konnten benachrichtigt werden. Klicken Sie auf „Experten benachrichtigen“: Nur noch nicht Benachrichtigte werden informiert.",
+    "err_journal_non_ecrit": "Die Änderung ist gespeichert, aber ihr Protokolleintrag konnte nicht geschrieben werden. An dem Fachgebiet ist nichts erneut zu tun.",
+    "err_journal_et_experts": "Das Fachgebiet ist deaktiviert, aber weder der Protokolleintrag noch die Benachrichtigung der Experten konnten geschrieben werden. Klicken Sie auf „Experten benachrichtigen“: Nur noch nicht Benachrichtigte werden informiert.",
+    "action_prevenir_experts": "Experten benachrichtigen",
+    "err_ecriture_refusee": "Die Datenbank hat die Änderung abgelehnt („{cause}“): Es wurde nichts gespeichert, weder das Fachgebiet noch seine Übersetzungen."
   },
   "candidature_lifecycle": {
     "filters": {

@@ -306,9 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **186** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
-02/10/2026 sur le lot « zones de travail » — ses trois migrations n'ajoutent aucune insertion analysable : le rattachement des
-pays vit dans un bloc `do` ; sur 183, le 01/10/2026 sur le lot B — ses
+Sur les **187** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
+02/10/2026 sur le lot « zones de travail », relecture comprise — ses quatre migrations n'ajoutent aucune insertion analysable : le
+rattachement des pays vit dans un bloc `do`, les avis et les traductions dans des fonctions ; sur 183, le 01/10/2026 sur le lot B — ses
 quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
 mêmes — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la
 fusion du lot S1 : les mêmes — `journal_photo_et_cv` sème deux actions ; sur 179, à la fusion : 78, 65, 3346 ; sur 176, côté principal : 76, 63, 2320 — la liste validée sème
@@ -4358,9 +4358,9 @@ faite par le CODE (une route nouvelle qui refuse ce que l'ancienne page envoie) 
 ### E.92 — SUR UNE BASE CONSTRUITE DEPUIS ZÉRO, LES ZONES DE TRAVAIL N'AVAIENT AUCUN PAYS : les pays arrivent APRÈS la migration qui les rattache — staging ne le montrait pas, la production l'aurait subi. RÉSOLU (02/10/2026).
 
 **Le cas (lot zones de travail, 02/10/2026 — vu en écrivant le test de base du filtre).** `referentiel_zones_de_travail`
-(`20260901000010`) sème le monde, les six continents, puis les PAYS par `insert … select … from public.countries where
+sème le monde, les six continents, puis les PAYS par `insert … select … from public.countries where
 active` — or sur une base vierge, `countries` est encore VIDE à ce moment-là : les 64 pays arrivent par
-`parametrage_de_production` (`20260916000000`), seize jours de migrations plus tard. Aucune migration ne rattache
+`parametrage_de_production`, seize jours de migrations plus tard. Aucune migration ne rattache
 ensuite les pays aux continents. Résultat sur une base rejouée (`db reset --local`, et la production telle que
 [mise-en-production.md](mise-en-production.md) l'ÉTAPE 1 la construit) : `work_zones` = le monde et six continents,
 **zéro pays**. Le filtre de relecture de la migration (« pays actifs NON rattachés ») se tait : il compare à
@@ -4434,6 +4434,31 @@ rejoue le lot B — le contrôle exige les déclarations de ses quatre migration
 écrites passent la restriction (seul le test nommé le prouve, et seulement pour ses cas) ; une table qui n'est pas un
 littéral ; une restriction qui ne porte pas sur une table (politique de Storage, GL006, liste blanche, droit sur une
 fonction) — ses écrivains sont déclarés, pas recalculés.
+
+---
+
+<a id="e95"></a>
+### E.95 — UNE CLÉ À VARIABLE APPELÉE SANS SA VARIABLE AFFICHE LE NOM DE LA CLÉ — et le contrôle du lot exigeait cette forme.
+
+**Le cas (relecture du lot zones de travail, 02/10/2026 — BLOQUANT).** Le message `work_zones.continent_entier` vaut
+« {zone} — tout le continent ». Le sélecteur l'appelait `t('continent_entier')`, sans `{ zone }`, pour en faire un gabarit
+qu'une fonction pure remplirait ensuite (comme le serveur, qui lit le JSON directement). Mais next-intl 4 ne rend pas un
+gabarit : un message dont la variable manque lève une erreur de formatage, et son repli affiche le NOM DE LA CLÉ. Sur les
+quatre surfaces de saisie, chaque continent choisi s'affichait « work_zones.continent_entier ». `tsc`, le build, la parité
+des langues, la série complète : tous verts. Et `diag-lot-zones` EXIGEAIT `libelleDeZone(z, t('continent_entier'))` — il
+vérifiait la forme de l'appel, pas ce qu'il rend (§E.56 : « j'avais vérifié le contrôle, pas l'écran »).
+
+**La leçon.** Un gabarit se lit par `t.raw()` ou s'appelle AVEC ses valeurs ; un appel sans elles n'est jamais un
+gabarit. Et un contrôle qui fige la forme d'un appel doit savoir ce que cette forme RENDRA.
+
+**La parade.** L'écran appelle le message AVEC sa variable (`t('continent_entier', { zone: z.name })`, une fonction
+`nommer`, aux trois endroits). **Et la classe est interdite** : [`diag-variables-i18n`](../scripts/diag-variables-i18n.mjs)
+lie chaque traducteur (`useTranslations` / `getTranslations`, son espace) à ses appels dans TOUT le code, lit le message
+dans les quatre langues, et rougit pour tout appel qui laisse de côté une variable ICU (`{zone}`, `{count, plural…}`) —
+appel sans valeurs, ou objet littéral qui en oublie une. Il s'éprouve lui-même sur des sources fabriquées. Sur le dépôt :
+les trois lignes du sélecteur, et **aucun autre cas** (le 02/10/2026, 276 traducteurs). **Ce qu'il ne voit pas, et
+compte** : une clé calculée (273 appels), des valeurs passées par une variable (1), un traducteur reçu en paramètre, le
+serveur qui lit les JSON directement.
 
 ---
 

@@ -2,7 +2,9 @@
 --
 --  LE FILTRE RÉEL : le moteur ne passe par aucune fonction SQL de filtre. Il demande à la base les lignes dont la liste
 --  APLATIE des pays recoupe celle de l'autre côté — `.overlaps('work_zone_countries', …)` de PostgREST, soit
---  `work_zone_countries && …` en SQL :
+--  `work_zone_countries && …` en SQL — et, depuis la relecture du 02/10/2026 (décision de Youssef), une liste de pays
+--  VIDE ne retient PERSONNE, dans les deux sens : le moteur le dit AVANT toute requête, puis pose le recoupement SANS
+--  condition. Les deux fonctions ci-dessous suivent CE chemin (la sortie sur liste vide, puis le recoupement) :
 --    · annonce → experts : lib/matching/pool.ts, `q.overlaps('work_zone_countries', annonce.work_zone_countries)` ;
 --    · expert → annonces : lib/matching/run-for-expert.ts, `q.overlaps('work_zone_countries', p.work_zone_countries)`.
 --  Les deux listes sont écrites par la base (`trg_*_work_zones` → `work_zone_country_codes()`), et recalculées quand le
@@ -16,14 +18,13 @@
 --  dont au moins un TÉMOIN que seul le recoupement des zones écarte. Sans le prédicat, le témoin serait retenu et
 --  l'ensemble différerait. (Éprouvé hors base par `diag-zones-recoupement`, qui rejoue chaque cas sans le filtre.)
 --
---  LES PAYS : une base rejouée depuis zéro n'a AUCUN pays dans `work_zones` (les pays de `countries` arrivent par une
---  migration postérieure à celle qui les rattache — voir docs/pieges.md §E.92). Le test prend la zone du référentiel
---  quand elle existe, et sinon la CRÉE dans sa transaction annulée, sous son continent — le même geste qu'un pays
---  ajouté au référentiel.
+--  LES PAYS : une base rejouée depuis zéro a ses pays depuis la migration `zones_pays_rattaches` (§E.92, résolu ; prouvé
+--  par matching/zones_pays_rattaches). Le test prend la zone du référentiel quand elle existe, et sinon la CRÉE dans sa
+--  transaction annulée, sous son continent — le même geste qu'un pays ajouté au référentiel.
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir ../grand_livre/_fabriques.psql
-select plan(10);
+select plan(11);
 
 -- Une zone PAYS sous un continent : celle du référentiel, sinon créée ici (rien ne survit au rollback).
 create or replace function pg_temp.zone_pays(p_pays text, p_continent text, p_nom text) returns uuid
@@ -45,21 +46,28 @@ end $$;
 create or replace function pg_temp.zone(p_code text) returns uuid
 language sql as $$ select z.id from public.work_zones z where z.code = p_code $$;
 
--- LE PRÉDICAT DU MOTEUR, tel quel. Sens annonce → experts (pool.ts).
+-- LE CHEMIN DU MOTEUR, tel quel. Sens annonce → experts (pool.ts) : une annonce sans pays ne retient personne (sortie
+-- avant toute requête), sinon le recoupement, sans condition.
 create or replace function pg_temp.experts_retenus(p_annonce uuid, p_parmi uuid[]) returns uuid[]
 language sql as $$
-  select coalesce(array_agg(p.id order by p.id), '{}')
-    from public.profiles p
-   where p.id = any (p_parmi)
-     and p.work_zone_countries && (select a.work_zone_countries from public.publications a where a.id = p_annonce)
+  select case
+    when cardinality((select a.work_zone_countries from public.publications a where a.id = p_annonce)) = 0 then '{}'::uuid[]
+    else (select coalesce(array_agg(p.id order by p.id), '{}')
+            from public.profiles p
+           where p.id = any (p_parmi)
+             and p.work_zone_countries && (select a.work_zone_countries from public.publications a where a.id = p_annonce))
+  end
 $$;
--- Sens expert → annonces (run-for-expert.ts).
+-- Sens expert → annonces (run-for-expert.ts) : un expert sans pays ne voit aucune annonce, sinon le recoupement.
 create or replace function pg_temp.annonces_retenues(p_profil uuid, p_parmi uuid[]) returns uuid[]
 language sql as $$
-  select coalesce(array_agg(a.id order by a.id), '{}')
-    from public.publications a
-   where a.id = any (p_parmi)
-     and a.work_zone_countries && (select p.work_zone_countries from public.profiles p where p.id = p_profil)
+  select case
+    when cardinality((select p.work_zone_countries from public.profiles p where p.id = p_profil)) = 0 then '{}'::uuid[]
+    else (select coalesce(array_agg(a.id order by a.id), '{}')
+            from public.publications a
+           where a.id = any (p_parmi)
+             and a.work_zone_countries && (select p.work_zone_countries from public.profiles p where p.id = p_profil))
+  end
 $$;
 create or replace function pg_temp.trie(p uuid[]) returns uuid[]
 language sql as $$ select coalesce(array_agg(x order by x), '{}') from unnest(p) x $$;
@@ -138,7 +146,11 @@ begin
                  and (select not ('QZ' = any (a.work_zone_countries)) from public.publications a where a.id = a_europe),
     '6a. un pays désactivé sort de la couverture de « Europe — tout le continent »');
   return next is(pg_temp.experts_retenus(a_qz, array[v_europe, v_partout]), '{}'::uuid[],
-    '6b. une annonce dont le seul pays est désactivé ne retient plus personne');
+    '6b. une annonce dont le seul pays est désactivé ne retient plus personne (sa liste de pays est vide : personne)');
+  -- ⑥ c — L'AUTRE SENS : un expert dont le seul pays est désactivé ne voit aucune annonce — pas même « Europe — tout le
+  --    continent », que l'ancienne règle (« vide = aucune contrainte ») lui aurait montrée.
+  return next is(pg_temp.annonces_retenues(v_expert_qz, array[a_europe, a_maroc, a_france]), '{}'::uuid[],
+    '6c. un expert dont le seul pays est désactivé ne voit plus aucune annonce');
 end $$;
 
 select * from pg_temp.essai();

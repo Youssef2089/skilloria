@@ -4064,14 +4064,17 @@
     },
     "errors": {
       "org_unavailable": "Votre espace de collaboration n'a pas pu être préparé. Réessayez dans un instant.",
-      "create_failed": "Impossible d’enregistrer le besoin. Vérifiez les champs et réessayez.",
+      "create_failed": "L’enregistrement du besoin n’a pas abouti de notre côté. Réessayez dans quelques instants.",
       "publish_failed": "La publication n’a pas abouti de notre côté. Votre besoin est enregistré en brouillon : réessayez dans quelques instants.",
       "profile_check_failed": "Nous n’avons pas pu vérifier le statut de votre profil. Ce n’est pas un refus de validation : rien n’a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
       "publish_check_failed": "Nous n'avons pas pu vérifier le nombre d'annonces actives de votre offre. Rien n'a été publié. Réessayez dans quelques instants ; si le problème persiste, contactez le support.",
       "expert_country_missing": "Votre espace de collaboration reprend l'adresse de votre profil, et le pays n'y est pas renseigné. Complétez-le dans votre profil, puis republiez : rien n'a été perdu.",
       "profile_not_verified": "Votre profil doit être validé avant de publier un besoin de sous-traitance. Rien n’a été publié.",
       "durees_illisibles": "La publication est momentanément indisponible. Rien n’a été publié : réessayez dans quelques instants.",
-      "taxonomie_indisponible": "La liste des branches et des zones n’a pas pu être chargée. Rechargez la page."
+      "taxonomie_indisponible": "La liste des branches et des zones n’a pas pu être chargée. Rechargez la page.",
+      "compte_illisible": "Nous n’avons pas pu lire votre compte. Ce n’est pas un refus : rien n’a été enregistré. Réessayez dans quelques instants.",
+      "offre_indisponible": "L’offre de collaboration n’est pas encore disponible sur la plateforme : rien n’a été enregistré. Contactez le support.",
+      "session_expiree": "Votre session a expiré : reconnectez-vous, puis publiez de nouveau. Rien n’a été publié."
     },
     "list": {
       "title": "Mes besoins de sous-traitance",
@@ -4244,7 +4247,11 @@
     "usage_unavailable_warning": "Nous n'avons pas pu lire ce que cette branche porte encore. Ce n'est pas « rien » : nous ne savons pas. Rechargez la page avant de décider.",
     "err_usage_unavailable": "Suppression refusée : nous n'avons pas pu vérifier ce que cette branche porte encore. Rien n'a été supprimé. Réessayez dans un instant.",
     "err_specialite_autre_reservee": "« Autre » n’est pas une spécialité du référentiel : c’est l’option « Autre (préciser) » proposée aux experts et aux annonces. Choisissez un autre nom.",
-    "err_experts_non_prevenus": "La spécialité est désactivée, mais les experts qui l’avaient choisie n’ont pas pu être prévenus. Réactivez-la puis désactivez-la de nouveau pour les prévenir."
+    "err_experts_non_prevenus": "La spécialité est désactivée, mais les experts qui l’avaient choisie n’ont pas tous pu être prévenus. Cliquez sur « Prévenir les experts » : seuls ceux qui ne l’ont pas encore été le seront.",
+    "err_journal_non_ecrit": "La modification est enregistrée, mais sa ligne au journal n’a pas pu être écrite. Rien n’est à refaire sur la spécialité.",
+    "err_journal_et_experts": "La spécialité est désactivée, mais ni sa ligne au journal ni l’avis aux experts n’ont pu être écrits. Cliquez sur « Prévenir les experts » : seuls ceux qui ne l’ont pas encore été le seront.",
+    "action_prevenir_experts": "Prévenir les experts",
+    "err_ecriture_refusee": "La base a refusé la modification (« {cause} ») : rien n’a été enregistré, ni la spécialité ni ses traductions."
   },
   "candidature_lifecycle": {
     "filters": {

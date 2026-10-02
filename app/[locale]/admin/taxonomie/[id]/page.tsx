@@ -99,6 +99,11 @@ const btnGhost: React.CSSProperties = {
 // Formulaire de traductions FR (base) + EN/ES/DE. Réutilisé branche & spécialité.
 type SpecForm = { name: string; en: string; es: string; de: string; slug: string; active: boolean }
 
+/** Les refus où la modification EST écrite : seule une suite manque (la ligne du journal, les avis aux experts). */
+const ECRITE_MAIS = ['experts_non_prevenus', 'journal_et_experts', 'journal_error']
+/** Les refus où des experts restent à prévenir. */
+const A_PREVENIR = ['experts_non_prevenus', 'journal_et_experts']
+
 export default function AdminTaxonomieDetailPage() {
   const t = useTranslations('admin_taxonomie')
   const tAdmin = useTranslations('admin_back_office')
@@ -142,6 +147,9 @@ export default function AdminTaxonomieDetailPage() {
   const [specForm, setSpecForm] = useState<SpecForm>({ name: '', en: '', es: '', de: '', slug: '', active: true })
   const [specBusy, setSpecBusy] = useState(false)
   const [specError, setSpecError] = useState<string | null>(null)
+  // La spécialité DÉSACTIVÉE dont les experts n'ont pas tous été prévenus : le bouton « Prévenir les experts » la relance
+  // (relecture du 02/10/2026, point 5) — la base ne prévient que ceux qui ne l'ont pas encore été.
+  const [aPrevenir, setAPrevenir] = useState<string | null>(null)
   const [confirmDeactivateSpec, setConfirmDeactivateSpec] = useState<string | null>(null)
   const [confirmDeleteSpec, setConfirmDeleteSpec] = useState<string | null>(null)
   const [reorderBusy, setReorderBusy] = useState(false)
@@ -318,7 +326,7 @@ export default function AdminTaxonomieDetailPage() {
     setSpecForm({ name: s.name, en: s.translations?.en ?? '', es: s.translations?.es ?? '', de: s.translations?.de ?? '', slug: s.slug, active: s.active })
   }
 
-  function mapSpecError(code: string | undefined, status: number): string {
+  function mapSpecError(code: string | undefined, status: number, cause?: string): string {
     if (code === 'invalid_name') return t('err_invalid_name')
     if (code === 'invalid_slug') return t('err_invalid_slug')
     if (code === 'slug_taken') return t('err_slug_taken')
@@ -326,6 +334,10 @@ export default function AdminTaxonomieDetailPage() {
     if (code === 'specialite_autre_reservee') return t('err_specialite_autre_reservee')
     // La spécialité est désactivée, mais les experts n'ont pas été prévenus (lot zones de travail) : ça se dit.
     if (code === 'experts_non_prevenus') return t('err_experts_non_prevenus')
+    // Ce qui n'a pas été fait se dit séparément (relecture du 02/10/2026, points 4 et 5).
+    if (code === 'journal_et_experts') return t('err_journal_et_experts')
+    if (code === 'journal_error') return t('err_journal_non_ecrit')
+    if (code === 'ecriture_refusee') return t('err_ecriture_refusee', { cause: cause ?? '—' })
     if (status === 403) return tAdmin('errors.forbidden')
     return tAdmin('errors.generic')
   }
@@ -352,11 +364,12 @@ export default function AdminTaxonomieDetailPage() {
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ id: editingSpecId, name: specForm.name.trim(), slug: specForm.slug.trim(), active: specForm.active, translations }),
         })
-        const payload = (await res.json().catch(() => ({}))) as { code?: string }
+        const payload = (await res.json().catch(() => ({}))) as { code?: string; cause?: string }
         if (!res.ok) {
-          setSpecError(mapSpecError(payload.code, res.status))
-          // La désactivation est écrite : la liste se relit, le message reste.
-          if (payload.code === 'experts_non_prevenus') await load()
+          setSpecError(mapSpecError(payload.code, res.status, payload.cause))
+          // La modification est écrite (seule une suite manque) : la liste se relit, le message reste.
+          if (ECRITE_MAIS.includes(payload.code ?? '')) await load()
+          if (A_PREVENIR.includes(payload.code ?? '')) setAPrevenir(editingSpecId)
           return
         }
       }
@@ -381,13 +394,39 @@ export default function AdminTaxonomieDetailPage() {
       })
       if (!res.ok) {
         // Réactiver une ligne « Autre » retirée est refusé par la base, et ça se dit.
-        const payload = (await res.json().catch(() => ({}))) as { code?: string }
-        setSpecError(mapSpecError(payload.code, res.status))
-        if (payload.code === 'experts_non_prevenus') { setConfirmDeactivateSpec(null); await load() }
+        const payload = (await res.json().catch(() => ({}))) as { code?: string; cause?: string }
+        setSpecError(mapSpecError(payload.code, res.status, payload.cause))
+        if (ECRITE_MAIS.includes(payload.code ?? '')) { setConfirmDeactivateSpec(null); await load() }
+        if (A_PREVENIR.includes(payload.code ?? '')) setAPrevenir(s.id)
         return
       }
       setConfirmDeactivateSpec(null)
       await load()
+    } catch {
+      setSpecError(tAdmin('errors.generic'))
+    } finally {
+      setSpecBusy(false)
+    }
+  }
+
+  // « Prévenir les experts » : le rejeu d'une désactivation dont les avis n'ont pas tous été posés. La base saute ceux déjà
+  // posés pour CETTE désactivation : personne n'est prévenu deux fois.
+  async function prevenirExperts(specId: string) {
+    setSpecBusy(true)
+    setSpecError(null)
+    try {
+      const res = await secureFetch('/api/admin/update-speciality', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ id: specId, prevenir: true }),
+      })
+      const payload = (await res.json().catch(() => ({}))) as { code?: string; cause?: string }
+      if (!res.ok) {
+        setSpecError(mapSpecError(payload.code, res.status, payload.cause))
+        if (!A_PREVENIR.includes(payload.code ?? '')) setAPrevenir(null)
+        return
+      }
+      setAPrevenir(null)
     } catch {
       setSpecError(tAdmin('errors.generic'))
     } finally {
@@ -626,6 +665,13 @@ export default function AdminTaxonomieDetailPage() {
           {specError && (
             <div role="alert" style={{ marginBottom: 12, padding: '8px 12px', background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 12, borderRadius: 8 }}>
               {specError}
+              {aPrevenir ? (
+                <div style={{ marginTop: 8 }}>
+                  <button type="button" onClick={() => void prevenirExperts(aPrevenir)} disabled={specBusy} style={{ ...btnPrimary, padding: '6px 12px', fontSize: 12 }}>
+                    {t('action_prevenir_experts')}
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
 

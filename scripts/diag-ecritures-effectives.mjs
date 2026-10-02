@@ -42,6 +42,10 @@ const ok = (cond, label, hint) => {
 const L = 'LÉGITIME : écriture conditionnelle — son WHERE est la garde, zéro ligne rend'
 /** fonction:table:rang → raison. Le rang compte les écritures de CETTE table dans CETTE fonction. */
 const GEL = {
+  // L'écriture d'une spécialité (relecture du 02/10/2026, point 4) : la spécialité elle-même passe par exiger_ecriture ;
+  // ces deux-là touchent légitimement zéro ligne.
+  'modifier_specialite:translations:1': 'LÉGITIME : effacer une traduction qui n’existe pas ne touche rien — l’administrateur a vidé une langue déjà vide',
+  'modifier_specialite:specialities:2': 'LÉGITIME : la pièce de désactivation n’est posée QUE si elle manque (where … is null) — zéro veut dire « elle y est déjà »',
   // Le recalcul de couverture des zones (lot zones de travail, 02/10/2026) : il ne réécrit QUE les lignes dont la couverture
   // change — le cas ordinaire est zéro (rien n'a bougé) ; il rend son compte, que la reprise affiche.
   'recalculer_couverture_des_zones:profiles:1': 'LÉGITIME : recalcul conditionnel (WHERE is distinct from) — zéro veut dire « couverture déjà à jour », le compte est rendu',

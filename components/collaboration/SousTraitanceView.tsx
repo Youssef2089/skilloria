@@ -205,6 +205,13 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
       // PAYS ABSENT ≠ ÉCHEC D'ENREGISTREMENT : l'espace de collaboration reprend l'adresse du profil.
       case 'expert_country_missing': return t('errors.expert_country_missing')
       case 'profile_not_verified': return t('errors.profile_not_verified')
+      // LE COMPTE ILLISIBLE n'est pas un refus, et l'OFFRE ABSENTE n'est pas une faute de saisie (relecture du 02/10/2026) :
+      // tous deux tombaient sur « vérifiez les champs ».
+      case 'compte_verification_indisponible': return t('errors.compte_illisible')
+      case 'package_missing': return t('errors.offre_indisponible')
+      // Une session expirée n'est pas une panne de notre côté : useSecureFetch n'intercepte que la session remplacée.
+      case 'no_token':
+      case 'invalid_token': return t('errors.session_expiree')
       // MÊME FAMILLE, AUTRE LECTURE : une garde qui n'a pas pu LIRE n'a pas rendu de verdict (§E.22).
       case 'profile_check_unavailable': return t('errors.profile_check_failed')
       // PANNE DE VÉRIFICATION ≠ MUR PAYANT : le décompte n'a pas pu se faire.

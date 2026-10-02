@@ -4064,14 +4064,17 @@
     },
     "errors": {
       "org_unavailable": "No se pudo preparar su espacio de colaboración. Inténtelo de nuevo en un momento.",
-      "create_failed": "No se pudo guardar la necesidad. Revise los campos e inténtelo de nuevo.",
+      "create_failed": "El registro de la necesidad no se completó por nuestra parte. Vuelva a intentarlo en unos instantes.",
       "publish_failed": "La publicación no se completó por nuestra parte. Su necesidad está guardada como borrador: vuelva a intentarlo en unos instantes.",
       "profile_check_failed": "No hemos podido comprobar el estado de su perfil. No se trata de un rechazo de verificación: no se ha publicado nada. Inténtelo de nuevo en unos instantes; si el problema persiste, contacte con el soporte.",
       "publish_check_failed": "No hemos podido verificar el número de anuncios activos de tu plan. No se ha publicado nada. Vuelve a intentarlo en unos instantes; si persiste, contacta con soporte.",
       "expert_country_missing": "Tu espacio de colaboración toma la dirección de tu perfil, y el país no está indicado. Complétalo en tu perfil y vuelve a publicar: no se ha perdido nada.",
       "profile_not_verified": "Su perfil debe estar validado antes de publicar una necesidad de subcontratación. No se ha publicado nada.",
       "durees_illisibles": "La publicación no está disponible por el momento. No se ha publicado nada: vuelva a intentarlo en unos instantes.",
-      "taxonomie_indisponible": "No se ha podido cargar la lista de ramas y zonas. Vuelva a cargar la página."
+      "taxonomie_indisponible": "No se ha podido cargar la lista de ramas y zonas. Vuelva a cargar la página.",
+      "compte_illisible": "No hemos podido leer su cuenta. No es un rechazo: no se ha guardado nada. Vuelva a intentarlo en unos instantes.",
+      "offre_indisponible": "La oferta de colaboración aún no está disponible en la plataforma: no se ha guardado nada. Contacte con el soporte.",
+      "session_expiree": "Su sesión ha caducado: vuelva a iniciar sesión y publique de nuevo. No se ha publicado nada."
     },
     "list": {
       "title": "Mis necesidades de subcontratación",
@@ -4244,7 +4247,11 @@
     "usage_unavailable_warning": "No hemos podido leer lo que esta rama sigue conteniendo. No significa «nada»: no lo sabemos. Vuelve a cargar la página antes de decidir.",
     "err_usage_unavailable": "Eliminación rechazada: no hemos podido comprobar lo que esta rama sigue conteniendo. No se ha eliminado nada. Inténtalo de nuevo en un momento.",
     "err_specialite_autre_reservee": "«Otra» no es una especialidad del referencial: es la opción «Otra (especificar)» que se ofrece a los expertos y a los anuncios. Elige otro nombre.",
-    "err_experts_non_prevenus": "La especialidad está desactivada, pero no se ha podido avisar a los expertos que la habían elegido. Vuelva a activarla y desactívela de nuevo para avisarles."
+    "err_experts_non_prevenus": "La especialidad está desactivada, pero no se ha podido avisar a todos los expertos que la habían elegido. Pulse «Avisar a los expertos»: solo se avisará a quienes aún no lo hayan sido.",
+    "err_journal_non_ecrit": "El cambio está guardado, pero no se ha podido escribir su línea en el registro. No hay nada que rehacer en la especialidad.",
+    "err_journal_et_experts": "La especialidad está desactivada, pero no se han podido escribir ni su línea en el registro ni el aviso a los expertos. Pulse «Avisar a los expertos»: solo se avisará a quienes aún no lo hayan sido.",
+    "action_prevenir_experts": "Avisar a los expertos",
+    "err_ecriture_refusee": "La base de datos rechazó el cambio («{cause}»): no se ha guardado nada, ni la especialidad ni sus traducciones."
   },
   "candidature_lifecycle": {
     "filters": {

@@ -440,7 +440,7 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 > - **`photo_par_le_serveur`** (`…000040`) — retire `avatars_auth_upload`, `_update`, `_delete`.
 
 > **LE LOT « ZONES DE TRAVAIL ET PETITS DÉFAUTS DU RELECTEUR » (02/10/2026, ARRÊT 26) — tronc, horodaté après
-> `photo_par_le_serveur`, les TROIS marquées AVANT.** Staging est à jour jusqu'à `photo_par_le_serveur` (lot B déployé) :
+> `photo_par_le_serveur`, les QUATRE marquées AVANT.** Staging est à jour jusqu'à `photo_par_le_serveur` (lot B déployé) :
 > la requête de staging l'attend en ⓪ ; le code en ligne est `1182e02` (`CODE_EN_LIGNE` de `diag-deux-temps`).
 > - **`zones_couverture_suit_le_referentiel`** (`…000050`, AVANT) — `recalculer_couverture_des_zones(uuid[])` (réécrit
 >   `work_zone_ids` à l'identique pour les profils et annonces qui ont choisi l'une des zones données — NULL = toutes —,
@@ -461,6 +461,13 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   traductions ; ne touche à rien de ce qui est rattaché ; « 0 pays rattaché(s) » sur staging, 64 sur une base neuve ; le
 >   déclencheur de couverture tourne pour chaque pays ajouté. Insertion seule dans une table qu'aucun code n'écrit : rien de
 >   restreint. Test : `matching/zones_pays_rattaches.test.sql` (5), après `db reset`.
+> - **`specialite_ecriture_et_avis_une_fois`** (`…000080`, AVANT) — la relecture du 02/10/2026, points 4 et 5 : la colonne
+>   `specialities.desactivation_piece` (nullable : la pièce du geste qui a désactivé ; gardée par un rejeu, effacée à la
+>   réactivation) ; l'index unique partiel `notifications_retrait_specialite_une_fois` (destinataire, spécialité, pièce —
+>   type `specialite_retiree`, que le code en ligne n'écrit pas) ; `modifier_specialite()` (traductions PUIS spécialité, une
+>   transaction, la spécialité par `exiger_ecriture`) ; `prevenir_retrait_specialite()` (le conflit résolu EN SQL avec le
+>   prédicat de l'index, §E.69 ; rend le nombre d'avis nouveaux ; refuse un avis sans pièce, SP003). Fermées au
+>   navigateur. §D.36. Test : `taxonomie/specialite_ecriture_et_avis.test.sql` (11).
 
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
@@ -1270,6 +1277,8 @@ Le matching est relancé via `after()` (§E.5).
 **Sémantique de l'ensemble vide, asymétrique et voulue** : zones de travail **obligatoires**
 (`&&` sur un ensemble vide est toujours faux → annonce publiée et silencieusement invisible) ;
 spécialités et séniorités **facultatives**, vide = « aucune contrainte sur cet axe », pas « personne ».
+**Une liste de PAYS vide ne retient personne, dans les deux sens** (§D.38, relecture du 02/10/2026) : le moteur le dit
+avant toute requête, et pose le recoupement des zones sans condition.
 Gate qualité IA ([lib/verification/ai-publication-quality.ts](../lib/verification/ai-publication-quality.ts)).
 Gates commerce : 402 `quota_publications_reached` / `quota_active_publications_reached`.
 **Expiration à 30 jours calculée À LA LECTURE** — aucun job, aucun statut basculé, `expires_at` n'est
@@ -3865,6 +3874,17 @@ prouvée dans `diag-deux-temps` sur le fichier en ligne — la réactivation y e
 rendu `specialite_autre_reservee` : rien n'est écrit à moitié. **Gardé par** `diag-lot-zones` 6 ; en base,
 `taxonomie/reactivation_hors_autre.test.sql`.
 
+**La relecture du 02/10/2026 (points 4 et 5).** ① **Tout ou rien** : la route écrivait traductions et spécialité en deux
+appels, une traduction refusée n'étant que journalisée. Elles passent désormais par `modifier_specialite` (une transaction,
+traductions d'abord — la garde de réactivation lit celles qui RESTERONT) : un refus n'écrit rien, et l'administrateur lit
+sa cause (`ecriture_refusee` et le message de la base ; `slug_taken` ; `specialite_autre_reservee`). ② **Un avis par
+expert et par désactivation** : la ligne du grand livre précédait l'avis et, refusée, l'empêchait — personne n'était
+prévenu, l'écran ne le disait pas ; et le rejeu conseillé (réactiver puis désactiver) prévenait deux fois. Désormais la
+spécialité porte la PIÈCE de sa désactivation, les avis sont posés sous elle, et un index unique partiel saute ceux déjà
+posés : le rejeu « Prévenir les experts » (`prevenir: true`, un bouton de l'écran) ne prévient que les oubliés. Une ligne
+refusée n'empêche plus d'avertir ; ce qui n'a pas été fait se dit séparément (`journal_error`, `experts_non_prevenus`,
+`journal_et_experts`). **Gardé par** `diag-lot-zones` 6 ; en base, `taxonomie/specialite_ecriture_et_avis.test.sql` (11).
+
 <a id="d37"></a>
 ### D.37 — L'ANNONCE DE SOUS-TRAITANCE PORTE LA BRANCHE ET LES ZONES, ET DIT CHAQUE REFUS (02/10/2026)
 
@@ -3878,6 +3898,29 @@ de la création et de la publication — a sa phrase, dans les quatre langues, a
 quand c'est le même refus ; « la publication a échoué » n'est que le dernier recours, et dit que le brouillon est gardé.
 Une publication refusée se reprend sur le MÊME brouillon (`PATCH`). Un besoin relu avant sa mise en ligne
 (`pending_review`) ne s'annonce pas « publié ». **Gardé par** `diag-lot-zones` 9.
+
+<a id="d38"></a>
+### D.38 — UNE LISTE DE PAYS VIDE NE RETIENT PERSONNE, DANS LES DEUX SENS (relecture du 02/10/2026)
+
+**Le cas (relecteur, MAJEUR).** Le test de base 6b prouvait qu'une annonce dont le seul pays est désactivé ne retient
+personne — mais il testait le PRÉDICAT seul (`&&` sur un ensemble vide est faux). Le moteur, lui, SAUTAIT le filtre quand
+la liste était vide (`pool.ts`, `run-for-expert.ts` : `if (… .length > 0) q = q.overlaps(…)`), selon la règle de
+septembre « vide = aucune contrainte » — et le déclencheur du référentiel (`work_zones_couverture`) peut désormais vider
+seul une liste : l'annonce aurait touché TOUS les experts, l'expert vu TOUTES les annonces.
+
+**La règle tranchée (Youssef, pour les zones seulement).** Une liste de pays vide ne retient personne, dans les deux
+sens : une annonce sans pays ne touche aucun expert, un expert sans pays ne voit aucune annonce. « Vide = aucune
+contrainte » était devenue fausse le jour où les zones sont devenues obligatoires pour publier (contraintes
+`profiles_visible_requiert_criteres_check` et `publications_publiee_requiert_zones_check`) : une liste ne se vide plus
+que par la désactivation de ses pays. **Vérifié avant d'écrire** : sur une base neuve, les six continents ont des pays
+actifs (43, 8, 5, 3, 3, 2) ; les routes ne résolvent que des zones actives ; aucun code n'écrit ni ne supprime une zone —
+aucune autre voie qu'une désactivation ne mène à un profil visible ou une annonce publiée sans pays.
+
+**Comment.** Le moteur le dit AVANT toute requête (le vivier vide ; aucune annonce chargée) — sans dépendre de la façon
+dont l'API sérialiserait un ensemble vide — puis pose le recoupement SANS condition. Spécialités et séniorités gardent
+« vide = aucune contrainte ». **Gardé par** `diag-zones-recoupement` (les deux sens, la sortie avant toute requête, le
+recoupement inconditionnel ; 6b et 6c rejoués sous l'ancienne règle, qui échouerait) ; en base,
+`matching/zones_recoupement.test.sql` 6b et 6c, dont les fonctions suivent le chemin du moteur.
 
 <a id="d40"></a>
 ### D.40 — « AUTRE » EST UNE SEULE NOTION, ET CE N'EST JAMAIS UNE LIGNE DU RÉFÉRENTIEL (recette S1, 01/10/2026)
@@ -4107,9 +4150,9 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
 - ~~**BLOQUANT AVANT TOUTE BASE CONSTRUITE DEPUIS ZÉRO (production) — §E.92 : les zones de travail n'y auraient AUCUN
   pays.**~~ — **RÉSOLU le 02/10/2026, dans ce lot (décision de Youssef)** : la migration `zones_pays_rattaches` rattache
   chaque pays actif sans zone (§B.2, lot zones), prouvé après `db reset` par `matching/zones_pays_rattaches.test.sql`.
-- Une désactivation dont les experts n'ont pas été prévenus (`experts_non_prevenus`) ne se rejoue pas d'elle-même :
-  l'administrateur réactive puis désactive (le message le dit). Une seule notification par passage : deux désactivations
-  en deux gestes préviennent deux fois.
+- ~~Une désactivation non notifiée se rejouait en réactivant puis désactivant, et prévenait deux fois~~ — **RÉSOLU à la
+  relecture du 02/10/2026 (§D.36)** : « Prévenir les experts » rejoue la désactivation, et un index unique ne laisse
+  passer qu'UN avis par expert et par désactivation.
 - `PATCH /api/publications/[id]` écrit encore l'annonce quand rien ne change (la ligne du grand livre, elle, n'est pas
   écrite — §D.33) ; ses zones se comparent désormais comme un ensemble. Hors du périmètre de §D.35 (le profil).
 - La conversation (`/api/me/conversations`) affiche ses annonces sans libellé de zone (`buildPublicationSynthesis` sans

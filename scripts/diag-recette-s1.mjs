@@ -135,7 +135,11 @@ section('1. « Autre » : une seule notion, jamais une ligne du référentiel')
   ]) {
     const r = sansCommentaires(lire(route))
     const i = r.search(appel)
-    ok(i >= 0 && i < r.search(/\.from\('specialities'\)\s*\.(insert|update)\(/) && i < r.indexOf("from('translations')"),
+    // La relecture du 02/10/2026 (point 4) fait écrire update-speciality par `modifier_specialite` (tout ou rien) : la
+    // PREMIÈRE écriture est cet appel ; la question doit le précéder, comme elle précédait l'écriture directe.
+    const ecritures = [r.search(/\.from\('specialities'\)\s*\.(insert|update)\(/), r.search(/from\('translations'\)\s*\.(upsert|insert|update|delete)\(/),
+      r.indexOf(".rpc('modifier_specialite'")].filter((x) => x >= 0)
+    ok(i >= 0 && ecritures.length > 0 && i < Math.min(...ecritures),
       `${route.split('/')[3]} : le nom, le slug ET chaque traduction se demandent à la base AVANT toute écriture (« Other », « Otra » refusés)`)
   }
   ok(!/function contientAutre[\s\S]*?(autres\?|others\?)/.test(lire('lib/taxonomie/specialite-autre.ts')),
@@ -176,7 +180,7 @@ section('1. « Autre » : une seule notion, jamais une ligne du référentiel')
     'le refus « Autre » se reconnaît (exécuté), et seulement lui')
   for (const r of ['app/api/admin/create-speciality/route.ts', 'app/api/admin/update-speciality/route.ts']) {
     const s = sansCommentaires(lire(r))
-    ok(/if \(estRefusAutre\((insErr|updErr)\)\)\s*\{\s*return json\(\{[^}]*code: 'specialite_autre_reservee' \}, 400\)/.test(s),
+    ok(/if \(estRefusAutre\((insErr|updErr|ecrErr)\)\)\s*\{\s*return json\(\{[^}]*code: 'specialite_autre_reservee' \}, 400\)/.test(s),
       `${r.split('/').slice(-2, -1)[0]} rend specialite_autre_reservee (400), pas db_error`)
   }
   ok(dans4('admin_taxonomie.err_specialite_autre_reservee') && /'specialite_autre_reservee'\) return t\('err_specialite_autre_reservee'\)/.test(lire('app/[locale]/admin/taxonomie/[id]/page.tsx')),

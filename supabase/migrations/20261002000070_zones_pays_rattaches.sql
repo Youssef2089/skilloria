@@ -8,9 +8,9 @@
 --  `zones_couverture_suit_le_referentiel` : son déclencheur recalcule la couverture des continents et du monde pour chaque
 --  pays ajouté.
 --
---  LE DÉFAUT (§E.92) : `referentiel_zones_de_travail` (20260901000010) rattache les pays par
+--  LE DÉFAUT (§E.92) : la migration `referentiel_zones_de_travail` rattache les pays par
 --  `insert … select … from public.countries where active` — or, sur une base VIERGE, `countries` est encore vide à ce
---  moment : les 64 pays arrivent par `parametrage_de_production` (20260916000000), plus tard. Aucune migration ne les
+--  moment : les 64 pays arrivent par la migration `parametrage_de_production`, plus tard (§G.3 : citées par leur nom). Aucune migration ne les
 --  rattachait ensuite. Une base construite depuis zéro (la production, mise-en-production.md ÉTAPE 1 ; `db reset`) avait
 --  le monde et six continents, ZÉRO pays : aucun continent proposé, aucun pays trouvable, et « Partout dans le monde »
 --  aplati vers un ensemble vide. Staging ne le montrait pas : sa base existait avant, `countries` y était rempli.

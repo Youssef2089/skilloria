@@ -60,18 +60,22 @@ type LigneProfil = {
   users: { locale: string | null; user_type: string | null } | Array<{ locale: string | null; user_type: string | null }> | null
 }
 
-/** Combien de notifications partent par insertion (une instruction, tout ou rien pour ce lot). */
-const LOT_INSERTION = 500
+/** Combien de spécialités se relisent par requête (une liste d'identifiants dans l'adresse). */
+const LOT_LECTURE = 500
 
 /**
  * Prévient chaque expert qui avait choisi la spécialité désactivée. À appeler APRÈS la désactivation
- * écrite. Rend le nombre d'experts prévenus, ou l'échec NOMMÉ (lecture ou écriture) — jamais un
- * silence : l'administrateur le lit.
+ * écrite, avec la pièce de CETTE désactivation (`specialities.desactivation_piece`, rendue par
+ * `modifier_specialite`) : la base saute un avis déjà posé pour elle — un expert est prévenu UNE fois par
+ * désactivation, rejeu compris (relecture du 02/10/2026, point 5). Rend le nombre d'experts concernés et
+ * d'avis NOUVEAUX, ou l'échec NOMMÉ — jamais un silence : l'administrateur le lit. Tous les avis partent
+ * en UNE instruction : un échec n'en pose aucun, et le rejeu les pose tous.
  */
 export async function notifierRetraitSpecialite(
   admin: SupabaseClient,
   args: { specialiteId: string; nomFr: string; piece: string },
-): Promise<{ ok: true; prevenus: number } | { ok: false; message: string }> {
+): Promise<{ ok: true; concernes: number; nouveaux: number } | { ok: false; message: string }> {
+  if (!args.piece) return { ok: false, message: 'pièce de désactivation absente : les avis ne se dédoublonneraient pas' }
   // Tous les profils qui la portent — lus EN ENTIER, par pages, dans un ordre total (la limite de lignes de
   // l'API couperait en silence au-delà de 1 000).
   const lecture = await lireToutesLesLignes<LigneProfil>({
@@ -86,13 +90,13 @@ export async function notifierRetraitSpecialite(
   })
   if (lecture.erreur) return { ok: false, message: lecture.erreur }
   if (lectureIncomplete(lecture)) return { ok: false, message: `profils lus en partie (${lecture.distincts} sur ${lecture.attendu})` }
-  if (lecture.lignes.length === 0) return { ok: true, prevenus: 0 }
+  if (lecture.lignes.length === 0) return { ok: true, concernes: 0, nouveaux: 0 }
 
   // Les AUTRES spécialités de ces profils : lesquelles sont encore actives ?
   const autres = [...new Set(lecture.lignes.flatMap((p) => p.speciality_ids ?? []).filter((id) => id !== args.specialiteId))]
   const actives = new Set<string>()
-  for (let i = 0; i < autres.length; i += LOT_INSERTION) {
-    const { data, error } = await admin.from('specialities').select('id').in('id', autres.slice(i, i + LOT_INSERTION)).eq('active', true)
+  for (let i = 0; i < autres.length; i += LOT_LECTURE) {
+    const { data, error } = await admin.from('specialities').select('id').in('id', autres.slice(i, i + LOT_LECTURE)).eq('active', true)
     if (error) return { ok: false, message: `spécialités illisibles : ${error.message}` }
     for (const r of (data ?? []) as Array<{ id: string }>) actives.add(r.id)
   }
@@ -114,18 +118,14 @@ export async function notifierRetraitSpecialite(
       user_id: p.user_id,
       domain_id: p.domain_id,
       piece: args.piece,
-      type: 'specialite_retiree',
-      channel: 'inapp',
       title: titre,
       body: corps,
       link_url: `${dashboardUrlForUserType(compte?.user_type ?? null)}/profil/valider`,
-      status: 'pending',
       entity_id: args.specialiteId,
     })
   }
-  for (let i = 0; i < lignes.length; i += LOT_INSERTION) {
-    const { error } = await admin.from('notifications').insert(lignes.slice(i, i + LOT_INSERTION))
-    if (error) return { ok: false, message: `notifications non posées (${i} sur ${lignes.length} posées) : ${error.message}` }
-  }
-  return { ok: true, prevenus: lignes.length }
+  // EN SQL, avec le prédicat de l'index partiel (§E.69) : le type, le canal et l'état sont posés par la fonction.
+  const { data: nouveaux, error } = await admin.rpc('prevenir_retrait_specialite', { p_notifications: lignes })
+  if (error) return { ok: false, message: `avis non posés (aucun) : ${error.message}` }
+  return { ok: true, concernes: lignes.length, nouveaux: typeof nouveaux === 'number' ? nouveaux : 0 }
 }

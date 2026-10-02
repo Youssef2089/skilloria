@@ -39,7 +39,9 @@ import {
  *   cherche large ; elle ne cherche pas rien.
  *   Côté ZONES, c'est l'inverse : elles sont obligatoires pour publier, parce
  *   qu'une annonce sans zone ne recouperait personne (`&&` sur un ensemble vide
- *   est toujours faux) et serait publiée silencieusement invisible.
+ *   est toujours faux) et serait publiée silencieusement invisible. Et le moteur
+ *   le DIT (relecture du 02/10/2026, §D.38) : une liste de pays vide — ses pays
+ *   désactivés — ne retient PERSONNE, dans les deux sens, avant toute requête.
  *
  * ═══ CE QUE LE COMPTE-RENDU SERT ══════════════════════════════════════════
  *   Chaque filtre rend son propre décompte. Sans cela, « 3 candidats » ne dit
@@ -132,7 +134,7 @@ const SELECT_PROFIL =
 
 /**
  * Critères déclarés PAR L'ANNONCE. Un tableau vide = aucune contrainte sur cet
- * axe (sauf les zones, exigées pour publier).
+ * axe (sauf les zones : exigées pour publier, et une liste de pays vide ne retient personne).
  */
 export type CriteresAnnonce = {
   id: string
@@ -160,6 +162,14 @@ export async function chargerVivierPourAnnonce(
   annonce: CriteresAnnonce,
 ): Promise<CompteRenduVivier> {
   const vide: CompteRenduVivier = { profils: [], ecartes: { deja_decline: 0, deja_postule: 0 } }
+
+  // ── UNE LISTE DE PAYS VIDE NE RETIENT PERSONNE (relecture du 02/10/2026 — décision de Youssef, pour les zones seulement) ──
+  //  Elle remplace « vide = aucune contrainte » (septembre), devenue fausse depuis que les zones sont OBLIGATOIRES pour
+  //  publier : une liste de pays ne peut plus être vide que parce que ses pays ont été DÉSACTIVÉS (le déclencheur du
+  //  référentiel la recalcule). Une annonce sans pays ne touche aucun expert ; un expert sans pays ne voit aucune
+  //  annonce. Dit AVANT toute requête — ni lecture pour rien, ni dépendance à la façon dont l'API sérialise un ensemble
+  //  vide — et le recoupement est ensuite posé SANS condition. Prouvé par matching/zones_recoupement (6b, 6c).
+  if (annonce.work_zone_countries.length === 0) return vide
 
   const publicNatif = expertKindForAnnonce(annonce.type)
 
@@ -223,10 +233,8 @@ export async function chargerVivierPourAnnonce(
 
     // ZONES — recoupement sur les codes pays APLATIS. L'aplatissement rend le
     // recoupement symétrique par construction : « Monde entier » et « France »
-    // se recoupent sans qu'aucun code n'ait à connaître la hiérarchie.
-    if (annonce.work_zone_countries.length > 0) {
-      q = q.overlaps('work_zone_countries', annonce.work_zone_countries)
-    }
+    // se recoupent sans qu'aucun code n'ait à connaître la hiérarchie. SANS condition : la liste vide est sortie plus haut.
+    q = q.overlaps('work_zone_countries', annonce.work_zone_countries)
 
     // L'AUTEUR — un expert publiant un besoin ne se propose pas à lui-même.
     if (!peutViserSonAuteur(annonce.type) && annonce.created_by) {

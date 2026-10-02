@@ -6,6 +6,10 @@
  * filtrent AVANT l'IA, dans les deux sens, par recoupement sur les codes pays APLATIS. Un continent entier compte pour
  * tous ses pays : une annonce « Europe » touche un expert « France », et l'inverse.
  *
+ * LA RÈGLE DU VIDE (relecture du 02/10/2026 — décision de Youssef, pour les zones seulement) : une liste de pays VIDE ne
+ * retient PERSONNE, dans les deux sens — elle remplace « vide = aucune contrainte » de septembre, devenue fausse depuis
+ * que les zones sont obligatoires pour publier (une liste ne se vide plus que par la désactivation de ses pays).
+ *
  * CE QU'IL VÉRIFIE :
  *   A. LE MOTEUR, TEL QU'IL EST : les deux sens posent le prédicat `.overlaps('work_zone_countries', <l'autre côté>)` —
  *      lib/matching/pool.ts (annonce → experts) et lib/matching/run-for-expert.ts (expert → annonces), hors commentaires ;
@@ -54,10 +58,14 @@ section('A. Le moteur pose le recoupement des zones, dans les deux sens')
 // ══════════════════════════════════════════════════════════════════════════
 const pool = sansCommentaires(lire('lib/matching/pool.ts'))
 const expert = sansCommentaires(lire('lib/matching/run-for-expert.ts'))
-ok(/if \(annonce\.work_zone_countries\.length > 0\) \{\s*q = q\.overlaps\('work_zone_countries', annonce\.work_zone_countries\)/.test(pool),
-  'annonce → experts (pool.ts) : `overlaps(work_zone_countries, annonce.work_zone_countries)`')
-ok(/q = q\.overlaps\('work_zone_countries', p\.work_zone_countries as string\[\]\)/.test(expert),
-  'expert → annonces (run-for-expert.ts) : `overlaps(work_zone_countries, p.work_zone_countries)`')
+ok(/if \(annonce\.work_zone_countries\.length === 0\) return vide\n/.test(pool) && /\n\s*q = q\.overlaps\('work_zone_countries', annonce\.work_zone_countries\)/.test(pool)
+   && !/if \(annonce\.work_zone_countries\.length > 0\)/.test(pool)
+   && pool.indexOf('if (annonce.work_zone_countries.length === 0) return vide') < pool.indexOf(".from('matches')"),
+  'annonce → experts (pool.ts) : une annonce SANS pays ne retient personne (avant toute requête) ; sinon `overlaps(…)`, SANS condition')
+ok(/const paysExpert = p\.work_zone_countries \?\? \[\]/.test(expert) && /\n\s*q = q\.overlaps\('work_zone_countries', paysExpert\)/.test(expert)
+   && /paysExpert\.length === 0 \? \{ data: \[\] as unknown\[\], error: null \} : await q/.test(expert)
+   && !/work_zone_countries \?\? \[\]\)\.length > 0/.test(expert),
+  'expert → annonces (run-for-expert.ts) : un expert SANS pays ne voit aucune annonce (sans requête) ; sinon `overlaps(…)`, SANS condition')
 ok(/'seniorities, work_zone_countries, created_by, status'/.test(expert) && /work_zone_countries: pub\.work_zone_countries \?\? \[\]/.test(sansCommentaires(lire('lib/matching/index.ts'))),
   'les deux sens lisent la liste APLATIE (work_zone_countries), jamais les identifiants de zone')
 
@@ -66,15 +74,17 @@ section('B. Le test de base emploie ce prédicat, tel quel')
 // ══════════════════════════════════════════════════════════════════════════
 const TEST = 'supabase/tests/database/matching/zones_recoupement.test.sql'
 const test = sansCommentairesSql(lire(TEST))
-ok(/p\.work_zone_countries && \(select a\.work_zone_countries from public\.publications a where a\.id = p_annonce\)/.test(test),
-  'sens annonce → experts : `profiles.work_zone_countries && publications.work_zone_countries`')
-ok(/a\.work_zone_countries && \(select p\.work_zone_countries from public\.profiles p where p\.id = p_profil\)/.test(test),
-  'sens expert → annonces : `publications.work_zone_countries && profiles.work_zone_countries`')
+ok(/when cardinality\(\(select a\.work_zone_countries from public\.publications a where a\.id = p_annonce\)\) = 0 then '\{\}'::uuid\[\]/.test(test)
+   && /p\.work_zone_countries && \(select a\.work_zone_countries from public\.publications a where a\.id = p_annonce\)/.test(test),
+  'sens annonce → experts, LE CHEMIN DU MOTEUR : liste vide → personne, sinon `profiles.work_zone_countries && publications.work_zone_countries`')
+ok(/when cardinality\(\(select p\.work_zone_countries from public\.profiles p where p\.id = p_profil\)\) = 0 then '\{\}'::uuid\[\]/.test(test)
+   && /a\.work_zone_countries && \(select p\.work_zone_countries from public\.profiles p where p\.id = p_profil\)/.test(test),
+  'sens expert → annonces, LE CHEMIN DU MOTEUR : liste vide → personne, sinon `publications.work_zone_countries && profiles.work_zone_countries`')
 ok(!/update public\.(profiles|publications) set work_zone_countries/.test(test),
   'le test n’écrit JAMAIS la liste aplatie : la base la calcule (le chemin normal)')
 const plan = Number(/select plan\((\d+)\)/.exec(test)?.[1] ?? 0)
 const assertions = (test.match(/return next (is|ok)\(/g) ?? []).length
-ok(plan === assertions && plan === 10, `le plan annonce exactement ses assertions (${plan} / ${assertions})`)
+ok(plan === assertions && plan === 11, `le plan annonce exactement ses assertions (${plan} / ${assertions})`)
 
 // ══════════════════════════════════════════════════════════════════════════
 section('C. Chaque cas, rejoué : retenu avec le filtre, différent sans lui')
@@ -90,13 +100,23 @@ const zonesAvant = [
 const zonesApres = [...zonesAvant, { id: 'QZ', parent_id: 'EU', kind: 'country', code: 'C_QZ', country_code: 'QZ', name: 'Sondeland', slug: 'qz' }]
 const pays = (zones, choix) => Z.expandToCountryCodes(zones, choix)
 const recoupe = (a, b) => a.some((x) => b.includes(x))
+/**
+ * Le moteur, rejoué : `regle` = 'neuve' (liste vide → personne, puis le recoupement), 'ancienne' (septembre : liste vide →
+ * filtre sauté), 'sans_filtre' (aucun recoupement).
+ */
+const moteur = (paysAutre, paysCandidat, regle) => {
+  if (regle === 'sans_filtre') return true
+  if (paysAutre.length === 0) return regle === 'ancienne'
+  return recoupe(paysCandidat, paysAutre)
+}
+const regleDe = (f) => (f === true ? 'neuve' : f === false ? 'sans_filtre' : f)
 const choixExperts = { europe: ['EU'], maroc: ['MA'], france: ['FR'], partout: ['W'], expert_qz: ['QZ'] }
 const choixAnnonces = { a_france: ['FR'], a_europe: ['EU'], a_maroc: ['MA'], a_qz: ['QZ'] }
 /** Le sens annonce → experts : avec le filtre (le prédicat), ou sans. */
 const experts = (zones, annonce, parmi, filtre = true) =>
-  parmi.filter((e) => !filtre || recoupe(pays(zones, choixExperts[e]), pays(zones, choixAnnonces[annonce]))).sort()
+  parmi.filter((e) => moteur(pays(zones, choixAnnonces[annonce]), pays(zones, choixExperts[e]), regleDe(filtre))).sort()
 const annonces = (zones, expertE, parmi, filtre = true) =>
-  parmi.filter((a) => !filtre || recoupe(pays(zones, choixAnnonces[a]), pays(zones, choixExperts[expertE]))).sort()
+  parmi.filter((a) => moteur(pays(zones, choixExperts[expertE]), pays(zones, choixAnnonces[a]), regleDe(filtre))).sort()
 const CAS = [
   ['1. annonce en France : « Europe — tout le continent » retenu, « Maroc » écarté', (f) => experts(zonesAvant, 'a_france', ['europe', 'maroc'], f), ['europe']],
   ['2. annonce en France : « Maroc » seul écarté, « France » retenu', (f) => experts(zonesAvant, 'a_france', ['maroc', 'france'], f), ['france']],
@@ -110,6 +130,16 @@ for (const [nom, cas, attendu] of CAS) {
   const sans = cas(false).join(',')
   ok(avec === [...attendu].sort().join(',') && sans !== avec, `${nom} — et SANS le filtre il échoue (${sans})`,
     `avec : ${avec} (attendu ${attendu.join(',')}) ; sans : ${sans}`)
+}
+// ⑥ — le pays ajouté puis DÉSACTIVÉ : il sort du référentiel servi à l'aplatissement (zonesAvant n'a pas « QZ »).
+for (const [nom, cas] of [
+  ['6b. annonce dont le seul pays est désactivé : personne', (f) => experts(zonesAvant, 'a_qz', ['europe', 'partout'], f)],
+  ['6c. expert dont le seul pays est désactivé : aucune annonce', (f) => annonces(zonesAvant, 'expert_qz', ['a_europe', 'a_maroc', 'a_france'], f)],
+]) {
+  const neuve = cas('neuve').join(',')
+  const ancienne = cas('ancienne').join(',')
+  ok(neuve === '' && ancienne !== '', `${nom} — et la règle de septembre (« vide = aucune contrainte ») échouerait (${ancienne})`,
+    `règle neuve : ${neuve || '∅'} ; ancienne : ${ancienne || '∅'}`)
 }
 ok(pays(zonesAvant, ['EU']).includes('QZ') === false && pays(zonesApres, ['EU']).includes('QZ') && pays(zonesApres, ['W']).includes('QZ'),
   '4a. le continent entier et le monde couvrent le pays ajouté APRÈS (le choix enregistré est le continent, pas ses pays)')

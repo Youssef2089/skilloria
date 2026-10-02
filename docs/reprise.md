@@ -106,7 +106,7 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
 | 8 | `diag-deux-temps` : les exceptions du premier temps portent leur PREUVE, vérifiée sur le commit EN LIGNE (`aucun_ecrivain`, `refus_nomme`) ; le second temps DÉCLARE chaque restriction, ses écrivains RECALCULÉS (écritures directes et `.rpc` de fonctions qui écrivent, de fonction à fonction) et son test. Ce qu'il ne vérifie pas est écrit dans son en-tête et §E.94 | épreuve `--etat=journal_photo_et_cv` : les quatre migrations du lot B exigent leurs déclarations ; pour `LG001`, il trouve les deux écrivains relus à la main à l'ARRÊT 25 ; mutation ⑬ |
 | 9 | Le besoin de sous-traitance porte la branche et les zones (mêmes composants), vérifie avant d'envoyer, dit chaque refus (douze codes, 4 langues), reprend son brouillon, ne dit pas « publié » quand il est relu | `diag-lot-zones` 9 ; mutation ⑫ |
 
-### Les migrations nouvelles — 185 au total, les DEUX marquées AVANT, horodatées après `photo_par_le_serveur`
+### Les migrations nouvelles — 187 au total, les QUATRE marquées AVANT, horodatées après `photo_par_le_serveur` (deux au premier envoi, une au complément, une à la relecture)
 - `20261002000050_zones_couverture_suit_le_referentiel` — `recalculer_couverture_des_zones(uuid[])`, le déclencheur
   `work_zones_couverture`, une reprise (zéro ligne attendue). Exception `diag-deux-temps` : aucun code n'écrit `work_zones`.
 - `20261002000060_specialite_reactivation_hors_autre` — le déclencheur `specialites_reactivation_hors_autre`. Exception
@@ -115,8 +115,9 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
   DEMANDE pas avant, c'est la base qui refuse, et il traduit ce refus ; rien n'est écrit à moitié. Le code du lot, lui,
   le demande avant d'écrire.
 - `20261002000070_zones_pays_rattaches` — le complément ci-dessous (§E.92, résolu).
-- Requête de staging : ⓪ `photo_par_le_serveur` ; trois migrations en attente ; rien de retiré ; trois fonctions créées
-  (la troisième migration n'ajoute que des lignes).
+- `20261002000080_specialite_ecriture_et_avis_une_fois` — la relecture, points 4 et 5 (ci-dessous).
+- Requête de staging : ⓪ `photo_par_le_serveur` ; quatre migrations en attente ; rien de retiré ; cinq fonctions et un index
+  créés.
 
 ### Le complément — les pays d'une base neuve (§E.92, RÉSOLU ; décision de Youssef, 02/10/2026, avant la relecture)
 - **La migration** `20261002000070_zones_pays_rattaches` (AVANT, après les deux autres) : chaque pays ACTIF de `countries`
@@ -135,8 +136,8 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
   le même `not exists` dans le filet de fin de migration ; il est ancré sur l'insertion (§E.8).
 
 ### Le nombre de tests de base attendu
-**659** (63 fichiers) = 638 + 10 (`matching/zones_recoupement`) + 6 (`taxonomie/reactivation_hors_autre`) + 5
-(`matching/zones_pays_rattaches`). **NON exécutés ici** (ni Docker ni base).
+**671** (64 fichiers) = 638 + 11 (`matching/zones_recoupement`, 6c ajouté à la relecture) + 6 (`taxonomie/reactivation_hors_autre`)
++ 5 (`matching/zones_pays_rattaches`) + 11 (`taxonomie/specialite_ecriture_et_avis`). **NON exécutés ici** (ni Docker ni base).
 
 ### L'épreuve
 - **tsc** 0 erreur (hors `.next/`) ; **next build** réussi ; **lint** 50 erreurs / 23 avertissements (le cliquet tient) ;
@@ -152,7 +153,7 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
 
 ### Ce qui reste, et se dit
 - ~~§E.92 / §H.7 — les pays absents d'une base construite depuis zéro~~ — **résolu dans ce lot** (le complément ci-dessus).
-- Une désactivation non notifiée se rejoue en réactivant puis désactivant (le message le dit).
+- ~~Une désactivation non notifiée se rejoue en réactivant puis désactivant~~ — résolu à la relecture : « Prévenir les experts », un avis par expert et par désactivation.
 - `PATCH /api/publications/[id]` écrit encore une annonce inchangée (sa ligne du grand livre, non) ; la conversation
   n'affiche pas les zones de ses annonces — antérieurs, non touchés.
 
@@ -160,7 +161,7 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
 1. Lire et faire relire ce lot (le relecteur relit avant le déploiement).
 2. Docker lancé, sur `lot/zones-de-travail` : `npx supabase link --project-ref wnayuerhakekxccgimeg`,
    `node scripts/verifier-version-postgres.mjs`, `npx supabase db reset --local`,
-   `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local` — **659 tests, tous verts**.
+   `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local` — **671 tests, tous verts**.
    Pendant le `db reset`, la migration `zones_pays_rattaches` dit « 64 pays rattaché(s) à leur continent ».
 3. La requête de staging (éditeur SQL de staging, lecture seule) : **aucun ÉCART** (⓪ `photo_par_le_serveur`, trois
    fonctions créées) ; les notices du push disent « couverture des zones : 0 profil(s) et 0 annonce(s) recalculés »
@@ -174,6 +175,52 @@ contraintes de `notifications`, `translations`, `countries`, `specialities` (bas
    (sa cloche, dans sa langue) ; publier un besoin de sous-traitance.
 6. ~~Avant la production : trancher §E.92~~ — fait dans ce lot : en production, l'ÉTAPE 1 (les migrations depuis zéro) dira
    « 64 pays rattaché(s) à leur continent ».
+
+### La relecture du 02/10/2026 — FEU ROUGE, sept points corrigés (base, migrations et déploiement jugés sains)
+
+**Lu en plus** (règle du 26/09) : les contraintes de `specialities`, `translations`, `notifications` dans les migrations ;
+`exiger_ecriture` ; `lib/collaboration/ensure-personal-org.ts`, `lib/auth-guard.ts` (les codes) ; `lib/secure-fetch.ts`
+(ce qu'il intercepte) ; l'écran admin des spécialités ; `diag-grand-livre`, `diag-ecritures-effectives` (les deux
+entrées touchées).
+
+| # | Fait | Prouvé par |
+|---|---|---|
+| 1 BLOQUANT | `t('continent_entier')` sans `{zone}` affichait « work_zones.continent_entier » : le sélecteur appelle le message AVEC sa variable (`nommer`, trois endroits). La classe est interdite : `diag-variables-i18n` (nouveau) lie chaque traducteur à ses appels dans tout le code et rougit pour toute variable ICU oubliée. **Cas trouvés** : les trois lignes du sélecteur (251, 326, 434 au commit relu) — **aucun autre** dans le dépôt (276 traducteurs ; 273 clés calculées et 1 appel à valeurs variables comptés, non devinés) | `diag-variables-i18n` (épreuve intégrée ; rejoué sur le sélecteur du commit relu : il nomme les trois lignes) ; `diag-lot-zones` ; mutations R1 R2 ; §E.95 |
+| 2 MAJEUR | Règle tranchée : une liste de pays vide ne retient personne, dans les deux sens. Le moteur le dit avant toute requête et pose le recoupement sans condition ; le test suit le CHEMIN du moteur (6b), et 6c ajoute l'autre sens. Aucune voie hors désactivation vers un profil visible ou une annonce publiée sans pays (vérifié : six continents peuplés sur base neuve, zones actives seules résolues, aucun écrivain de zones) — je ne me suis pas arrêté | `diag-zones-recoupement` (6b et 6c rejoués sous l'ancienne règle : elle échouerait) ; `matching/zones_recoupement` 11 ; mutations R3-R6 ; §D.38 |
+| 3 | `compte_verification_indisponible` et `package_missing` ont leur phrase (4 langues) ; le repli de création ne dit plus « vérifiez les champs » ; et `no_token` / `invalid_token` (session expirée, non interceptés) aussi. Les codes à traiter sont DÉRIVÉS des routes appelées ; ceux qui vont au repli portent leur raison | `diag-lot-zones` 9 (37 codes dérivés) ; mutation R7 |
+| 4 | Traductions et spécialité TOUT OU RIEN par `modifier_specialite` (traductions d'abord) ; la cause d'un refus se rend (`ecriture_refusee`, le message de la base) | `taxonomie/specialite_ecriture_et_avis` A, B ; `diag-lot-zones` 6 ; mutations R8 R9 R10 |
+| 5 | Un avis par expert et par désactivation, rejeu compris : pièce de désactivation sur la spécialité, index unique partiel, conflit en SQL ; une ligne du journal refusée n'empêche plus d'avertir ; l'écran dit séparément journal / avis / les deux, et propose « Prévenir les experts » | `taxonomie/specialite_ecriture_et_avis` C, D ; `diag-lot-zones` 6 ; `diag-grand-livre` (motif mis à jour) ; mutations R11-R14 |
+| 6 | `zones_pays_rattaches` cite les deux migrations par leur nom ; §E.92 aussi. Garde : aucun numéro de migration dans les migrations et tests du lot | `diag-lot-zones` 6 bis ; mutation R15 |
+| 7 | ARRÊT 26 : 187 migrations, quatre marquées AVANT ; le commentaire de `zones_recoupement` dit qu'une base neuve a ses pays ; la requête de staging dit « quatre » | `diag-memoire-exacte` ; relu |
+
+**Migration nouvelle** : `20261002000080_specialite_ecriture_et_avis_une_fois` (AVANT) — colonne nullable, index unique
+partiel limité au type `specialite_retiree` (que le code en ligne n'écrit pas), deux fonctions. `diag-deux-temps` vert.
+Requête de staging : ⓪ `photo_par_le_serveur`, cinq fonctions et un index créés.
+
+**Mutations de la relecture : 15 sur 15 rougissent** (R1-R15). La R15 passait d'abord : aucun contrôle ne gardait §G.3
+dans les fichiers du lot — ajouté (`diag-lot-zones` 6 bis).
+
+**Tests de base attendus : 671** (64 fichiers). **NON exécutés ici.**
+
+**L'épreuve de la relecture** : **tsc** 0 erreur (hors `.next/`) ; **next build** réussi — un premier essai a échoué au
+téléchargement des polices Google (`next/font/google`, dans une page non touchée), le second a réussi ; **lint** 50/23 ;
+**parité i18n** verte. **Série complète** : premier passage 123 verts, 1 rouge (`diag-recette-s1` lisait l'écriture directe
+d'avant dans `update-speciality` : la propriété tient — la question précède la première écriture, désormais
+`modifier_specialite` ; mutation : la question déplacée après l'écriture le fait rougir), 1 hors délai
+(`diag-controles-a-rejouer`, qui dépasse les 120 s du lanceur : lancé seul, 98 contrôles rejoués, verts) ; rejouée :
+**125 verts, 0 rouge, 0 muet**.
+
+**Pour Youssef — dans l'ordre (remplace les étapes ci-dessus)**
+1. La contre-relecture.
+2. Docker lancé, sur `lot/zones-de-travail` : `npx supabase link --project-ref wnayuerhakekxccgimeg`,
+   `node scripts/verifier-version-postgres.mjs`, `npx supabase db reset --local` (il dit « 64 pays rattaché(s) »),
+   `npx supabase db lint -s public --level error` (sortie vide), `npx supabase test db --local` — **671 tests, tous verts**.
+3. La requête de staging (lecture seule) : **aucun ÉCART**. Au push : « couverture des zones : 0 profil(s) et 0
+   annonce(s) recalculés », « zones de travail : 0 pays rattaché(s) ».
+4. `npm run build`, `npx supabase db push`, puis `git push` aussitôt.
+5. Sur staging : choisir « Europe — tout le continent » et vérifier l'ÉTIQUETTE (le libellé, pas un nom de clé) ; les
+   essais de l'ARRÊT 26 ; dans l'administration, désactiver une spécialité choisie par un expert d'essai, puis cliquer
+   « Prévenir les experts » si l'écran le propose — l'expert n'a qu'un avis.
 
 ## ⛔ ARRÊT 25 — LE REJEU LOCAL DU LOT B : CINQ ROUGES DANS UN SEUL TEST, CORRIGÉ (01/10/2026)
 

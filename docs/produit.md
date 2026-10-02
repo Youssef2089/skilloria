@@ -219,7 +219,8 @@ Champs structurants : branche, spécialités (multiples), séniorités (multiple
   Exigés : titre, description, branche, **zones de travail**.
   La sémantique de l'ensemble vide est **asymétrique, et c'est voulu** :
   · **zones obligatoires** — `&&` sur un ensemble vide est toujours faux, une annonce sans zone
-    serait publiée et **silencieusement invisible** ;
+    serait publiée et **silencieusement invisible** ; et depuis le 02/10/2026 le moteur le DIT : une liste de
+    pays vide (ses pays désactivés) ne retient **personne**, dans les deux sens ;
   · **spécialités et séniorités facultatives** — vide signifie « aucune contrainte sur cet axe »,
     jamais « ne correspond à personne ». Une annonce incomplète doit matcher **large**, pas rien.
 
@@ -747,6 +748,12 @@ deux produits.
 >   la cloche — et lui dit si c'était sa seule spécialité (son profil ne peut alors plus être publié tant qu'il n'en a
 >   pas choisi une autre). Réactivée, elle ne peut pas revenir sous « Other », « Otra »…
 > · **Le besoin de sous-traitance** se publie enfin (branche et zones), et chaque refus se dit.
+> · **Relecture du 02/10/2026** : un continent choisi s'affichait « work_zones.continent_entier » au lieu de « Europe — tout
+>   le continent » — corrigé, et un contrôle interdit désormais tout texte appelé sans sa variable ; une annonce ou un
+>   expert dont tous les pays ont été désactivés ne sont plus mis en relation avec personne ; le besoin de sous-traitance
+>   dit aussi « compte illisible », « offre de collaboration indisponible » et « session expirée » ; dans l'administration
+>   des spécialités, une modification s'écrit tout ou rien et dit la cause d'un refus, et « Prévenir les experts » ne
+>   prévient que ceux qui ne l'ont pas encore été.
 
 ### P2.3 — Organisation (client, cabinet, ESN — un seul dashboard)
 `client`, `cabinet` et `esn` partagent **`/dashboard/entreprise`**. `/dashboard/cabinet` est une

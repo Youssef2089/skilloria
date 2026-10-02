@@ -27,8 +27,11 @@ export const dynamic = 'force-dynamic'
  * service_role. AUCUN filtre domaine.
  *
  * DÉSACTIVER PRÉVIENT (lot zones de travail, 02/10/2026) : au passage d'active à inactive, chaque expert qui
- * l'avait choisie reçoit une notification dans sa langue (lib/taxonomie/retrait-specialite.ts). Prévenir en
- * échec se DIT : 503 `experts_non_prevenus` — la désactivation, elle, est écrite.
+ * l'avait choisie reçoit une notification dans sa langue (lib/taxonomie/retrait-specialite.ts), UNE fois par
+ * désactivation, rejeu compris (`prevenir: true`). Ce qui n'a pas été fait se DIT, séparément : 503
+ * `experts_non_prevenus`, 500 `journal_error`, 500 `journal_et_experts` — la désactivation, elle, est écrite.
+ * ÉCRIRE EST TOUT OU RIEN : la spécialité et ses traductions passent par `modifier_specialite` (une transaction) ; un
+ * refus de la base se rend avec sa cause (`ecriture_refusee`).
  * RÉACTIVER NE RAMÈNE PAS « AUTRE » : une spécialité réactivée dont une traduction EXISTANTE est « Other »,
  * « Otra »… est refusée AVANT toute écriture (`specialite_autre_reservee`) ; la base le tient aussi
  * (migration `specialite_reactivation_hors_autre`).
@@ -155,7 +158,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     }
   }
 
-  if (Object.keys(updates).length === 0 && trToUpsert.length === 0 && trToDelete.length === 0) {
+  // LE REJEU « Prévenir les experts » (`prevenir: true`) sur une spécialité DÉSACTIVÉE : rien à écrire sur elle, les avis
+  // manquants seulement (relecture du 02/10/2026, point 5).
+  const rejeuPrevenir = body.prevenir === true && sp.active === false
+  if (!rejeuPrevenir && Object.keys(updates).length === 0 && trToUpsert.length === 0 && trToDelete.length === 0) {
     return json({ error: 'Nothing to update', code: 'no_changes' }, 400)
   }
 
@@ -191,47 +197,37 @@ export async function POST(request: NextRequest): Promise<Response> {
     table: 'specialities', id, updates, aEcrire: trToUpsert, aEffacer: trToDelete,
   })
 
-  const ecrireTraductions = async () => {
-    if (trToUpsert.length > 0) {
-      const { error: trErr } = await auth.supabaseAdmin
-        .from('translations')
-        .upsert(trToUpsert, { onConflict: 'table_name,row_id,field,locale' })
-      if (trErr) console.error('[admin:update-speciality] translations upsert failed', trErr.message)
-    }
-    if (trToDelete.length > 0) {
-      const { error: delErr } = await auth.supabaseAdmin
-        .from('translations')
-        .delete()
-        .eq('table_name', 'specialities')
-        .eq('row_id', id)
-        .eq('field', 'name')
-        .in('locale', trToDelete)
-      if (delErr) console.error('[admin:update-speciality] translations delete failed', delErr.message)
-    }
-  }
-
-  // UNE RÉACTIVATION QUI REMPLACE UNE TRADUCTION « Other » DANS LE MÊME GESTE écrit ses traductions D'ABORD : la base
-  // refuse de réactiver tant qu'une traduction « Autre » existe (migration specialite_reactivation_hors_autre), et la
-  // spécialité est encore INACTIVE — la garde des traductions ne la concerne pas. Les noms ont été DEMANDÉS plus haut.
-  if (reactivation) await ecrireTraductions()
-
-  if (Object.keys(updates).length > 0) {
-    updates.updated_at = new Date().toISOString()
-    const { error: updErr } = await auth.supabaseAdmin.from('specialities').update(updates).eq('id', id)
-    // Renommer en « Autre » ou réactiver une ligne « Autre » retirée : la base refuse (recette du
-    // 01/10/2026, point 1) — une règle, pas une panne.
-    if (estRefusAutre(updErr)) {
+  // ── L'ÉCRITURE, TOUT OU RIEN (relecture du 02/10/2026, point 4) ─────────────────────────────────────────────
+  //  Traductions et spécialité s'écrivaient en deux appels, et une traduction refusée n'était que JOURNALISÉE : une
+  //  réactivation pouvait passer sans ses traductions, ou l'inverse. `modifier_specialite` les écrit en UNE transaction
+  //  (traductions d'abord : la garde de réactivation lit celles qui RESTERONT), et un refus n'écrit RIEN. Elle rend la
+  //  pièce de la désactivation en cours (la clé « un avis par désactivation »).
+  const champs: Record<string, unknown> = {}
+  for (const k of ['name', 'slug', 'active', 'sort_order'] as const) if (k in updates) champs[k] = updates[k]
+  const { data: pieceDeDesactivation, error: ecrErr } = await auth.supabaseAdmin.rpc('modifier_specialite', {
+    p_id: id,
+    p_champs: champs,
+    p_traductions: trToUpsert.map((t) => ({ locale: t.locale, value: t.value })),
+    p_effacer: trToDelete,
+    p_piece: journal.piece,
+  })
+  if (ecrErr) {
+    // Renommer en « Autre », réactiver sous « Autre », traduire en « Other » : la base refuse — une règle, pas une panne.
+    if (estRefusAutre(ecrErr)) {
       return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
     }
-    if (updErr) {
-      console.error('[admin:update-speciality] update failed', updErr.message)
-      return json({ error: 'Update failed', code: 'db_error' }, 500)
+    if (ecrErr.code === '23505') return json({ error: 'Slug already used', code: 'slug_taken' }, 409)
+    // L'ADMINISTRATEUR LIT LA VRAIE CAUSE : un refus de la base (classe 22 ou 23) se rend avec son message, et rien
+    // n'a été écrit — ni la spécialité, ni ses traductions.
+    console.error('[admin:update-speciality] écriture refusée — rien n a été écrit', { id, code: ecrErr.code, message: ecrErr.message })
+    if (/^2[23]/.test(ecrErr.code ?? '')) {
+      return json({ error: 'Write refused', code: 'ecriture_refusee', cause: ecrErr.message }, 400)
     }
+    return json({ error: 'Update failed', code: 'db_error', cause: ecrErr.message }, 500)
   }
 
-  if (!reactivation) await ecrireTraductions()
-
-  // Le grand livre (§D.26, phase B) : la taxonomie de l'écosystème a changé.
+  // Le grand livre (§D.26, phase B) : la taxonomie de l'écosystème a changé. Une ligne refusée N'EMPÊCHE PLUS d'avertir
+  // les experts (point 5) : on la garde, et la réponse dit ce qui n'a pas été fait.
   const ligne = await taxonomieModifiee(auth.supabaseAdmin, journal, {
     objet: 'specialite',
     operation: 'modifiee',
@@ -243,10 +239,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Rien n'a changé : aucune ligne (décision de Youssef, 01/10/2026).
     rienNeChange: changements.champs.length === 0 && changements.traductions.length === 0,
   })
-  if (!ligne.ok) {
-    console.error('[admin:taxonomie] grand livre en échec après écriture', { id: id, message: ligne.message })
-    return json({ error: 'Journal failed', code: 'journal_error', speciality_id: id }, 500)
-  }
+  if (!ligne.ok) console.error('[admin:taxonomie] grand livre en échec après écriture', { id: id, message: ligne.message })
 
   await logAudit({
     piece: journal.piece,
@@ -259,15 +252,27 @@ export async function POST(request: NextRequest): Promise<Response> {
     detail: { fields: Object.keys(updates), translations_set: trToUpsert.map((t) => t.locale), translations_cleared: trToDelete },
   })
 
-  // LES EXPERTS QUI L'AVAIENT CHOISIE SONT PRÉVENUS — au passage d'active à inactive, et à lui seul.
-  if (desactivation) {
-    const prevenir = await notifierRetraitSpecialite(auth.supabaseAdmin, { specialiteId: id, nomFr: (updates.name as string | undefined) ?? sp.name, piece: journal.piece })
-    if (!prevenir.ok) {
+  // ── LES EXPERTS QUI L'AVAIENT CHOISIE SONT PRÉVENUS, UNE FOIS PAR DÉSACTIVATION (point 5) ─────────────────────
+  //  Au passage d'active à inactive, et au REJEU (« Prévenir les experts », `prevenir: true`) : les avis sont posés sous
+  //  la pièce de LA désactivation, et la base saute ceux déjà posés — un rejeu ne prévient que les oubliés.
+  let prevenus: number | null = null
+  let nonPrevenus = false
+  if (desactivation || rejeuPrevenir) {
+    const prevenir = await notifierRetraitSpecialite(auth.supabaseAdmin, {
+      specialiteId: id,
+      nomFr: (updates.name as string | undefined) ?? sp.name,
+      piece: pieceDeDesactivation as string,
+    })
+    if (prevenir.ok) prevenus = prevenir.nouveaux
+    else {
+      nonPrevenus = true
       console.error('[admin:update-speciality] experts NON prévenus — la spécialité est désactivée', { id, message: prevenir.message })
-      return json({ error: 'Experts not notified', code: 'experts_non_prevenus', speciality_id: id }, 503)
     }
-    return json({ ok: true, speciality_id: id, experts_prevenus: prevenir.prevenus }, 200)
   }
 
-  return json({ ok: true, speciality_id: id }, 200)
+  // CE QUI N'A PAS ÉTÉ FAIT SE DIT — séparément, jamais sous un « erreur » unique.
+  if (nonPrevenus && !ligne.ok) return json({ error: 'Journal and experts failed', code: 'journal_et_experts', speciality_id: id }, 500)
+  if (nonPrevenus) return json({ error: 'Experts not notified', code: 'experts_non_prevenus', speciality_id: id }, 503)
+  if (!ligne.ok) return json({ error: 'Journal failed', code: 'journal_error', speciality_id: id, experts_prevenus: prevenus }, 500)
+  return json({ ok: true, speciality_id: id, ...(prevenus !== null ? { experts_prevenus: prevenus } : {}) }, 200)
 }

@@ -11,7 +11,6 @@ import {
   dedupeCoveredZones,
   etatDuContinent,
   expandToCountryCodes,
-  libelleDeZone,
   modeDeSelection,
   normaliserRecherche,
   paysDe,
@@ -112,6 +111,11 @@ export default function WorkZoneSelector({
     [liste, trierParNom],
   )
   const parId = useMemo(() => new Map(liste.map((z) => [z.id, z])), [liste])
+  // LE NOM D'UNE ZONE CHOISIE : un continent se lit « Europe — tout le continent » — le gabarit AVEC sa variable {zone}.
+  // (Relecture du 02/10/2026, BLOQUANT : appelé sans la variable, next-intl rendait le NOM DE LA CLÉ,
+  // « work_zones.continent_entier », sur les quatre surfaces. diag-variables-i18n interdit désormais la classe.)
+  const nommer = (z: { kind: string; name: string }) => (z.kind === 'continent' ? t('continent_entier', { zone: z.name }) : z.name)
+
 
   const paysCouverts = useMemo(() => expandToCountryCodes(liste, selected), [liste, selected])
   const modeSelection = modeDeSelection(liste, selected)
@@ -248,7 +252,7 @@ export default function WorkZoneSelector({
           }}
         >
           <span style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
-            {t('suggestion_label', { zone: libelleDeZone(suggestion, t('continent_entier')) })}
+            {t('suggestion_label', { zone: nommer(suggestion) })}
           </span>
           <button
             type="button"
@@ -323,7 +327,7 @@ export default function WorkZoneSelector({
                       </span>
                     )
                   }
-                  const libelle = libelleDeZone(z, t('continent_entier'))
+                  const libelle = nommer(z)
                   return (
                     <span key={id} style={{ ...styleEtiquette(true), cursor: 'default' }}>
                       {libelle}
@@ -431,7 +435,7 @@ export default function WorkZoneSelector({
                       </span>
                       {couvrante ? (
                         <span style={{ fontSize: 12 }}>
-                          {couvrante.id === z.id ? t('deja_choisi') : t('deja_couvert', { zone: libelleDeZone(couvrante, t('continent_entier')) })}
+                          {couvrante.id === z.id ? t('deja_choisi') : t('deja_couvert', { zone: nommer(couvrante) })}
                         </span>
                       ) : null}
                     </li>

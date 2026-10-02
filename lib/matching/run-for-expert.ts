@@ -324,9 +324,16 @@ async function executerRunExpert(args: {
   // ── 3. Le vivier d'annonces ──────────────────────────────────────────────
   //  Mêmes critères DÉCLARÉS que dans l'autre sens, appliqués depuis l'autre
   //  bout : la branche de l'expert, ses spécialités, ses séniorités, ses zones.
-  //  Ensemble vide CÔTÉ ANNONCE = aucune contrainte, jamais « personne ».
+  //  Ensemble vide CÔTÉ ANNONCE = aucune contrainte, jamais « personne » — SAUF pour les ZONES (ci-dessous).
   //  L'inverse n'est pas vrai : un expert sans zone n'est pas visible du tout,
   //  et l'éligibilité l'a déjà écarté.
+  // ── UNE LISTE DE PAYS VIDE NE RETIENT PERSONNE (relecture du 02/10/2026 — décision de Youssef, pour les zones seulement) ──
+  //  Elle remplace « vide = aucune contrainte » (septembre), devenue fausse depuis que les zones sont OBLIGATOIRES pour
+  //  publier : une liste de pays ne peut plus être vide que parce que ses pays ont été DÉSACTIVÉS (le déclencheur du
+  //  référentiel la recalcule). Une annonce sans pays ne touche aucun expert ; un expert sans pays ne voit aucune
+  //  annonce. Dit AVANT toute requête — ni lecture pour rien, ni dépendance à la façon dont l'API sérialise un ensemble
+  //  vide — et le recoupement est ensuite posé SANS condition. Prouvé par matching/zones_recoupement (6b, 6c).
+  const paysExpert = p.work_zone_countries ?? []
   let q = supabaseAdmin
     .from('publications')
     .select(
@@ -341,15 +348,13 @@ async function executerRunExpert(args: {
     .or(activePublishedOrClause({ vieAnnonceJours }))
     .in('type', typesAutorises)
   if (p.branch_id) q = q.eq('branch_id', p.branch_id)
-  if ((p.work_zone_countries ?? []).length > 0) {
-    q = q.overlaps('work_zone_countries', p.work_zone_countries as string[])
-  }
+  q = q.overlaps('work_zone_countries', paysExpert)
   // Un expert ne se voit pas proposer son propre besoin de sous-traitance — filtré EN MÉMOIRE
   // ci-dessous : `neq('created_by', …)` s'écrit `created_by <> …` en SQL, qui écarte aussi les
   // annonces SANS auteur (`created_by` nul après la suppression d'un compte, ou semées) — le sens
   // annonce → experts, lui, les traite (audit du 30/09/2026, m8).
 
-  const { data: pubsData, error: pubsErr } = await q
+  const { data: pubsData, error: pubsErr } = paysExpert.length === 0 ? { data: [] as unknown[], error: null } : await q
   if (pubsErr) {
     console.error('[matching-expert] chargement des annonces en échec', { profileId, message: pubsErr.message })
     await recherche.echouee({ etape: 'vivier', cause: 'vivier_en_panne', tentative: p.matching_relance_tentatives })

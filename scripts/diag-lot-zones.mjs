@@ -112,7 +112,12 @@ ok(SEL.indexOf("t('selection_label')") > 0 && SEL.indexOf("t('selection_label')"
 ok(/const choisirPays = \(z: WorkZone\) => \{[\s\S]{0,200}cocherPays\(z\.id\)[\s\S]{0,80}setDeplie\(continentDe\(liste, z\.id\)\?\.id \?\? null\)/.test(SEL),
   'la recherche est un RACCOURCI : le pays trouvé se coche dans son continent, qui se déplie')
 ok((SEL.match(/minHeight: 4[48]/g) ?? []).length >= 3, 'aussi simple au doigt : lignes et boutons de 44 px au moins')
-ok(/libelleDeZone\(z, t\('continent_entier'\)\)/.test(SEL), 'l’étiquette d’un continent dit « Europe — tout le continent »')
+// Relecture du 02/10/2026 (BLOQUANT) : ce contrôle EXIGEAIT `libelleDeZone(z, t('continent_entier'))` — un appel SANS la
+// variable {zone}, que next-intl rend par le NOM DE LA CLÉ. Il garde désormais l'appel AVEC sa variable, et
+// diag-variables-i18n interdit la classe dans tout le code.
+ok(/const nommer = \(z: \{ kind: string; name: string \}\) => \(z\.kind === 'continent' \? t\('continent_entier', \{ zone: z\.name \}\) : z\.name\)/.test(SEL)
+   && (SEL.match(/nommer\((suggestion|z|couvrante)\)/g) ?? []).length === 3 && !/t\('continent_entier'\)/.test(SEL),
+  'l’étiquette d’un continent dit « Europe — tout le continent » : le gabarit appelé AVEC sa variable {zone}, aux trois endroits')
 // Point 13 de l'ARRÊT 24, conservé
 ok(/role="radiogroup"[^>]*onKeyDown=\{clavierRadio\}/.test(SEL) && (SEL.match(/tabIndex=\{rangChoisi === /g) ?? []).length === 2
    && /aria-activedescendant=\{listeOuverte && resultats\[actif\] \? idOption\(actif\) : undefined\}/.test(SEL)
@@ -231,27 +236,73 @@ section('6. La spécialité désactivée : l’expert est prévenu ; réactivée
     '« seule spécialité » : aucune autre ACTIVE (une autre désactivée ne compte pas) et aucune précision « Autre »')
   const route = sansCommentaires(lire('app/api/admin/update-speciality/route.ts'))
   ok(/const desactivation = updates\.active === false && sp\.active === true/.test(route)
-     && /if \(desactivation\) \{\s*const prevenir = await notifierRetraitSpecialite\(/.test(route)
-     && /code: 'experts_non_prevenus'/.test(route),
-    'au PASSAGE d’active à inactive, et à lui seul, les experts sont prévenus ; un échec se dit (experts_non_prevenus)')
+     && /const rejeuPrevenir = body\.prevenir === true && sp\.active === false/.test(route)
+     && /if \(desactivation \|\| rejeuPrevenir\) \{\s*const prevenir = await notifierRetraitSpecialite\(auth\.supabaseAdmin, \{[\s\S]{0,160}piece: pieceDeDesactivation as string/.test(route),
+    'au PASSAGE d’active à inactive (et au rejeu « Prévenir les experts »), les avis partent sous la pièce de LA désactivation')
+  // Point 5 de la relecture : une ligne du journal refusée n'empêche plus d'avertir, et chaque manque se dit séparément.
+  {
+    const iLigne = route.indexOf('const ligne = await taxonomieModifiee(')
+    const iAvis = route.indexOf('const prevenir = await notifierRetraitSpecialite(')
+    ok(iLigne > 0 && iAvis > iLigne && !/if \(!ligne\.ok\) \{[\s\S]{0,200}return json/.test(route.slice(iLigne, iAvis))
+       && /code: 'journal_et_experts'/.test(route) && /code: 'experts_non_prevenus'/.test(route) && /code: 'journal_error'/.test(route),
+      'point 5 : une ligne du journal refusée N’EMPÊCHE PLUS d’avertir ; journal, avis, ou les deux : chacun se dit')
+  }
   const notif = sansCommentaires(lire('lib/taxonomie/retrait-specialite.ts'))
   ok(/lireToutesLesLignes<LigneProfil>/.test(notif) && /\.contains\('speciality_ids', \[args\.specialiteId\]\)/.test(notif) && /lectureIncomplete\(lecture\)/.test(notif),
     'TOUS les profils qui la portent sont lus, par pages, et une lecture incomplète est une panne')
+  const mAvis = migration('specialite_ecriture_et_avis_une_fois')
   ok(/resolveNotificationLocale\(compte\?\.locale/.test(notif) && /tBDD\(await loadTranslations\(locale\), 'specialities'/.test(notif)
-     && /type: 'specialite_retiree'/.test(notif) && /channel: 'inapp'/.test(notif) && /\/profil\/valider`/.test(notif),
+     && /\/profil\/valider`/.test(notif) && /\.rpc\('prevenir_retrait_specialite', \{ p_notifications: lignes \}\)/.test(notif)
+     && /'specialite_retiree', 'inapp'/.test(mAvis),
     'dans l’application, DANS SA LANGUE (le nom de la spécialité aussi), avec un lien vers la validation du profil')
-  const manquantes = ['specialite_retiree.titre', 'specialite_retiree.corps', 'specialite_retiree.corps_seule', 'admin_taxonomie.err_experts_non_prevenus'].filter((c) => !dans4(c))
+  ok(/create unique index if not exists notifications_retrait_specialite_une_fois\s+on public\.notifications \(user_id, entity_id, piece\)\s+where type = 'specialite_retiree'/.test(mAvis)
+     && /on conflict \(user_id, entity_id, piece\) where type = 'specialite_retiree' do nothing/.test(mAvis)
+     && !/from\('notifications'\)\.insert/.test(notif),
+    'point 5 : UN avis par expert et par désactivation — index unique partiel, conflit résolu EN SQL avec son prédicat (§E.69), aucun insert direct')
+  ok(/desactivation_piece = case when v_apres then null when v_avant then p_piece else s\.desactivation_piece end/.test(mAvis)
+     && /update public\.specialities s set desactivation_piece = p_piece where s\.id = p_id and s\.desactivation_piece is null/.test(mAvis),
+    'point 5 : la pièce de la désactivation — posée au passage à inactive, gardée par un rejeu, effacée à la réactivation')
+  const page = sansCommentaires(lire('app/[locale]/admin/taxonomie/[id]/page.tsx'))
+  ok(/body: JSON\.stringify\(\{ id: specId, prevenir: true \}\)/.test(page) && /t\('action_prevenir_experts'\)/.test(page)
+     && /code === 'journal_et_experts'/.test(page) && /code === 'journal_error'/.test(page) && /t\('err_ecriture_refusee', \{ cause:/.test(page),
+    'l’écran dit ce qui n’a pas été fait, et propose « Prévenir les experts » (seuls les oubliés le seront)')
+  const manquantes = ['specialite_retiree.titre', 'specialite_retiree.corps', 'specialite_retiree.corps_seule', 'admin_taxonomie.err_experts_non_prevenus',
+    'admin_taxonomie.err_journal_et_experts', 'admin_taxonomie.err_journal_non_ecrit', 'admin_taxonomie.err_ecriture_refusee', 'admin_taxonomie.action_prevenir_experts'].filter((c) => !dans4(c))
   ok(manquantes.length === 0 && LANGUES.every((l) => MSG[l].specialite_retiree.titre.includes('{specialite}')),
     'les textes, dont la variante « seule spécialité », existent dans les quatre langues', manquantes.join(', '))
   ok(/const reactivation = updates\.active === true && sp\.active === false/.test(route)
-     && route.indexOf("if (deja === 'autre')") > 0 && route.indexOf("if (deja === 'autre')") < route.indexOf(".from('specialities').update(updates)"),
+     && route.indexOf("if (deja === 'autre')") > 0 && route.indexOf("if (deja === 'autre')") < route.indexOf(".rpc('modifier_specialite'"),
     'réactiver : les traductions qui RESTERONT sont demandées à la base AVANT toute écriture (« Other », « Otra »)')
-  ok(/if \(reactivation\) await ecrireTraductions\(\)[\s\S]*\.from\('specialities'\)\.update\(updates\)[\s\S]*if \(!reactivation\) await ecrireTraductions\(\)/.test(route),
-    'une réactivation qui corrige une traduction dans le même geste l’écrit D’ABORD (la base refuse sinon)')
+  // Point 4 de la relecture : traductions et spécialité, TOUT OU RIEN, et la vraie cause d'un refus.
+  {
+    const mModif = mAvis.slice(mAvis.indexOf('function public.modifier_specialite('), mAvis.indexOf('function public.prevenir_retrait_specialite('))
+    ok(!/\.from\('translations'\)\.(upsert|insert|update|delete)|\.from\('specialities'\)\.update/.test(route)
+       && mModif.indexOf('insert into public.translations') > 0 && mModif.indexOf('insert into public.translations') < mModif.indexOf('update public.specialities s'),
+      'point 4 : traductions et spécialité s’écrivent en UNE transaction (modifier_specialite), traductions d’abord — aucune écriture directe dans la route')
+    ok(/if \(\/\^2\[23\]\/\.test\(ecrErr\.code \?\? ''\)\) \{\s*return json\(\{ error: 'Write refused', code: 'ecriture_refusee', cause: ecrErr\.message \}, 400\)/.test(route),
+      'point 4 : un refus de la base se rend avec sa cause (ecriture_refusee) — rien n’a été écrit')
+  }
   const m = migration('specialite_reactivation_hors_autre')
   ok(/before update of active on public\.specialities/.test(m) && /public\.est_specialite_autre\(t\.value, null\)/.test(m)
      && /errcode = '23514'/.test(m) && /specialities_autre_hors_referentiel/.test(m),
     'la base le tient : 23514 sous le nom de la contrainte, ce que la route rend specialite_autre_reservee')
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+section('6 bis. Aucune migration citée par son numéro dans les fichiers du lot (§G.3)')
+// ══════════════════════════════════════════════════════════════════════════
+{
+  // Relecture du 02/10/2026, point 6 : deux migrations étaient citées par leur numéro dans `zones_pays_rattaches`. Le
+  // contrôle lit le TEXTE ENTIER (commentaires compris : c'est là qu'on cite) ; des lookarounds sur les chiffres, jamais
+  // `\b` (un horodatage est suivi d'un `_`, caractère de mot — §G.3).
+  const FICHIERS = [
+    ...['zones_couverture_suit_le_referentiel', 'specialite_reactivation_hors_autre', 'zones_pays_rattaches', 'specialite_ecriture_et_avis_une_fois']
+      .map((s) => `supabase/migrations/${readdirSync(join(ROOT, 'supabase', 'migrations')).find((f) => f.endsWith(`_${s}.sql`))}`),
+    'supabase/tests/database/matching/zones_recoupement.test.sql', 'supabase/tests/database/matching/zones_pays_rattaches.test.sql',
+    'supabase/tests/database/taxonomie/reactivation_hors_autre.test.sql', 'supabase/tests/database/taxonomie/specialite_ecriture_et_avis.test.sql',
+  ]
+  const cites = FICHIERS.flatMap((f) => lire(f).split('\n').map((l, i) => [f, i + 1, l]).filter(([, , l]) => /(?<!\d)20\d{12}(?!\d)/.test(l)).map(([f, n]) => `${f}:${n}`))
+  ok(cites.length === 0, `les ${FICHIERS.length} migrations et tests du lot citent les migrations par leur NOM`, cites.join(', '))
 }
 
 // ══════════════════════════════════════════════════════════════════════════
@@ -293,10 +344,38 @@ section('9. L’annonce de sous-traitance porte la branche et les zones, et dit 
     'avant d’envoyer : le MÊME prédicat que /publish, les champs manquants nommés')
   ok(/pub\.code === 'missing_fields' && Array\.isArray\(pub\.missing\)/.test(st) && /messageDuRefus\(pub\.code, t\('errors\.publish_failed'\)\)/.test(st),
     'un refus de /publish se DIT : les champs nommés, chaque code connu traduit — « la publication a échoué » n’est que le dernier recours')
-  const codes = ['invalid_title', 'invalid_description', 'invalid_budget', 'budget_inverted', 'bad_work_zone', 'wrong_status', 'verification_failed',
-    'expert_country_missing', 'profile_not_verified', 'profile_check_unavailable', 'active_publications_check_failed', 'durees_illisibles']
-  const nonDits = codes.filter((c) => !new RegExp(`case '${c}':`).test(st))
-  ok(nonDits.length === 0, `les ${codes.length} refus nommés de la création et de la publication ont chacun leur phrase`, nonDits.join(', '))
+  // LES CODES SONT DÉRIVÉS des routes que le formulaire appelle (§E.61 : une liste tenue à la main ne protège que ce
+  // qu'on a pensé à lui donner — la relecture du 02/10/2026 en a trouvé deux oubliés : compte illisible, offre absente).
+  const SOURCES = ['app/api/publications/route.ts', 'app/api/publications/[id]/route.ts', 'app/api/publications/[id]/publish/route.ts',
+    'lib/collaboration/ensure-personal-org.ts', 'lib/expert-verified-guard.ts', 'lib/durees.ts', 'lib/auth-guard.ts']
+  const derives = new Set(SOURCES.flatMap((f) => [...sansCommentaires(lire(f)).matchAll(/(?:code|error):\s*'([a-z][a-z_]+)'|_CODE = '([a-z_]+)'/g)].map((m) => m[1] ?? m[2])))
+  // Ceux qui ne passent PAS par messageDuRefus, chacun avec sa raison (§G.8).
+  const AILLEURS = {
+    missing_fields: 'LÉGITIME — traité à part : les champs nommés sous chacun d’eux',
+    quota_publications_reached: 'LÉGITIME — le mur « Bientôt disponible » (phase wall)',
+    active_publications_limit_reached: 'LÉGITIME — le mur « Bientôt disponible » (phase wall)',
+    invalid_type: 'LÉGITIME — le type est écrit par le formulaire (sous_traitance), jamais saisi',
+    invalid_json: 'LÉGITIME — le corps est construit par le formulaire, jamais saisi',
+    org_required: 'LÉGITIME — la route de création résout l’organisation personnelle elle-même pour une sous-traitance',
+    not_found: 'LÉGITIME — le brouillon repris est celui que la route vient de rendre ; à défaut, le repli « de notre côté » est juste',
+    forbidden: 'LÉGITIME — le brouillon repris appartient à l’expert ; à défaut, le repli « de notre côté » est juste',
+    user_missing: 'LÉGITIME — un compte connecté sans ligne users : de notre côté, le repli le dit',
+    db_error: 'LÉGITIME — panne de notre côté : le repli dit exactement cela (create_failed, publish_failed)',
+    internal_error: 'LÉGITIME — panne de notre côté : le repli dit exactement cela',
+    journal_error: 'LÉGITIME — le besoin est écrit, sa ligne manque : le repli « de notre côté » est juste',
+    missing_env: 'LÉGITIME — le serveur est mal configuré : de notre côté, le repli le dit',
+    organization_lookup_failed: 'LÉGITIME — une lecture en panne (503) : de notre côté, le repli le dit',
+    insufficient_role: 'LÉGITIME — l’expert est administrateur de SON organisation personnelle (ensurePersonalOrg l’y inscrit admin)',
+    org_not_approved: 'LÉGITIME — levé par requireOrgApproved, qu’aucune des trois routes n’appelle',
+  }
+  const nonDits = [...derives].filter((c) => !(c in AILLEURS) && !new RegExp(`case '${c}':`).test(st))
+    .filter((c) => !/^(invalid_id|no_changes|unauthorized|session_|compte_different|domain_mismatch|account_|deletion_|email_not|ecosysteme_|auth_)/.test(c) || ['compte_verification_indisponible'].includes(c))
+  ok(derives.size > 15 && nonDits.length === 0,
+    `les ${derives.size} codes que la création et la publication peuvent rendre ont chacun leur phrase, ou leur raison d’aller au repli`, nonDits.join(', '))
+  ok(/case 'compte_verification_indisponible': return t\('errors\.compte_illisible'\)/.test(st) && /case 'package_missing': return t\('errors\.offre_indisponible'\)/.test(st),
+    'relecture du 02/10/2026 : le compte illisible et l’offre absente disent chacun leur vérité')
+  ok(LANGUES.every((l) => !/champs|fields|campos|Felder/i.test(MSG[l].collaboration.errors.create_failed)),
+    'le repli de la création ne dit plus « vérifiez les champs » (chaque champ fautif est nommé par son propre code)')
   const cles = [...clesCitees(st, 't', 'collaboration'), ...clesCitees(st, 'tPub', 'publications')].filter((c) => !dans4(c))
   ok(cles.length === 0, 'chaque texte du formulaire existe dans les quatre langues', cles.join(', '))
   ok(/let id = brouillonId/.test(st) && /method: 'PATCH'/.test(st) && /setBrouillonId\(id\)/.test(st),

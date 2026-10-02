@@ -38,10 +38,12 @@ with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
   -- CE PUSH, LE LOT « ZONES DE TRAVAIL » (02/10/2026) : staging est à jour jusqu'à photo_par_le_serveur (lot B déployé).
-  -- Trois migrations, toutes AVANT : zones_couverture_suit_le_referentiel (une fonction de recalcul, un déclencheur
+  -- Quatre migrations, toutes AVANT : zones_couverture_suit_le_referentiel (une fonction de recalcul, un déclencheur
   -- sur work_zones, une reprise qui ne touche que les couvertures en retard), specialite_reactivation_hors_autre (un
   -- déclencheur sur specialities) et zones_pays_rattaches (des LIGNES de work_zones et leurs traductions, pour les pays
-  -- sans continent — aucune sur staging : « 0 pays rattaché(s) »). AUCUNE ne supprime de signature.
+  -- sans continent — aucune sur staging : « 0 pays rattaché(s) »), puis specialite_ecriture_et_avis_une_fois (relecture :
+  -- une colonne nullable sur specialities, deux fonctions, un index unique partiel sur notifications limité au type
+  -- specialite_retiree, que le code en ligne n'écrit pas). AUCUNE ne supprime de signature.
   prochain_push_retire(signature) as (
     select unnest(array[]::text[])
   ),
@@ -52,7 +54,10 @@ with
     select v.genre, v.nom from (values
       ('fonction', 'recalculer_couverture_des_zones'),
       ('fonction', 'work_zones_couverture'),
-      ('fonction', 'specialite_reactivee_hors_autre')
+      ('fonction', 'specialite_reactivee_hors_autre'),
+      ('fonction', 'modifier_specialite'),
+      ('fonction', 'prevenir_retrait_specialite'),
+      ('index', 'notifications_retrait_specialite_une_fois')
     ) v(genre, nom)
   )
 

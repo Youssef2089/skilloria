@@ -4064,14 +4064,17 @@
     },
     "errors": {
       "org_unavailable": "Your collaboration workspace could not be prepared. Please try again shortly.",
-      "create_failed": "Could not save the need. Check the fields and try again.",
+      "create_failed": "Saving the need did not go through on our side. Try again in a few moments.",
       "publish_failed": "Publishing did not go through on our side. Your need is saved as a draft: try again in a few moments.",
       "profile_check_failed": "We could not check your profile status. This is not a verification refusal: nothing was published. Please try again in a few moments; if the problem persists, contact support.",
       "publish_check_failed": "We could not check how many active listings your plan allows. Nothing was posted. Try again in a few moments; if it persists, contact support.",
       "expert_country_missing": "Your collaboration space uses the address on your profile, and the country is missing there. Fill it in on your profile, then publish again: nothing has been lost.",
       "profile_not_verified": "Your profile must be approved before you can publish a subcontracting need. Nothing was published.",
       "durees_illisibles": "Publishing is temporarily unavailable. Nothing was published: try again in a few moments.",
-      "taxonomie_indisponible": "The list of branches and zones could not be loaded. Reload the page."
+      "taxonomie_indisponible": "The list of branches and zones could not be loaded. Reload the page.",
+      "compte_illisible": "We could not read your account. This is not a refusal: nothing was saved. Try again in a few moments.",
+      "offre_indisponible": "The collaboration offer is not available on the platform yet: nothing was saved. Contact support.",
+      "session_expiree": "Your session has expired: sign in again, then publish again. Nothing was published."
     },
     "list": {
       "title": "My subcontracting needs",
@@ -4244,7 +4247,11 @@
     "usage_unavailable_warning": "We could not read what this branch still carries. That is not “nothing”: we do not know. Reload the page before deciding.",
     "err_usage_unavailable": "Deletion refused: we could not check what this branch still carries. Nothing was deleted. Please try again in a moment.",
     "err_specialite_autre_reservee": "“Other” is not a speciality of the reference list: it is the “Other (specify)” option offered to experts and job posts. Choose another name.",
-    "err_experts_non_prevenus": "The speciality is deactivated, but the experts who had chosen it could not be notified. Reactivate it, then deactivate it again to notify them."
+    "err_experts_non_prevenus": "The speciality is deactivated, but not all the experts who had chosen it could be notified. Click “Notify the experts”: only those not yet notified will be.",
+    "err_journal_non_ecrit": "The change is saved, but its log entry could not be written. Nothing needs to be redone on the speciality.",
+    "err_journal_et_experts": "The speciality is deactivated, but neither its log entry nor the notice to the experts could be written. Click “Notify the experts”: only those not yet notified will be.",
+    "action_prevenir_experts": "Notify the experts",
+    "err_ecriture_refusee": "The database refused the change (“{cause}”): nothing was saved, neither the speciality nor its translations."
   },
   "candidature_lifecycle": {
     "filters": {
