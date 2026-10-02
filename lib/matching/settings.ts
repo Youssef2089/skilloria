@@ -8,23 +8,29 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  *   main le jour où la ligne manque — c'est-à-dire le jour où l'on comprend le
  *   moins ce qui se passe. Ligne absente ⇒ on refuse, et on le dit.
  *
- * POURQUOI DEUX FILTRES, ET LE MOT « SEUIL » N EN EST PAS UN
- *   `feed`   : ce qui entre dans le flux de l'expert.
- *   `notify` : ce qui déclenche une notification.
- *   Le levier est « montrer plus, notifier moins ». Ces deux réglages TRIENT :
- *   ils ne bloquent rien et ne jugent personne — d où le mot FILTRE, et non
+ * UN FILTRE, UN PALIER — ET LE MOT « SEUIL » N'EST NI L'UN NI L'AUTRE
+ *   `feed`   : ce qui entre dans le flux de l'expert — ET CE QUI LE PRÉVIENT.
+ *   `notify` : à partir de quelle note une annonce porte le palier « Correspondance forte ».
+ *   Le filtre TRIE : il ne bloque rien et ne juge personne — d'où le mot FILTRE, et non
  *   « seuil », qui désignait quatre comportements incompatibles dans ce produit.
  *
+ * ⚠️ AUCUN RÉGLAGE NE DÉCIDE PLUS SI L'EXPERT EST PRÉVENU (décision de Youssef, 02/10/2026, lot alertes) :
+ *   une annonce qui s'affiche dans ses recommandations le prévient — dans la cloche, et par e-mail s'il l'a
+ *   activé. `notify_enabled` (faux par défaut) et le filtre de notification (8/10) coupaient l'alerte d'une
+ *   annonce AFFICHÉE avec « Correspondance forte » et la pastille rouge : l'expert la voyait, rien ne partait.
+ *   La colonne `notify_enabled` reste en base, INERTE, et n'est plus lue ; `notify_threshold` ne règle plus que
+ *   le PALIER affiché. Un réglage qui contredirait la règle n'existe donc plus — ni dans le code, ni à l'écran.
+ *
  * POURQUOI LE MODÈLE VOYAGE AVEC EUX
- *   Changer de reranker change l'échelle. Les deux seuils deviennent alors faux,
+ *   Changer de reranker change l'échelle. Le filtre et le palier deviennent alors faux,
  *   et les scores anciens ne sont plus comparables aux nouveaux. Les lire
  *   ensemble force à voir l'un quand on touche à l'autre.
  */
 
 export type MatchingSettings = {
   feed_threshold: number
+  /** Le PALIER « Correspondance forte » — il ne décide d'aucune notification (voir l'en-tête). */
   notify_threshold: number
-  notify_enabled: boolean
   rerank_model: string
   rerank_batch_size: number
 }
@@ -39,7 +45,7 @@ export async function loadMatchingSettings(
 ): Promise<SettingsOutcome> {
   const { data, error } = await supabaseAdmin
     .from('matching_settings')
-    .select('feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size')
+    .select('feed_threshold, notify_threshold, rerank_model, rerank_batch_size')
     .eq('domain_id', domainId)
     .maybeSingle()
 
@@ -80,13 +86,13 @@ export async function loadMatchingSettings(
   // c'est l'ANCIENNE version de ce test (`> 1`) qui faisait refuser le moteur
   // au lieu de le laisser filtrer dix fois trop large.
   if (feed < 0 || feed > 10 || notify < 0 || notify > 10) {
-    return { ok: false, raison: 'illisible', detail: `Filtres hors [0,10] : flux=${feed}, notification=${notify}.` }
+    return { ok: false, raison: 'illisible', detail: `Notes hors [0,10] : flux=${feed}, palier fort=${notify}.` }
   }
   if (notify < feed) {
     return {
       ok: false,
       raison: 'illisible',
-      detail: `Le filtre de notification (${notify}) est sous celui du flux (${feed}) : on notifierait pour une annonce invisible.`,
+      detail: `Le palier « Correspondance forte » (${notify}) est sous le filtre du flux (${feed}) : la base le refuse aussi (matching_settings_ordre_check).`,
     }
   }
 
@@ -95,7 +101,6 @@ export async function loadMatchingSettings(
     settings: {
       feed_threshold: feed,
       notify_threshold: notify,
-      notify_enabled: r.notify_enabled === true,
       rerank_model: model,
       rerank_batch_size: Math.max(1, Math.min(1000, Math.round(batch))),
     },

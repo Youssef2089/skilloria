@@ -57,7 +57,8 @@ with
       ('fonction', 'specialite_reactivee_hors_autre'),
       ('fonction', 'modifier_specialite'),
       ('fonction', 'prevenir_retrait_specialite'),
-      ('index', 'notifications_retrait_specialite_une_fois')
+      ('index', 'notifications_retrait_specialite_une_fois'),
+      ('fonction', 'mission_postulee')
     ) v(genre, nom)
   )
 

@@ -33,10 +33,16 @@ export const dynamic = 'force-dynamic'
  *   changer de modèle sans avoir été obligé de redécider ce qu'on filtre.
  *
  * ═══ CE QUE LA ROUTE REFUSE, ET POURQUOI ELLE LE DIT ═════════════════════
- *   Un filtre de notification SOUS celui du flux : on notifierait un expert
- *   pour une annonce qu'il ne verrait pas en se connectant. La base porte la
- *   même contrainte ; on refuse ici pour rendre une RAISON lisible plutôt
- *   qu'une erreur Postgres.
+ *   Un palier « Correspondance forte » SOUS le filtre du flux : toute annonce
+ *   affichée serait « forte », le libellé ne distinguerait plus rien. La base
+ *   porte la même contrainte ; on refuse ici pour rendre une RAISON lisible
+ *   plutôt qu'une erreur Postgres.
+ *
+ * ═══ ET ELLE NE REÇOIT PLUS `notify_enabled` (lot alertes) ════════════════
+ *   Une annonce qui s'affiche dans les recommandations prévient l'expert,
+ *   toujours (décision de Youssef) : aucun réglage ne doit pouvoir contredire
+ *   cette règle. L'interrupteur n'est plus lu par le moteur ; la route ne
+ *   l'écrit plus, et un corps qui le porte encore ne change rien.
  *
  * ═══ ET L'ÉCRITURE PASSE PAR LE GRAND LIVRE (§D.26) ════════════════════════
  *   La ligne de l'écosystème et la ligne du grand livre sont écrites par UNE
@@ -74,7 +80,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     await Promise.all([
       admin
         .from('matching_settings')
-        .select('domain_id, feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size, updated_at'),
+        .select('domain_id, feed_threshold, notify_threshold, rerank_model, rerank_batch_size, updated_at'),
       admin.from('domains').select('id, slug, name'),
       admin.rpc('ai_spend_status'),
       admin.from('ai_spend_seuils_acteur').select('acteur, seuil_mensuel_usd, plafond_mensuel_usd'),
@@ -164,7 +170,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     domain_id?: unknown
     feed_threshold?: unknown
     notify_threshold?: unknown
-    notify_enabled?: unknown
     rerank_model?: unknown
     rerank_batch_size?: unknown
   }
@@ -177,12 +182,12 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   const domainId = typeof body.domain_id === 'string' && UUID.test(body.domain_id) ? body.domain_id : null
   if (!domainId) return json({ error: 'Invalid domain', code: 'bad_domain' }, 400)
 
-  // On lit l'existant pour valider l'ORDRE des deux filtres même quand un seul
-  // est envoyé. Sans cela, régler le flux seul pourrait le faire passer
-  // au-dessus du filtre de notification sans qu'aucune garde ne le voie.
+  // On lit l'existant pour valider l'ORDRE du filtre et du palier même quand un
+  // seul est envoyé. Sans cela, régler le flux seul pourrait le faire passer
+  // au-dessus du palier « fort » sans qu'aucune garde ne le voie.
   const { data: actuel, error: lectureErr } = await admin
     .from('matching_settings')
-    .select('feed_threshold, notify_threshold, notify_enabled, rerank_model, rerank_batch_size')
+    .select('feed_threshold, notify_threshold, rerank_model, rerank_batch_size')
     .eq('domain_id', domainId)
     .maybeSingle()
   if (lectureErr) {
@@ -203,16 +208,13 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
   if ('notify_threshold' in body) {
     const v = nombreDansBornes(body.notify_threshold, 0, 10)
-    if (v == null) return json({ error: 'filtre de notification hors [0,10]', code: 'bad_filter' }, 400)
+    if (v == null) return json({ error: 'palier « fort » hors [0,10]', code: 'bad_filter' }, 400)
     patch.notify_threshold = v
   }
   if ('rerank_batch_size' in body) {
     const v = nombreDansBornes(body.rerank_batch_size, 1, 1000)
     if (v == null) return json({ error: 'rerank_batch_size hors [1,1000]', code: 'bad_batch' }, 400)
     patch.rerank_batch_size = Math.round(v)
-  }
-  if ('notify_enabled' in body) {
-    patch.notify_enabled = body.notify_enabled === true
   }
 
   // ── LE CHANGEMENT DE MODÈLE ────────────────────────────────────────────
@@ -276,21 +278,21 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     )
   }
 
-  // L'AVANT porte les cinq colonnes que le corps peut toucher ; l'APRÈS, ce
+  // L'AVANT porte les quatre colonnes que le corps peut toucher ; l'APRÈS, ce
   // qu'il touche (`undefined` = non envoyé, la clé n'est pas transmise). Les
   // deux servent au grand livre ET au sous-journal — en littéraux, clé par
-  // clé : un objet construit par programme ne se relit pas.
+  // clé : un objet construit par programme ne se relit pas. `notify_enabled`
+  // n'y est plus : la route ne l'écrit plus (lot alertes) ; sa clé reste dans
+  // la liste blanche pour les lignes passées.
   const avant = {
     feed_threshold: Number(actuel.feed_threshold),
     notify_threshold: Number(actuel.notify_threshold),
-    notify_enabled: actuel.notify_enabled === true,
     rerank_model: actuel.rerank_model,
     rerank_batch_size: Number(actuel.rerank_batch_size),
   } satisfies SousDetail<'reglage_modifie', 'avant'>
   const apres = {
     feed_threshold: patch.feed_threshold,
     notify_threshold: patch.notify_threshold,
-    notify_enabled: patch.notify_enabled,
     rerank_model: patch.rerank_model,
     rerank_batch_size: patch.rerank_batch_size,
   } satisfies SousDetail<'reglage_modifie', 'apres'>

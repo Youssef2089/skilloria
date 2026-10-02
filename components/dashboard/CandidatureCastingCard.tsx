@@ -113,7 +113,9 @@ export default function CandidatureCastingCard({
         <span style={{ display: 'inline-flex', padding: 4, background: 'var(--sk-surface)', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 12%, transparent)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
-        <StatusPill kind={pillKind} icon={<PillIcon size={13} />} size="sm">{statusLabel}</StatusPill>
+        {/* La pastille porte une DATE (« Échange ouvert jusqu'au 17 octobre ») : dans cette carte qui coupe ce qui
+            déborde, elle passe à la ligne au lieu de perdre la fin de la date (lot alertes). */}
+        <StatusPill kind={pillKind} icon={<PillIcon size={13} />} size="sm" wrap>{statusLabel}</StatusPill>
       </div>
 
       {/* Corps */}

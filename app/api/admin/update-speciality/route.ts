@@ -6,6 +6,7 @@ import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { changementsTaxonomie, taxonomieModifiee } from '@/lib/taxonomie/journal-taxonomie'
 import { contientAutre, estRefusAutre } from '@/lib/taxonomie/specialite-autre'
 import { notifierRetraitSpecialite } from '@/lib/taxonomie/retrait-specialite'
+import { motifDuRefus } from '@/lib/taxonomie/motif-refus-ecriture'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -31,7 +32,8 @@ export const dynamic = 'force-dynamic'
  * désactivation, rejeu compris (`prevenir: true`). Ce qui n'a pas été fait se DIT, séparément : 503
  * `experts_non_prevenus`, 500 `journal_error`, 500 `journal_et_experts` — la désactivation, elle, est écrite.
  * ÉCRIRE EST TOUT OU RIEN : la spécialité et ses traductions passent par `modifier_specialite` (une transaction) ; un
- * refus de la base se rend avec sa cause (`ecriture_refusee`).
+ * refus de la base se rend avec son MOTIF nommé (`ecriture_refusee` + `motif`, lib/taxonomie/motif-refus-ecriture.ts) —
+ * jamais le message brut de Postgres, qui reste dans le journal du serveur (relecteur, lot alertes).
  * RÉACTIVER NE RAMÈNE PAS « AUTRE » : une spécialité réactivée dont une traduction EXISTANTE est « Other »,
  * « Otra »… est refusée AVANT toute écriture (`specialite_autre_reservee`) ; la base le tient aussi
  * (migration `specialite_reactivation_hors_autre`).
@@ -109,7 +111,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (has('sort_order')) {
-    if (typeof body.sort_order !== 'number' || !Number.isInteger(body.sort_order) || body.sort_order < 0) {
+    // Borné au type de la colonne (`integer`) : au-delà, la base refusait (22003) après coup.
+    if (typeof body.sort_order !== 'number' || !Number.isInteger(body.sort_order) || body.sort_order < 0 || body.sort_order > 2147483647) {
       return json({ error: 'Invalid sort_order', code: 'invalid_sort_order' }, 400)
     }
     updates.sort_order = body.sort_order
@@ -217,13 +220,15 @@ export async function POST(request: NextRequest): Promise<Response> {
       return json({ error: 'Autre is not a referential speciality', code: 'specialite_autre_reservee' }, 400)
     }
     if (ecrErr.code === '23505') return json({ error: 'Slug already used', code: 'slug_taken' }, 409)
-    // L'ADMINISTRATEUR LIT LA VRAIE CAUSE : un refus de la base (classe 22 ou 23) se rend avec son message, et rien
-    // n'a été écrit — ni la spécialité, ni ses traductions.
+    // L'ADMINISTRATEUR LIT CE QU'IL PEUT CORRIGER : un refus de la base (classe 22 ou 23) se rend avec son MOTIF nommé,
+    // lu dans le code SQLSTATE — chaque motif a sa phrase, dans les quatre langues — et rien n'a été écrit, ni la
+    // spécialité, ni ses traductions. Le message brut de Postgres ne sort PLUS vers l'écran (relecteur, lot alertes) :
+    // il reste ici, au journal du serveur, pour qui diagnostique.
     console.error('[admin:update-speciality] écriture refusée — rien n a été écrit', { id, code: ecrErr.code, message: ecrErr.message })
     if (/^2[23]/.test(ecrErr.code ?? '')) {
-      return json({ error: 'Write refused', code: 'ecriture_refusee', cause: ecrErr.message }, 400)
+      return json({ error: 'Write refused', code: 'ecriture_refusee', motif: motifDuRefus(ecrErr.code) }, 400)
     }
-    return json({ error: 'Update failed', code: 'db_error', cause: ecrErr.message }, 500)
+    return json({ error: 'Update failed', code: 'db_error' }, 500)
   }
 
   // Le grand livre (§D.26, phase B) : la taxonomie de l'écosystème a changé. Une ligne refusée N'EMPÊCHE PLUS d'avertir
@@ -255,7 +260,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   // ── LES EXPERTS QUI L'AVAIENT CHOISIE SONT PRÉVENUS, UNE FOIS PAR DÉSACTIVATION (point 5) ─────────────────────
   //  Au passage d'active à inactive, et au REJEU (« Prévenir les experts », `prevenir: true`) : les avis sont posés sous
   //  la pièce de LA désactivation, et la base saute ceux déjà posés — un rejeu ne prévient que les oubliés.
+  //  CE QUI A ÉTÉ FAIT SE DIT AUSSI (lot alertes) : la réponse porte les experts CONCERNÉS (ceux qui l'ont encore) et les
+  //  avis NOUVEAUX — l'écran les affiche, au lieu de se taire sur un succès.
   let prevenus: number | null = null
+  let concernes: number | null = null
   let nonPrevenus = false
   if (desactivation || rejeuPrevenir) {
     const prevenir = await notifierRetraitSpecialite(auth.supabaseAdmin, {
@@ -263,8 +271,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       nomFr: (updates.name as string | undefined) ?? sp.name,
       piece: pieceDeDesactivation as string,
     })
-    if (prevenir.ok) prevenus = prevenir.nouveaux
-    else {
+    if (prevenir.ok) {
+      prevenus = prevenir.nouveaux
+      concernes = prevenir.concernes
+    } else {
       nonPrevenus = true
       console.error('[admin:update-speciality] experts NON prévenus — la spécialité est désactivée', { id, message: prevenir.message })
     }
@@ -274,5 +284,9 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (nonPrevenus && !ligne.ok) return json({ error: 'Journal and experts failed', code: 'journal_et_experts', speciality_id: id }, 500)
   if (nonPrevenus) return json({ error: 'Experts not notified', code: 'experts_non_prevenus', speciality_id: id }, 503)
   if (!ligne.ok) return json({ error: 'Journal failed', code: 'journal_error', speciality_id: id, experts_prevenus: prevenus }, 500)
-  return json({ ok: true, speciality_id: id, ...(prevenus !== null ? { experts_prevenus: prevenus } : {}) }, 200)
+  return json({
+    ok: true,
+    speciality_id: id,
+    ...(prevenus !== null ? { experts_prevenus: prevenus, experts_concernes: concernes } : {}),
+  }, 200)
 }

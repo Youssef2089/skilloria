@@ -310,11 +310,13 @@ export default function CandidaturesTrackingView({ side = 'freelance' }: { side?
                           {c.publication?.type === 'mission' ? tPub('type.mission') : c.publication?.type === 'offre' ? tPub('type.offre') : '—'}
                         </span>
                       </div>
-                      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm">
+                      {/* La pastille porte une DATE (« Échange ouvert jusqu'au 17 octobre ») : elle passe à la ligne au
+                          lieu d'être coupée, et la ligne se replie quand la colonne est étroite (lot alertes). */}
+                      <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                        <StatusPill kind={pk} icon={<PIcon size={14} />} size="sm" wrap>
                           {lifecycleLabel(c.lifecycle, c.publication?.type)}
                         </StatusPill>
-                        <span style={{ color: 'var(--sk-muted)', fontSize: 12 }}>{t('candidated_ago', { time: relTime(c.created_at) })}</span>
+                        <span style={{ color: 'var(--sk-muted)', fontSize: 12, whiteSpace: 'nowrap' }}>{t('candidated_ago', { time: relTime(c.created_at) })}</span>
                       </div>
                     </button>
                   )

@@ -23,6 +23,7 @@ import { aggregateCandidatures } from '@/lib/candidatures/aggregate'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { signOrgLogoUrls } from '@/lib/org-logo'
 import { PLAFOND_CANDIDATURES_EXPERT, couperEtSignaler, limiteSondee } from '@/lib/plafonds-liste'
+import { originesDesDevoilements } from '@/lib/candidatures/origine-devoilement'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -204,6 +205,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
   }
 
+  // QUI A OUVERT L'ÉCHANGE (lot alertes) : l'entreprise, ou le dévoilement inclus, automatique au dépôt. Le suivi disait
+  // « par l'entreprise » une minute après la candidature, alors que personne n'avait rien fait. Lu au grand livre
+  // (lib/candidatures/origine-devoilement.ts) ; inconnu ⇒ `null`, et l'écran ne nomme personne.
+  const origineDevoilement = await originesDesDevoilements(
+    auth.supabaseAdmin,
+    rows.filter((r) => r.unlocked_at !== null).map((r) => r.id),
+  )
+
   // Lot bascule badges par item : viewed_by_me pour chaque candidature.
   // "Consultée" = candidature_views.viewed_at >= candidatures.updated_at
   // (un changement de statut côté org bump updated_at → re-marquage requis).
@@ -350,6 +359,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       status_reason: r.status_reason,
       ai_match_score: r.ai_match_score,
       unlocked_at: r.unlocked_at,
+      // `inclus` | `entreprise` | null (non dévoilée, ou origine inconnue — l'écran ne nomme alors personne).
+      devoilement: r.unlocked_at ? origineDevoilement.get(r.id) ?? null : null,
       selected_at: r.selected_at,
       cover_message: r.cover_message,
       created_at: r.created_at,

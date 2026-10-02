@@ -524,12 +524,13 @@ async function executerRunExpert(args: {
   })
 
   // ── 7. Notifications ─────────────────────────────────────────────────────
+  //  UNE ANNONCE QUI ENTRE DANS LES RECOMMANDATIONS DE L'EXPERT LE PRÉVIENT (décision de Youssef, lot alertes) — le
+  //  même geste que le sens annonce → experts (lib/matching/index.ts) : chaque insert FRAIS, quel que soit son palier,
+  //  et aucun réglage ne s'interpose (`notify_enabled` n'est plus lu, le palier « fort » ne décide plus rien).
   let notifies = 0
-  if (s.notify_enabled && stats.inserted.length > 0) {
-    const forts = new Set(desired.filter((d) => d.relevance_tier === 'strong').map((d) => d.publication_id))
+  if (stats.inserted.length > 0) {
     const specs: NotifySpec[] = []
     for (const i of stats.inserted) {
-      if (!forts.has(i.publication_id)) continue
       const a = parAnnonce.get(i.publication_id)
       if (!a) continue
       specs.push({

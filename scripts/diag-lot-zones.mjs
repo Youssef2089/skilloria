@@ -263,8 +263,11 @@ section('6. La spécialité désactivée : l’expert est prévenu ; réactivée
      && /update public\.specialities s set desactivation_piece = p_piece where s\.id = p_id and s\.desactivation_piece is null/.test(mAvis),
     'point 5 : la pièce de la désactivation — posée au passage à inactive, gardée par un rejeu, effacée à la réactivation')
   const page = sansCommentaires(lire('app/[locale]/admin/taxonomie/[id]/page.tsx'))
+  // Revu par le lot alertes (mineur du relecteur) : le refus de la base se dit par son MOTIF nommé — le message brut de
+  // Postgres ne sort plus vers l'écran (`diag-alertes-recommandations` garde chaque motif et sa phrase).
   ok(/body: JSON\.stringify\(\{ id: specId, prevenir: true \}\)/.test(page) && /t\('action_prevenir_experts'\)/.test(page)
-     && /code === 'journal_et_experts'/.test(page) && /code === 'journal_error'/.test(page) && /t\('err_ecriture_refusee', \{ cause:/.test(page),
+     && /code === 'journal_et_experts'/.test(page) && /code === 'journal_error'/.test(page)
+     && /if \(code === 'ecriture_refusee'\) \{/.test(page) && !/\{ cause:/.test(page),
     'l’écran dit ce qui n’a pas été fait, et propose « Prévenir les experts » (seuls les oubliés le seront)')
   const manquantes = ['specialite_retiree.titre', 'specialite_retiree.corps', 'specialite_retiree.corps_seule', 'admin_taxonomie.err_experts_non_prevenus',
     'admin_taxonomie.err_journal_et_experts', 'admin_taxonomie.err_journal_non_ecrit', 'admin_taxonomie.err_ecriture_refusee', 'admin_taxonomie.action_prevenir_experts'].filter((c) => !dans4(c))
@@ -279,8 +282,9 @@ section('6. La spécialité désactivée : l’expert est prévenu ; réactivée
     ok(!/\.from\('translations'\)\.(upsert|insert|update|delete)|\.from\('specialities'\)\.update/.test(route)
        && mModif.indexOf('insert into public.translations') > 0 && mModif.indexOf('insert into public.translations') < mModif.indexOf('update public.specialities s'),
       'point 4 : traductions et spécialité s’écrivent en UNE transaction (modifier_specialite), traductions d’abord — aucune écriture directe dans la route')
-    ok(/if \(\/\^2\[23\]\/\.test\(ecrErr\.code \?\? ''\)\) \{\s*return json\(\{ error: 'Write refused', code: 'ecriture_refusee', cause: ecrErr\.message \}, 400\)/.test(route),
-      'point 4 : un refus de la base se rend avec sa cause (ecriture_refusee) — rien n’a été écrit')
+    ok(/if \(\/\^2\[23\]\/\.test\(ecrErr\.code \?\? ''\)\) \{\s*return json\(\{ error: 'Write refused', code: 'ecriture_refusee', motif: motifDuRefus\(ecrErr\.code\) \}, 400\)/.test(route)
+       && !/cause: ecrErr\.message/.test(route),
+      'point 4 : un refus de la base se rend avec son MOTIF nommé (ecriture_refusee) — rien n’a été écrit, et le message brut reste au journal du serveur')
   }
   const m = migration('specialite_reactivation_hors_autre')
   ok(/before update of active on public\.specialities/.test(m) && /public\.est_specialite_autre\(t\.value, null\)/.test(m)

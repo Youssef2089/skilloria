@@ -44,6 +44,21 @@ const NOTIF_BODY: Record<NotifLocale, (args: { title: string }) => string> = {
   es: ({ title }) => `La empresa quiere conversar contigo sobre la oportunidad «${title}».`,
   de: ({ title }) => `Das Unternehmen möchte mit Ihnen über die Möglichkeit „${title}" sprechen.`,
 }
+// LE DÉVOILEMENT INCLUS, AUTOMATIQUE AU DÉPÔT (lot alertes) : « L'entreprise souhaite échanger avec vous » lui
+// attribuait un geste qu'elle n'a pas fait — la candidature était la mieux notée à son arrivée, et l'offre de
+// l'entreprise inclut ce dévoilement. Le suivi le dit (lib/candidatures/origine-devoilement.ts) ; la cloche aussi.
+const NOTIF_TITLE_INCLUS: Record<NotifLocale, string> = {
+  fr: 'Échange ouvert avec l’entreprise',
+  en: 'Exchange opened with the company',
+  es: 'Intercambio abierto con la empresa',
+  de: 'Austausch mit dem Unternehmen geöffnet',
+}
+const NOTIF_BODY_INCLUS: Record<NotifLocale, (args: { title: string }) => string> = {
+  fr: ({ title }) => `Votre candidature à « ${title} » était la mieux notée à son arrivée : l’échange avec l’entreprise s’est ouvert automatiquement.`,
+  en: ({ title }) => `Your application to "${title}" was the highest rated when it arrived: the exchange with the company opened automatically.`,
+  es: ({ title }) => `Tu candidatura a «${title}» era la mejor valorada cuando llegó: el intercambio con la empresa se abrió automáticamente.`,
+  de: ({ title }) => `Ihre Bewerbung auf „${title}" war bei ihrem Eingang am besten bewertet: Der Austausch mit dem Unternehmen wurde automatisch geöffnet.`,
+}
 
 type UnlockJoined = {
   id: string
@@ -189,8 +204,8 @@ export async function performUnlock(
         domain_id: candRow.domain_id,
         type: NOTIF_TYPE,
         channel: NOTIF_CHANNEL,
-        title: NOTIF_TITLE[loc],
-        body: NOTIF_BODY[loc]({ title: pub.title }),
+        title: opts.auto ? NOTIF_TITLE_INCLUS[loc] : NOTIF_TITLE[loc],
+        body: opts.auto ? NOTIF_BODY_INCLUS[loc]({ title: pub.title }) : NOTIF_BODY[loc]({ title: pub.title }),
         link_url: linkUrl,
         status: NOTIF_STATUS,
         entity_id: candidatureId,

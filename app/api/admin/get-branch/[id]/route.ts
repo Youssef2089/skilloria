@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { usageDeLaBranche } from '@/lib/admin/usage-branche'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
+import { etatDesAvisDeRetrait } from '@/lib/taxonomie/etat-des-avis'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -15,7 +16,11 @@ export const dynamic = 'force-dynamic'
  *   - ses spécialités, chacune avec son usage (profils + publications),
  *   - les traductions EN/ES/DE existantes (table public.translations, field
  *     'name') pour la branche et pour chaque spécialité. Le FR est la colonne
- *     `name` (base) : il n'est pas relu depuis translations.
+ *     `name` (base) : il n'est pas relu depuis translations ;
+ *   - pour chaque spécialité INACTIVE, l'état des avis aux experts qui l'avaient
+ *     choisie (concernés, prévenus, à prévenir — lib/taxonomie/etat-des-avis.ts,
+ *     lot alertes) : l'écran dit ce qui a été fait, et propose « Prévenir les
+ *     experts » tant qu'il en reste, même après rechargement.
  * Garde admin per-route via requireAdmin. service_role. AUCUN filtre domaine.
  */
 
@@ -82,7 +87,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
   // ── Spécialités de la branche ───────────────────────────────────────────────
   const { data: specs, error: spErr } = await auth.supabaseAdmin
     .from('specialities')
-    .select('id, name, slug, active, sort_order')
+    .select('id, name, slug, active, sort_order, desactivation_piece')
     .eq('branch_id', id)
     .order('sort_order', { ascending: true })
     .order('name', { ascending: true })
@@ -96,8 +101,16 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     slug: string
     active: boolean
     sort_order: number
+    desactivation_piece: string | null
   }[]
   const specIds = specRows.map((s) => s.id)
+
+  // ── L'état des avis des spécialités INACTIVES (lot alertes) ─────────────────
+  //  Relu à chaque affichage : un rechargement ne fait plus disparaître ce qui reste à faire. Une lecture en panne
+  //  ne vaut pas « tous prévenus » : la spécialité porte `avis_illisible`, et l'écran le dit.
+  const inactives = specRows.filter((s) => !s.active).map((s) => ({ id: s.id, desactivation_piece: s.desactivation_piece }))
+  const avis = await etatDesAvisDeRetrait(auth.supabaseAdmin, inactives)
+  if (!avis.ok) console.error('[admin:get-branch] état des avis illisible', avis.message)
 
   // ── Usage branche (profils + publications) ──────────────────────────────────
   // ── CE QUE LA BRANCHE PORTE — LA MÊME LECTURE QUE LA BARRIÈRE ──────────
@@ -191,6 +204,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     profiles: specProfiles.get(s.id) ?? 0,
     publications: specPublications.get(s.id) ?? 0,
     translations: specTranslations.get(s.id) ?? {},
+    // `null` pour une spécialité active ; pour une inactive, l'état — ou `avis_illisible` si on n'a pas pu le lire.
+    avis: !s.active && avis.ok ? avis.etats.get(s.id) ?? null : null,
+    avis_illisible: !s.active && !avis.ok,
   }))
 
   return json(

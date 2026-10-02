@@ -32,11 +32,18 @@ export default function StatusPill({
   icon,
   children,
   size = 'md',
+  wrap = false,
 }: {
   kind: StatusPillKind
   icon?: ReactNode
   children: ReactNode
   size?: 'sm' | 'md'
+  /**
+   * Le libellé peut-il passer à la ligne ? Une pastille d'ÉTAT DE VIE porte une date (« Échange ouvert jusqu'au
+   * 17 octobre ») : sur une ligne, dans une carte étroite qui coupe ce qui déborde, la fin de la date disparaissait
+   * (lot alertes). Les pastilles courtes gardent une seule ligne.
+   */
+  wrap?: boolean
 }) {
   const s = styleMap[kind]
   const isSm = size === 'sm'
@@ -49,14 +56,16 @@ export default function StatusPill({
         fontSize: isSm ? 11 : 11.5,
         fontWeight: 600,
         padding: isSm ? '4px 9px' : '5px 11px',
-        borderRadius: 999,
+        borderRadius: wrap ? 12 : 999,
         background: s.bg,
         color: s.color,
-        whiteSpace: 'nowrap',
-        lineHeight: 1,
+        whiteSpace: wrap ? 'normal' : 'nowrap',
+        lineHeight: wrap ? 1.3 : 1,
+        maxWidth: '100%',
+        minWidth: 0,
       }}
     >
-      {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>}
+      {icon && <span aria-hidden style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>{icon}</span>}
       {children}
     </span>
   )

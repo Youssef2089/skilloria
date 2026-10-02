@@ -12,7 +12,7 @@ import type { MissionCardData } from './MissionCard'
  * MissionCastingCard — carte commerciale (rangée home « Missions
  * recommandées »). Bandeau teinté accent (--sk-accent-soft) + tuile logo
  * (Avatar, repli initiales) + pastille score ; corps : accroche
- * (« Nouveau » / « Top match » score≥9) · titre · entreprise · meta
+ * (« Nouveau » seulement — le palier vit dans le bandeau, une fois) · titre · entreprise · meta
  * (lieu · remote · fraîcheur) · chips compétences (max 3 + « +N ») · budget
  * + CTA accent plein.
  *
@@ -90,9 +90,9 @@ export default function MissionCastingCard({
         <span style={{ display: 'inline-flex', padding: 4, background: 'var(--sk-surface)', border: `1px solid ${castingTheme.logoBorder}`, borderRadius: 11, boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 12%, transparent)' }}>
           <Avatar src={logoUrl} name={orgName} size={34} variant="neutral" />
         </span>
-        {/* La pastille « N /10 » a disparu avec le nombre qu'elle affichait. */}
+        {/* La pastille « N /10 » a disparu avec le nombre qu'elle affichait. Et son info-bulle aussi (lot alertes) :
+            elle exposait à l'expert une phrase INTERNE sur le fonctionnement du moteur — le palier se lit seul. */}
         <span
-          title={tBadge('tooltip')}
           style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--sk-surface)', padding: '4px 10px', borderRadius: 999, boxShadow: '0 1px 3px color-mix(in srgb, var(--sk-text) 12%, transparent)', fontSize: 11, fontWeight: 700, color: isTopMatch ? castingTheme.scoreGreen : 'var(--sk-muted)' }}
         >
           {tBadge(relevance_tier)}
@@ -101,9 +101,11 @@ export default function MissionCastingCard({
 
       {/* Corps */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7, padding: '12px 14px', flex: 1 }}>
-        {(isFresh || isTopMatch) && (
+        {/* « Nouveau » SEULEMENT. Cette pastille retombait sur « Correspondance forte » une fois la mission vue —
+            le libellé que le bandeau porte déjà : il s'affichait DEUX FOIS sur la même carte (lot alertes). */}
+        {isFresh && (
           <span style={{ alignSelf: 'flex-start', fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '.05em', color: castingTheme.pillSoftText, background: castingTheme.pillSoftBg, padding: '3px 8px', borderRadius: 999 }}>
-            {isFresh ? tCard('new_label') : tBadge('strong')}
+            {tCard('new_label')}
           </span>
         )}
 
