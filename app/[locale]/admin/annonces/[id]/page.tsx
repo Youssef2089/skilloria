@@ -32,6 +32,7 @@ type Payload = {
     speciality_other: string | null
     created_at: string
     updated_at: string
+    soumise_le: string | null
     published_at: string | null
     voie: 'automatique' | 'administrateur' | null
     ecosysteme: string | null
@@ -263,7 +264,7 @@ export default function AdminAnnonceFichePage({ params }: Props) {
             )}
           </div>
           <div style={{ fontSize: 13, color: 'var(--sk-muted)' }}>
-            {[typeLibelle, organisation.nom, t('fiche.soumise_le', { date: formatDate(a.updated_at) })].filter(Boolean).join(' · ')}
+            {[typeLibelle, organisation.nom, a.soumise_le ? t('fiche.soumise_le', { date: formatDate(a.soumise_le) }) : null].filter(Boolean).join(' · ')}
           </div>
         </div>
         <span style={{ padding: '6px 14px', fontSize: 12, fontWeight: 700, borderRadius: 12, background: statutCouleurs.fond, color: statutCouleurs.texte, textTransform: 'uppercase', letterSpacing: '.05em' }}>

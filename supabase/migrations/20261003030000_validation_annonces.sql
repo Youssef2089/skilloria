@@ -61,6 +61,37 @@ update public.grand_livre_actions
  where code = 'sous_traitance_publiee';
 
 
+-- ── ① bis LA DATE DE SOUMISSION (relecture de l'ARRÊT 28, point 8) ───────────
+--  La fiche disait « soumise le » avec `updated_at` — la date de la DERNIÈRE écriture (une place réservée, une décision,
+--  une modification), pas celle de la soumission. Une colonne la porte désormais, posée par la voie AUTOMATIQUE de
+--  publier_annonce() (l'auteur soumet : `draft` → verdict) et jamais réécrite par la voie administrateur. Nullable : le
+--  code en ligne ne la nomme pas (rien de ce qu'il écrit n'est refusé). Les annonces déjà soumises la reçoivent de la
+--  trace d'audit de leur DERNIÈRE soumission (`publication_submitted_review` / `publication_published`, best-effort,
+--  §E.68) ; sans trace, elle reste vide et la fiche ne dit pas de date plutôt qu'une fausse.
+alter table public.publications add column if not exists soumise_le timestamptz;
+comment on column public.publications.soumise_le is
+  'Quand l''auteur a soumis l''annonce au contrôle (la voie automatique de publier_annonce, draft → verdict) ; jamais réécrite par la voie administrateur. Lue par la fiche admin (« soumise le »).';
+
+-- La reprise des annonces déjà soumises — une reprise de données VOULUE, dans son propre bloc (§G.4 ter).
+do $reprise$
+declare
+  v_n integer;
+begin
+  update public.publications p
+     set soumise_le = a.quand
+    from (select l.entity_id, max(l.created_at) as quand
+            from public.audit_logs l
+           where l.entity_type = 'publication'
+             and l.action in ('publication_submitted_review', 'publication_published')
+           group by l.entity_id) a
+   where a.entity_id = p.id
+     and p.soumise_le is null
+     and p.status <> 'draft';
+  get diagnostics v_n = row_count;
+  raise notice 'date de soumission : % annonce(s) reprise(s) depuis la trace d''audit (les autres restent sans date)', v_n;
+end
+$reprise$;
+
 -- ── ② LA MISE EN LIGNE : DEUX VOIES, UN ÉCRIVAIN ─────────────────────────────
 create or replace function public.publier_annonce(
   p_piece            uuid,
@@ -127,6 +158,7 @@ begin
          verified_by         = case when v_par_admin then p_acteur_id else p.verified_by end,
          verified_at         = case when v_par_admin then now() else p.verified_at end,
          review_reason       = case when v_par_admin then null else p.review_reason end,
+         soumise_le          = case when v_par_admin then p.soumise_le else now() end,
          published_at        = case when p_verdict = 'published' then now() else p.published_at end
    where p.id = p_publication_id
   returning p.id, p.type, p.status, p.published_at, p.verification_method, p.verification_score into v_p;
@@ -230,6 +262,10 @@ do $post$
 declare
   v_cles text[];
 begin
+  if not exists (select 1 from information_schema.columns c
+                  where c.table_schema = 'public' and c.table_name = 'publications' and c.column_name = 'soumise_le') then
+    raise exception 'postcondition NON TENUE : publications.soumise_le manque';
+  end if;
   if to_regprocedure('public.publier_annonce(uuid, uuid, text, uuid, text, uuid, uuid, uuid, text[], text, numeric, text, jsonb)') is null then
     raise exception 'postcondition NON TENUE : publier_annonce manque ou a change de signature';
   end if;

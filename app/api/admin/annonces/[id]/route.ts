@@ -52,6 +52,7 @@ type Ligne = Record<string, unknown> & {
   published_at: string | null
   created_at: string
   updated_at: string
+  soumise_le: string | null
   branches: { id: string; name: string } | Array<{ id: string; name: string }> | null
   organizations: { company_name: string | null; org_type: string | null } | Array<{ company_name: string | null; org_type: string | null }> | null
   domains: { name: string | null } | Array<{ name: string | null }> | null
@@ -86,7 +87,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       .from('publications')
       .select(
         `${PUBLICATION_SYNTHESIS_SELECT}, description, skills_required, speciality_other, status, ` +
-          'verification_score, verification_data, verified_by, verified_at, review_reason, published_at, created_at, updated_at, ' +
+          'verification_score, verification_data, verified_by, verified_at, review_reason, published_at, created_at, updated_at, soumise_le, ' +
           'branches(id, name), organizations(company_name, org_type), domains(name), ' +
           // DEUX clés étrangères vers `users` : chaque embed nomme la sienne (§E.18).
           'auteur:users!publications_created_by_fkey(first_name, last_name, email, user_type), ' +
@@ -129,6 +130,8 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
       speciality_other: pub.speciality_other ?? null,
       created_at: pub.created_at,
       updated_at: pub.updated_at,
+      // La date de SOUMISSION par l'auteur (relecture de l'ARRÊT 28, point 8) — pas updated_at, la dernière écriture.
+      soumise_le: pub.soumise_le,
       published_at: pub.published_at,
       voie: voieDeMiseEnLigne(pub),
       ecosysteme: un(pub.domains)?.name ?? null,

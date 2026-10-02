@@ -536,7 +536,10 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   motif obligatoire (22023), `pending_review` → `rejected` dans l'UPDATE (le `WHERE` est la garde), zéro ligne rend
 >   null. **Pourquoi AVANT sans risque** (§E.72, §E.91) : le code en ligne appelle `publier_annonce()` avec `['draft']`, et
 >   sur ce chemin le corps fait ce qu'il faisait (plus la clé `voie`) ; les deux refus neufs ne visent que la sortie de
->   revue, que ce code ne demande jamais. Test : `grand_livre/annonce_refusee.test.sql` (16). Écran `/admin/annonces`
+>   revue, que ce code ne demande jamais. **Relecture de l'ARRÊT 28, point 8** : la colonne `soumise_le` (nullable), posée
+>   par la voie AUTOMATIQUE (l'auteur soumet), jamais réécrite par la voie administrateur, reprise pour les annonces déjà
+>   soumises depuis l'audit de leur dernière soumission ; la fiche et l'onglet « En attente » la lisent au lieu
+>   d'`updated_at`. Test : `grand_livre/annonce_refusee.test.sql` (18). Écran `/admin/annonces`
 >   (§P2.4).
 >
 > **LE REGROUPEMENT (ARRÊT 28, 03/10/2026) — les quatre lots en UNE première livraison** : `annonce_criteres_communs`,
@@ -4254,9 +4257,10 @@ métier, jamais au journal (`annonce_refusee`). L'auteur est prévenu dans sa la
 administrateur est EN BASE (42501) : l'anti-relance ne dépend plus de la seule route. **Au regroupement (ARRÊT 28)** : la
 validation applique le prédicat ENTIER de la publication (§D.39) — une annonce en revue sans spécialité ou sans temps de
 travail est refusée `missing_fields`, champs nommés, et l'écran dit que c'est à son AUTEUR de la compléter (la base le tient
-depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (16), `diag-grand-livre`,
+depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (18), `diag-grand-livre`,
 `diag-journal-lisible`, et — depuis la relecture de l'ARRÊT 28 — `diag-validation-annonces` (une section par point : une
-décision déjà prise recharge vraiment la fiche et le dit après, point 6 ; une annonce jamais jugée par l'IA dit « non
+décision déjà prise recharge vraiment la fiche et le dit après, point 6 ; « soumise le » lit `soumise_le`, pas
+`updated_at`, point 8 ; une annonce jamais jugée par l'IA dit « non
 jugée », jamais « 0/10 », dans la liste — par `raisonsDuVerdict`, comme la fiche — et au journal, où une note 0 est la forme
 d'une vérification qui n'a pas jugé (§E.114), point 7 ; …).
 

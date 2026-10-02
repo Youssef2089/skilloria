@@ -8,7 +8,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir _fabriques.psql
-select plan(16);
+select plan(18);
 
 -- Une annonce EN REVUE, par le chemin normal : brouillon, puis verdict qui ne publie pas (note 4).
 create or replace function pg_temp.en_revue(p_org uuid, p_auteur uuid, p_type text default 'mission') returns uuid
@@ -53,6 +53,12 @@ begin
                                gen_random_uuid(), v_admin, v_valide, v_dom, v_org),
                         '22023', null, 'la voie administrateur ne réécrit pas le verdict de la machine');
 
+  -- ── LA DATE DE SOUMISSION (relecture de l'ARRÊT 28, point 8) : posée par la soumission de l'auteur, jamais réécrite par
+  --    la validation. Dans une transaction, now() ne bouge pas : on la place dans le passé pour voir qu'elle tient.
+  return next ok((select p.soumise_le is not null from public.publications p where p.id = v_valide),
+                 'la soumission de l''auteur date l''annonce (soumise_le)');
+  update public.publications set soumise_le = '2026-01-01T09:00:00Z' where id = v_valide;
+
   -- ── VALIDER ──
   v_r := public.publier_annonce(v_p1, null, 'administrateur', v_admin, 'admin', v_valide, v_dom, v_org,
                                 array['pending_review'], 'published', null, null, null);
@@ -61,6 +67,8 @@ begin
   return next ok(exists (select 1 from public.publications p where p.id = v_valide and p.verified_by = v_admin and p.verified_at is not null
                           and p.verification_score = 4 and p.verification_data -> 'flags' ? 'incoherent' and p.review_reason is null),
                  'le verdict de la machine est conservé, l''administrateur et la date sont posés');
+  return next ok((select p.soumise_le = '2026-01-01T09:00:00Z'::timestamptz from public.publications p where p.id = v_valide),
+                 'la validation ne réécrit pas la date de soumission');
   return next ok(pg_temp.lignes(v_p1) = 1 and exists (select 1 from public.grand_livre g where g.piece = v_p1
                   and g.type_action = 'annonce_publiee' and g.sujet_id = v_valide and g.ecosysteme_id = v_dom
                   and g.acteur_id = v_admin and g.detail ->> 'voie' = 'administrateur' and (g.detail ->> 'verification_score')::numeric = 4),

@@ -55,6 +55,7 @@ type Ligne = {
   published_at: string | null
   created_at: string
   updated_at: string
+  soumise_le: string | null
   organizations: { company_name: string | null; org_type: string | null } | Array<{ company_name: string | null; org_type: string | null }> | null
   domains: { name: string | null } | Array<{ name: string | null }> | null
   auteur: { first_name: string | null; last_name: string | null; email: string | null } | Array<{ first_name: string | null; last_name: string | null; email: string | null }> | null
@@ -103,7 +104,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   let query = auth.supabaseAdmin
     .from('publications')
     .select(
-      'id, type, title, status, verification_score, verification_data, verified_by, verified_at, published_at, created_at, updated_at, ' +
+      'id, type, title, status, verification_score, verification_data, verified_by, verified_at, published_at, created_at, updated_at, soumise_le, ' +
         'organizations(company_name, org_type), domains(name), ' +
         // DEUX clés étrangères vers `users` (created_by, verified_by) : l'embed NOMME la sienne (§E.18).
         'auteur:users!publications_created_by_fkey(first_name, last_name, email)',
@@ -144,7 +145,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       auteur: nomAuteur || auteur?.email || null,
       ecosysteme: un(r.domains)?.name ?? null,
       // La date qui compte pour l'onglet : la soumission, la mise en ligne, le refus.
-      date: r.status === 'rejected' ? (r.verified_at ?? r.updated_at) : (r.published_at ?? r.updated_at),
+      // En attente : la SOUMISSION (`soumise_le`, relecture de l'ARRÊT 28, point 8), jamais updated_at.
+      date: r.status === 'rejected' ? (r.verified_at ?? r.updated_at)
+        : r.status === 'pending_review' ? r.soumise_le
+        : (r.published_at ?? r.updated_at),
     }
   })
 

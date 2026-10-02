@@ -39,6 +39,8 @@ const F = {
   liste: 'app/api/admin/annonces/route.ts',
   ecranListe: 'app/[locale]/admin/annonces/page.tsx',
   phrase: 'lib/journal/phrase.ts',
+  routeFiche: 'app/api/admin/annonces/[id]/route.ts',
+  migration: 'supabase/migrations/20261003030000_validation_annonces.sql',
 }
 let REELS
 try {
@@ -59,6 +61,16 @@ function juger(t) {
   const appels = (t.fiche.match(/if \(!res\.ok && p\.code === 'already_processed'\) \{ await dejaTranchee\(\); return \}/g) ?? []).length
   if (appels !== 2) fautes.push(`6. valider ET refuser doivent recharger sur « déjà tranchée » (vu : ${appels} sur 2)`)
   if (!/const enRevue = a\.status === 'pending_review'/.test(t.fiche)) fautes.push('6. les boutons ne dépendent plus du statut relu')
+  // 8 — « SOUMISE LE » DIT LA SOUMISSION, jamais la dernière écriture.
+  if (/soumise_le', \{ date: formatDate\(a\.updated_at\)/.test(t.fiche) || !/t\('fiche\.soumise_le', \{ date: formatDate\(a\.soumise_le\) \}\)/.test(t.fiche)) {
+    fautes.push('8. la fiche date la soumission par updated_at (la dernière écriture)')
+  }
+  if (!/soumise_le: pub\.soumise_le/.test(t.routeFiche) || !/: r\.status === 'pending_review' \? r\.soumise_le/.test(t.liste)) {
+    fautes.push('8. la fiche ou la liste ne servent plus la date de soumission')
+  }
+  if (!/soumise_le\s*= case when v_par_admin then p\.soumise_le else now\(\) end/.test(t.migration)) {
+    fautes.push('8. publier_annonce ne pose plus la date de soumission sur la voie automatique, ou la réécrit sur la voie administrateur')
+  }
   // 7 — JAMAIS JUGÉE ≠ « 0/10 », dans la liste comme au journal.
   if (!/raisonsDuVerdict\(r\.verification_data, r\.verification_score\)/.test(t.liste) || !/non_jugee: r2\.non_aboutie/.test(t.liste)
       || !/'id, type, title, status, verification_score, verification_data,/.test(t.liste)) {
@@ -90,6 +102,8 @@ section('L’épreuve : chaque mutation fait rougir le contrôle')
     ['la liste qui sert la note brute', () => muter('liste', 'return { note: r2.note, non_jugee: r2.non_aboutie }', 'return { note: r.verification_score, non_jugee: false }')],
     ['l’écran qui affiche la note d’une annonce non jugée', () => muter('ecranListe', '{!r.non_jugee && r.note != null && (', '{r.note != null && (')],
     ['le journal qui redit « 0/10 »', () => muter('phrase', 'const nonJugee = note === 0', 'const nonJugee = false')],
+    ['« soumise le » redevenu updated_at', () => muter('fiche', 'formatDate(a.soumise_le)', 'formatDate(a.updated_at)')],
+    ['la validation qui réécrit la date de soumission', () => muter('migration', 'case when v_par_admin then p.soumise_le else now() end', 'now()')],
     ['le refus qui oublie « déjà tranchée »', () => muter('fiche', "      if (!res.ok && p.code === 'already_processed') { await dejaTranchee(); return }\n      if (!res.ok) {\n        if (p.code === 'motif_requis'", "      if (!res.ok) {\n        if (p.code === 'motif_requis'")],
   ]
   for (const [nom, fabriquer] of EPREUVES) {

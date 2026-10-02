@@ -1,0 +1,8 @@
+begin;
+set local role authenticated;
+select public.renvoyer_invitation(
+  '00000000-0000-0000-0000-000000000001', null, 'utilisateur',
+  '00000000-0000-0000-0000-000000000002', 'client',
+  '00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000004',
+  '00000000-0000-0000-0000-000000000005', array['pending'], 'test', now());
+rollback;
