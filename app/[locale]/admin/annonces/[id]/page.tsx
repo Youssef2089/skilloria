@@ -126,6 +126,18 @@ export default function AdminAnnonceFichePage({ params }: Props) {
       : p.auteur_introuvable ? t('admin.auteur_introuvable')
       : p.auteur_prevenu ? t('admin.auteur_prevenu') : t('admin.auteur_non_prevenu')
 
+  /**
+   * DÉJÀ TRANCHÉE — par un autre onglet, un autre administrateur, ou la seconde de deux validations simultanées (relecture
+   * de l'ARRÊT 28, point 6) : la fiche se RECHARGE vraiment (la décision s'affiche, les boutons disparaissent avec le
+   * statut), et le message le dit APRÈS le rechargement — `load()` efface les erreurs, il ne doit pas effacer celle-ci.
+   */
+  const dejaTranchee = async () => {
+    setShowRefus(false)
+    setMotif('')
+    await load()
+    setIssue({ genre: 'attention', texte: t('erreurs.already_processed') })
+  }
+
   const valider = async () => {
     setBusy('valider')
     setIssue(null)
@@ -137,6 +149,7 @@ export default function AdminAnnonceFichePage({ params }: Props) {
         body: JSON.stringify({ site_url: window.location.origin }),
       })
       const p = (await res.json().catch(() => ({}))) as { code?: string; missing?: unknown; auteur_prevenu?: boolean; auteur_introuvable?: boolean; auteur_illisible?: boolean }
+      if (!res.ok && p.code === 'already_processed') { await dejaTranchee(); return }
       if (!res.ok) {
         // Une annonce incomplète (une spécialité, le temps de travail…) : les champs sont NOMMÉS, et l'écran dit que
         // c'est à son auteur de la compléter — les mêmes libellés que le formulaire de l'auteur (regroupement, ARRÊT 28).
@@ -172,6 +185,7 @@ export default function AdminAnnonceFichePage({ params }: Props) {
         body: JSON.stringify({ motif: texte, site_url: window.location.origin }),
       })
       const p = (await res.json().catch(() => ({}))) as { code?: string; auteur_prevenu?: boolean; auteur_introuvable?: boolean; auteur_illisible?: boolean }
+      if (!res.ok && p.code === 'already_processed') { await dejaTranchee(); return }
       if (!res.ok) {
         if (p.code === 'motif_requis' || p.code === 'motif_trop_long') setMotifErreur(messageErreur(p.code, res.status))
         else setError(messageErreur(p.code, res.status))

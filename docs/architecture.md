@@ -4255,7 +4255,8 @@ administrateur est EN BASE (42501) : l'anti-relance ne dépend plus de la seule 
 validation applique le prédicat ENTIER de la publication (§D.39) — une annonce en revue sans spécialité ou sans temps de
 travail est refusée `missing_fields`, champs nommés, et l'écran dit que c'est à son AUTEUR de la compléter (la base le tient
 depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (16), `diag-grand-livre`,
-`diag-journal-lisible`.
+`diag-journal-lisible`, et — depuis la relecture de l'ARRÊT 28 — `diag-validation-annonces` (une section par point : une
+décision déjà prise recharge vraiment la fiche et le dit après, point 6 ; …).
 
 **Un besoin de sous-traitance validé par l'administrateur revérifie son auteur** (relecture de l'ARRÊT 28, point 3) : la
 garde même de `/publish` (`expertProfileGate`) — un expert qui n'est plus approuvé (refusé, remis en vérification,
