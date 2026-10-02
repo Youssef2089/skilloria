@@ -37,6 +37,8 @@ export type PublicationDraft = {
   confidential: boolean
   status: AnnonceStatus
   verification_score: number | null
+  // Le motif d'un refus de l'administration, pour l'auteur — servi SEULEMENT quand l'annonce est refusée (ARRÊT 28).
+  motif_refus?: string | null
   created_at: string
   updated_at: string
   published_at: string | null

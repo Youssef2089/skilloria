@@ -216,18 +216,26 @@ Champs structurants : branche, spécialités (multiples), séniorités (multiple
 
 - **Complétude** — prédicat unique [lib/publications/publishable.ts](../lib/publications/publishable.ts),
   doublé d'une contrainte base `publications_publiee_requiert_zones_check`.
-  Exigés : titre, description, branche, **zones de travail**.
+  Exigés : titre, description, branche, **zones de travail**, **au moins une spécialité** (ou « Autre » précisé) et le
+  **temps de travail** (§D.39, 03/10/2026), et la répartition quand « Hybride » est coché. La base tient les zones, et —
+  depuis la seconde livraison du regroupement (§D.51) — la spécialité et le temps de travail de toute annonce qui passe
+  en ligne ; les annonces déjà en ligne sans eux restent jusqu'à leur expiration.
   La sémantique de l'ensemble vide est **asymétrique, et c'est voulu** :
   · **zones obligatoires** — `&&` sur un ensemble vide est toujours faux, une annonce sans zone
     serait publiée et **silencieusement invisible** ; et depuis le 02/10/2026 le moteur le DIT : une liste de
     pays vide (ses pays désactivés) ne retient **personne**, dans les deux sens ;
-  · **spécialités et séniorités facultatives** — vide signifie « aucune contrainte sur cet axe »,
-    jamais « ne correspond à personne ». Une annonce incomplète doit matcher **large**, pas rien.
+  · **séniorités facultatives** — vide signifie « aucune contrainte sur cet axe », jamais « ne correspond à
+    personne ». Une annonce « Autre » seule (sans spécialité du référentiel) ne contraint pas la spécialité.
 
 - **Qualité (IA)** — [lib/verification/ai-publication-quality.ts](../lib/verification/ai-publication-quality.ts),
   provider `opportunity_quality_check`, **seuil 7/10**. Le prompt refuse explicitement qu'un champ
   optionnel vide fasse descendre sous 7, et traque les coordonnées en clair (téléphone, e-mail) —
   une annonce qui contourne la messagerie contourne le dévoilement payant.
+  **Sous la note, l'annonce attend un administrateur** (`/admin/annonces`, S3, §D.49) : il la **valide** (elle passe en
+  ligne par le même mécanisme, sans reconsommer le compteur) ou la **refuse avec un motif**, transmis à l'auteur (cloche
+  et e-mail). **Refusée, l'annonce se modifie et se soumet à nouveau** (§D.50) : elle repasse en brouillon si un champ
+  change, le texte modifié est jugé de nouveau, et cette nouvelle soumission **ne compte pas une seconde fois** dans les
+  publications du mois.
 
 - **Commerce** — deux quotas, deux refus **402** :
   `quota_publications_reached` (publications du mois) et `quota_active_publications_reached`
@@ -401,8 +409,10 @@ Le public est **un fait, pas un type** : « a un profil expert », « est membre
 trois — un découpage par `user_type` l'aurait privé du réglage correspondant.
 Regroupement : **digest** pour les opportunités (anti-rafale : un run peut produire 20 matches d'un
 coup), **un envoi par élément** pour les messages.
-**Seul le canal e-mail est ouvert** (§D.2). Et **`notify_enabled` vaut `false` par défaut sur chaque
-écosystème** (§P4) : aujourd'hui, personne n'est notifié.
+**Seul le canal e-mail est ouvert** (§D.2). **Depuis le lot alertes (S2, 02/10/2026, §D.48), une annonce qui s'affiche
+prévient** : chaque correspondance FRAÎCHE pose son avis dans la cloche, et part par e-mail si l'expert l'a activé —
+aucun réglage ne le contredit (`notify_enabled` n'est plus lu). C'était l'inverse jusque-là : l'interrupteur valait
+`false` sur chaque écosystème, et personne n'était notifié, alors que l'écran montrait « Correspondance forte ».
 
 > ⚠️ **LE DIGEST N'ANNONCE PLUS DE NOTE, ET CE N'ÉTAIT PAS QU'UNE COLONNE MORTE — 22/09/2026.**
 > L'e-mail de mise en relation écrivait, pour chaque opportunité, **« {titre} · {note}/10 »**. La
@@ -414,7 +424,7 @@ coup), **un envoi par élément** pour les messages.
 > une porte que le produit ferme par décision. Le nombre part — du rendu **et du type**, pour qu'il
 > ne revienne pas par distraction — et la requête qui le servait avec lui.
 >
-> Aujourd'hui rien ne se voit : `notify_enabled` est faux. C'est §P4.3 qui l'aurait découvert.
+> Depuis §D.48 les e-mails partent : c'est le rendu sans note qui part, celui-ci.
 
 **Ce que l'expert voit.** Son flux est **ordonné** par le score, mais le score **ne sort pas de
 l'API** : `/api/me/missions` le passe en **chaîne** à `.order()` et ne lit jamais sa valeur. L'expert
@@ -719,7 +729,7 @@ deux produits.
 | `messages` · `messages/[id]` | Messagerie, fenêtre 15 j. |
 | `profil` · `profil/valider` | Saisie du profil et dépôt du CV ; lancement de la vérification. |
 | `mon-profil` | Le profil **tel que l'organisation le verra**. |
-| `sous-traitance` · `sous-traitance/nouveau` · `sous-traitance/[id]` | Publier un besoin et recevoir des experts (via l'organisation personnelle, §P1.2 bis). |
+| `sous-traitance` · `sous-traitance/nouveau` · `sous-traitance/[id]` · `sous-traitance/[id]/modifier` | Publier un besoin et recevoir des experts (via l'organisation personnelle, §P1.2 bis). Un besoin **refusé** par l'administration montre son motif sur sa fiche et se **reprend** (`…/modifier`, le même formulaire, ses valeurs relues) pour être soumis à nouveau, sans compter deux fois (§D.50). |
 | `parametres` | Compte, langue, notifications, sessions, suppression. |
 
 > **Dette de parité SIGNALÉE DANS LE CODE, pas dans les écrans.** La parité de *surface* est
@@ -799,7 +809,7 @@ deux produits.
 | Écran | À quoi il sert |
 |---|---|
 | `/dashboard/entreprise` | Tableau de bord : annonces, candidatures reçues, compteurs. Une icône « i » sur chaque case et chaque bloc dit ce qu'il compte (recette S1, 01/10/2026). |
-| `annonces` · `annonces/nouvelle` · `annonces/[id]` · `annonces/[id]/modifier` | Cycle de vie d'une annonce. |
+| `annonces` · `annonces/nouvelle` · `annonces/[id]` · `annonces/[id]/modifier` | Cycle de vie d'une annonce. Une annonce **refusée** par l'administration montre son motif (fiche et formulaire) et se modifie pour être soumise à nouveau ; inchangée, l'écran le dit (§D.50). |
 | `annonces/[id]/candidatures` | Les candidats d'une annonce, triés serveur, **masqués** avant dévoilement. |
 | `candidatures` | Toutes les candidatures reçues, toutes annonces confondues. |
 | `messages` · `messages/[id]` | Messagerie avec les experts dévoilés. |
@@ -822,7 +832,7 @@ deux produits.
 | `organisations` · `organisations/[id]` | Modération des organisations ; attribution manuelle d'offre ; consommation. |
 | `domaines-adresse` | **Les deux listes que la règle d'inscription lit** (§D.27) : domaines **bloqués** (une organisation ne s'y préinscrit pas) et **publics** (gmail.com… : accepté, le domaine ne se réserve pas). Ajouter, retirer (désactivé, jamais effacé), réactiver — chaque geste avec sa ligne `reglage_modifie` ; la base refuse un domaine invalide ou présent dans l'autre liste. |
 | `packages` · `packages/new` · `packages/[id]` | Catalogue commerce : offres, limites, offre par défaut, synchro Stripe. |
-| `matching` | Les **deux seuils** par écosystème, le modèle de reranking, la taille de lot, `notify_enabled` ; pannes de rédaction et dépassements de relance. Et les **deux réglages d'argent** — plafond de dépense (**il bloque**) et seuil d'alerte par acteur (**il alerte**) — chacun dans le bloc qui affiche déjà sa valeur. |
+| `matching` | Par écosystème : le **filtre du flux** (qui entre dans les recommandations — et donc, depuis §D.48, qui est **prévenu**), la **note à partir de laquelle une annonce est une « Correspondance forte »** (un libellé, plus une alerte), le modèle de reranking, la taille de lot ; la règle de l'alerte est **dite** à l'écran (« une annonce qui s'affiche prévient ») — la case `notify_enabled` a disparu (lot alertes, S2) ; pannes de rédaction et dépassements de relance. Et les **deux réglages d'argent** — plafond de dépense (**il bloque**) et seuil d'alerte par acteur (**il alerte**) — chacun dans le bloc qui affiche déjà sa valeur. |
 | `quotas-ia` | Les quotas anti-abus IA (analyses de CV). |
 | `supervision` · `supervision/[sujet]` | **Ce qui s'observe, séparé de ce qui se décide.** Les problèmes **en premier et déjà triés par le serveur** ([lib/supervision/problemes.ts](../lib/supervision/problemes.ts)) — le rouge ne sert plus à expliquer un fonctionnement normal. Répartition des notes, consommation **par mois et par type d'opération**, opérations les plus coûteuses. Chaque problème s'**ouvre** : `inacheves`, `operations`, `resumes`, `relances` — un total ne permet d'agir sur rien. Aucun contenu utilisateur n'y est affiché, et **jamais l'identité d'un expert** (§D.4). **En tête, TOUJOURS** (recette staging) : « Réglages exigés au démarrage » — les N variables exigées posées, ou celles qui manquent, avec l'heure, la version et l'environnement contrôlés. **Une tâche planifiée qui n'atteint pas le site** remonte en BLOQUANT avec sa cause et son action (§E.89). |
 | `tarifs-ia` | **La grille tarifaire des modèles**, réglable sans déploiement. Dit en une ligne que le compteur de dépense est une **estimation reconstituée**, pas la facture ; affiche **depuis quand** chaque prix n'a pas été modifié, et **rougit au-delà de 90 jours** ; renvoie à la grille du fournisseur pour comparer sans chercher. Les dépenses restent en **dollars** — les fournisseurs facturent en dollars, et aucune conversion n'est faite. |
@@ -953,8 +963,8 @@ fausse. La répartition observée **repart** au déploiement, et l'écran le dit
 | Règle | Valeur | Origine | Qui peut la changer |
 |---|---|---|---|
 | **Filtre** du flux | **0 / 10** (tout profil éligible entre) | `matching_settings.feed_threshold` | **Back-office** `/admin/matching` — **il TRIE** |
-| **Filtre** de notification | **8 / 10** | `matching_settings.notify_threshold` | **Back-office** — **il TRIE** |
-| Notifications actives | **`false`** | `matching_settings.notify_enabled` | **Back-office** (§P4) |
+| Palier « **Correspondance forte** » | **8 / 10** | `matching_settings.notify_threshold` (le nom de la colonne reste, §D.9) | **Back-office** — un **libellé** à l'écran, il ne décide d'**aucune** alerte (§D.48) |
+| Alerte d'une annonce recommandée | **toujours** — chaque correspondance fraîche prévient (cloche ; e-mail si l'expert l'a activé) | **Code** (`lib/matching/index.ts`, `run-for-expert.ts`) | **Personne** — décision de Youssef, aucun réglage ne la contredit ; `notify_enabled` est **inerte** |
 | Modèle de reranking | `rerank-v4.0-fast` | `matching_settings.rerank_model` | **Back-office** |
 | Taille de lot | 200 (borne 1–1000) | `matching_settings.rerank_batch_size` | **Back-office** |
 | Contrainte `notify_threshold ≥ feed_threshold` | — | CHECK en base | **Personne** — migration |
@@ -1252,8 +1262,15 @@ branches `channel === 'sms'` sont **inatteignables à l'exécution**. Ce n'est p
 - accepter le coût : ajouter `'sms'` à cette constante **réactive une dépense sortante
   immédiatement**, sur tous les événements qui le déclarent, sans autre changement.
 
-### P4.3 — Les notifications de mise en relation, éteintes sur chaque écosystème
-**Pourquoi c'est là.** `notify_enabled` vaut **`false` par défaut**, et `feed_threshold` vaut **0**.
+### P4.3 — Les notifications de mise en relation : RALLUMÉES, elles ne sont plus volontairement inactives
+**Depuis le lot alertes (S2, 02/10/2026, décision de Youssef — §D.48), cette section ne décrit plus un état inactif.**
+Une annonce qui s'affiche dans les recommandations prévient l'expert ; `notify_enabled` n'est plus lu (colonne inerte,
+à supprimer dans un lot APRÈS si décidé). **Ce qui reste vrai, et pèse plus qu'avant** : `feed_threshold` vaut **0** —
+tout profil éligible entre dans le flux, et désormais **tout profil éligible est prévenu**. Le levier n'est plus « montrer
+plus, notifier moins » : c'est le **filtre du flux** qui décide des deux. Le texte d'origine, gardé pour la décision qu'il
+reste à prendre sur ce filtre :
+
+**Pourquoi c'était là.** `notify_enabled` valait **`false` par défaut**, et `feed_threshold` vaut **0**.
 Ce n'est pas une panne : c'est un refus de deviner.
 Le score d'un reranker **n'est pas calibré** — le fournisseur écrit noir sur blanc qu'on ne peut ni
 lire 0,91 comme « deux fois 0,44 », ni comparer les scores de deux requêtes. **7/10 sur l'échelle de
@@ -1264,9 +1281,9 @@ ne notifie personne. *Un moteur qui notifie 12 000 personnes sur un seuil devin�
 moteur qui ne notifie pas encore.*
 
 **Ce qu'il faudra décider :** lire la **distribution réelle** des scores (`matching_stats`,
-`matching_threshold_health()`), régler les deux seuils **sur les faits**, puis basculer
-`notify_enabled` — **par écosystème**, depuis `/admin/matching`. Le levier est « montrer plus,
-notifier moins ».
+`matching_threshold_health()`) et régler le **filtre du flux sur les faits**, par écosystème, depuis
+`/admin/matching` — c'est lui, depuis §D.48, qui décide de qui est prévenu. *(Avant : « puis basculer `notify_enabled` » —
+il n'y a plus d'interrupteur.)*
 
 > **La comptabilité IA change ce que « les faits » veulent dire ici.** Jusqu'à ce lot, la dépense
 > n'était comptée que sur **deux** des sept points, et au tarif de Sonnet 4.6 pour **tous** les

@@ -2178,7 +2178,14 @@
       "verification_failed": "Die automatische Prüfung ist fehlgeschlagen. Bitte erneut versuchen.",
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
-      "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}."
+      "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}.",
+      "annonce_refusee_inchangee": "Diese Anzeige wurde abgelehnt: Bearbeiten Sie sie, bevor Sie sie erneut einreichen (die Begründung steht oben auf der Seite)."
+    },
+    "refus": {
+      "titre": "Diese Anzeige wurde nicht freigegeben",
+      "motif": "Begründung:",
+      "suite": "Bearbeiten Sie sie und reichen Sie sie erneut ein: Der geänderte Text durchläuft erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
+      "modifier": "Bearbeiten und erneut einreichen"
     }
   },
   "candidatures_tracking": {
@@ -6258,7 +6265,7 @@
       "validation_en_cours": "Wird veröffentlicht…",
       "bouton_refuser": "Ablehnen",
       "refus_titre": "Ablehnungsgrund",
-      "refus_aide": "Diese Begründung wird dem Verfasser übermittelt, in der Benachrichtigungsglocke und per E-Mail. Sagen Sie ihm, was sich ändern muss.",
+      "refus_aide": "Diese Begründung wird dem Verfasser übermittelt, in der Benachrichtigungsglocke und per E-Mail. Sagen Sie ihm, was sich ändern muss: Er kann seine Anzeige bearbeiten und erneut einreichen, ohne dass sie ein zweites Mal zu seinen Veröffentlichungen des Monats zählt.",
       "refus_placeholder": "Zum Beispiel: Die Beschreibung enthält eine Telefonnummer; bitte entfernen Sie sie – der Austausch läuft über die Nachrichtenfunktion.",
       "refus_compteur": "{n} / {max} Zeichen",
       "refus_en_cours": "Wird abgelehnt…",
@@ -6359,7 +6366,7 @@
         },
         "refusee": {
           "titre": "Ihre Anzeige „{titre}“ wurde nicht freigegeben",
-          "corps": "Nach Prüfung wurde Ihre Anzeige „{titre}“ nicht veröffentlicht. Begründung: {motif}"
+          "corps": "Nach Prüfung wurde Ihre Anzeige „{titre}“ nicht veröffentlicht. Begründung: {motif} Sie können sie bearbeiten und erneut einreichen: Diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats."
         }
       },
       "email": {
@@ -6379,7 +6386,7 @@
           "bonjour": "Guten Tag {prenom},",
           "corps": "Nach Prüfung wurde Ihre Anzeige <strong>„{titre}“</strong> aus folgendem Grund nicht veröffentlicht:",
           "motif": "{motif}",
-          "suite": "Sie finden Ihre Anzeige und diese Begründung in Ihrem Bereich.",
+          "suite": "Sie finden Ihre Anzeige und diese Begründung in Ihrem Bereich: Bearbeiten Sie sie und reichen Sie sie erneut ein. Der geänderte Text durchläuft erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
           "bouton": "Meine Anzeige ansehen"
         }
       }

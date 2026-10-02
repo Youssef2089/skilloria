@@ -6,6 +6,8 @@ import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { useDomain } from '@/context/DomainContext'
 import ChampsAnnonce, { type ReferentielAnnonce } from '@/components/annonces/ChampsAnnonce'
+import MotifRefus from '@/components/annonces/MotifRefus'
+import type { PublicationDraft } from '@/types/publication'
 import { specialitesGardees } from '@/lib/criteres/specialites'
 import {
   VALEURS_VIDES,
@@ -14,6 +16,7 @@ import {
   libelleChampPubliable,
   messageDeRefusCommun,
   messagesDeSaisie,
+  valeursDepuisBrouillon,
   type ChampAnnonce,
   type ValeursAnnonce,
 } from '@/lib/annonces/formulaire'
@@ -42,6 +45,11 @@ import { PUBLICATION_PUBLISHABLE_FIELDS, type PublicationPublishableField } from
  * `basePath` = base du dashboard courant ('/dashboard/freelance' | '/dashboard/
  * cdi'), pour renvoyer vers la LISTE des besoins après publication.
  *
+ * `repriseId` (page /sous-traitance/[id]/modifier, regroupement ARRÊT 28) : un besoin REFUSÉ par l'administration se
+ * reprend ICI, sur les mêmes champs — ses valeurs relues, son motif affiché, et la soumission passe par le même chemin
+ * (PATCH, qui le repasse en brouillon s'il a changé, puis /publish, qui fait juger le texte modifié et ne le recompte
+ * pas dans le mois). Un besoin qui n'est ni refusé ni en brouillon ne se reprend pas : le refus se dit.
+ *
  * ⚠️ CE FORMULAIRE NE POUVAIT RIEN PUBLIER (lot zones de travail, 02/10/2026) : il n'envoyait ni
  * BRANCHE ni ZONES, et la publication les exige (lib/publications/publishable.ts) — chaque essai
  * était refusé `missing_fields`, l'écran disait « la publication a échoué », et laissait un
@@ -67,7 +75,7 @@ type QuotaLimits = {
   revealedCandidatesPerPublication: number | null
 }
 
-export default function SousTraitanceView({ basePath }: { basePath: string }) {
+export default function SousTraitanceView({ basePath, repriseId }: { basePath: string; repriseId?: string }) {
   const t = useTranslations('collaboration')
   // Les mots de l'annonce d'organisation pour les mêmes champs et les mêmes refus : un vocabulaire.
   const tPub = useTranslations('publications')
@@ -86,6 +94,9 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
   const [erreurs, setErreurs] = useState<Partial<Record<ChampAnnonce, string>>>({})
   // Le brouillon déjà créé : une publication refusée se REPREND sur lui, sans en créer un autre.
   const [brouillonId, setBrouillonId] = useState<string | null>(null)
+  // La reprise d'un besoin refusé : son motif, et un refus de reprise nommé (statut qui ne se modifie pas, lecture en échec).
+  const [motifRefus, setMotifRefus] = useState<string | null>(null)
+  const [repriseImpossible, setRepriseImpossible] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [limits, setLimits] = useState<QuotaLimits | null>(null)
@@ -144,6 +155,27 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     void ensureOrg()
   }, [ensureOrg])
 
+  // ── La reprise d'un besoin refusé : ses valeurs, son motif (ARRÊT 28) ──
+  useEffect(() => {
+    if (!repriseId) return
+    let annule = false
+    void (async () => {
+      try {
+        const res = await secureFetch(`/api/publications/${encodeURIComponent(repriseId)}?locale=${encodeURIComponent(locale)}`, { method: 'GET' })
+        const p = (await res.json().catch(() => ({}))) as { code?: string; publication?: PublicationDraft }
+        if (annule) return
+        if (!res.ok || !p.publication) { setRepriseImpossible(messageDeRefusCommun(p.code, tPub, tCrit) ?? t('errors.create_failed')); return }
+        if (p.publication.status !== 'rejected' && p.publication.status !== 'draft') { setRepriseImpossible(tPub('errors.wrong_status')); return }
+        setValeurs(valeursDepuisBrouillon(p.publication))
+        setBrouillonId(p.publication.id)
+        setMotifRefus(p.publication.motif_refus ?? null)
+      } catch {
+        if (!annule) setRepriseImpossible(tCrit('erreurs.reseau'))
+      }
+    })()
+    return () => { annule = true }
+  }, [repriseId, secureFetch, locale, tPub, tCrit, t])
+
   // ── Le référentiel : les branches et les zones, comme l'annonce d'une organisation ──
   //  Même route, mêmes paramètres que PublicationForm. Illisible, on le DIT : un formulaire sans
   //  branches ni zones ne pourrait rien publier, et l'expert ne saurait pas pourquoi.
@@ -191,7 +223,7 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
     }))
   }, [])
 
-  const canSubmit = !submitting && phase === 'ready' && referentiel !== null
+  const canSubmit = !submitting && phase === 'ready' && referentiel !== null && repriseImpossible === null
 
   /**
    * Récapitulatif de l'offre, COMPOSÉ depuis le catalogue. `null` si les
@@ -408,6 +440,14 @@ export default function SousTraitanceView({ basePath }: { basePath: string }) {
               {t('errors.taxonomie_indisponible')}
             </div>
           ) : null}
+
+          {/* La reprise d'un besoin refusé : son motif d'abord ; une reprise impossible se dit (ARRÊT 28). */}
+          {repriseImpossible ? (
+            <div role="alert" style={{ padding: '10px 14px', background: 'var(--sk-red-soft)', color: 'var(--sk-red)', fontSize: 13, borderRadius: 10, marginBottom: 16 }}>
+              {repriseImpossible}
+            </div>
+          ) : null}
+          <MotifRefus motif={motifRefus} />
 
           {/* LES CHAMPS DE L'ANNONCE D'UNE ORGANISATION, à l'identique (un composant, §D.39). */}
           <ChampsAnnonce type="sous_traitance" valeurs={valeurs} changer={changer} erreurs={erreurs} referentiel={referentiel} />

@@ -8,6 +8,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
 import { estTypeAnnonce } from '@/lib/annonces/audience'
 import { libelleBudget, libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
+import MotifRefus from '@/components/annonces/MotifRefus'
 
 /**
  * /dashboard/entreprise/annonces/[id] — fiche détail annonce (lecture seule).
@@ -44,6 +45,8 @@ type PublicationDetail = {
   confidential: boolean
   status: string
   verification_score: number | null
+  // Le motif d'un refus de l'administration — servi seulement quand l'annonce est refusée (ARRÊT 28).
+  motif_refus?: string | null
   created_at: string
   updated_at: string
   published_at: string | null
@@ -56,7 +59,8 @@ type State =
 
 type Props = { params: Promise<{ id: string }> }
 
-const EDITABLE_STATUSES = ['draft', 'suspended', 'archived']
+// Aligné sur PATCH /api/publications/[id] : une annonce REFUSÉE se modifie pour être soumise à nouveau (ARRÊT 28).
+const EDITABLE_STATUSES = ['draft', 'suspended', 'archived', 'rejected']
 
 export default function AnnonceDetailPage({ params }: Props) {
   const t = useTranslations('publications.detail_org')
@@ -129,6 +133,8 @@ export default function AnnonceDetailPage({ params }: Props) {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', minHeight: '100%' }}>
+      {/* Refusée : le motif et ce qui suit — « Modifier » mène à la resoumission (ARRÊT 28). */}
+      <MotifRefus motif={pub.motif_refus} />
       {/* En-tête : badge type + titre + statut + actions */}
       <header
         style={{

@@ -314,6 +314,8 @@ export function messageDeRefusCommun(code: string | undefined, tPub: Traduire, t
     case 'repartition_hybride_invalide': return tCrit('erreurs.repartition_hybride_invalide')
     case 'duree_invalide': return tCrit('erreurs.duree_invalide')
     case 'duree_hors_offre': return tCrit('erreurs.duree_hors_offre')
+    // Une annonce refusée se resoumet MODIFIÉE (ARRÊT 28) : inchangée, le serveur ne la repasse pas en brouillon.
+    case 'annonce_refusee_inchangee': return tPub('errors.annonce_refusee_inchangee')
     default: return null
   }
 }

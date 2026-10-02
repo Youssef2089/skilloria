@@ -2178,7 +2178,14 @@
       "verification_failed": "Automated check failed. Please try again.",
       "db_error": "Technical error. Please try again.",
       "generic": "An error occurred. Please try again.",
-      "missing_fields": "Some information is missing before publishing: {fields}."
+      "missing_fields": "Some information is missing before publishing: {fields}.",
+      "annonce_refusee_inchangee": "This posting was rejected: edit it before submitting it again (the reason is shown at the top of the page)."
+    },
+    "refus": {
+      "titre": "This posting was not approved",
+      "motif": "Reason:",
+      "suite": "Edit it, then submit it again: the edited text goes through the automatic check again, and this new submission does not count a second time towards your postings for the month.",
+      "modifier": "Edit and submit again"
     }
   },
   "candidatures_tracking": {
@@ -6258,7 +6265,7 @@
       "validation_en_cours": "Publishing…",
       "bouton_refuser": "Reject",
       "refus_titre": "Reason for rejection",
-      "refus_aide": "This reason is sent to the author, in the notification bell and by email. Tell them what needs to change.",
+      "refus_aide": "This reason is sent to the author, in the notification bell and by email. Tell them what needs to change: they will be able to edit the posting and submit it again, without it counting a second time towards their postings for the month.",
       "refus_placeholder": "For example: the description contains a phone number; please remove it — conversations go through the messaging.",
       "refus_compteur": "{n} / {max} characters",
       "refus_en_cours": "Rejecting…",
@@ -6359,7 +6366,7 @@
         },
         "refusee": {
           "titre": "Your listing “{titre}” was not approved",
-          "corps": "After review, your listing “{titre}” was not put online. Reason: {motif}"
+          "corps": "After review, your listing “{titre}” was not put online. Reason: {motif} You can edit it and submit it again: this new submission does not count a second time towards your postings for the month."
         }
       },
       "email": {
@@ -6379,7 +6386,7 @@
           "bonjour": "Hello {prenom},",
           "corps": "After review, your listing <strong>“{titre}”</strong> was not put online, for the following reason:",
           "motif": "{motif}",
-          "suite": "You will find your listing, and this reason, in your space.",
+          "suite": "You will find your listing, and this reason, in your space: edit it, then submit it again. The edited text goes through the automatic check again, and this new submission does not count a second time towards your postings for the month.",
           "bouton": "View my listing"
         }
       }

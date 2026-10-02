@@ -2178,7 +2178,14 @@
       "verification_failed": "La vérification automatique a échoué. Veuillez réessayer.",
       "db_error": "Erreur technique. Veuillez réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
-      "missing_fields": "Il manque des informations pour publier : {fields}."
+      "missing_fields": "Il manque des informations pour publier : {fields}.",
+      "annonce_refusee_inchangee": "Cette annonce a été refusée : modifiez-la avant de la soumettre à nouveau (le motif est affiché en haut de la page)."
+    },
+    "refus": {
+      "titre": "Cette annonce n’a pas été validée",
+      "motif": "Motif :",
+      "suite": "Modifiez-la, puis soumettez-la à nouveau : le texte modifié repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
+      "modifier": "Modifier et soumettre à nouveau"
     }
   },
   "candidatures_tracking": {
@@ -6258,7 +6265,7 @@
       "validation_en_cours": "Mise en ligne…",
       "bouton_refuser": "Refuser",
       "refus_titre": "Motif du refus",
-      "refus_aide": "Ce motif est transmis à l’auteur, dans la cloche et par e-mail. Dites-lui ce qui doit changer.",
+      "refus_aide": "Ce motif est transmis à l’auteur, dans la cloche et par e-mail. Dites-lui ce qui doit changer : il pourra modifier son annonce et la soumettre à nouveau, sans qu’elle compte une seconde fois dans ses publications du mois.",
       "refus_placeholder": "Par exemple : la description contient un numéro de téléphone ; retirez-le, les échanges passent par la messagerie.",
       "refus_compteur": "{n} / {max} caractères",
       "refus_en_cours": "Refus…",
@@ -6359,7 +6366,7 @@
         },
         "refusee": {
           "titre": "Votre annonce « {titre} » n’a pas été validée",
-          "corps": "Après examen, votre annonce « {titre} » n’a pas été mise en ligne. Motif : {motif}"
+          "corps": "Après examen, votre annonce « {titre} » n’a pas été mise en ligne. Motif : {motif} Vous pouvez la modifier et la soumettre à nouveau : cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois."
         }
       },
       "email": {
@@ -6379,7 +6386,7 @@
           "bonjour": "Bonjour {prenom},",
           "corps": "Après examen, votre annonce <strong>« {titre} »</strong> n’a pas été mise en ligne, pour le motif suivant :",
           "motif": "{motif}",
-          "suite": "Vous retrouvez votre annonce, et ce motif, dans votre espace.",
+          "suite": "Vous retrouvez votre annonce, et ce motif, dans votre espace : modifiez-la, puis soumettez-la à nouveau. Le texte modifié repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
           "bouton": "Voir mon annonce"
         }
       }

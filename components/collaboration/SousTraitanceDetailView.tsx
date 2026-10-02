@@ -8,6 +8,8 @@ import CastingCarousel from '@/components/dashboard/CastingCarousel'
 import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTroncature'
 import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
 import { libelleBudget, libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
+import { Link } from '@/i18n/navigation'
+import MotifRefus from '@/components/annonces/MotifRefus'
 
 /**
  * SousTraitanceDetailView — DÉTAIL d'un besoin de sous-traitance + candidatures
@@ -58,6 +60,8 @@ type PublicationDetail = {
   budget_min: number | null
   budget_max: number | null
   status: string
+  // Le motif d'un refus de l'administration — servi seulement quand le besoin est refusé (ARRÊT 28).
+  motif_refus?: string | null
 } & CriteresAnnonceLus
 
 type BucketCounts = { active: number; archived: number }
@@ -194,6 +198,8 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const { publication: pub, candidatures } = state
   const isPublished = pub.status === 'published'
   const isClosed = pub.status === 'archived'
+  // REFUSÉ par l'administration : son auteur le modifie et le soumet à nouveau (ARRÊT 28).
+  const isRejected = pub.status === 'rejected'
 
   // LE BUDGET ET LES CRITÈRES, PAR LA MÊME ÉCRITURE QUE LA CARTE (lot « critères des annonces », §D.39, point 6) :
   // l'unité suit le TYPE (un besoin de sous-traitance est un tarif journalier), la durée porte son unité.
@@ -208,6 +214,8 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
       {state.kind === 'ready' && state.troncature?.atteint && (
         <BandeauTroncature texte={tPlafond('candidatures_tronquees', { plafond: state.troncature.plafond })} />
       )}
+      {/* Refusé : le motif, ce qui suit, et le chemin de la resoumission (ARRÊT 28). */}
+      <MotifRefus motif={pub.motif_refus} />
       {/* En-tête : statut + titre + action clôture */}
       <header style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 14, padding: '18px 22px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -221,6 +229,15 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: 'var(--sk-text)', margin: 0, letterSpacing: '-0.3px', lineHeight: 1.3 }}>{pub.title}</h1>
         </div>
+
+        {isRejected && (
+          <Link
+            href={`${basePath}/sous-traitance/${pub.id}/modifier`}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 9, border: '1px solid var(--sk-border)', color: 'var(--sk-text)', background: 'var(--sk-surface)', fontSize: 13, fontWeight: 700, textDecoration: 'none', flexShrink: 0 }}
+          >
+            {tPub('refus.modifier')}
+          </Link>
+        )}
 
         {isPublished && !confirmClose && (
           <button

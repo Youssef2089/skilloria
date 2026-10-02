@@ -7,6 +7,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import type { PublicationDraft } from '@/types/publication'
 import type { AnnonceType } from '@/types/annonce'
 import ChampsAnnonce, { type ReferentielAnnonce } from '@/components/annonces/ChampsAnnonce'
+import MotifRefus from '@/components/annonces/MotifRefus'
 import { specialitesGardees } from '@/lib/criteres/specialites'
 import {
   VALEURS_VIDES,
@@ -378,7 +379,9 @@ export default function PublicationForm(props: Props) {
   }
 
   const formId = 'sk-publication-form'
-  const canPublish = status === 'draft' && !publishing
+  // Une annonce REFUSÉE se soumet à nouveau d'ici : l'enregistrement qui précède la publication la repasse en brouillon
+  // si elle a changé (sinon le serveur rend `annonce_refusee_inchangee`, nommé) — ARRÊT 28.
+  const canPublish = (status === 'draft' || status === 'rejected') && !publishing
   const headerTitle = isEdit ? t('form.title_edit') : t('form.title_create')
 
   // ── Outcome (écran résultat post-publish) ──────────────────────────────
@@ -457,6 +460,9 @@ export default function PublicationForm(props: Props) {
           )}
         </div>
       )}
+
+      {/* Une annonce refusée : le motif, tant qu'elle n'a pas été modifiée et resoumise (ARRÊT 28). */}
+      {isEdit && status === 'rejected' && <MotifRefus motif={props.initial.motif_refus} />}
 
       {successMsg && (
         <div role="status" style={{ background: 'var(--sk-success-soft)', border: '1px solid var(--sk-success-soft)', color: 'var(--sk-success)', padding: '10px 14px', borderRadius: 8, fontSize: 13, marginBottom: 18 }}>

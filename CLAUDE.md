@@ -225,7 +225,12 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 - **D.42** — **Le statut du profil : un libellé par état réel, une couleur par état, le même texte partout** — « Statut de votre profil : … » et sa phrase, une source (`lib/verification-state.ts`, espace `statut_profil`) pour la pastille, l'étape 3, « Mon profil » et les notifications ; la notification « l'IA vérifie » part à la publication. → [détail](docs/architecture.md#d42)
 - **D.43** — **La vérification d'un expert ignore LinkedIn** (aucun outil, aucune adresse, aucun drapeau), **lit une mission avec son client**, tient les chevauchements pour normaux, et **met chaque nombre d'années dans UNE tranche** (`lib/profil/seniorites.ts`, semi-ouvertes ; les trois consignes en sont tirées). → [détail](docs/architecture.md#d43)
 - **D.44** — **Le CV d'un expert s'ouvre pour l'administrateur, en lecture seule, par un lien signé AU CLIC, valable une minute** (`POST /api/admin/lien-cv/[id]`) ; le bucket `cv` reste privé et fermé au navigateur ; **chaque ouverture s'écrit au grand livre** (`cv_consulte`, famille rgpd — la SEULE consultation qui s'écrit : un accès du personnel à une donnée personnelle ; pas de lien sans sa ligne). → [détail](docs/architecture.md#d44)
-- **(S2, numéro à attribuer par le principal)** — **Une annonce qui s'affiche dans les recommandations PRÉVIENT l'expert, et aucun réglage ne le contredit** (décision de Youssef, 02/10/2026) : chaque correspondance FRAÎCHE pose son avis dans la cloche, et part par e-mail si l'expert l'a activé ; `notify_enabled` n'est plus lu (colonne inerte), `notify_threshold` ne règle plus que le palier « Correspondance forte » — **§P4.3 (produit) est périmé**. Une mission postulée quitte le flux ET son compteur (`mission_postulee`, champ calculé). Une spécialité inactive montre l'état de ses avis et « Prévenir les experts » tant qu'il en reste. → [rapport](docs/reprise-s2.md)
+- **D.45** — **On navigue par les menus : aucun bouton Retour, nulle part** (S1, décision de Youssef, 02/10/2026) — pages de détail et d'erreur, tous profils, admin compris ; les pages publiques SANS menu gardent un lien de sortie, sans flèche, qui dit où il mène. `diag-aucun-retour` BLOQUANT. → [détail](docs/architecture.md#d45)
+- **D.46** — **L'en-tête de chaque page porte son nom, dérivé du menu** (S1) : `titreDeTableauDeBord` / `titreAdmin` (`lib/nav-config.ts`), le mot de la barre latérale ; jamais « Tableau de bord » par défaut. → [détail](docs/architecture.md#d46)
+- **D.47** — **La liste des zones est son propre référentiel : tous les pays** (S1, décision de Youssef) — détachée de `countries` ; ONU, Israël excepté ; le Royaume-Uni en ses quatre pays ; la Turquie en Europe ; 197 pays. → [détail](docs/architecture.md#d47)
+- **D.48** — **Une annonce qui s'affiche dans les recommandations PRÉVIENT l'expert, et aucun réglage ne le contredit** (S2, décision de Youssef, 02/10/2026) : chaque correspondance FRAÎCHE pose son avis (cloche ; e-mail si activé) ; `notify_enabled` inerte, `notify_threshold` ne règle que le palier « Correspondance forte » ; le FILTRE du flux décide aussi de qui est prévenu (§P4.3 réécrit). Une mission postulée quitte le flux ET son compteur (`mission_postulee`). → [détail](docs/architecture.md#d48)
+- **D.49** — **Une annonce en revue ne sort que par un administrateur, et par le mécanisme de la publication** (S3) : `/admin/annonces` ; valider = `publier_annonce()` depuis `pending_review` (voie dérivée sous verrou, compteur non reconsommé, garde 42501 EN BASE) ; refuser = `refuser_annonce()`, motif sur la ligne métier, jamais au journal ; l'auteur prévenu dans sa langue ; le prédicat ENTIER de la publication s'applique. → [détail](docs/architecture.md#d49)
+- **D.50** — **Une annonce refusée se modifie et se soumet à nouveau ; elle ne compte pas deux fois** (regroupement, décision de Youssef, 03/10/2026) : `PATCH` la repasse en brouillon SEULEMENT si un champ change (sinon 409 `annonce_refusee_inchangee`) ; le texte modifié est jugé de nouveau ; le marqueur est `review_reason` (seule `refuser_annonce()` le pose) et `/publish` ne recompte pas ; le motif servi à l'auteur, le refus le dit ×4. `diag-resoumission` BLOQUANT. → [détail](docs/architecture.md#d50)
 
 ---
 
@@ -345,6 +350,17 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.103](docs/pieges.md#e103) | UNE GARDE POSÉE EN BASE REND SA PROPRE REPRISE INTESTABLE : le déclencheur des langues refuse la ligne « French » qu'il faudrait fabriquer pour éprouver la reprise — ce qui ne se prouve pas se dit. |
 | [E.104](docs/pieges.md#e104) | DEUX RÈGLES D'UNE CONSIGNE SE CONTREDISAIENT (« LinkedIn ne plafonne pas » / « 5-6 si LinkedIn impossible ») ET UN CHAMP ÉTAIT LU SEUL (l'employeur d'une mission, dont le client vit ailleurs) : 6/10 sur un profil sain. |
 | [E.105](docs/pieges.md#e105) | DEUX ÉTATS, UN LIBELLÉ, DEUX COULEURS : quand l'IA déférait à un humain, seule la couleur de la pastille changeait — un état = un libellé = une couleur, une source. |
+| [E.106](docs/pieges.md#e106) | UN INVENTAIRE PAR NOM DE CLÉ RATE CE QUI N'A PAS LE NOM : 5 boutons Retour sur 17 — chercher par la VALEUR et par la flèche. |
+| [E.107](docs/pieges.md#e107) | UNE FABRIQUE DE TEST QUI PREND « LA PREMIÈRE LIGNE » SANS FILTRE D'ÉTAT DÉPEND DU HASARD DES UUID (une zone désactivée). |
+| [E.108](docs/pieges.md#e108) | `process.exit()` SOUS WINDOWS PENDANT UNE ÉCRITURE : plantage libuv, le rouge devient un muet — `process.exitCode`. |
+| [E.109](docs/pieges.md#e109) | POSTGRESQL REFUSE DE CHANGER LE TYPE D'UNE COLONNE CITÉE DANS L'`UPDATE OF` D'UN DÉCLENCHEUR — retirer, changer, reposer à l'identique. **NON VÉRIFIÉ en base.** |
+| [E.110](docs/pieges.md#e110) | LE BUILD DU POSTE BUTE SUR `.next/dev/types` PÉRIMÉ, ET UN WORKTREE JETABLE NE PARTAGE PAS SES DÉPENDANCES. |
+| [E.111](docs/pieges.md#e111) | UNE ÉTIQUETTE ET UNE ALERTE GOUVERNÉES PAR DEUX RÉGLAGES SE CONTREDISENT : « Correspondance forte » à l'écran, et rien ne partait. |
+| [E.112](docs/pieges.md#e112) | UN BOUTON DE RATTRAPAGE QUI NE VIT QUE DANS L'ÉTAT D'UN ÉCHEC DISPARAÎT AU RECHARGEMENT — il se dérive de l'état persisté. |
+| [E.113](docs/pieges.md#e113) | UN SUCCÈS MUET CACHE CE QUI N'A PAS ÉTÉ FAIT : zéro avis et dix avis avaient le même visage. |
+| [E.114](docs/pieges.md#e114) | UNE VÉRIFICATION QUI N'A PAS JUGÉ ÉCRIT LA MÊME FORME QU'UN VERDICT (note 0, message interne) — reconnue par une heuristique, dite. |
+| [E.115](docs/pieges.md#e115) | `verified_by` SURVIT À LA DÉCISION SUIVANTE : sa présence ne dit pas « validée par un administrateur ». |
+| [E.116](docs/pieges.md#e116) | UN PRÉDICAT PARTAGÉ QUI GAGNE UN CHAMP CASSE L'APPELANT QU'UNE AUTRE BRANCHE VIENT D'ÉCRIRE — fusion sans conflit, vu par `tsc` parce qu'aucun champ n'est facultatif. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -369,6 +385,8 @@ Plages **observées dans le dépôt** :
 | `010000`–`015959` **le 03/10/2026** | S1 | consigne du lot « finitions et pays » (principal `…000000`–`…005959`, S2 `…020000`, S3 `…030000`) : `zones_liste_des_pays`. Sous `0xxxxx` pour le cliquet, qui ne voit pas les sous-plages. |
 | `1xxxxx` **à partir du 01/10/2026** | S1 | attribuée par la consigne du lot « corrections de la recette » (tronc `20261001000000`–`…099999`, S1 `20261001100000`–`…199999`) : `specialite_autre_hors_referentiel`, `langues_liste_fermee`, `photo_par_le_serveur`. **Datée** : avant cette date, `1xxxxx` reste la plage fausse des quatre migrations gelées (le cliquet de `diag-migration-donnees` porte la date). |
 | `03xxxx` **le 03/10/2026** | S3 (lot « validation des annonces ») | `20261003030000`–`…035959`, attribuée par la consigne des quatre lots parallèles : `validation_annonces` (l'écran `/admin/annonces`, `refuser_annonce`, la voie administrateur de `publier_annonce`). Suffixe en `0` : le cliquet le range dans la plage du tronc. Rapport et propositions de mémoire : [docs/reprise-s3.md](docs/reprise-s3.md). |
+| `02xxxx` **le 03/10/2026** | S2 (lot « alertes et recommandations ») | `20261003020000`–`…025959`, attribuée par la même consigne : `mission_postulee`. Suffixe en `0` : le cliquet le range dans la plage du tronc. Rapport : [docs/reprise-s2.md](docs/reprise-s2.md). |
+| `05xxxx` **le 03/10/2026** | la SECONDE livraison du regroupement | `20261003050000` et suivantes (consigne de l'ARRÊT 28) : les migrations APRÈS, poussées quand la première livraison est en ligne. |
 
 > **TRANCHÉ.** La plage du tronc est **`0xxxxx`**. La consigne orale « 1xxxxx » était fausse, elle
 > est corrigée. Toute migration du tronc porte un suffixe `0xxxxx` **et** un horodatage strictement
@@ -422,7 +440,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 188 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 191 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé

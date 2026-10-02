@@ -2178,7 +2178,14 @@
       "verification_failed": "La verificación automática falló. Inténtalo de nuevo.",
       "db_error": "Error técnico. Inténtalo de nuevo.",
       "generic": "Se produjo un error. Inténtalo de nuevo.",
-      "missing_fields": "Falta información para publicar: {fields}."
+      "missing_fields": "Falta información para publicar: {fields}.",
+      "annonce_refusee_inchangee": "Este anuncio fue rechazado: modifícalo antes de volver a enviarlo (el motivo aparece en la parte superior de la página)."
+    },
+    "refus": {
+      "titre": "Este anuncio no ha sido validado",
+      "motif": "Motivo:",
+      "suite": "Modifícalo y vuelve a enviarlo: el texto modificado pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en tus publicaciones del mes.",
+      "modifier": "Modificar y volver a enviar"
     }
   },
   "candidatures_tracking": {
@@ -6258,7 +6265,7 @@
       "validation_en_cours": "Publicando…",
       "bouton_refuser": "Rechazar",
       "refus_titre": "Motivo del rechazo",
-      "refus_aide": "Este motivo se envía al autor, en la campana de notificaciones y por correo electrónico. Indíquele qué debe cambiar.",
+      "refus_aide": "Este motivo se envía al autor, en la campana de notificaciones y por correo electrónico. Indíquele qué debe cambiar: podrá modificar su anuncio y volver a enviarlo, sin que cuente por segunda vez en sus publicaciones del mes.",
       "refus_placeholder": "Por ejemplo: la descripción contiene un número de teléfono; retírelo, los intercambios pasan por la mensajería.",
       "refus_compteur": "{n} / {max} caracteres",
       "refus_en_cours": "Rechazando…",
@@ -6343,7 +6350,7 @@
       "already_processed": "Este anuncio ya ha sido decidido (por usted en otra pestaña, o por otro administrador). La ficha se recarga con la decisión.",
       "active_publications_limit_reached": "La organización ha alcanzado el máximo de anuncios activos de su oferta. El anuncio podrá publicarse en cuanto se cierre otro, o tras un cambio de oferta de la organización (pantalla «Organizaciones»).",
       "active_publications_check_failed": "No se pudo comprobar el número de anuncios activos de la organización: no se ha publicado nada. Vuelva a intentarlo en un momento.",
-      "missing_fields": "Al anuncio le falta: {fields}. No puede publicarse tal como está: su autor debe completarlo. Recházalo indicándoselo en el motivo; podrá modificarlo y enviarlo de nuevo.",
+      "missing_fields": "Al anuncio le falta: {fields}. No puede publicarse tal como está: su autor debe completarlo. Recháselo indicándoselo en el motivo; podrá modificarlo y enviarlo de nuevo.",
       "durees_illisibles": "Las duraciones de la plataforma (vida de un anuncio) no se pueden leer: no se ha publicado nada. Revise la pantalla «Duraciones de la plataforma».",
       "motif_requis": "Escriba el motivo del rechazo: se envía al autor.",
       "motif_trop_long": "El motivo es demasiado largo: acórtelo.",
@@ -6359,7 +6366,7 @@
         },
         "refusee": {
           "titre": "Su anuncio «{titre}» no ha sido validado",
-          "corps": "Tras la revisión, su anuncio «{titre}» no se ha publicado. Motivo: {motif}"
+          "corps": "Tras la revisión, su anuncio «{titre}» no se ha publicado. Motivo: {motif} Puede modificarlo y volver a enviarlo: este nuevo envío no cuenta por segunda vez en sus publicaciones del mes."
         }
       },
       "email": {
@@ -6379,7 +6386,7 @@
           "bonjour": "Hola, {prenom}:",
           "corps": "Tras la revisión, su anuncio <strong>«{titre}»</strong> no se ha publicado, por el siguiente motivo:",
           "motif": "{motif}",
-          "suite": "Encontrará su anuncio, y este motivo, en su espacio.",
+          "suite": "Encontrará su anuncio, y este motivo, en su espacio: modifíquelo y vuelva a enviarlo. El texto modificado pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en sus publicaciones del mes.",
           "bouton": "Ver mi anuncio"
         }
       }

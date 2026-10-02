@@ -306,8 +306,9 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **188** migrations : **80 insertions vues, 67 analysées, 3358 valeurs confrontées** (mesure À REFAIRE sur le total
-du regroupement — ARRÊT 28 ; mesuré le 02/10/2026 sur le lot S3 « validation des annonces » — `validation_annonces` sème
+Sur les **191** migrations : **80 insertions vues, 67 analysées, 3358 valeurs confrontées** (mesuré le 03/10/2026 sur le
+regroupement des quatre lots, ARRÊT 28 — la même mesure que celle de S3, les trois autres lots ne semant rien ; mesuré le
+02/10/2026 sur le lot S3 « validation des annonces » — `validation_annonces` sème
 une action, `annonce_refusee` ; le 03/10/2026 sur le lot « critères des annonces » — sa migration n'ajoute aucune
 insertion : des colonnes, des contraintes, une reprise par `update` ; le 02/10/2026 sur le lot « finitions et pays » de
 S1 — sa migration n'ajoute aucune insertion analysable : la liste des pays vit dans un bloc `do` ; le 02/10/2026 sur le
@@ -4608,6 +4609,134 @@ source que tous les écrans et les notifications lisent. **Gardé par** `diag-re
 
 ---
 
+> *Les pièges E.106 à E.116 viennent du regroupement du 03/10/2026 (ARRÊT 28) : E.106 à E.110 proposés par S1, E.111 à
+> E.113 par S2, E.114 et E.115 par S3, E.116 vu à la fusion.*
+
+<a id="e106"></a>
+### E.106 — UN INVENTAIRE PAR NOM DE CLÉ RATE CE QUI N'A PAS LE NOM : 5 RETOURS SUR 17.
+
+**Le cas mesuré (02/10/2026, S1, lot « finitions et pays »).** Pour retirer chaque bouton Retour, le premier inventaire
+cherchait les clés de messages nommées « back »/« retour » : il en trouvait 12. Il en ratait cinq — les deux liens de la
+fiche organisation admin (`t('detail.back')` lu sous un autre nom) et trois « ← » nus du CDI, écrits sans clé. **La
+parade** : chercher par la VALEUR des messages (« ← », « Retour ») ET par la flèche dans le code, dans les quatre langues —
+c'est ce que `diag-aucun-retour` fait (A à E), éprouvé par 12 mutations. **Ce qu'il ne voit pas** : un retour écrit avec un
+mot qu'aucune règle ne reconnaît (« Revenir à… ») dans une clé nommée autrement ; un lien vers la page parente sans mot ni
+flèche.
+
+---
+
+<a id="e107"></a>
+### E.107 — UNE FABRIQUE DE TEST QUI PREND « LA PREMIÈRE LIGNE » SANS FILTRE D'ÉTAT DÉPEND DU HASARD DES UUID.
+
+**Le cas mesuré (02/10/2026, S1).** `fab_brouillon` (et le test `specialite_autre`) prenait « la première zone par
+identifiant ». Le lot désactive le Royaume-Uni et Israël : selon les uuid tirés à la construction de la base, la première
+zone pouvait être l'une d'elles, et l'annonce fabriquée devenait impubliable — un rouge qui ne se reproduit pas.
+**La parade** : une fabrique prend une ligne ACTIVE (`where z.active`), et le dit en commentaire. **Contrôle** :
+`diag-zones-liste-des-pays` (les fabriques), relecture.
+
+---
+
+<a id="e108"></a>
+### E.108 — `process.exit()` SOUS WINDOWS PENDANT UNE ÉCRITURE : PLANTAGE LIBUV, ET LE ROUGE DEVIENT UN MUET.
+
+**Le cas mesuré (02/10/2026, S1, en éprouvant un contrôle par mutation).** Un contrôle qui coupait par `process.exit(1)`
+pendant que sa sortie s'écrivait plantait (assertion libuv, 0xC0000409) : le lanceur le rangeait « n'a pas tourné », pas
+« rouge ». **La parade** : finir par `process.exitCode = …` et laisser le processus se terminer seul — les contrôles
+neufs (`diag-aucun-retour`, `diag-zones-liste-des-pays`, `diag-resoumission`) le font. **Contrôle** : aucun — relecture.
+
+---
+
+<a id="e109"></a>
+### E.109 — POSTGRESQL REFUSE DE CHANGER LE TYPE D'UNE COLONNE CITÉE DANS L'`UPDATE OF` D'UN DÉCLENCHEUR. **NON VÉRIFIÉ EN BASE.**
+
+**Le cas (02/10/2026, S1, écrit d'après la documentation).** Passer `work_zones.country_code` de `varchar(2)` à `text`
+alors que `work_zones_couverture` est déclaré `after update of country_code…` lève (« cannot alter type of a column used
+in a trigger definition »). **La parade appliquée** : retirer le déclencheur, changer le type, le reposer À L'IDENTIQUE
+dans la même migration — `diag-zones-liste-des-pays` compare le déclencheur reposé à l'ancien. **À confirmer** au premier
+`db reset --local` : si le rejeu passe sans la parade, elle reste sans dommage.
+
+---
+
+<a id="e110"></a>
+### E.110 — LE BUILD DU POSTE BUTE SUR DES TYPES GÉNÉRÉS PÉRIMÉS, ET UN WORKTREE JETABLE NE PARTAGE PAS SES DÉPENDANCES.
+
+**Le cas mesuré (01-02/10/2026, S1, S2, S3).** `.next/dev/types/validator.ts`, laissé par un `next dev`, cite une route
+supprimée (`app/api/profile/cv/route.ts`) ; `tsconfig.json` inclut `.next/dev/types/**` : `tsc` et la vérification des
+types de `next build` échouent sur un fichier que personne n'a écrit. Les trois sessions parallèles l'ont rencontré ; la
+suppression de `.next/dev` leur était refusée. Et un worktree jetable relié à `node_modules` par une jonction est refusé
+par Turbopack : il lui faut ses propres dépendances. **La parade** : supprimer `.next/dev` (généré, non versionné) avant
+le build ; filtrer `.next/` de la sortie de `tsc`. **Contrôle** : aucun — c'est une étape de la séquence de Youssef.
+
+---
+
+<a id="e111"></a>
+### E.111 — UNE ÉTIQUETTE AFFICHÉE ET UNE ALERTE GOUVERNÉES PAR DEUX RÉGLAGES DIFFÉRENTS SE CONTREDISENT À L'ÉCRAN.
+
+**Le cas mesuré (02/10/2026, S2, compte d'essai Mehdi).** Le palier « Correspondance forte » ne lisait que
+`notify_threshold` ; l'alerte lisait aussi `notify_enabled` (faux par défaut). L'expert voyait « Correspondance forte » et
+une pastille rouge sur « Missions », et rien ne partait — ni cloche, ni e-mail. Chacun des deux réglages était juste ;
+leur conjonction mentait. **La parade** : ce qui est montré et ce qui prévient lisent la MÊME règle (§D.48 : une annonce
+qui s'affiche prévient). **Gardé par** `diag-alertes-recommandations` §1 (aucun lecteur de `notify_enabled` ; l'envoi
+gardé par l'insertion fraîche seule, ancré sur le bloc, dans les deux sens).
+
+---
+
+<a id="e112"></a>
+### E.112 — UN BOUTON DE RATTRAPAGE QUI NE VIT QUE DANS L'ÉTAT D'UN ÉCHEC DISPARAÎT AU RECHARGEMENT.
+
+**Le cas mesuré (02/10/2026, S2).** « Prévenir les experts » n'existait qu'après un code d'erreur, en mémoire de la page :
+le cas qu'il devait rattraper — une spécialité DÉJÀ inactive, désactivée avant que l'avis existe — n'y avait jamais accès.
+**La parade** : un rattrapage se DÉRIVE de l'état persisté, relu à l'affichage (`lib/taxonomie/etat-des-avis.ts`).
+**Gardé par** `diag-alertes-recommandations` §2 (exécuté sur une base simulée).
+
+---
+
+<a id="e113"></a>
+### E.113 — UN SUCCÈS MUET CACHE CE QUI N'A PAS ÉTÉ FAIT.
+
+**Le cas mesuré (02/10/2026, S2).** La réponse de la désactivation portait le nombre d'avis posés ; l'écran ne le lisait
+pas : zéro avis et dix avis avaient le même visage (« Enregistré »). **La parade** : un succès dit ce qu'il a fait, avec
+son nombre (« N experts ont été prévenus », « Personne de plus à prévenir ») ; une lecture en panne le dit, jamais « tous
+prévenus ». Voisin de §E.24 (un chiffre juste sous une étiquette fausse) : ici, aucun chiffre. **Gardé par**
+`diag-alertes-recommandations` §2.
+
+---
+
+<a id="e114"></a>
+### E.114 — UNE VÉRIFICATION QUI N'A PAS JUGÉ ÉCRIT LA MÊME FORME QU'UN VERDICT, ET UN MESSAGE INTERNE.
+
+**Le cas mesuré (02/10/2026, S3).** Fournisseur inactif, plafond de dépense, modèle indisponible : tous écrivent note 0,
+aucun signalement, et un texte technique en français (avec le nom du fournisseur) dans `verification_data.notes`. Affiché
+tel quel sur la fiche de l'annonce, il montrait un code à l'administrateur et une « note 0/10 » qui n'en est pas une.
+**La parade appliquée** : la forme est reconnue (`raisonsDuVerdict`, `non_aboutie`, lib/validation-annonces/raisons.ts) —
+**une heuristique**, dite comme telle ; la vraie parade serait un champ `result` écrit avec le verdict (`ai.result` existe,
+il n'est pas gardé). **Contrôle** : aucun — relecture.
+
+---
+
+<a id="e115"></a>
+### E.115 — `verified_by` SURVIT À LA DÉCISION SUIVANTE.
+
+**Le cas (02/10/2026, S3 ; rendu réel par la resoumission, ARRÊT 28).** Une annonce refusée puis modifiée et republiée
+AUTOMATIQUEMENT garde l'ancien `verified_by`/`verified_at` (et son ancien motif, §D.50) : leur seule présence ne dit pas
+« validée par un administrateur ». **La parade** : la voie se lit `verified_at >= published_at` (`voieDeMiseEnLigne`,
+même `now()` sur la voie administrateur) — ou, mieux, au grand livre (clé `voie`). **Contrôle** : aucun — relecture.
+
+---
+
+<a id="e116"></a>
+### E.116 — UN PRÉDICAT PARTAGÉ QUI GAGNE UN CHAMP CASSE L'APPELANT QU'UNE AUTRE BRANCHE VIENT D'ÉCRIRE — ET LA FUSION N'A PAS DE CONFLIT.
+
+**Le cas mesuré (03/10/2026, regroupement).** Le principal ajoutait à `missingForPublish` les spécialités, le temps de
+travail et la répartition ; S3, parti du même commit, écrivait la route de validation admin avec l'ancien appel (titre,
+description, branche, zones). Deux fichiers différents : `git merge` sans conflit. Seul `tsc` l'a vu — parce que
+`PublicationPublishableInput` exige chaque champ (aucun facultatif). Avec un champ optionnel, la route aurait compilé et
+mis en ligne des annonces sans spécialité (§E.45 : la collision qui ne produit pas de conflit). **La parade** : un
+prédicat partagé prend un type dont chaque champ est OBLIGATOIRE (`T | null`, jamais `T?`) ; après une fusion, on relit
+chaque appelant des fonctions que l'autre côté a changées. **Contrôle** : `tsc` ; et `diag-resoumission`/`diag-lot2-socle`
+pour les deux appelants nommés.
+
+---
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

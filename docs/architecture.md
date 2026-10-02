@@ -510,6 +510,40 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   Tests : `matching/zones_liste_des_pays.test.sql` (19) ; `matching/zones_pays_rattaches.test.sql` (5) réécrit pour
 >   l'état final (il lisait les pays actifs de `countries`). Contrôle : `diag-zones-liste-des-pays`.
 
+> **LE LOT « ALERTES ET RECOMMANDATIONS » (S2, 02/10/2026, ARRÊT S2-1) — une migration, AVANT, plage S2
+> (`20261003020000`).**
+> - **`mission_postulee`** (`…020000`, AVANT) — `mission_postulee(matches)`, SQL, `stable`, fermée au navigateur
+>   (`service_role` seul) : **le premier CHAMP CALCULÉ PostgREST du dépôt** — une fonction `stable` qui prend la ligne se
+>   lit comme une colonne (`.eq('mission_postulee', false)`). Vrai dès que l'expert du match a une candidature sur son
+>   annonce, quel que soit son statut. Le flux des recommandations ET son compteur (`lib/missions/feed.ts`, lu par
+>   `/api/me/missions` et `/api/me/badges`) l'excluent : une mission postulée quitte les recommandations, elle vit dans le
+>   suivi. **Pourquoi en base et pas une liste** : un `not in` grandit avec chaque candidature et ne se découpe pas
+>   (`lib/matching/tranches.ts`), et filtrer en mémoire fausserait le compte du badge. Deux commentaires de colonnes
+>   réécrits : `notify_threshold` ne règle plus que le PALIER « Correspondance forte » ; `notify_enabled` est INERTE
+>   (§D.48 — sa suppression restreindrait, elle part dans un lot APRÈS si Youssef le décide). Ne restreint rien.
+>   Test : `matching/mission_postulee.test.sql` (7). **NON VÉRIFIÉ** : que PostgREST lise le champ dans un filtre avec
+>   `count`/`head` — c'est son comportement documenté, non exécuté ici.
+>
+> **LE LOT « VALIDATION DES ANNONCES » (S3, 02/10/2026) — une migration, AVANT, plage S3 (`20261003030000`).**
+> - **`validation_annonces`** (`…030000`, AVANT) — l'action `annonce_refusee` (famille annonce, statut imposé `reussi`,
+>   liste blanche `type, organization_id, verification_score` — **jamais le motif**, texte libre, qui vit sur la ligne
+>   métier `publications.review_reason`) ; la clé `voie` AJOUTÉE aux listes blanches de `annonce_publiee` et
+>   `sous_traitance_publiee` ; `publier_annonce()` **redéfinie, signature inchangée** : l'état d'avant relu SOUS VERROU
+>   (`select … for update`), la voie (`automatique` | `administrateur`) DÉRIVÉE de lui ; la sortie de `pending_review`
+>   réservée à un administrateur (42501), mise en ligne seulement, le verdict de la machine CONSERVÉ (ses trois
+>   paramètres nuls, 22023), `verified_by`/`verified_at` posés, `review_reason` EFFACÉ ; l'écriture par l'identifiant exige
+>   son compte (`exiger_ecriture`, EC001). `refuser_annonce()` **nouvelle**, fermée au navigateur : garde administrateur,
+>   motif obligatoire (22023), `pending_review` → `rejected` dans l'UPDATE (le `WHERE` est la garde), zéro ligne rend
+>   null. **Pourquoi AVANT sans risque** (§E.72, §E.91) : le code en ligne appelle `publier_annonce()` avec `['draft']`, et
+>   sur ce chemin le corps fait ce qu'il faisait (plus la clé `voie`) ; les deux refus neufs ne visent que la sortie de
+>   revue, que ce code ne demande jamais. Test : `grand_livre/annonce_refusee.test.sql` (16). Écran `/admin/annonces`
+>   (§P2.4).
+>
+> **LE REGROUPEMENT (ARRÊT 28, 03/10/2026) — les quatre lots en UNE première livraison** : `annonce_criteres_communs`,
+> `zones_liste_des_pays`, `mission_postulee`, `validation_annonces`, toutes AVANT, aucune ne refuse ce que `e27fa56`
+> (le code en ligne) écrit — `diag-deux-temps` le prouve sur ce commit (six exceptions, chacune avec sa preuve). La
+> resoumission d'une annonce refusée (§D.50) n'ajoute AUCUNE migration : son marqueur est une colonne existante.
+
 > **`portes_laterales_fermees` (26/09/2026) — AUCUN CLIENT N'ÉCRIT DIRECTEMENT UNE TABLE JOURNALISÉE.** Une politique
 > RLS qui laisse `authenticated`/`anon`/`public` écrire une table dont l'écriture est une action du grand livre est
 > une **seconde porte** : le geste a lieu sans pièce ni ligne. Treize en état final ; **les treize fermées** (dont
@@ -1331,6 +1365,15 @@ Gates commerce : 402 `quota_publications_reached` / `quota_active_publications_r
 jamais écrit ([lib/publications/expiry.ts](../lib/publications/expiry.ts), source unique).
 
 ### C.3 Mise en relation et notification
+> **LA NOTIFICATION, DEPUIS LE LOT ALERTES (S2, 02/10/2026, §D.48)** : chaque correspondance FRAÎCHE — une annonce qui
+> vient d'entrer dans le flux de l'expert — pose son avis dans la cloche et appelle le dispatcher (l'e-mail si l'expert
+> l'a activé), dans les deux sens du moteur (`lib/matching/index.ts`, `run-for-expert.ts`). Avant, l'avis exigeait
+> `notify_enabled` (faux par défaut, ouvert par aucune migration) ET le palier « fort » : l'écran montrait
+> « Correspondance forte » et une pastille rouge, et rien ne partait. `notify_enabled` n'est plus lu nulle part (colonne
+> inerte) ; `notify_threshold` ne décide plus que du PALIER affiché ; le filtre du flux décide désormais AUSSI de qui est
+> prévenu. Un ré-run ne re-prévient personne (inserts frais seulement ; `notifyAndFlip` saute une paire déjà notifiée).
+> Le point 1 ci-dessous cite encore `notify_enabled` : il est lu par `settings.ts` pour le journal des réglages
+> seulement — aucun envoi ne le consulte (`diag-alertes-recommandations` §1).
 [lib/matching/](../lib/matching/) — quatre temps, chacun sait se taire ou parler :
 1. **Réglages** (`settings.ts`) lus dans `matching_settings` par écosystème : `feed_threshold`,
    `notify_threshold`, `notify_enabled`, `rerank_model`, `rerank_batch_size`.
@@ -1419,6 +1462,12 @@ client rend la raison, il ne la calcule pas. Statuts vestigiaux jamais écrits p
 en lecture : `shortlisted`, `withdrawn`, `archived`.
 
 ### C.5 Dévoilement et messagerie
+> **L'ORIGINE D'UN DÉVOILEMENT SE LIT AU GRAND LIVRE (S2, 02/10/2026)** : au dépôt, la candidature la mieux notée est
+> dévoilée automatiquement (`performUnlock(…, { auto: true })`) — l'échange s'ouvre une minute après la candidature, et
+> la frise disait « par l'entreprise ». `lib/candidatures/origine-devoilement.ts` lit la clé `auto` de la ligne
+> `devoilement_ouvert` (écrite dans la même transaction que la bascule), servie par `/api/me/candidatures`
+> (`devoilement`) : « automatiquement : votre candidature était la mieux notée », « par l'entreprise » seulement si
+> c'est elle, et INCONNUE (journal nettoyé, lecture en panne) : « Échange ouvert », sans nommer personne.
 `POST /api/candidatures/[id]/unlock` (quota manuel, 402) et auto-dévoilement top-1 à la création
 (sans quota) — mécanique partagée dans [lib/unlock.ts](../lib/unlock.ts), idempotente.
 Le dévoilement ouvre une `conversation` avec `expires_at = unlock + 15 j`
@@ -2416,7 +2465,8 @@ d'autre ne survit (§E.5). Un rejeu passe par `contexteDepuisAuth(auth, pieceOri
 | `recherche_terminee` | `JournalDeRecherche.terminee()` | fait, dans le run | `issue` (`ok` · `vivier_vide` · `annonce_expiree` · `ineligible` · `sans_matiere`), `raison` (code d'inéligibilité, §D.20) | statut `reussi` **imposé** : un refus légitime (annonce expirée, expert inéligible, profil sans matière) et un vivier vide sont des recherches **terminées**, pas échouées — la même lecture que `runAcheve()` ; **trois** fins côté annonce, **quatre** côté expert, et le contrôle compte les appels ; `ok` s'écrit **après** la trace (et le brouillon soldé) ; l'instance naît à l'**entrée** du run sous l'écosystème du geste et passe sous celui de l'objet dès qu'il est lu (`dansEcosysteme()`, immuable) |
 | `recherche_echouee` | `JournalDeRecherche.echouee()` | fait, dans le run | `etape` (`lecture` · `reglages` · `vivier` · `filtrage` · `notation` · `correspondances`), `cause` (dix codes fermés), `tentative`, `arret`, `lots_en_echec` | statut `echoue` **imposé** ; **huit** sorties par sens, et le contrôle les énumère (étape, cause, tentative) ; la tentative est `null` avant le point de non-retour (une lecture en panne n'en consomme pas), le compteur après ; le **texte** de la panne reste dans les journaux techniques, hors du grand livre ; la fin d'un run est `terminee` **ou** `echouee`, jamais les deux ; côté annonce le run reste inachevé (rejouable), côté expert la relance n'est pas soldée |
 | `recherche_abandonnee` | `JournalDeRecherche.abandonnee()` — **privé**, décidé dans `echouee()` | fait, dans le run | `tentatives`, `plafond`, `cause` | écrite **après** l'échec, sous la **même pièce** (deux types, un sujet), quand la tentative consommée atteint le **plafond du sens** — `RUN_MAX_TENTATIVES` (annonce, **nouveau** dans `lib/matching/run-abouti.ts`, importé par `cron/match-retry` à la place de sa constante locale) ou `RELANCE_MAX_TENTATIVES` (expert) ; les deux ont leurs **jumeaux SQL** vérifiés par `diag-relance-rejouee` (défaut du rattrapage, défaut de la supervision) ; le moteur est le **seul** à voir toutes les tentatives, déclenchements directs compris ; `admin/approve-expert` compte désormais la tentative **avant** le run comme les deux autres appelants (`solderRelance` remet le compteur à zéro sur un succès : état final inchangé, compteur lu juste) ; le plafond est écrit avec la ligne |
-| `annonce_publiee` | `publier_annonce()` (SQL) | RPC métier + journal | `type`, `organization_id`, `verification_method`, `verification_score`, `published_at` | la transition (`draft` → verdict), le cloisonnement et la propriété sont **rejoués dans l'UPDATE** ; `published_at` est posé par la **base** quand le verdict publie (`expires_at` toujours non écrit) ; zéro ligne rend `null` → la route rend la place et répond 409 `wrong_status` là où elle disait 200 ; un verdict `pending_review` écrit le verdict **sans** ligne (rien n'est en ligne) ; `diag-ordre-des-ecritures` prend la RPC pour repère de la mise en ligne |
+| `annonce_publiee` | `publier_annonce()` (SQL) | RPC métier + journal | `type`, `organization_id`, `verification_method`, `verification_score`, `published_at`, `voie` | **depuis `validation_annonces` (S3)** : l'état d'avant est relu **SOUS VERROU** (`select … for update`) avec le cloisonnement et la propriété, la **voie** (`automatique` depuis `draft`, `administrateur` depuis `pending_review`) en est **dérivée** et écrite ; l'écriture par l'identifiant exige son compte (`exiger_ecriture`, EC001) ; la sortie de revue est réservée à un administrateur (42501), le verdict de la machine y est conservé ; `published_at` est posé par la **base** quand le verdict publie (`expires_at` toujours non écrit) ; un état d'avant non admis rend `null` → la route rend la place et répond 409 ; un verdict `pending_review` écrit le verdict **sans** ligne (rien n'est en ligne) ; `diag-ordre-des-ecritures` prend la RPC pour repère de la mise en ligne |
+| `annonce_refusee` | `refuser_annonce()` (SQL, S3) | RPC métier + journal | `type`, `organization_id`, `verification_score` — **jamais le motif** | transition `pending_review` → `rejected` dans l'UPDATE (le `WHERE` est la garde), motif sur la ligne métier (`review_reason`), garde administrateur (42501), motif obligatoire (22023) ; zéro ligne rend `null` (déjà tranchée) ; route `POST /api/admin/annonces/[id]/refuser` |
 | `annonce_modifiee` | `journaliserDans()` dans `app/api/publications/[id]/route.ts` (PATCH) | journal après écriture, même pièce | `champs[]` (noms de colonnes), `statut_annonce`, `organization_id` | l'édition est un UPDATE **dynamique** (les champs que le corps porte, parmi les éditables) : une RPC figée recopierait la liste des colonnes ; la ligne vient **après** l'écriture et **avant** l'audit best-effort ; jamais le **contenu** d'un champ — la postcondition refuse un titre ; un journal qui refuse répond `journal_error` avec l'identifiant de l'annonce modifiée |
 | `annonce_depubliee` | `cloturer_annonce()` (SQL) | RPC métier + journal | `de`, `vers`, `organization_id` | même forme que décliner : le statut d'origine est lu **sous verrou** et jugé contre les statuts admis passés par la **route** (`CLOSABLE_FROM`) — la fonction ne porte **aucun littéral de statut**, ce que `diag-annonce-expiree` exige de toute fonction SQL qui lit `publications` ; transition, cloisonnement et propriété **rejoués dans l'UPDATE** ; zéro ligne rend `false` → 409 `wrong_status` là où la route disait 200 en silence (§E.27) ; la clôture par l'organisation est la seule dépublication volontaire — l'expiration est un **constat** (`annonce_expiree`) |
 | `annonce_expiree` | `constater_annonces_expirees()` (SQL), appelée par la **tâche de constat** [app/api/cron/constats](../app/api/cron/constats/route.ts) (`constats_trigger`, 04:50 UTC) | constat, marqueur + ligne dans la même transaction | `vie_annonce_jours` | l'expiration n'est **pas un geste** : règle appliquée à la lecture (`annonce_active()`), rien ne bascule ; la tâche trouve ce qui est publié, jamais constaté et plus actif selon la **seule** règle du schéma, pose `publications.expiration_constatee_at` et écrit la ligne **sous verrou**, une fois ; **une pièce par passage**, née dans la route ; la durée de vie **en vigueur** est écrite avec la ligne (la date du constat n'est pas celle de l'expiration ; `published_at` et `expires_at` restent sur l'annonce, immuables, et le détail ne les **recopie pas** — `diag-annonce-expiree` refuse toute composition des deux hors `annonce_active()`) ; passages **bornés** (200), un long passé s'égrène sans reprise à la main ; l'index partiel de la file ne porte pas le statut ; **le passif est marqué SANS ligne** par la migration elle-même (26/09/2026, aucune ligne rétroactive) — `annonce_active()` étant la source SQL de la règle, la migration pose le marqueur sur toute annonce déjà expirée et dit combien ; la tâche reste **HTTP** (les secrets du Vault sont exigés) parce qu'elle porte aussi la fermeture des dévoilements, dont la règle vit en TypeScript |
@@ -3933,6 +3983,17 @@ posés : le rejeu « Prévenir les experts » (`prevenir: true`, un bouton de l'
 refusée n'empêche plus d'avertir ; ce qui n'a pas été fait se dit séparément (`journal_error`, `experts_non_prevenus`,
 `journal_et_experts`). **Gardé par** `diag-lot-zones` 6 ; en base, `taxonomie/specialite_ecriture_et_avis.test.sql` (11).
 
+**L'état des avis se relit à chaque affichage (S2, 02/10/2026).** L'écran se taisait sur un succès (le nombre d'avis posés
+n'était lu par personne), et « Prévenir les experts » n'existait qu'après un code d'échec, dans l'état local de la page :
+une spécialité DÉJÀ inactive — désactivée avant que l'avis existe, ou rechargée — n'avait aucun chemin pour prévenir. Sous
+chaque spécialité inactive, `lib/taxonomie/etat-des-avis.ts` (servi par `get-branch`) dit les experts qui l'ont encore,
+ceux qui ont reçu l'avis de CETTE désactivation, ceux qui restent — et le bouton reste sur la ligne tant qu'il en reste
+(la base ne prévient personne deux fois). Un succès se dit (« N experts ont été prévenus »), une lecture en panne aussi
+(jamais « tous prévenus »). Un refus de la base sur une spécialité se dit par un MOTIF nommé lu dans le SQLSTATE
+(`lib/taxonomie/motif-refus-ecriture.ts`), jamais par le message brut de Postgres. **Gardé par** `diag-alertes-recommandations` §2
+et §6. **Limite dite** : un avis posé AVANT que la pièce de désactivation existe (sous une autre pièce) n'est pas compté
+comme reçu — un rejeu le reposerait (requête ③ du rapport S2).
+
 <a id="d37"></a>
 ### D.37 — L'ANNONCE DE SOUS-TRAITANCE PORTE LA BRANCHE ET LES ZONES, ET DIT CHAQUE REFUS (02/10/2026)
 
@@ -4125,6 +4186,97 @@ le lien ; un journal qui refuse ne rend AUCUN lien (`journal_error`) ; un CV abs
 C'est la SEULE consultation qui s'écrit : un accès du personnel à une donnée personnelle. **Gardé par**
 `diag-recette-s1` 14, `diag-grand-livre` D ter, `grand_livre/photo_et_cv.test.sql`.
 
+<a id="d45"></a>
+### D.45 — ON NAVIGUE PAR LES MENUS : AUCUN BOUTON RETOUR, NULLE PART (S1, décision de Youssef, 02/10/2026)
+
+**Le cas.** Un bouton « Retour » global (`GlobalBackButton`, sa pile en `sessionStorage`), 17 retours propres à des pages
+et trois « ← » nus : ils menaient tantôt à la page précédente, tantôt à une page parente, et l'inventaire par nom de clé
+en ratait cinq (§E.106). **La règle** : aucun bouton Retour, pages de détail et écrans d'erreur compris, tous profils,
+admin compris — le menu reste affiché, la barre latérale est la sortie. Elle remplace la règle de juin (« pas de Retour
+sur une page de menu »). **Les pages publiques SANS menu** (404, écosystème indisponible, mot de passe oublié,
+confirmations, invitation, inscription) gardent UN lien de sortie, **sans flèche**, qui dit où il mène (« Accueil »,
+« Se connecter », « Changer de profil »). **Gardé par** `diag-aucun-retour` (bloquant) : mécanisme parti, ni
+`router.back()` ni `history.back()`, aucune flèche, chaque libellé de retour déclaré avec sa raison, les huit sorties
+publiques avec leur destination retrouvée dans le fichier ; 12 mutations.
+
+<a id="d46"></a>
+### D.46 — L'EN-TÊTE DE CHAQUE PAGE PORTE SON NOM, DÉRIVÉ DU MENU (S1, 02/10/2026)
+
+**Le cas.** `DashboardShell` tenait sa propre table « section → titre » : `sous-traitance` n'y était pas et tombait sur
+« Tableau de bord ». **La règle** : une seule dérivation, dans `lib/nav-config.ts` (la source des barres latérales) —
+`titreDeTableauDeBord(side, chemin)` et `titreAdmin(chemin)` : le nom de l'entrée de menu qui couvre la page (le chemin le
+plus long qui la préfixe), le même mot que la barre latérale ; la racine ne couvre qu'elle-même ; une page que rien ne
+couvre n'affiche AUCUN nom (jamais « Tableau de bord » par défaut). « Mes candidatures » → « Candidatures », « Messagerie »
+→ « Messages » (validé par Youssef). Une entrée de menu ajoutée (« Annonces », S3) nomme ses pages d'elle-même.
+**Gardé par** `diag-aucun-retour` F (le nom EXÉCUTÉ sur chaque page du dépôt, dans les quatre langues).
+
+<a id="d47"></a>
+### D.47 — LA LISTE DES ZONES EST SON PROPRE RÉFÉRENTIEL : TOUS LES PAYS (S1, décision de Youssef, 02/10/2026)
+
+**Le cas.** Les zones ne connaissaient que les 64 pays de `countries` (la liste de l'adresse, de l'organisation et du
+téléphone) ; y ajouter 130 pays aurait changé toutes ces listes. **La règle** : `work_zones` se détache de `countries`
+(clé étrangère retirée, forme ISO 3166-1 ou 3166-2 tenue en base, `work_zones_code_pays_forme`) ; les membres et
+observateurs de l'ONU, **Israël excepté** ; le **Royaume-Uni en ses quatre pays** (Angleterre, Écosse, Pays de Galles,
+Irlande du Nord), donnés à qui l'avait ; la **Turquie en Europe**, « Turkey » en anglais. 197 pays actifs, sur staging comme
+sur une base neuve. `countries` n'est ni lue ni écrite. Un changement de continent est une ligne (avant le push) ou un
+`update … set parent_id` (après : le déclencheur recalcule). **Gardé par** `diag-zones-liste-des-pays` (la liste contre la
+source, la migration, le test) et `matching/zones_liste_des_pays.test.sql` (19).
+
+<a id="d48"></a>
+### D.48 — UNE ANNONCE QUI S'AFFICHE PRÉVIENT ; AUCUN RÉGLAGE NE LE CONTREDIT (S2, décision de Youssef, 02/10/2026)
+
+**Le cas (Mehdi, staging).** Une mission affichée « Correspondance forte », une pastille rouge sur « Missions », et ni
+cloche ni e-mail : l'alerte exigeait `notify_enabled` (faux par défaut) ET le palier « fort », le palier ne lisait que
+`notify_threshold`. Deux réglages gouvernaient ce qui est montré et ce qui prévient (§E.111). **La règle** : chaque
+correspondance FRAÎCHE prévient (cloche, et e-mail si l'expert l'a activé), dans les deux sens ; `notify_enabled` n'est
+plus lu (inerte ; sa suppression, si décidée, part dans un lot APRÈS) ; `notify_threshold` ne règle que le PALIER
+« Correspondance forte » ; `/admin/matching` le dit et n'offre plus la case. **Elle renverse §P4.3** (« volontairement
+inactif ») : la volumétrie redevient un sujet, et c'est le FILTRE du flux (0 par défaut) qui décide désormais aussi de qui
+est prévenu. Avec elle : une mission POSTULÉE quitte le flux et son compteur (`mission_postulee`, champ calculé en base),
+le palier ne s'affiche qu'une fois par carte, sans info-bulle interne. **Gardé par** `diag-alertes-recommandations` (13
+mutations) et `matching/mission_postulee.test.sql` (7).
+
+<a id="d49"></a>
+### D.49 — UNE ANNONCE EN REVUE NE SORT QUE PAR UN ADMINISTRATEUR, ET PAR LE MÉCANISME DE LA PUBLICATION (S3, 02/10/2026)
+
+**Le cas.** Un besoin noté 5/10 restait « En attente de validation » pour toujours : aucun écran ne listait les annonces en
+revue, et `publier_annonce()` le disait (« sa mise en ligne ultérieure, si elle existe un jour, passera par ici »).
+**La règle** : `/admin/annonces` (en attente · validées · refusées · toutes, une liste pour les annonces d'organisation et
+les besoins de sous-traitance) ; **valider** = `publier_annonce()` depuis `pending_review` (un écrivain par action,
+§D.26) — place réservée, mise en relation dans `after()`, compteur mensuel NON reconsommé, voie dérivée sous verrou et
+écrite au journal, verdict de la machine conservé ; **refuser** = `refuser_annonce()`, motif obligatoire sur la ligne
+métier, jamais au journal (`annonce_refusee`). L'auteur est prévenu dans sa langue (cloche et e-mail). La garde
+administrateur est EN BASE (42501) : l'anti-relance ne dépend plus de la seule route. **Au regroupement (ARRÊT 28)** : la
+validation applique le prédicat ENTIER de la publication (§D.39) — une annonce en revue sans spécialité ou sans temps de
+travail est refusée `missing_fields`, champs nommés, et l'écran dit que c'est à son AUTEUR de la compléter (la base le tient
+depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (16), `diag-grand-livre`,
+`diag-journal-lisible`.
+
+<a id="d50"></a>
+### D.50 — UNE ANNONCE REFUSÉE SE MODIFIE ET SE SOUMET À NOUVEAU ; ELLE NE COMPTE PAS DEUX FOIS (regroupement, ARRÊT 28, décision de Youssef)
+
+**Le cas.** S3 laissait l'auteur d'une annonce refusée sans chemin : `PATCH` n'éditait que `draft`, `suspended`,
+`archived`, la carte et la fiche ne menaient à « Modifier » que pour eux, la vue Sous-traitance ne connaissait pas
+`rejected`. **La règle**, le changement minimal décrit par S3 :
+- `PATCH /api/publications/[id]` édite une annonce `rejected` et la repasse en **brouillon** dans le même `update` —
+  **seulement si un champ change** (la route compare déjà, §D.33) ; inchangée, 409 `annonce_refusee_inchangee`, nommé,
+  rien n'est écrit ;
+- la publication qui suit fait juger le **TEXTE MODIFIÉ** par la vérification automatique (rien n'est sauté) ; l'anti-
+  relance tient : on ne publie que depuis un brouillon, et la base refuse la sortie de revue à un non-administrateur ;
+- **la resoumission ne compte pas une seconde fois** dans les publications du mois (décision de Youssef) : le marqueur est
+  le motif du refus (`review_reason`), que seule `refuser_annonce()` POSE et que la voie administrateur EFFACE — un
+  brouillon qui le porte a déjà été soumis ; `/publish` ne consomme pas le compteur pour lui. La place active, elle, se
+  réserve comme pour toute mise en ligne ;
+- le motif est servi à l'auteur (`motif_refus`) SEULEMENT pour une annonce refusée, et rendu par un bandeau commun
+  (`components/annonces/MotifRefus.tsx`) sur la fiche et le formulaire de l'organisation, la fiche et la reprise du
+  besoin de sous-traitance (`…/sous-traitance/[id]/modifier`, freelance et CDI — parité §D.14) ; le message de refus (cloche, e-mail)
+  et l'aide de l'administrateur le disent, dans les quatre langues.
+**Limites dites** : une annonce refusée alors que l'offre était illimitée ne fut comptée « zéro fois » — sa resoumission
+reste gratuite même si l'offre a changé depuis ; une annonce validée par la voie AUTOMATIQUE après resoumission garde son
+ancien motif (le refus antérieur que la fiche admin montre), comme elle garde son ancien `verified_by` (§E.115). **Gardé
+par** `diag-resoumission` (bloquant, 12 mutations intégrées).
+
+---
 ---
 
 ## F. La classe de défaut « lire puis écrire »
@@ -4275,6 +4427,20 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
 - **La même classe que §E.96, sur des LIBELLÉS, vue et non corrigée** (périmètre des candidatures, S2) : `CandidatureCard`
   choisit « mission » ou « offre » pour ses textes de sélection par `publicationType === 'mission' ? … : …` — un besoin de
   sous-traitance y prend les mots d'une offre CDI.
+  **CORRIGÉ au regroupement (ARRÊT 28)** : `motDuType()` (lib/annonces/mise-en-forme.ts) — trois cas écrits — sert la
+  fiche de candidat, son jumeau `SpotlightCandidateCard`, le suivi (`CandidatureDetailPanel`) et le cycle de vie ; sept
+  textes « sous-traitance » neufs dans les quatre langues.
+- **La spécialité et le temps de travail en base, et `work_mode` / `duration`** : la SECONDE livraison (§D.51, §H.9).
+
+**H.9 — CE QUE LE REGROUPEMENT (ARRÊT 28, 03/10/2026) LAISSE OUVERT, DIT.**
+- **Les tests pgTAP n'ont tourné nulle part** (ni Docker ni base) : 671 au départ + 27 + 8 (principal) + 19 (S1) + 7 (S2)
+  + 16 (S3) = **748 attendus** sur la première livraison — à rejouer par Youssef.
+- **`matching_settings.notify_enabled`** est inerte (§D.48) : sa suppression restreindrait — un lot APRÈS, si décidé.
+- **L'état de staging que les rapports S2 n'ont pas pu lire** : la valeur de `notify_enabled`, la date de désactivation de
+  la spécialité de Mehdi, les avis posés sous une autre pièce (requêtes ①–③ de `docs/reprise-s2.md`).
+- **Aucun navigateur n'a été ouvert** : les deux cartes qui disent désormais le temps de travail, le bandeau du motif, la
+  page de reprise du besoin se lisent dans le code.
+- **La carte d'annonce dit encore le budget deux fois** (§H.8) : non touché au regroupement.
 
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
@@ -4619,6 +4785,35 @@ le rattrapage rejoue. À arbitrer.
 > trouvés en relisant CLAUDE.md contre le code sont l’histoire de cette mémoire, pas une consigne
 > à avoir sous les yeux avant d’écrire une ligne. La règle qu’ils établissent, elle, est restée
 > dans CLAUDE.md : **une mémoire fausse ne se voit pas** (§E.16).
+
+### M3 — Le regroupement des quatre branches du 03/10/2026 (ARRÊT 28)
+
+Quatre branches parties de `e27fa56` (principal « critères des annonces », S1 « finitions et pays », S2 « alertes et
+recommandations », S3 « validation des annonces »), fusionnées dans cet ordre dans `lot/regroupement`. Les conflits, et
+leur résolution :
+- **`messages/*.json`** (S3) : UNION au niveau des OBJETS, pas des lignes — un outil qui lit les deux côtés et la base
+  commune, garde chaque clé ajoutée, respecte chaque clé RETIRÉE par un côté (les 24 de S1), et s'arrête sur une même clé à
+  deux valeurs (aucune) ; format vérifié identique à l'octet. 5 125 feuilles par langue à la fusion.
+- **`supabase/verifications/staging-avant-push.sql`** (S1, S2, S3) : union des créations ; ⓪ reste
+  `specialite_ecriture_et_avis_une_fois` (S1 portait encore l'état d'avant le lot zones, `photo_par_le_serveur`) ;
+  la signature retirée et recréée de S1 ; ses lignes ⑮–⑱ gardées.
+- **`scripts/diag-deux-temps.mjs`** (S1) : les deux types de preuve (`colonnes_neuves` du principal, `recreee` de S1) ;
+  les quatre exceptions de S1 gardées et **prouvées sur `e27fa56`** ; ses deux exceptions mortes (lot zones, déployé)
+  retirées ; `CODE_EN_LIGNE` = `e27fa56`.
+- **`scripts/diag-lint-cliquet.mjs`** : 50/21 (principal) et 49/23 (S1) réunis, puis remesurés.
+- **`docs/architecture.md`, `docs/pieges.md`** : les blocs gardés côte à côte ; la mesure de `diag-migration-donnees` refaite
+  sur 191 migrations.
+- **La navigation de l'admin** : sans conflit — S1 retire le retour, S3 ajoute « Annonces » (son icône), et la
+  dérivation du titre (§D.46) nomme ses pages d'elle-même (`diag-aucun-retour` F vert).
+
+**Ce que la fusion a cassé SANS conflit** (§E.45) — vu par `tsc`, puis par relecture :
+① la route de validation de S3 appelait `missingForPublish` avec l'ANCIENNE forme (sans spécialités, temps de travail,
+  répartition) — `tsc` l'a vu parce que le type est strict ; corrigée pour lire tous les critères (§D.49, §E.116) ;
+② les cartes « Missions recommandées » (S2) et du suivi ne disaient pas le temps de travail du principal ;
+③ la fiche de candidat (« pour ce poste ») et trois composants voisins choisissaient le mot par deux règles « X ? A : B »
+  contraires (§E.96) — `motDuType` ;
+④ la propriété « les pages Missions gardent S1 et S2 » a été vérifiée ligne par ligne : chaque ligne ajoutée par chaque
+  branche dans un fichier touché par plusieurs est présente, hors celles que le regroupement a réécrites.
 
 ### M0 — Les énoncés PÉRIMÉS des sections anglaises de CLAUDE.md
 

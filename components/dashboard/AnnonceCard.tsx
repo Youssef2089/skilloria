@@ -67,8 +67,9 @@ const STATUS_STYLES: Record<AnnonceStatus, StatusVisual> = {
 const FADED_STATUSES: readonly AnnonceStatus[] = ['suspended', 'expired', 'archived', 'rejected']
 const ACTIONABLE_STATUSES: readonly AnnonceStatus[] = ['draft', 'pending_review', 'published']
 // Statuts pour lesquels le lien pointe vers le formulaire d'édition.
-// Aligné sur EDITABLE_STATUSES de PATCH /api/publications/[id].
-const EDITABLE_STATUSES: readonly AnnonceStatus[] = ['draft', 'suspended', 'archived']
+// Aligné sur EDITABLE_STATUSES de PATCH /api/publications/[id] — une annonce REFUSÉE se modifie pour être soumise à
+// nouveau (ARRÊT 28).
+const EDITABLE_STATUSES: readonly AnnonceStatus[] = ['draft', 'suspended', 'archived', 'rejected']
 
 function IconUsers({ size = 14 }: { size?: number }) {
   return (

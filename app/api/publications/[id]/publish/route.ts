@@ -131,7 +131,7 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     .from('publications')
     .select(
       'id, organization_id, status, type, title, description, skills_required, seniorities, location_note, work_zone_ids, ' +
-        `branch_id, speciality_ids, speciality_other, ${COLONNES_CRITERES_ANNONCE}, budget_min, budget_max`,
+        `branch_id, speciality_ids, speciality_other, ${COLONNES_CRITERES_ANNONCE}, budget_min, budget_max, review_reason`,
     )
     // CLOISONNEMENT — ECRITURE : publier une annonce d'un autre ecosysteme
     // depuis celui-ci consommerait un quota sur des donnees invisibles ici.
@@ -309,7 +309,13 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     }
   }
 
-  if (ents.limits.publicationsPerMonth !== null) {
+  // ── LA RESOUMISSION NE COMPTE PAS DEUX FOIS (décision de Youssef, regroupement ARRÊT 28) ──
+  //  Une annonce REFUSÉE par l'administration, modifiée par son auteur, revient au brouillon avec son motif
+  //  (`review_reason`, que seul `refuser_annonce()` écrit et que la validation par un administrateur efface) : un
+  //  brouillon qui le porte a DÉJÀ été soumis, et compté, ce mois-ci ou un autre. Le contrôle de qualité, lui, la juge
+  //  de nouveau — c'est le texte modifié qui passe. La place active, elle, se réserve comme pour toute mise en ligne.
+  const resoumission = typeof pub.review_reason === 'string' && pub.review_reason.trim() !== ''
+  if (ents.limits.publicationsPerMonth !== null && !resoumission) {
     const allowed = await consumeQuota(
       auth.supabaseAdmin,
       orgId,

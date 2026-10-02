@@ -30,14 +30,22 @@ export const maxDuration = 60
 
 /**
  * PATCH /api/publications/[id] — édite un brouillon (ou une publi
- * suspendue / archivée).
+ * suspendue / archivée, ou REFUSÉE par l'administration).
+ *
+ * LA RESOUMISSION D'UNE ANNONCE REFUSÉE (regroupement, ARRÊT 28 — le changement minimal décrit par S3) : une annonce
+ * `rejected` s'édite, et repasse en BROUILLON dans le même `update` — SEULEMENT si au moins un champ change (la route
+ * compare déjà, §D.33). Inchangée, elle reste refusée : 409 `annonce_refusee_inchangee`, NOMMÉ, rien n'est écrit. La
+ * publication qui suit fait juger le TEXTE MODIFIÉ par la vérification automatique, et l'anti-relance tient (un texte
+ * inchangé ne se resoumet pas ; la base refuse toujours la sortie de revue à un non-administrateur). Le motif du refus
+ * (`review_reason`) reste sur la ligne : il marque la resoumission, que /publish ne recompte pas dans le mois (décision
+ * de Youssef), et la fiche admin le montre comme « refus antérieur ».
  *
  * Garde : appartenance org active (RLS publications_member_write joue en
  * défense en profondeur). On REFUSE l'édition si status hors
  * ('draft','suspended','archived') — cf. statuts gérés par l'org côté client
  * (alignement RLS).
  *
- * Champs INTOUCHABLES par cette route : status, verification_score,
+ * Champs INTOUCHABLES par cette route : status (sauf `rejected` → `draft`, ci-dessus), verification_score,
  * verification_method, verification_data, verified_by, verified_at,
  * review_reason, published_at, expires_at, created_by, organization_id,
  * domain_id. Le caller ne peut influencer QUE des champs métier édituables.
@@ -53,7 +61,7 @@ function json(data: unknown, status = 200): Response {
   })
 }
 
-const EDITABLE_STATUSES = ['draft', 'suspended', 'archived'] as const
+const EDITABLE_STATUSES = ['draft', 'suspended', 'archived', 'rejected'] as const
 const UUID_REGEX = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 
 type Body = {
@@ -346,10 +354,21 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
     )
   }
 
-  // ── UPDATE (status / verification_* JAMAIS touchés ici) ─────────────────
+  // CE QUI CHANGE VRAIMENT, lu AVANT d'écrire : la ligne du grand livre ne nomme que ces champs (ARRÊT 22), et une
+  // annonce refusée ne revient au brouillon que modifiée (resoumission, ARRÊT 28).
+  const champsChanges = clesModifiees(u.updates as Record<string, unknown>, avantAnnonce)
+  const resoumission = currentStatus === 'rejected'
+  if (resoumission && champsChanges.length === 0) {
+    return json(
+      { error: 'Rejected publication unchanged', code: 'annonce_refusee_inchangee', current_status: currentStatus },
+      409,
+    )
+  }
+
+  // ── UPDATE (verification_* JAMAIS touchés ici ; status seulement rejected → draft, à la resoumission) ─────────
   const { data: updated, error: updateErr } = await auth.supabaseAdmin
     .from('publications')
-    .update(u.updates)
+    .update(resoumission ? { ...u.updates, status: 'draft' } : u.updates)
     // CLOISONNEMENT — ECRITURE : la mise a jour ne peut atteindre une annonce
     // d'un autre ecosysteme. Zero ligne touchee -> 404, jamais une ecriture muette.
     .eq('id', id)
@@ -369,7 +388,6 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   //  la trace manque, et l'organisation le sait plutôt qu'un 200 qui ment.
   //  CE QUI CHANGE VRAIMENT (décision de Youssef, 01/10/2026, ARRÊT 22) : un brouillon réenregistré à l'identique
   //  n'écrit plus de ligne ; seuls les champs dont la valeur change sont nommés.
-  const champsChanges = clesModifiees(u.updates as Record<string, unknown>, avantAnnonce)
   try {
     if (champsChanges.length > 0) {
       await journaliserDans(auth.supabaseAdmin, journal, {
@@ -436,7 +454,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
 //
 // DTO COMPLET (champs éditables + métadonnées status/score) — pas de masquage,
 // c'est la propre publi de l'org. JAMAIS de verification_data, verified_*,
-// review_reason, expires_at (réservés à la fiche admin).
+// expires_at (réservés à la fiche admin). Le MOTIF D'UN REFUS (`review_reason`) sort SEULEMENT quand l'annonce est
+// refusée, sous `motif_refus` : il est écrit POUR l'auteur (la cloche et l'e-mail le lui portent déjà) — c'est ce qui
+// lui dit quoi modifier avant de la soumettre à nouveau (ARRÊT 28).
 
 export async function GET(request: NextRequest, ctx: RouteContext): Promise<Response> {
   let auth: AuthContext
@@ -475,6 +495,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     confidential: boolean
     status: string
     verification_score: number | null
+    review_reason: string | null
     created_at: string
     updated_at: string
     published_at: string | null
@@ -485,7 +506,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     .select(
       'id, organization_id, type, title, description, branch_id, speciality_ids, ' +
         `speciality_other, skills_required, seniorities, ${COLONNES_CRITERES_ANNONCE}, location_note, work_zone_ids, start_date, ` +
-        'budget_min, budget_max, confidential, status, verification_score, ' +
+        'budget_min, budget_max, confidential, status, verification_score, review_reason, ' +
         'created_at, updated_at, published_at',
     )
     // CLOISONNEMENT — lecture du detail : introuvable hors de l'ecosysteme actif.
@@ -547,6 +568,7 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
         confidential: pub.confidential,
         status: pub.status,
         verification_score: pub.verification_score,
+        motif_refus: pub.status === 'rejected' ? pub.review_reason : null,
         created_at: pub.created_at,
         updated_at: pub.updated_at,
         published_at: pub.published_at,
