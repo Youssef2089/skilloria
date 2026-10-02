@@ -353,8 +353,6 @@ function motsDuType(textes) {
 // ══════════════════════════════════════════════════════════════════════════
 section('G. L’épreuve : chaque mutation fait rougir le contrôle')
 // ══════════════════════════════════════════════════════════════════════════
-section('G. L’épreuve : chaque mutation fait rougir le contrôle')
-// ══════════════════════════════════════════════════════════════════════════
 {
   const muter = (p, de, vers) => {
     const t = { ...REELS }
