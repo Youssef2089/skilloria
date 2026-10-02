@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 03/10/2026 (ARRÊT 27 — le lot « les annonces ont les mêmes critères que l'expert », à relire avant le regroupement).** Branche `lot/criteres-annonces` (depuis `feat/sprint-archi-orga` à `e27fa56`, en ligne sur staging). Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 03/10/2026 (ARRÊT 28 — le regroupement des quatre branches, puis la seconde livraison ; à relire avant tout déploiement).** Branches `lot/regroupement` (première livraison) et `lot/seconde-livraison` (seconde), depuis `e27fa56` (en ligne sur staging). Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,81 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 28 — LE REGROUPEMENT DES QUATRE BRANCHES, PUIS LA SECONDE LIVRAISON (03/10/2026)
+
+Aucun `git push`, aucune écriture en base, ni Docker ni base lancés. Les validations ont tourné une par une.
+
+### Étape 0 — l'état trouvé
+La session précédente avait planté pendant la consigne « temps de travail obligatoire sur l'annonce, facultatif sur le
+profil ». **Elle était À MOITIÉ FAITE** : le code complet (prédicat `missingForPublish`, route `/publish`, les deux écrans,
+le refus nommé ×4, `diag-criteres-communs` E bis, `diag-lot2-socle`, la mémoire), **rien de validé ni de commité**, la ligne
+d'épreuve de l'ARRÊT 27 annoncée « ci-dessous » et absente. Relu (rien ne manquait), validé — tsc 0, `next build` vert,
+lint 50/21, parité 5 016 clés, série 126 verts / 0 rouge (+ `diag-controles-a-rejouer` seul : 95 rejoués, verts), M12 et
+M13 rougissent — et commité (`fb7d8a8`). `supabase/snippets/` (à Youssef) n'est pas touché.
+Les têtes confirmées : S1 `9e99760`, S2 `333560f`, S3 `517edf9`, en ligne `e27fa56`.
+
+**Lu** (règle du 26/09) : CLAUDE.md ; reprise ARRÊT 27, reprise-s1, -s2, -s3 (entiers) ; architecture §B (lots zones,
+critères, S1), §C.3, §C.5, §C.21 (ligne `annonce_publiee`), §D.36, §D.39, §H.7, §H.8, §M (en-tête) ; pièges §E.105, §E.9
+(forme), la mesure de `diag-migration-donnees` ; produit §P1.2, §P1.2 bis, §P1.3 (la notification), §P2.2, §P2.3, §P2.4,
+§P3.2, §P4.3. Code : les routes `/api/publications/[id]` (PATCH, GET), `/publish`, `/api/admin/annonces/[id]/valider`, la
+fiche admin des annonces, `PublicationForm`, `SousTraitanceView`, `SousTraitanceDetailView`, `AnnonceCard`, la fiche
+d'annonce d'organisation, `MissionCastingCard`, `CandidatureCastingCard`, `CandidatureCard`, `SpotlightCandidateCard`,
+`CandidatureDetailPanel`, `use-lifecycle-label`, `lib/annonces/formulaire.ts`, `mise-en-forme.ts`, `criteres.ts`,
+`lib/publication-synthesis.ts`, `lib/validation-annonces/avis.ts`. Migrations : `validation_annonces`, `mission_postulee`
+(entières), `annonce_criteres_communs`, la baseline (`publications`). Tests : `_fabriques.psql`, `criteres_communs`,
+`annonce_publiee`, `sous_traitance`, `annonce_refusee`. Contrôles : `diag.mjs`, `diag-deux-temps`, `diag-requete-staging`,
+`diag-grand-livre` (la preuve `annonce_modifiee`), `diag-criteres-communs`, `diag-memoire-exacte`. **Non relu** : le reste.
+
+### 1. Le regroupement — `lot/regroupement`, depuis `lot/criteres-annonces`, puis S1, S2, S3
+| Fusion | Conflits | Résolution |
+|---|---|---|
+| S1 (`79e73d8`) | `docs/architecture.md`, `docs/pieges.md`, `diag-deux-temps`, `diag-lint-cliquet`, requête de staging | architecture : les deux blocs §B ; pièges : la mesure (refaite à la fin) ; `diag-deux-temps` : les deux types de preuve (`colonnes_neuves`, `recreee`), les quatre exceptions de S1 **prouvées sur `e27fa56`**, ses deux exceptions mortes retirées ; lint : 49/21 (remesuré) ; requête : union, ⓪ = `specialite_ecriture_et_avis_une_fois` (S1 portait encore `photo_par_le_serveur`) |
+| S2 (`670ea26`) | `docs/pieges.md`, requête de staging | union (+ `mission_postulee`) |
+| S3 (`d0094b0`) | `messages/*.json` (×4), `docs/pieges.md`, requête de staging | **messages par UNION au niveau des objets** (outil : base commune + deux côtés, les clés retirées par S1 restent retirées, une même clé à deux valeurs arrêterait tout — aucune), format identique à l'octet, 5 125 feuilles ; requête : union (+ `refuser_annonce`) |
+`CLAUDE.md` et `docs/produit.md` ont fusionné seuls ; la navigation de l'admin aussi (S1 retire le retour, S3 ajoute
+« Annonces » — `diag-aucun-retour` F nomme ses pages par le menu). Le nombre de migrations : **191** (CLAUDE.md §G.4 bis,
+pièges, la mesure de `diag-migration-donnees` : 80 / 67 / 3 358).
+
+**Le code fusionné a du sens — ce qu'une fusion sans conflit avait cassé** (`d3d7a56`) :
+① **la validation par l'admin (S3) appelait `missingForPublish` avec l'ancienne forme** : `tsc` l'a vu (§E.116) — elle lit
+  désormais tous les critères ; un refus `missing_fields` nomme les champs et dit que l'auteur doit compléter l'annonce
+  (4 langues) ;
+② **les cartes « Missions recommandées » (S2) et du suivi** affichent le temps de travail (principal) ; la fiche admin des
+  annonces (S3) montre les nouveaux champs par `PUBLICATION_SYNTHESIS_SELECT` + `buildPublicationSynthesis` (vérifié) ;
+③ **les pages Missions** gardent S2 (S1 n'y touchait pas) — et pour chaque fichier touché par plusieurs branches, chaque
+  ligne ajoutée par chacune est présente (vérifié par script), hors celles que le regroupement a réécrites.
+**Mémoire intégrée** : décisions **D.45 à D.50** (S1 : menus, en-tête, liste des zones ; S2 : alertes ; S3 : validation ;
+resoumission), pièges **E.106 à E.116** (S1 E.106-E.110, S2 E.111-E.113, S3 E.114-E.115, la fusion E.116), architecture §B
+(S2, S3, le regroupement), §C.3, §C.5, §C.21 (`annonce_publiee` corrigée, `annonce_refusee`), §D.36, §H.8, §H.9, §M3 ; produit
+§P1.2, §P1.2 bis, §P1.3, §P2.2, §P2.3, **§P2.4, §P3.2 et §P4.3 réécrits selon la règle des alertes** ; CLAUDE.md §G.2
+(plages S2 et seconde livraison).
+
+### 2. Ce qui restait à faire au regroupement
+| # | Fait | Prouvé par |
+|---|---|---|
+| a | **Resoumission d'une annonce refusée** (`9c8af9e`), annonce d'organisation ET besoin de sous-traitance : `PATCH` édite `rejected` et la repasse en brouillon SEULEMENT si un champ change (sinon 409 `annonce_refusee_inchangee`, nommé, rien n'est écrit) ; `/publish` fait juger le texte modifié (rien n'est sauté) et **ne consomme pas le compteur mensuel** (marqueur : `review_reason`, que seule `refuser_annonce()` pose et que la voie administrateur efface — décision de Youssef) ; le motif servi à l'auteur (`motif_refus`, seulement pour une annonce refusée) et rendu par un bandeau commun (`MotifRefus`) : fiche et formulaire d'organisation, fiche et **reprise du besoin** (`…/sous-traitance/[id]/modifier`, freelance ET CDI) ; carte et fiche mènent à « Modifier » ; le refus (cloche, e-mail) et l'aide de l'administrateur le disent, ×4. Aucune migration | **`diag-resoumission`** (nouveau, bloquant : A à E + 13 épreuves intégrées, toutes rouges) ; `diag-grand-livre` (preuve `annonce_modifiee` mise à la nouvelle forme, éprouvée par mutation) |
+| b | **« pour ce poste » sur un besoin de sous-traitance** : `motDuType()` (trois cas écrits) pour la fiche de candidat, son jumeau `SpotlightCandidateCard` (même défaut, §E.20), le suivi et le cycle de vie — qui suivaient deux règles contraires ; 7 textes « sous-traitance » ×4 | `diag-criteres-communs` H bis (aucune alternative à deux branches, une déclarée LÉGITIME avec sa raison ; 7 familles × 3 types × 4 langues ; deux épreuves) |
+| c | `diag-deux-temps` et la requête de staging partent de **`e27fa56`** / `specialite_ecriture_et_avis_une_fois` : **les quatre migrations de la première livraison sont AVANT et ne refusent rien de ce que `e27fa56` écrit** (6 exceptions, chacune prouvée sur ce commit) | `diag-deux-temps` (vert), `diag-requete-staging` (vert) |
+
+### Les migrations de la PREMIÈRE livraison (`lot/regroupement`), dans l'ordre — toutes AVANT
+1. `20261003000000_annonce_criteres_communs` (principal)
+2. `20261003010000_zones_liste_des_pays` (S1)
+3. `20261003020000_mission_postulee` (S2)
+4. `20261003030000_validation_annonces` (S3)
+Requête de staging : ⓪ `specialite_ecriture_et_avis_une_fois` ; retire (et recrée) `work_zone_country_codes(uuid[])` ;
+crée 2 + 2 + 1 + 1 fonctions et 6 + 1 contraintes ; lignes ⑮ à ⑱ (le compte d'Israël et du Royaume-Uni, à LIRE).
+
+### Le nombre de tests de base attendu — première livraison
+**748 assertions, 69 fichiers** (compté sur les `plan(n)` des fichiers) = 671 (`e27fa56`) + 27 + 8 (principal) + 19 (S1)
++ 7 (S2) + 16 (S3). **NON exécutés ici.**
+
+### L'épreuve de `lot/regroupement`
+**tsc** 0 erreur (hors `.next/`) ; **next build** vert (les deux pages de reprise et l'écran admin des annonces générés) ;
+**lint** 49 erreurs / 21 avertissements (= la base réunie : 49 de S1, 21 du principal ; rien de neuf) ; **cliquet** vert ;
+**parité i18n** 5 137 clés. **Série complète** : premier passage **130 verts, 1 rouge** — `diag-grand-livre`, la preuve
+d'`annonce_modifiee` qui lisait l'ancienne forme de `PATCH` (le calcul des champs changés vient désormais avant
+l'écriture) : mise à la nouvelle forme, éprouvée par mutation. **Second passage, sur l'état final : 131 verts, 0 rouge, 0 n'a pas tourné** (6 écartés : ils touchent la vraie base). Ajouts de la session à la série : `diag-resoumission` (neuf), `diag-criteres-communs` H bis.
 
 ## ⛔ ARRÊT 27 — LOT « LES ANNONCES ONT LES MÊMES CRITÈRES QUE L'EXPERT » : SEPT POINTS FAITS, À REGROUPER (03/10/2026)
 
