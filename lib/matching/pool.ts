@@ -226,9 +226,15 @@ export async function chargerVivierPourAnnonce(
     // BRANCHE — déclarée des deux côtés, et obligatoire des deux côtés.
     if (annonce.branch_id) q = q.eq('branch_id', annonce.branch_id)
 
-    // SPÉCIALITÉS et SÉNIORITÉS — recoupement, et seulement si l'annonce en
-    // déclare. Ensemble vide côté annonce = aucune contrainte.
-    if (annonce.speciality_ids.length > 0) q = q.overlaps('speciality_ids', annonce.speciality_ids)
+    // SPÉCIALITÉS — LA MÊME RÈGLE DES DEUX CÔTÉS (décision de Youssef, relecture de l'ARRÊT 28) : un ensemble VIDE d'un
+    // côté OU de l'autre — l'annonce ou l'expert qui n'a que « Autre (préciser) » — ne contraint pas la spécialité ;
+    // l'IA juge sur le texte. Sinon, au moins une spécialité en commun. Le pendant en mémoire du sens expert → annonces
+    // est `specialitesCompatibles` (lib/matching/recoupement.ts). UN SEUL `.or()` sur cette requête : la règle
+    // d'éligibilité « toujours » n'en pose aucun (aucun appui dans le dépôt sur deux `.or` combinés).
+    if (annonce.speciality_ids.length > 0) {
+      q = q.or(`speciality_ids.eq.{},speciality_ids.ov.{${annonce.speciality_ids.join(',')}}`)
+    }
+    // SÉNIORITÉS — recoupement, et seulement si l'annonce en déclare. Ensemble vide côté annonce = aucune contrainte.
     if (annonce.seniorities.length > 0) q = q.overlaps('seniorities', annonce.seniorities)
 
     // ZONES — recoupement sur les codes pays APLATIS. L'aplatissement rend le

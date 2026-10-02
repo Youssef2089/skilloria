@@ -4093,6 +4093,15 @@ bloque « Mission / Offre » après le premier enregistrement (il ne le bloquait
 différent du type lu par 409 `type_immuable`, nommé ×4 — il l'ignorait en silence, et l'écran croyait l'avoir changé.
 Gardé par `diag-criteres-communs` E ter (deux épreuves).
 
+**« Autre » seul ne contraint la spécialité d'AUCUN côté** (décision de Youssef, relecture de l'ARRÊT 28) : un ensemble
+vide côté annonce OU côté expert = aucune contrainte ; sinon au moins une spécialité en commun ; l'IA juge sur le texte.
+Avant, seul le vide côté annonce était libre, et un expert « Autre » seul ne voyait que les annonces « Autre » seules. La
+règle est la même dans le vivier (`pool.ts`, un `.or('speciality_ids.eq.{},speciality_ids.ov.{…}')`) et en mémoire
+(`specialitesCompatibles`, sens expert → annonces). **Le test SQL `matching/specialites_recoupement` (6) ne suit que le
+sens qui passe par la base** — il réécrivait auparavant le sens en mémoire, ce qu'il ne pouvait pas suivre (relecture,
+point 11) ; ce sens-là est prouvé en EXÉCUTANT le prédicat réel (`diag-specialites-recoupement` C, et D : le vivier et la
+mémoire rendent la même chose sur 25 couples).
+
 <a id="d40"></a>
 ### D.40 — « AUTRE » EST UNE SEULE NOTION, ET CE N'EST JAMAIS UNE LIGNE DU RÉFÉRENTIEL (recette S1, 01/10/2026)
 

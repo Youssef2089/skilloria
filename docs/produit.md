@@ -225,7 +225,9 @@ Champs structurants : branche, spécialités (multiples), séniorités (multiple
     serait publiée et **silencieusement invisible** ; et depuis le 02/10/2026 le moteur le DIT : une liste de
     pays vide (ses pays désactivés) ne retient **personne**, dans les deux sens ;
   · **séniorités facultatives** — vide signifie « aucune contrainte sur cet axe », jamais « ne correspond à
-    personne ». Une annonce « Autre » seule (sans spécialité du référentiel) ne contraint pas la spécialité.
+    personne ». « Autre » seul ne contraint pas la spécialité, **des deux côtés** (décision de Youssef, relecture de
+    l'ARRÊT 28) : une annonce « Autre » seule touche tout expert de la branche, et un expert dont la seule spécialité est
+    « Autre » voit toute annonce de sa branche ; l'IA juge sur le texte.
 
 - **Qualité (IA)** — [lib/verification/ai-publication-quality.ts](../lib/verification/ai-publication-quality.ts),
   provider `opportunity_quality_check`, **seuil 7/10**. Le prompt refuse explicitement qu'un champ
