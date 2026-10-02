@@ -2179,13 +2179,13 @@
       "db_error": "Erreur technique. Veuillez réessayer.",
       "generic": "Une erreur est survenue. Veuillez réessayer.",
       "missing_fields": "Il manque des informations pour publier : {fields}.",
-      "annonce_refusee_inchangee": "Cette annonce a été refusée : modifiez son contenu — titre, description, compétences, séniorités, conditions de travail, durée ou budget — avant de la soumettre à nouveau (le motif est affiché en haut de la page). Changer seulement la branche, les spécialités, les zones, la date de début ou la confidentialité ne la fait pas revoir.",
+      "annonce_refusee_inchangee": "Cette annonce a été refusée et rien n’y a changé : corrigez ce que demande le motif (affiché en haut de la page) — n’importe quel champ, tout ce que vous modifiez est enregistré — avant de la soumettre à nouveau. Dès qu’un champ change, elle repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
       "type_immuable": "Le type d’une annonce (mission ou offre d’emploi) ne change plus une fois le brouillon enregistré. Pour l’autre type, créez une nouvelle annonce."
     },
     "refus": {
       "titre": "Cette annonce n’a pas été validée",
       "motif": "Motif :",
-      "suite": "Modifiez-la, puis soumettez-la à nouveau : le texte modifié repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
+      "suite": "Corrigez n’importe quel champ, puis soumettez-la à nouveau : tout ce que vous modifiez est enregistré, l’annonce repasse par la vérification automatique — en ligne si sa note atteint le minimum, sinon examinée de nouveau par l’administration — et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
       "modifier": "Modifier et soumettre à nouveau"
     }
   },
@@ -6377,7 +6377,7 @@
         },
         "refusee": {
           "titre": "Votre annonce « {titre} » n’a pas été validée",
-          "corps": "Après examen, votre annonce « {titre} » n’a pas été mise en ligne. Motif : {motif} Vous pouvez la modifier et la soumettre à nouveau : cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois."
+          "corps": "Après examen, votre annonce « {titre} » n’a pas été mise en ligne. Motif : {motif} Vous pouvez corriger n’importe quel champ et la soumettre à nouveau : elle repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois."
         }
       },
       "email": {
@@ -6397,7 +6397,7 @@
           "bonjour": "Bonjour {prenom},",
           "corps": "Après examen, votre annonce <strong>« {titre} »</strong> n’a pas été mise en ligne, pour le motif suivant :",
           "motif": "{motif}",
-          "suite": "Vous retrouvez votre annonce, et ce motif, dans votre espace : modifiez-la, puis soumettez-la à nouveau. Le texte modifié repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
+          "suite": "Vous retrouvez votre annonce, et ce motif, dans votre espace : corrigez n’importe quel champ — tout ce que vous modifiez est enregistré —, puis soumettez-la à nouveau. Elle repasse par la vérification automatique : en ligne si sa note atteint le minimum, sinon examinée de nouveau par l’administration. Cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
           "bouton": "Voir mon annonce"
         }
       }

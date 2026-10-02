@@ -2179,13 +2179,13 @@
       "db_error": "Error técnico. Inténtalo de nuevo.",
       "generic": "Se produjo un error. Inténtalo de nuevo.",
       "missing_fields": "Falta información para publicar: {fields}.",
-      "annonce_refusee_inchangee": "Este anuncio fue rechazado: modifica su contenido —título, descripción, competencias, niveles de experiencia, condiciones de trabajo, duración o presupuesto— antes de volver a enviarlo (el motivo aparece en la parte superior de la página). Cambiar solo la rama, las especialidades, las zonas, la fecha de inicio o la confidencialidad no hace que se revise de nuevo.",
+      "annonce_refusee_inchangee": "Este anuncio fue rechazado y no ha cambiado nada: corrige lo que pide el motivo (en la parte superior de la página) —cualquier campo; todo lo que modifiques se guarda— antes de volver a enviarlo. En cuanto cambia un campo, pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en tus publicaciones del mes.",
       "type_immuable": "El tipo de un anuncio (misión u oferta de empleo) ya no cambia una vez guardado el borrador. Para el otro tipo, crea un nuevo anuncio."
     },
     "refus": {
       "titre": "Este anuncio no ha sido validado",
       "motif": "Motivo:",
-      "suite": "Modifícalo y vuelve a enviarlo: el texto modificado pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en tus publicaciones del mes.",
+      "suite": "Corrige cualquier campo y vuelve a enviarlo: todo lo que modifiques se guarda, el anuncio pasa de nuevo por la verificación automática —publicado si su nota alcanza el mínimo; si no, revisado de nuevo por la administración— y este nuevo envío no cuenta por segunda vez en tus publicaciones del mes.",
       "modifier": "Modificar y volver a enviar"
     }
   },
@@ -6377,7 +6377,7 @@
         },
         "refusee": {
           "titre": "Su anuncio «{titre}» no ha sido validado",
-          "corps": "Tras la revisión, su anuncio «{titre}» no se ha publicado. Motivo: {motif} Puede modificarlo y volver a enviarlo: este nuevo envío no cuenta por segunda vez en sus publicaciones del mes."
+          "corps": "Tras la revisión, su anuncio «{titre}» no se ha publicado. Motivo: {motif} Puede corregir cualquier campo y volver a enviarlo: pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en sus publicaciones del mes."
         }
       },
       "email": {
@@ -6397,7 +6397,7 @@
           "bonjour": "Hola, {prenom}:",
           "corps": "Tras la revisión, su anuncio <strong>«{titre}»</strong> no se ha publicado, por el siguiente motivo:",
           "motif": "{motif}",
-          "suite": "Encontrará su anuncio, y este motivo, en su espacio: modifíquelo y vuelva a enviarlo. El texto modificado pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en sus publicaciones del mes.",
+          "suite": "Encontrará su anuncio, y este motivo, en su espacio: corrija cualquier campo —todo lo que modifique se guarda— y vuelva a enviarlo. Pasa de nuevo por la verificación automática: publicado si su nota alcanza el mínimo; si no, revisado de nuevo por la administración. Este nuevo envío no cuenta por segunda vez en sus publicaciones del mes.",
           "bouton": "Ver mi anuncio"
         }
       }

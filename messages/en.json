@@ -2179,13 +2179,13 @@
       "db_error": "Technical error. Please try again.",
       "generic": "An error occurred. Please try again.",
       "missing_fields": "Some information is missing before publishing: {fields}.",
-      "annonce_refusee_inchangee": "This posting was rejected: edit its content — title, description, skills, seniority, working conditions, duration or budget — before submitting it again (the reason is shown at the top of the page). Changing only the branch, specialities, zones, start date or confidentiality does not send it back for review.",
+      "annonce_refusee_inchangee": "This posting was rejected and nothing in it has changed: correct what the reason (shown at the top of the page) asks for — any field, everything you edit is saved — before you submit it again. As soon as a field changes, it goes through the automatic check again, and this new submission does not count a second time towards your postings for the month.",
       "type_immuable": "The type of a posting (mission or job offer) can no longer change once the draft is saved. For the other type, create a new posting."
     },
     "refus": {
       "titre": "This posting was not approved",
       "motif": "Reason:",
-      "suite": "Edit it, then submit it again: the edited text goes through the automatic check again, and this new submission does not count a second time towards your postings for the month.",
+      "suite": "Correct any field, then submit it again: everything you edit is saved, the posting goes through the automatic check again — online if its score reaches the minimum, otherwise reviewed again by the administration — and this new submission does not count a second time towards your postings for the month.",
       "modifier": "Edit and submit again"
     }
   },
@@ -6377,7 +6377,7 @@
         },
         "refusee": {
           "titre": "Your listing “{titre}” was not approved",
-          "corps": "After review, your listing “{titre}” was not put online. Reason: {motif} You can edit it and submit it again: this new submission does not count a second time towards your postings for the month."
+          "corps": "After review, your listing “{titre}” was not put online. Reason: {motif} You can correct any field and submit it again: it goes through the automatic check again, and this new submission does not count a second time towards your postings for the month."
         }
       },
       "email": {
@@ -6397,7 +6397,7 @@
           "bonjour": "Hello {prenom},",
           "corps": "After review, your listing <strong>“{titre}”</strong> was not put online, for the following reason:",
           "motif": "{motif}",
-          "suite": "You will find your listing, and this reason, in your space: edit it, then submit it again. The edited text goes through the automatic check again, and this new submission does not count a second time towards your postings for the month.",
+          "suite": "You will find your listing, and this reason, in your space: correct any field — everything you edit is saved — then submit it again. It goes through the automatic check again: online if its score reaches the minimum, otherwise reviewed again by the administration. This new submission does not count a second time towards your postings for the month.",
           "bouton": "View my listing"
         }
       }

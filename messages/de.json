@@ -2179,13 +2179,13 @@
       "db_error": "Technischer Fehler. Bitte erneut versuchen.",
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}.",
-      "annonce_refusee_inchangee": "Diese Anzeige wurde abgelehnt: Bearbeiten Sie ihren Inhalt – Titel, Beschreibung, Kompetenzen, Senioritätsstufen, Arbeitsbedingungen, Dauer oder Budget –, bevor Sie sie erneut einreichen (die Begründung steht oben auf der Seite). Nur Branche, Spezialisierungen, Zonen, Startdatum oder Vertraulichkeit zu ändern, führt zu keiner neuen Prüfung.",
+      "annonce_refusee_inchangee": "Diese Anzeige wurde abgelehnt, und nichts daran wurde geändert: Korrigieren Sie, was die Begründung (oben auf der Seite) verlangt – jedes Feld, alles, was Sie ändern, wird gespeichert –, bevor Sie sie erneut einreichen. Sobald sich ein Feld ändert, durchläuft sie erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
       "type_immuable": "Der Typ einer Anzeige (Auftrag oder Stellenangebot) ändert sich nicht mehr, sobald der Entwurf gespeichert ist. Für den anderen Typ erstellen Sie eine neue Anzeige."
     },
     "refus": {
       "titre": "Diese Anzeige wurde nicht freigegeben",
       "motif": "Begründung:",
-      "suite": "Bearbeiten Sie sie und reichen Sie sie erneut ein: Der geänderte Text durchläuft erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
+      "suite": "Korrigieren Sie ein beliebiges Feld und reichen Sie sie erneut ein: Alles, was Sie ändern, wird gespeichert, die Anzeige durchläuft erneut die automatische Prüfung – veröffentlicht, wenn ihre Bewertung das Minimum erreicht, sonst erneut von der Verwaltung geprüft –, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
       "modifier": "Bearbeiten und erneut einreichen"
     }
   },
@@ -6377,7 +6377,7 @@
         },
         "refusee": {
           "titre": "Ihre Anzeige „{titre}“ wurde nicht freigegeben",
-          "corps": "Nach Prüfung wurde Ihre Anzeige „{titre}“ nicht veröffentlicht. Begründung: {motif} Sie können sie bearbeiten und erneut einreichen: Diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats."
+          "corps": "Nach Prüfung wurde Ihre Anzeige „{titre}“ nicht veröffentlicht. Begründung: {motif} Sie können jedes Feld korrigieren und sie erneut einreichen: Sie durchläuft erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats."
         }
       },
       "email": {
@@ -6397,7 +6397,7 @@
           "bonjour": "Guten Tag {prenom},",
           "corps": "Nach Prüfung wurde Ihre Anzeige <strong>„{titre}“</strong> aus folgendem Grund nicht veröffentlicht:",
           "motif": "{motif}",
-          "suite": "Sie finden Ihre Anzeige und diese Begründung in Ihrem Bereich: Bearbeiten Sie sie und reichen Sie sie erneut ein. Der geänderte Text durchläuft erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
+          "suite": "Sie finden Ihre Anzeige und diese Begründung in Ihrem Bereich: Korrigieren Sie ein beliebiges Feld – alles, was Sie ändern, wird gespeichert – und reichen Sie sie erneut ein. Sie durchläuft erneut die automatische Prüfung: veröffentlicht, wenn ihre Bewertung das Minimum erreicht, sonst erneut von der Verwaltung geprüft. Diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
           "bouton": "Meine Anzeige ansehen"
         }
       }

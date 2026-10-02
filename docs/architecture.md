@@ -4298,13 +4298,17 @@ sur la fiche. Gardé par `diag-echec-silencieux` C (l'appelant recensé, « indi
 **Le cas.** S3 laissait l'auteur d'une annonce refusée sans chemin : `PATCH` n'éditait que `draft`, `suspended`,
 `archived`, la carte et la fiche ne menaient à « Modifier » que pour eux, la vue Sous-traitance ne connaissait pas
 `rejected`. **La règle**, le changement minimal décrit par S3 :
-- `PATCH /api/publications/[id]` édite une annonce `rejected` et la repasse en **brouillon** dans le même `update` —
-  **seulement si un champ QUE LE CONTRÔLE DE L'IA LIT a vraiment changé** (`CHAMPS_JUGES_PAR_LE_CONTROLE`, tenue égale à
-  l'entrée de l'IA dans `/publish` ; relecture de l'ARRÊT 28, point 1 — changer seulement la branche, les spécialités, les
-  zones, la date ou la confidentialité aurait fait rejuger le MÊME texte, et une annonce refusée pouvait passer en ligne
-  sans que rien de ce qui a été refusé soit revu) ; sinon 409 `annonce_refusee_inchangee`, nommé, rien n'est écrit ;
-- la publication qui suit fait juger le **TEXTE MODIFIÉ** par la vérification automatique (rien n'est sauté) ; l'anti-
-  relance tient : on ne publie que depuis un brouillon, et la base refuse la sortie de revue à un non-administrateur ;
+- `PATCH /api/publications/[id]` édite une annonce `rejected` — **N'IMPORTE QUEL champ, et tout ce que l'auteur modifie
+  est enregistré** — et la repasse en **brouillon** dans le même `update` **dès qu'un champ a vraiment changé** ; rien de
+  changé : 409 `annonce_refusee_inchangee`, nommé, rien n'est écrit. **Règle tranchée par Youssef à la contre-relecture de
+  l'ARRÊT 28** : la restriction du point 1 de la relecture (seuls les champs QUE L'IA LIT, `CHAMPS_JUGES_PAR_LE_CONTROLE`)
+  est TOMBÉE, et la liste avec elle — elle rendait 409 à l'auteur à qui l'administrateur demandait d'ajouter une
+  spécialité, et la spécialité ajoutée n'était même pas enregistrée ;
+- la publication qui suit fait juger l'annonce modifiée par la vérification automatique (rien n'est sauté) : **en ligne si
+  la note atteint le minimum** — `verification_providers.confidence_threshold` de `opportunity_quality_check`, réglée dans
+  `/admin/seuils` (sujet « annonces », `regler_note_jugement`, la ligne active unique que `runPublicationVerification` lit ;
+  7 au semis) — **sinon de nouveau en revue** chez l'administrateur ; l'anti-relance tient : on ne publie que depuis un
+  brouillon, une annonce inchangée ne se resoumet pas, et la base refuse la sortie de revue à un non-administrateur ;
 - **la resoumission ne compte pas une seconde fois** dans les publications du mois (décision de Youssef) : le marqueur est
   le motif du refus (`review_reason`), que seule `refuser_annonce()` POSE et que la voie administrateur EFFACE — un
   brouillon qui le porte a déjà été soumis ; `/publish` ne consomme pas le compteur pour lui. La place active, elle, se
@@ -4316,10 +4320,15 @@ sur la fiche. Gardé par `diag-echec-silencieux` C (l'appelant recensé, « indi
 **Limites dites** : une annonce refusée alors que l'offre était illimitée ne fut comptée « zéro fois » — sa resoumission
 reste gratuite même si l'offre a changé depuis ; une annonce validée par la voie AUTOMATIQUE après resoumission garde son
 ancien motif (le refus antérieur que la fiche admin montre), comme elle garde son ancien `verified_by` (§E.115). **Gardé
-par** `diag-resoumission` (bloquant, 19 épreuves intégrées — dont la liste des champs jugés tenue égale à l'entrée de
-l'IA, point 1 de la relecture ; et, point 18, le motif hors des champs ACCEPTÉS et ÉCRITS du `PATCH` de l'auteur —
+par** `diag-resoumission` (bloquant, 21 épreuves intégrées — dont, contre-relecture point A, la liste des champs jugés
+qui ne revient pas, aucun filtre des champs changés avant le refus « inchangée », les messages qui disent « n'importe quel
+champ » ×4 ; et, point 18, le motif hors des champs ACCEPTÉS et ÉCRITS du `PATCH` de l'auteur —
 `type Body`, `buildUpdates`, tout `updates` de la route, aucune recopie du corps entier : la recherche des `.update(` ne
-le voyait pas, la route écrit `u.updates`).
+le voyait pas, la route écrit `u.updates`). **Le parcours complet est testé en base** :
+`annonces/resoumission_parcours.test.sql` (9) — refus pour spécialité manquante, l'écriture du `PATCH` (la spécialité ET
+le brouillon), le nouveau jugement dans les deux issues (en ligne au minimum ; en revue sous le minimum, puis validée par
+l'administrateur). La route et `/publish` (l'appel à l'IA, le compteur) sont du code applicatif : aucun test ne les exécute,
+le contrôle les vérifie par mutation.
 
 ---
 ---

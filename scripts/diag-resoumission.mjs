@@ -3,9 +3,11 @@
  * ARRÊT 28 — la resoumission laissée par S3 faute de périmètre ; décision de Youssef sur le compteur). CONTRÔLE BLOQUANT.
  *
  * LA RÈGLE : l'auteur d'une annonce refusée par l'administration (annonce d'une organisation ou besoin de sous-traitance)
- * la modifie ; elle repasse en BROUILLON — seulement si un champ change ; la publication qui suit fait juger le TEXTE
- * MODIFIÉ par la vérification automatique ; et cette nouvelle soumission ne compte pas une seconde fois dans les
- * publications du mois. Le message de refus le dit, dans les quatre langues.
+ * corrige — N'IMPORTE QUEL champ, tout ce qu'il modifie est enregistré (règle tranchée par Youssef à la contre-relecture
+ * de l'ARRÊT 28) ; elle repasse en BROUILLON dès qu'un champ change, et reste refusée, nommément, si rien n'a changé ; la
+ * publication qui suit la fait juger de nouveau par la vérification automatique ; et cette nouvelle soumission ne compte
+ * pas une seconde fois dans les publications du mois. Le message de refus le dit, dans les quatre langues. Le parcours
+ * complet est testé en base (A ter : annonces/resoumission_parcours.test.sql).
  *
  * CE QU'IL VÉRIFIE :
  *   A. LA ROUTE D'ÉDITION (PATCH /api/publications/[id]) : `rejected` est éditable ; le statut ne s'écrit qu'à la
@@ -63,6 +65,7 @@ const F = {
   bandeau: 'components/annonces/MotifRefus.tsx',
   communs: 'lib/annonces/formulaire.ts',
   publishable: 'lib/publications/publishable.ts',
+  parcours: 'supabase/tests/database/annonces/resoumission_parcours.test.sql',
 }
 const LANGUES = ['fr', 'en', 'es', 'de']
 const MIGRATIONS = readdirSync(join(ROOT, 'supabase/migrations')).filter((f) => f.endsWith('.sql')).sort()
@@ -107,28 +110,40 @@ function juger(t) {
 
   // A — l'édition
   if (!/const EDITABLE_STATUSES = \[[^\]]*'rejected'[^\]]*\] as const/.test(patch)) fautes.push('A. PATCH : une annonce refusée n’est pas éditable')
-  const iRefus = patch.search(/if \(resoumission && changesJuges\.length === 0\) \{\s*return json\(\s*\{[^}]*code: 'annonce_refusee_inchangee'/)
+  const iRefus = patch.search(/if \(resoumission && champsChanges\.length === 0\) \{\s*return json\(\s*\{[^}]*code: 'annonce_refusee_inchangee'/)
   const iUpdate = patch.search(/\.update\(resoumission \? \{ \.\.\.u\.updates, status: 'draft' \} : u\.updates\)/)
   if (iRefus < 0) fautes.push('A. PATCH : une annonce refusée inchangée n’est pas refusée nommément (annonce_refusee_inchangee)')
   if (iUpdate < 0) fautes.push('A. PATCH : la resoumission n’écrit pas `status: draft` dans le même update (ou l’écrit sans condition)')
   if (iRefus >= 0 && iUpdate >= 0 && iRefus > iUpdate) fautes.push('A. PATCH : le refus « inchangée » vient APRÈS l’écriture')
   if (!/const resoumission = currentStatus === 'rejected'/.test(patch)) fautes.push('A. PATCH : la resoumission ne se reconnaît plus au statut lu (`rejected`)')
-  // A bis (relecture, point 1) — seul un champ que l'IA LIT rouvre le jugement, et la liste est ÉGALE à ce que /publish lit.
-  if (!/const changesJuges = champsChanges\.filter\(\(c\) => \(CHAMPS_JUGES_PAR_LE_CONTROLE as readonly string\[\]\)\.includes\(c\)\)/.test(patch)) {
-    fautes.push('A bis. PATCH : la resoumission ne filtre plus les champs changés par ce que lit le contrôle de l’IA')
+  // A bis (contre-relecture de l'ARRÊT 28, point A — règle tranchée par Youssef) : N'IMPORTE QUEL champ changé rouvre le
+  // flux normal, et tout ce qui change est écrit. La restriction aux champs lus par l'IA (relecture, point 1) est TOMBÉE :
+  // elle refusait l'ajout de la spécialité que l'administrateur demandait. Elle ne revient sous aucune forme — ni la liste,
+  // ni un filtre des champs changés avant le refus « inchangée ».
+  if (!/const champsChanges = clesModifiees\(u\.updates as Record<string, unknown>, avantAnnonce\)/.test(patch)) {
+    fautes.push('A bis. PATCH : les champs changés ne se calculent plus sur TOUT ce que l’auteur envoie (`clesModifiees(u.updates, …)`)')
   }
-  const listeJuges = /export const CHAMPS_JUGES_PAR_LE_CONTROLE = \[([\s\S]*?)\] as const/.exec(t[F.publishable] ?? '')?.[1]
-  const juges = new Set([...(listeJuges ?? '').matchAll(/'(\w+)'/g)].map((m) => m[1]))
-  const blocAi = /const aiInput: PublicationQualityInput = \{([\s\S]*?)\n  \}\n/.exec(publish)?.[1] ?? ''
-  const lus = new Set([...blocAi.matchAll(/\b(?:pub|criteres)\.(\w+)/g)].map((m) => m[1]).filter((c) => c !== 'type'))
-  if (!blocAi || juges.size === 0) fautes.push('A bis. la liste des champs jugés, ou l’entrée de l’IA dans /publish, est introuvable')
-  const oublies = [...lus].filter((c) => !juges.has(c))
-  const morts = [...juges].filter((c) => !lus.has(c))
-  if (oublies.length) fautes.push(`A bis. /publish passe à l’IA ${oublies.join(', ')}, absent(s) de CHAMPS_JUGES_PAR_LE_CONTROLE — modifié(s) seul(s), ils ne rouvriraient pas le jugement`)
-  if (morts.length) fautes.push(`A bis. CHAMPS_JUGES_PAR_LE_CONTROLE cite ${morts.join(', ')}, que l’IA ne lit pas — modifié(s) seul(s), ils rouvriraient le jugement du même texte`)
+  if (/CHAMPS_JUGES_PAR_LE_CONTROLE/.test(patch) || /CHAMPS_JUGES_PAR_LE_CONTROLE/.test(t[F.publishable] ?? '')) {
+    fautes.push('A bis. la liste des champs « jugés par l’IA » est revenue — un champ hors liste (une spécialité) ne permettrait plus de resoumettre')
+  }
+  if (/champsChanges\.filter\(/.test(patch)) fautes.push('A bis. PATCH : les champs changés sont FILTRÉS avant le refus « inchangée » — un changement réel serait refusé')
   const statutsEcrits = [...patch.matchAll(/status: '(\w+)'/g)].map((m) => m[1]).filter((s) => s !== 'draft')
   if (statutsEcrits.length) fautes.push(`A. PATCH écrit un autre statut que draft : ${statutsEcrits.join(', ')}`)
   if (!/motif_refus: pub\.status === 'rejected' \? pub\.review_reason : null/.test(patch)) fautes.push('A. GET : le motif n’est pas servi à l’auteur, ou l’est hors d’un refus')
+
+  // A ter — LE PARCOURS COMPLET EST TESTÉ EN BASE (contre-relecture, point A) : refus pour spécialité manquante, l'écriture
+  // du PATCH (la spécialité ET le brouillon), le nouveau jugement (en ligne au minimum, en revue sous le minimum).
+  {
+    const p = t[F.parcours] ?? ''
+    const plan = Number(/select plan\((\d+)\)/.exec(p)?.[1] ?? NaN)
+    if (!p) fautes.push('A ter. le test du parcours de resoumission (annonces/resoumission_parcours.test.sql) manque')
+    else {
+      if (plan !== (p.match(/return next /g) ?? []).length) fautes.push(`A ter. le test du parcours annonce ${plan} assertions et en fait ${(p.match(/return next /g) ?? []).length}`)
+      if (!/public\.refuser_annonce\(/.test(p)) fautes.push('A ter. le test du parcours ne refuse pas l’annonce')
+      if (!/update public\.publications set speciality_ids = array\[v_sp\], status = 'draft'\s+where id in \(v_a, v_b\) and status = 'rejected'/.test(p)) fautes.push('A ter. le test du parcours n’écrit pas ce qu’écrit le PATCH (la spécialité ET le brouillon, depuis rejected)')
+      if (!/array\['draft'\], 'published', 8/.test(p) || !/array\['draft'\], 'pending_review', 5/.test(p)) fautes.push('A ter. le test du parcours ne rejuge pas l’annonce dans les deux issues (en ligne, en revue)')
+    }
+  }
 
   // B — la publication
   if (!/const resoumission = typeof pub\.review_reason === 'string' && pub\.review_reason\.trim\(\) !== ''/.test(publish)) fautes.push('B. /publish : la resoumission ne se reconnaît plus au motif de refus')
@@ -195,6 +210,15 @@ function juger(t) {
     es: [/volver a enviarlo|vuelva a enviarlo|vuelve a enviarlo/, /por segunda vez/],
     de: [/erneut einreichen|erneut ein/, /ein zweites Mal/],
   }
+  // … ET que N'IMPORTE QUEL champ se corrige (contre-relecture de l'ARRÊT 28, point A) — le refus « inchangée » compris.
+  const TOUT_CHAMP = { fr: /n’importe quel champ/, en: /any field/, es: /cualquier campo/, de: /jedes Feld|beliebiges Feld/ }
+  for (const l of LANGUES) {
+    for (const c of ['validation_annonces.avis.cloche.refusee.corps', 'validation_annonces.avis.email.refusee.suite', 'publications.refus.suite', 'publications.errors.annonce_refusee_inchangee']) {
+      const v = valeur(t.__messages[l], c) ?? ''
+      if (!TOUT_CHAMP[l].test(v)) fautes.push(`E. ${l} : ${c} ne dit pas que n’importe quel champ se corrige`)
+      if (c === 'publications.errors.annonce_refusee_inchangee') for (const re of DIT[l]) if (!re.test(v)) fautes.push(`E. ${l} : ${c} ne dit plus ${re}`)
+    }
+  }
   for (const l of LANGUES) {
     for (const [c, vars] of Object.entries(cles)) {
       const v = valeur(t.__messages[l], c)
@@ -235,10 +259,10 @@ section('F. L’épreuve : chaque mutation fait rougir le contrôle')
   }
   const EPREUVES = [
     ['une annonce refusée qui n’est plus éditable', () => muter(F.patch, "'archived', 'rejected'] as const", "'archived'] as const")],
-    ['un champ que l’IA lit oublié dans la liste des champs jugés', () => muter(F.publishable, "  'budget_max',\n", '')],
-    ['un champ que l’IA ne lit pas ajouté à la liste (les zones)', () => muter(F.publishable, "  'description',\n  'skills_required',\n", "  'description',\n  'work_zone_ids',\n  'skills_required',\n")],
-    ['la resoumission rouverte par n’importe quel champ changé', () => muter(F.patch, 'if (resoumission && changesJuges.length === 0) {', 'if (resoumission && champsChanges.length === 0) {')],
-    ['la resoumission inchangée qui n’est plus refusée', () => muter(F.patch, 'if (resoumission && changesJuges.length === 0) {', 'if (false) {')],
+    ['la resoumission restreinte aux champs lus par l’IA (la spécialité refusée)', () => muter(F.patch, 'if (resoumission && champsChanges.length === 0) {', "if (resoumission && champsChanges.filter((c) => c !== 'speciality_ids').length === 0) {")],
+    ['la liste des champs jugés revenue', () => muter(F.publishable, 'export const estPubliable', "export const CHAMPS_JUGES_PAR_LE_CONTROLE = ['title'] as const\nexport const estPubliable")],
+    ['les champs changés calculés sur une partie seulement', () => muter(F.patch, 'clesModifiees(u.updates as Record<string, unknown>, avantAnnonce)', 'clesModifiees({ title: u.updates.title }, avantAnnonce)')],
+    ['la resoumission inchangée qui n’est plus refusée', () => muter(F.patch, 'if (resoumission && champsChanges.length === 0) {', 'if (false) {')],
     ['le brouillon écrit même sans resoumission', () => muter(F.patch, '.update(resoumission ? { ...u.updates, status: \'draft\' } : u.updates)', ".update({ ...u.updates, status: 'draft' })")],
     ['le motif servi hors d’un refus', () => muter(F.patch, "motif_refus: pub.status === 'rejected' ? pub.review_reason : null", 'motif_refus: pub.review_reason')],
     ['le compteur consommé pour une resoumission', () => muter(F.publish, '&& !resoumission) {', ') {')],
@@ -263,6 +287,8 @@ section('F. L’épreuve : chaque mutation fait rougir le contrôle')
     ['le formulaire qui ne laisse plus soumettre une annonce refusée', () => muter(F.formulaire, "(status === 'draft' || status === 'rejected')", "(status === 'draft')")],
     ['le motif du refus perdu dans la cloche (es)', () => muterMessage('es', 'validation_annonces.avis.cloche.refusee.corps', (v) => v.replace('{motif}', ''))],
     ['le refus qui ne dit plus le compteur (de)', () => muterMessage('de', 'validation_annonces.avis.email.refusee.suite', (v) => v.replace('ein zweites Mal', 'erneut'))],
+    ['le refus « inchangée » qui ne dit plus « n’importe quel champ » (en)', () => muterMessage('en', 'publications.errors.annonce_refusee_inchangee', (v) => v.replace('any field', 'the text'))],
+    ['le bandeau qui ne dit plus « n’importe quel champ » (fr)', () => muterMessage('fr', 'publications.refus.suite', (v) => v.replace('n’importe quel champ', 'le texte'))],
   ]
   for (const [nom, fabriquer] of EPREUVES) {
     const t = fabriquer()

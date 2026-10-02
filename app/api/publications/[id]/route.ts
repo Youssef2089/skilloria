@@ -1,7 +1,6 @@
 import { contexteDepuisAuth } from '@/lib/journal/contexte'
 import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { clesModifiees } from '@/lib/profil/changements'
-import { CHAMPS_JUGES_PAR_LE_CONTROLE } from '@/lib/publications/publishable'
 import { memesZones } from '@/lib/work-zones'
 import { NextRequest, after } from 'next/server'
 import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
@@ -34,12 +33,13 @@ export const maxDuration = 60
  * suspendue / archivée, ou REFUSÉE par l'administration).
  *
  * LA RESOUMISSION D'UNE ANNONCE REFUSÉE (regroupement, ARRÊT 28 — le changement minimal décrit par S3) : une annonce
- * `rejected` s'édite, et repasse en BROUILLON dans le même `update` — SEULEMENT si un champ QUE LE CONTRÔLE DE L'IA LIT a
- * vraiment changé (`CHAMPS_JUGES_PAR_LE_CONTROLE`, la liste de ce que /publish lui passe ; relecture de l'ARRÊT 28,
- * point 1). Sinon — rien de changé, ou seulement la branche, les spécialités, les zones, la date, la confidentialité —
- * elle reste refusée : 409 `annonce_refusee_inchangee`, NOMMÉ, RIEN n'est écrit (ni l'annonce, ni le journal). La
- * publication qui suit fait juger le TEXTE MODIFIÉ par la vérification automatique, et l'anti-relance tient (un contenu
- * jugé inchangé ne se resoumet pas ; la base refuse toujours la sortie de revue à un non-administrateur). Le motif du refus
+ * `rejected` s'édite — N'IMPORTE QUEL CHAMP, et tout ce que l'auteur modifie est enregistré — et repasse en BROUILLON
+ * dans le même `update` dès qu'un champ a VRAIMENT changé (règle tranchée par Youssef à la contre-relecture de l'ARRÊT 28 :
+ * la restriction aux champs lus par l'IA, du point 1, est TOMBÉE — elle empêchait d'ajouter la spécialité que
+ * l'administrateur demandait). Sinon — rien de changé — elle reste refusée : 409 `annonce_refusee_inchangee`, NOMMÉ, RIEN
+ * n'est écrit (ni l'annonce, ni le journal). La publication qui suit fait juger l'annonce modifiée par la vérification
+ * automatique (en ligne si la note atteint le minimum réglé dans `/admin/seuils`, sinon en revue), et l'anti-relance tient
+ * (une annonce inchangée ne se resoumet pas ; la base refuse toujours la sortie de revue à un non-administrateur). Le motif du refus
  * (`review_reason`) reste sur la ligne : il marque la resoumission, que /publish ne recompte pas dans le mois (décision
  * de Youssef), et la fiche admin le montre comme « refus antérieur ».
  *
@@ -371,10 +371,10 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   // annonce refusée ne revient au brouillon que modifiée (resoumission, ARRÊT 28).
   const champsChanges = clesModifiees(u.updates as Record<string, unknown>, avantAnnonce)
   const resoumission = currentStatus === 'rejected'
-  // Seul un champ que l'IA lit rouvre le jugement : sans lui, le même contenu serait rejugé et pourrait passer en ligne
-  // sans que ce qui a été refusé ait été revu.
-  const changesJuges = champsChanges.filter((c) => (CHAMPS_JUGES_PAR_LE_CONTROLE as readonly string[]).includes(c))
-  if (resoumission && changesJuges.length === 0) {
+  // N'IMPORTE QUEL CHAMP CHANGÉ rouvre le flux normal (règle tranchée par Youssef, contre-relecture de l'ARRÊT 28) : ce
+  // que l'administrateur a demandé — une spécialité, une zone, un budget — est ENREGISTRÉ, et l'annonce repasse par le
+  // contrôle de l'IA (en ligne si la note atteint le minimum, sinon en revue). Rien de changé : elle reste refusée, nommément.
+  if (resoumission && champsChanges.length === 0) {
     return json(
       { error: 'Rejected publication unchanged', code: 'annonce_refusee_inchangee', current_status: currentStatus },
       409,
