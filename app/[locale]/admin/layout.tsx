@@ -177,7 +177,6 @@ type GuardState =
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('admin_back_office')
-  const tCommon = useTranslations('common')
   const tShell = useTranslations('shell')
   const router = useRouter()
   const pathname = usePathname()
@@ -289,7 +288,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               fontFamily: 'inherit',
             }}
           >
-            {tCommon('user_fallback')}
+            {/* La seule sortie d'une page SANS MENU (§D.45) : elle dit où elle mène, sans flèche — elle affichait
+                « Utilisateur » (relecture de l'ARRÊT 28, point 15). */}
+            {t('errors.sortie_accueil')}
           </button>
         </div>
       </div>

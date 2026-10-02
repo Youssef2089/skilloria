@@ -2816,7 +2816,8 @@
     "errors": {
       "generic": "An error occurred. Please try again.",
       "already_processed": "This organisation has already been processed.",
-      "forbidden": "Admin access only."
+      "forbidden": "Admin access only.",
+      "sortie_accueil": "Home"
     },
     "experts": {
       "page_title": "Experts to review",

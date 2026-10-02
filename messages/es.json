@@ -2816,7 +2816,8 @@
     "errors": {
       "generic": "Ha ocurrido un error. Inténtalo de nuevo.",
       "already_processed": "Esta organización ya ha sido procesada.",
-      "forbidden": "Acceso reservado a administradores."
+      "forbidden": "Acceso reservado a administradores.",
+      "sortie_accueil": "Inicio"
     },
     "experts": {
       "page_title": "Expertos a validar",

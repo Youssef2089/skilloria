@@ -2816,7 +2816,8 @@
     "errors": {
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "already_processed": "Diese Organisation wurde bereits bearbeitet.",
-      "forbidden": "Nur für Administratoren zugänglich."
+      "forbidden": "Nur für Administratoren zugänglich.",
+      "sortie_accueil": "Startseite"
     },
     "experts": {
       "page_title": "Experten zur Validierung",

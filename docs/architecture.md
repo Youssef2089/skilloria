@@ -4219,7 +4219,10 @@ sur une page de menu »). **Les pages publiques SANS menu** (404, écosystème i
 confirmations, invitation, inscription) gardent UN lien de sortie, **sans flèche**, qui dit où il mène (« Accueil »,
 « Se connecter », « Changer de profil »). **Gardé par** `diag-aucun-retour` (bloquant) : mécanisme parti, ni
 `router.back()` ni `history.back()`, aucune flèche, chaque libellé de retour déclaré avec sa raison, les huit sorties
-publiques avec leur destination retrouvée dans le fichier ; 12 mutations.
+publiques avec leur destination retrouvée dans le fichier ; 12 mutations. **La page d'ERREUR du cadre de l'administration**
+(le cadre n'a pas pu se charger : pas de menu) a la même règle : sa seule sortie dit « Accueil » ×4 — elle affichait
+« Utilisateur » ; déclarée `pageErreurDuCadre`, permise seulement dans sa branche d'erreur (relecture de l'ARRÊT 28,
+point 15) — 9 sorties déclarées.
 
 <a id="d46"></a>
 ### D.46 — L'EN-TÊTE DE CHAQUE PAGE PORTE SON NOM, DÉRIVÉ DU MENU (S1, 02/10/2026)

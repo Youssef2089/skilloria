@@ -120,6 +120,13 @@ const DECLARES = {
     raison: 'LÉGITIME — parité CDI de la ligne précédente : « Tableau de bord → », vers l’avant.',
     fichiers: ['app/[locale]/dashboard/cdi/profil/valider/page.tsx'], appel: "tProfile('success.back_to_dashboard')", versLAvant: true,
   },
+  'admin_back_office.errors.sortie_accueil': {
+    raison: 'LÉGITIME — la page d’ERREUR de l’administration n’a pas de menu (le cadre n’a pas pu se charger) : « Accueil » est sa seule sortie ; elle affichait « Utilisateur » (relecture de l’ARRÊT 28, point 15).',
+    fichiers: ['app/[locale]/admin/layout.tsx'], appel: "t('errors.sortie_accueil')", sortie: "router.replace('/')",
+    // Dans un fichier de l'espace connecté, PERMIS seulement dans la branche d'erreur, où le cadre (et son menu) n'est
+    // pas monté — vérifié ci-dessous (section E).
+    pageErreurDuCadre: true,
+  },
   'journal.phrases.invitation_acceptee.retour': {
     raison: 'LÉGITIME — une PHRASE du journal (« … après l’avoir quittée ») : le retour d’un membre dans une organisation, pas une navigation.',
     fichiers: [], appel: null,
@@ -185,7 +192,7 @@ const MOT_DE_RETOUR = /[←→‹›]|^\s*(Retour|Revenir|Back|Return|Go back|Vo
 const sortiesFausses = Object.entries(DECLARES).filter(([, d]) => d.sortie)
   .flatMap(([c]) => LANGUES.filter((l) => typeof valeur(MSG[l], c) !== 'string' || MOT_DE_RETOUR.test(valeur(MSG[l], c))).map((l) => `${l} ${c} = « ${valeur(MSG[l], c)} »`))
 const nbSorties = Object.values(DECLARES).filter((d) => d.sortie).length
-ok(nbSorties === 8 && sortiesFausses.length === 0, `les ${nbSorties} sorties des pages publiques disent où elles mènent, sans flèche ni « Retour », dans les quatre langues`, sortiesFausses.join(' · '))
+ok(nbSorties === 9 && sortiesFausses.length === 0, `les ${nbSorties} sorties des pages publiques disent où elles mènent, sans flèche ni « Retour », dans les quatre langues`, sortiesFausses.join(' · '))
 const sansDestination = Object.entries(DECLARES).filter(([, d]) => d.sortie).flatMap(([c, d]) => d.fichiers.filter((f) => !SOURCES.get(f)?.includes(d.sortie)).map((f) => `${c} → ${f} ne mène pas à ${d.sortie}`))
 ok(sansDestination.length === 0, 'chaque sortie mène là où son libellé le dit (la destination déclarée est dans le fichier)', sansDestination.join(' · '))
 const sansRaison = Object.entries(DECLARES).filter(([, d]) => !/^LÉGITIME — .{30,}/.test(d.raison))
@@ -211,7 +218,14 @@ ok(lecturesNonDeclarees.length === 0, `les ${lectures.length} lectures d’un li
   lecturesNonDeclarees.map((l) => `${l.f} : ${l.appel}`).join(' · '))
 const dansLEspace = lectures.filter((l) => CONNECTE(l.f) && !l.cibles.some((c) => DECLARES[c]?.versLAvant && DECLARES[c].fichiers.includes(l.f)))
 ok(dansLEspace.length === 0, 'l’espace connecté (tableaux de bord, admin) n’en lit aucun, hors action vers l’avant', dansLEspace.map((l) => `${l.f} : ${l.appel}`).join(' · '))
-const publiquesConnectees = Object.entries(DECLARES).filter(([, d]) => !d.versLAvant && d.fichiers.some(CONNECTE))
+// LA PAGE D'ERREUR DU CADRE (relecture de l'ARRÊT 28, point 15) : quand le cadre de l'administration ne se charge pas, la
+// page n'a PAS de menu — sa sortie est celle d'une page sans menu. Permise seulement si l'appel ET la destination sont dans
+// la branche `if (state.kind === 'error')` du fichier, celle qui rend la page sans le cadre.
+const brancheErreur = (src) => /if \(state\.kind === 'error'\) \{([\s\S]*?)\n  \}\n/.exec(src ?? '')?.[1] ?? ''
+const erreursHorsBranche = Object.entries(DECLARES).filter(([, d]) => d.pageErreurDuCadre)
+  .flatMap(([c, d]) => d.fichiers.filter((f) => !brancheErreur(SOURCES.get(f)).includes(d.appel) || !brancheErreur(SOURCES.get(f)).includes(d.sortie)).map((f) => `${c} → ${f}`))
+ok(erreursHorsBranche.length === 0, 'la sortie de la page d’erreur du cadre vit dans sa branche d’erreur (sans menu), et nulle part ailleurs', erreursHorsBranche.join(' · '))
+const publiquesConnectees = Object.entries(DECLARES).filter(([, d]) => !d.versLAvant && !d.pageErreurDuCadre && d.fichiers.some(CONNECTE))
 ok(publiquesConnectees.length === 0, 'une exception « page publique » ne désigne aucun fichier de l’espace connecté', publiquesConnectees.map(([c]) => c).join(' · '))
 const appelsAbsents = Object.entries(DECLARES).flatMap(([c, d]) => d.fichiers
   .filter((f) => !existsSync(join(ROOT, f)) || !SOURCES.get(f)?.includes(d.appel)).map((f) => `${c} → ${f}`))
