@@ -5233,13 +5233,17 @@
         "simple": "{qui} a publié {annonce}.",
         "note": "{qui} a publié {annonce}, après une vérification automatique de sa qualité (note {note}/10).",
         "validee": "{qui} a validé {annonce} après examen et l’a mise en ligne.",
-        "validee_note": "{qui} a validé {annonce} après examen et l’a mise en ligne (la vérification automatique de sa qualité lui avait donné {note}/10)."
+        "validee_note": "{qui} a validé {annonce} après examen et l’a mise en ligne (la vérification automatique de sa qualité lui avait donné {note}/10).",
+        "non_jugee": "{qui} a publié {annonce} ; la vérification automatique de sa qualité ne l’avait pas jugée.",
+        "validee_non_jugee": "{qui} a validé {annonce} après examen et l’a mise en ligne (la vérification automatique de sa qualité ne l’avait pas jugée)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} a publié {annonce} (besoin de sous-traitance).",
         "note": "{qui} a publié {annonce} (besoin de sous-traitance), après une vérification automatique de sa qualité (note {note}/10).",
         "validee": "{qui} a validé {annonce} (besoin de sous-traitance) après examen et l’a mise en ligne.",
-        "validee_note": "{qui} a validé {annonce} (besoin de sous-traitance) après examen et l’a mise en ligne (la vérification automatique de sa qualité lui avait donné {note}/10)."
+        "validee_note": "{qui} a validé {annonce} (besoin de sous-traitance) après examen et l’a mise en ligne (la vérification automatique de sa qualité lui avait donné {note}/10).",
+        "non_jugee": "{qui} a publié {annonce} (besoin de sous-traitance) ; la vérification automatique de sa qualité ne l’avait pas jugé.",
+        "validee_non_jugee": "{qui} a validé {annonce} (besoin de sous-traitance) après examen et l’a mis en ligne (la vérification automatique de sa qualité ne l’avait pas jugé)."
       },
       "annonce_modifiee": {
         "champs": "{qui} a modifié {annonce} : {champs}.",
@@ -5499,7 +5503,9 @@
         "annonce": "{qui} a refusé {annonce} après examen ; le motif a été transmis à son auteur.",
         "annonce_note": "{qui} a refusé {annonce} après examen (la vérification automatique de sa qualité lui avait donné {note}/10) ; le motif a été transmis à son auteur.",
         "sous_traitance": "{qui} a refusé {annonce} (besoin de sous-traitance) après examen ; le motif a été transmis à son auteur.",
-        "sous_traitance_note": "{qui} a refusé {annonce} (besoin de sous-traitance) après examen (la vérification automatique de sa qualité lui avait donné {note}/10) ; le motif a été transmis à son auteur."
+        "sous_traitance_note": "{qui} a refusé {annonce} (besoin de sous-traitance) après examen (la vérification automatique de sa qualité lui avait donné {note}/10) ; le motif a été transmis à son auteur.",
+        "annonce_non_jugee": "{qui} a refusé {annonce} après examen (la vérification automatique de sa qualité ne l’avait pas jugée) ; le motif a été transmis à son auteur.",
+        "sous_traitance_non_jugee": "{qui} a refusé {annonce} (besoin de sous-traitance) après examen (la vérification automatique de sa qualité ne l’avait pas jugé) ; le motif a été transmis à son auteur."
       }
     },
     "valeurs": {
@@ -6276,7 +6282,8 @@
       "auteur_prevenu": "Son auteur a été prévenu dans l’application ; l’e-mail part dans la foulée.",
       "auteur_non_prevenu": "Son auteur n’a pas pu être prévenu dans l’application : l’e-mail est tout de même tenté.",
       "auteur_introuvable": "Son auteur n’a plus de compte : personne n’a pu être prévenu.",
-      "auteur_illisible": "Son auteur n’a pas pu être identifié (lecture impossible) : ni la notification ni l’e-mail ne sont partis."
+      "auteur_illisible": "Son auteur n’a pas pu être identifié (lecture impossible) : ni la notification ni l’e-mail ne sont partis.",
+      "non_jugee": "non jugée"
     },
     "types": {
       "mission": "Mission",

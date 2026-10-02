@@ -5233,13 +5233,17 @@
         "simple": "{qui} ha publicado {annonce}.",
         "note": "{qui} ha publicado {annonce}, tras una verificación automática de su calidad (nota {note}/10).",
         "validee": "{qui} ha validado {annonce} tras la revisión y lo ha publicado.",
-        "validee_note": "{qui} ha validado {annonce} tras la revisión y lo ha publicado (la verificación automática de su calidad le había dado {note}/10)."
+        "validee_note": "{qui} ha validado {annonce} tras la revisión y lo ha publicado (la verificación automática de su calidad le había dado {note}/10).",
+        "non_jugee": "{qui} ha publicado {annonce}; la verificación automática de su calidad no lo había juzgado.",
+        "validee_non_jugee": "{qui} ha validado {annonce} tras la revisión y lo ha publicado (la verificación automática de su calidad no lo había juzgado)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} ha publicado {annonce} (necesidad de subcontratación).",
         "note": "{qui} ha publicado {annonce} (necesidad de subcontratación), tras una verificación automática de su calidad (nota {note}/10).",
         "validee": "{qui} ha validado {annonce} (necesidad de subcontratación) tras la revisión y lo ha publicado.",
-        "validee_note": "{qui} ha validado {annonce} (necesidad de subcontratación) tras la revisión y lo ha publicado (la verificación automática de su calidad le había dado {note}/10)."
+        "validee_note": "{qui} ha validado {annonce} (necesidad de subcontratación) tras la revisión y lo ha publicado (la verificación automática de su calidad le había dado {note}/10).",
+        "non_jugee": "{qui} ha publicado {annonce} (necesidad de subcontratación); la verificación automática de su calidad no la había juzgado.",
+        "validee_non_jugee": "{qui} ha validado {annonce} (necesidad de subcontratación) tras la revisión y la ha publicado (la verificación automática de su calidad no la había juzgado)."
       },
       "annonce_modifiee": {
         "champs": "{qui} ha modificado {annonce}: {champs}.",
@@ -5499,7 +5503,9 @@
         "annonce": "{qui} ha rechazado {annonce} tras la revisión; el motivo se ha enviado a su autor.",
         "annonce_note": "{qui} ha rechazado {annonce} tras la revisión (la verificación automática de su calidad le había dado {note}/10); el motivo se ha enviado a su autor.",
         "sous_traitance": "{qui} ha rechazado {annonce} (necesidad de subcontratación) tras la revisión; el motivo se ha enviado a su autor.",
-        "sous_traitance_note": "{qui} ha rechazado {annonce} (necesidad de subcontratación) tras la revisión (la verificación automática de su calidad le había dado {note}/10); el motivo se ha enviado a su autor."
+        "sous_traitance_note": "{qui} ha rechazado {annonce} (necesidad de subcontratación) tras la revisión (la verificación automática de su calidad le había dado {note}/10); el motivo se ha enviado a su autor.",
+        "annonce_non_jugee": "{qui} ha rechazado {annonce} tras la revisión (la verificación automática de su calidad no lo había juzgado); el motivo se ha enviado a su autor.",
+        "sous_traitance_non_jugee": "{qui} ha rechazado {annonce} (necesidad de subcontratación) tras la revisión (la verificación automática de su calidad no la había juzgado); el motivo se ha enviado a su autor."
       }
     },
     "valeurs": {
@@ -6276,7 +6282,8 @@
       "auteur_prevenu": "Su autor ha sido avisado en la aplicación; el correo se envía a continuación.",
       "auteur_non_prevenu": "No se pudo avisar a su autor en la aplicación: aun así se intenta enviar el correo.",
       "auteur_introuvable": "Su autor ya no tiene cuenta: no se pudo avisar a nadie.",
-      "auteur_illisible": "No se pudo identificar a su autor (lectura imposible): no se ha enviado ni la notificación ni el correo."
+      "auteur_illisible": "No se pudo identificar a su autor (lectura imposible): no se ha enviado ni la notificación ni el correo.",
+      "non_jugee": "no juzgada"
     },
     "types": {
       "mission": "Misión",

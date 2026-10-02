@@ -36,6 +36,9 @@ const F = {
   fiche: 'app/[locale]/admin/annonces/[id]/page.tsx',
   valider: 'app/api/admin/annonces/[id]/valider/route.ts',
   refuser: 'app/api/admin/annonces/[id]/refuser/route.ts',
+  liste: 'app/api/admin/annonces/route.ts',
+  ecranListe: 'app/[locale]/admin/annonces/page.tsx',
+  phrase: 'lib/journal/phrase.ts',
 }
 let REELS
 try {
@@ -56,6 +59,17 @@ function juger(t) {
   const appels = (t.fiche.match(/if \(!res\.ok && p\.code === 'already_processed'\) \{ await dejaTranchee\(\); return \}/g) ?? []).length
   if (appels !== 2) fautes.push(`6. valider ET refuser doivent recharger sur « déjà tranchée » (vu : ${appels} sur 2)`)
   if (!/const enRevue = a\.status === 'pending_review'/.test(t.fiche)) fautes.push('6. les boutons ne dépendent plus du statut relu')
+  // 7 — JAMAIS JUGÉE ≠ « 0/10 », dans la liste comme au journal.
+  if (!/raisonsDuVerdict\(r\.verification_data, r\.verification_score\)/.test(t.liste) || !/non_jugee: r2\.non_aboutie/.test(t.liste)
+      || !/'id, type, title, status, verification_score, verification_data,/.test(t.liste)) {
+    fautes.push('7. la liste ne lit plus le verdict par raisonsDuVerdict (une vérification qui n’a pas jugé redevient « 0/10 »)')
+  }
+  if (!/\{r\.non_jugee && \(/.test(t.ecranListe) || !/\{!r\.non_jugee && r\.note != null && \(/.test(t.ecranListe) || !/t\('admin\.non_jugee'\)/.test(t.ecranListe)) {
+    fautes.push('7. l’écran de la liste affiche une note pour une annonce non jugée, ou ne dit plus « non jugée »')
+  }
+  if (!/const nonJugee = note === 0/.test(t.phrase) || (t.phrase.match(/non_jugee`/g) ?? []).length < 3 || !/note === 0\s*\?\s*\{ cle: `annonce_refusee\.\$\{genre\}_non_jugee`/.test(t.phrase)) {
+    fautes.push('7. le journal dit encore « 0/10 » pour une annonce que la vérification automatique n’a pas jugée')
+  }
   return fautes
 }
 
@@ -73,6 +87,9 @@ section('L’épreuve : chaque mutation fait rougir le contrôle')
   }
   const EPREUVES = [
     ['« déjà tranchée » qui ne recharge plus la fiche', () => muter('fiche', '    await load()\n    setIssue({', '    setIssue({')],
+    ['la liste qui sert la note brute', () => muter('liste', 'return { note: r2.note, non_jugee: r2.non_aboutie }', 'return { note: r.verification_score, non_jugee: false }')],
+    ['l’écran qui affiche la note d’une annonce non jugée', () => muter('ecranListe', '{!r.non_jugee && r.note != null && (', '{r.note != null && (')],
+    ['le journal qui redit « 0/10 »', () => muter('phrase', 'const nonJugee = note === 0', 'const nonJugee = false')],
     ['le refus qui oublie « déjà tranchée »', () => muter('fiche', "      if (!res.ok && p.code === 'already_processed') { await dejaTranchee(); return }\n      if (!res.ok) {\n        if (p.code === 'motif_requis'", "      if (!res.ok) {\n        if (p.code === 'motif_requis'")],
   ]
   for (const [nom, fabriquer] of EPREUVES) {

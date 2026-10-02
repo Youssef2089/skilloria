@@ -208,6 +208,11 @@ const NOMS_PRESENTS = (refs) => Object.fromEntries(refs.map((r) => [P.cleObjet(r
 }]))
 const NOMS_EFFACES = (refs) => Object.fromEntries(refs.map((r) => [P.cleObjet(r.type, r.id), { nom: null, contexte: null }]))
 
+const PAIRES = {
+  annonce_publiee: [['voie', 'verification_score']],
+  sous_traitance_publiee: [['voie', 'verification_score']],
+  annonce_refusee: [['type', 'verification_score']],
+}
 function* lignesPour(action) {
   const cles = (A.CLES_DETAIL[action] ?? []).filter((c) => !c.includes('.') && !c.includes('['))
   const sujets = SUJETS[FAMILLE_DE[action]] ?? [null]
@@ -224,6 +229,11 @@ function* lignesPour(action) {
   const details = [{}, base]
   // Chaque valeur, avec les autres clés à leur valeur de base — puis SEULE (les variantes « simples »).
   for (const c of cles) for (const v of valeursDe(action, c)) details.push({ ...base, [c]: v }, { [c]: v })
+  // LES PAIRES DÉCLARÉES : une phrase qui dépend de DEUX clés à la fois (la voie ou le genre, ET la note — « non jugée »
+  // quand la note est 0, relecture de l'ARRÊT 28, point 7) n'est produite que si les deux varient ensemble.
+  for (const [c1, c2] of PAIRES[action] ?? []) {
+    for (const v1 of valeursDe(action, c1)) for (const v2 of valeursDe(action, c2)) details.push({ ...base, [c1]: v1, [c2]: v2 })
+  }
   // Deux balayages, pour rester linéaire : (a) chaque statut × origine × sujet, sur le détail vide et le détail de
   // base ; (b) chaque valeur de chaque clé, sous chaque sujet, pour deux origines (un humain, une tâche) et chaque statut.
   for (const statut of ['reussi', 'echoue', 'refuse']) {

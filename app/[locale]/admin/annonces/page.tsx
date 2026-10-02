@@ -22,6 +22,8 @@ type Ligne = {
   title: string
   status: string
   note: number | null
+  // Jamais jugée par la vérification automatique (ou elle n'a pas pu se prononcer) : « non jugée », jamais « 0/10 ».
+  non_jugee: boolean
   voie: 'automatique' | 'administrateur' | null
   organisation: string | null
   org_type: string | null
@@ -225,7 +227,12 @@ export default function AdminAnnoncesPage() {
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--sk-muted)' }}>{libelleType(r.type)}</div>
                 <div style={{ textAlign: 'right' }}>
-                  {r.note != null && (
+                  {r.non_jugee && (
+                    <span title={t('admin.note_titre')} style={{ display: 'inline-block', padding: '3px 9px', background: 'var(--sk-surface-2)', color: 'var(--sk-muted)', fontSize: 11, fontWeight: 600, borderRadius: 10 }}>
+                      {t('admin.non_jugee')}
+                    </span>
+                  )}
+                  {!r.non_jugee && r.note != null && (
                     <span title={t('admin.note_titre')} style={{ display: 'inline-block', padding: '3px 9px', background: `color-mix(in srgb, ${noteCouleur(r.note)} 10%, transparent)`, color: noteCouleur(r.note), fontSize: 11, fontWeight: 700, borderRadius: 10 }}>
                       {Math.round(r.note)}/10
                     </span>

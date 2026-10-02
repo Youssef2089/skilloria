@@ -5233,13 +5233,17 @@
         "simple": "{qui} published {annonce}.",
         "note": "{qui} published {annonce}, after an automatic quality check (score {note}/10).",
         "validee": "{qui} approved {annonce} after review and put it online.",
-        "validee_note": "{qui} approved {annonce} after review and put it online (the automatic quality check had given it {note}/10)."
+        "validee_note": "{qui} approved {annonce} after review and put it online (the automatic quality check had given it {note}/10).",
+        "non_jugee": "{qui} published {annonce}; the automatic quality check had not judged it.",
+        "validee_non_jugee": "{qui} approved {annonce} after review and put it online (the automatic quality check had not judged it)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} published {annonce} (subcontracting need).",
         "note": "{qui} published {annonce} (subcontracting need), after an automatic quality check (score {note}/10).",
         "validee": "{qui} approved {annonce} (subcontracting need) after review and put it online.",
-        "validee_note": "{qui} approved {annonce} (subcontracting need) after review and put it online (the automatic quality check had given it {note}/10)."
+        "validee_note": "{qui} approved {annonce} (subcontracting need) after review and put it online (the automatic quality check had given it {note}/10).",
+        "non_jugee": "{qui} published {annonce} (subcontracting need); the automatic quality check had not judged it.",
+        "validee_non_jugee": "{qui} approved {annonce} (subcontracting need) after review and put it online (the automatic quality check had not judged it)."
       },
       "annonce_modifiee": {
         "champs": "{qui} edited {annonce}: {champs}.",
@@ -5499,7 +5503,9 @@
         "annonce": "{qui} rejected {annonce} after review; the reason was sent to its author.",
         "annonce_note": "{qui} rejected {annonce} after review (the automatic quality check had given it {note}/10); the reason was sent to its author.",
         "sous_traitance": "{qui} rejected {annonce} (subcontracting need) after review; the reason was sent to its author.",
-        "sous_traitance_note": "{qui} rejected {annonce} (subcontracting need) after review (the automatic quality check had given it {note}/10); the reason was sent to its author."
+        "sous_traitance_note": "{qui} rejected {annonce} (subcontracting need) after review (the automatic quality check had given it {note}/10); the reason was sent to its author.",
+        "annonce_non_jugee": "{qui} rejected {annonce} after review (the automatic quality check had not judged it); the reason was sent to its author.",
+        "sous_traitance_non_jugee": "{qui} rejected {annonce} (subcontracting need) after review (the automatic quality check had not judged it); the reason was sent to its author."
       }
     },
     "valeurs": {
@@ -6276,7 +6282,8 @@
       "auteur_prevenu": "Its author has been notified in the app; the email follows right away.",
       "auteur_non_prevenu": "Its author could not be notified in the app: the email is still attempted.",
       "auteur_introuvable": "Its author no longer has an account: nobody could be notified.",
-      "auteur_illisible": "Its author could not be identified (read failed): neither the notification nor the email was sent."
+      "auteur_illisible": "Its author could not be identified (read failed): neither the notification nor the email was sent.",
+      "non_jugee": "not judged"
     },
     "types": {
       "mission": "Assignment",

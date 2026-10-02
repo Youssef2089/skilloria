@@ -5233,13 +5233,17 @@
         "simple": "{qui} hat {annonce} veröffentlicht.",
         "note": "{qui} hat {annonce} veröffentlicht, nach einer automatischen Qualitätsprüfung (Note {note}/10).",
         "validee": "{qui} hat {annonce} nach Prüfung freigegeben und veröffentlicht.",
-        "validee_note": "{qui} hat {annonce} nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben)."
+        "validee_note": "{qui} hat {annonce} nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben).",
+        "non_jugee": "{qui} hat {annonce} veröffentlicht; die automatische Qualitätsprüfung hatte sie nicht bewertet.",
+        "validee_non_jugee": "{qui} hat {annonce} nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte sie nicht bewertet)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} hat {annonce} veröffentlicht (Unterauftragsbedarf).",
         "note": "{qui} hat {annonce} veröffentlicht (Unterauftragsbedarf), nach einer automatischen Qualitätsprüfung (Note {note}/10).",
         "validee": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung freigegeben und veröffentlicht.",
-        "validee_note": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben)."
+        "validee_note": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben).",
+        "non_jugee": "{qui} hat {annonce} (Unterauftragsbedarf) veröffentlicht; die automatische Qualitätsprüfung hatte ihn nicht bewertet.",
+        "validee_non_jugee": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihn nicht bewertet)."
       },
       "annonce_modifiee": {
         "champs": "{qui} hat {annonce} geändert: {champs}.",
@@ -5499,7 +5503,9 @@
         "annonce": "{qui} hat {annonce} nach Prüfung abgelehnt; die Begründung wurde ihrem Verfasser übermittelt.",
         "annonce_note": "{qui} hat {annonce} nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben); die Begründung wurde ihrem Verfasser übermittelt.",
         "sous_traitance": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung abgelehnt; die Begründung wurde ihrem Verfasser übermittelt.",
-        "sous_traitance_note": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben); die Begründung wurde ihrem Verfasser übermittelt."
+        "sous_traitance_note": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben); die Begründung wurde ihrem Verfasser übermittelt.",
+        "annonce_non_jugee": "{qui} hat {annonce} nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte sie nicht bewertet); die Begründung wurde ihrem Verfasser übermittelt.",
+        "sous_traitance_non_jugee": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte ihn nicht bewertet); die Begründung wurde ihrem Verfasser übermittelt."
       }
     },
     "valeurs": {
@@ -6276,7 +6282,8 @@
       "auteur_prevenu": "Ihr Verfasser wurde in der App benachrichtigt; die E-Mail folgt sofort.",
       "auteur_non_prevenu": "Ihr Verfasser konnte in der App nicht benachrichtigt werden: Die E-Mail wird trotzdem versucht.",
       "auteur_introuvable": "Ihr Verfasser hat kein Konto mehr: Niemand konnte benachrichtigt werden.",
-      "auteur_illisible": "Ihr Verfasser konnte nicht ermittelt werden (Lesen fehlgeschlagen): Weder die Benachrichtigung noch die E-Mail wurde gesendet."
+      "auteur_illisible": "Ihr Verfasser konnte nicht ermittelt werden (Lesen fehlgeschlagen): Weder die Benachrichtigung noch die E-Mail wurde gesendet.",
+      "non_jugee": "nicht bewertet"
     },
     "types": {
       "mission": "Auftrag",

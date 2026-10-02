@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { AuthError } from '@/lib/auth-guard'
 import { requireAdmin } from '@/lib/admin-guard'
-import { voieDeMiseEnLigne } from '@/lib/validation-annonces/raisons'
+import { raisonsDuVerdict, voieDeMiseEnLigne } from '@/lib/validation-annonces/raisons'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -49,6 +49,7 @@ type Ligne = {
   title: string
   status: string
   verification_score: number | null
+  verification_data: unknown
   verified_by: string | null
   verified_at: string | null
   published_at: string | null
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   let query = auth.supabaseAdmin
     .from('publications')
     .select(
-      'id, type, title, status, verification_score, verified_by, verified_at, published_at, created_at, updated_at, ' +
+      'id, type, title, status, verification_score, verification_data, verified_by, verified_at, published_at, created_at, updated_at, ' +
         'organizations(company_name, org_type), domains(name), ' +
         // DEUX clés étrangères vers `users` (created_by, verified_by) : l'embed NOMME la sienne (§E.18).
         'auteur:users!publications_created_by_fkey(first_name, last_name, email)',
@@ -134,7 +135,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       type: r.type,
       title: r.title,
       status: r.status,
-      note: r.verification_score,
+      // UNE ANNONCE JAMAIS JUGÉE N'A PAS « 0/10 » (relecture de l'ARRÊT 28, point 7) : la même lecture que la fiche
+      // (`raisonsDuVerdict`, §E.114) — une vérification qui n'a pas jugé écrit note 0 sans signalement.
+      ...(() => { const r2 = raisonsDuVerdict(r.verification_data, r.verification_score); return { note: r2.note, non_jugee: r2.non_aboutie } })(),
       voie: voieDeMiseEnLigne(r),
       organisation: org?.company_name ?? null,
       org_type: org?.org_type ?? null,
