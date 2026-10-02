@@ -4316,8 +4316,10 @@ sur la fiche. Gardé par `diag-echec-silencieux` C (l'appelant recensé, « indi
 **Limites dites** : une annonce refusée alors que l'offre était illimitée ne fut comptée « zéro fois » — sa resoumission
 reste gratuite même si l'offre a changé depuis ; une annonce validée par la voie AUTOMATIQUE après resoumission garde son
 ancien motif (le refus antérieur que la fiche admin montre), comme elle garde son ancien `verified_by` (§E.115). **Gardé
-par** `diag-resoumission` (bloquant, 16 épreuves intégrées — dont la liste des champs jugés tenue égale à l'entrée de
-l'IA, point 1 de la relecture).
+par** `diag-resoumission` (bloquant, 19 épreuves intégrées — dont la liste des champs jugés tenue égale à l'entrée de
+l'IA, point 1 de la relecture ; et, point 18, le motif hors des champs ACCEPTÉS et ÉCRITS du `PATCH` de l'auteur —
+`type Body`, `buildUpdates`, tout `updates` de la route, aucune recopie du corps entier : la recherche des `.update(` ne
+le voyait pas, la route écrit `u.updates`).
 
 ---
 ---

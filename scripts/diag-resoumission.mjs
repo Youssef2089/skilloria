@@ -144,6 +144,18 @@ function juger(t) {
   const poseurs = [...corps].filter(([, c]) => /review_reason\s*=\s*(?![\s(]|null\b|case\b|p\.review_reason\b)/.test(c) && /update public\.publications/.test(c)).map(([n]) => n)
   if (poseurs.join(',') !== 'refuser_annonce') fautes.push(`C. les fonctions qui POSENT publications.review_reason : [${poseurs.join(', ')}] — attendu : refuser_annonce seule`)
   if (!/review_reason\s*= case when v_par_admin then null else p\.review_reason end/.test(corps.get('publier_annonce') ?? '')) fautes.push('C. la voie administrateur de publier_annonce() n’efface plus le motif')
+  // C bis (relecture de l'ARRÊT 28, point 18) — le PATCH de l'auteur ne laisse pas entrer le motif : ni dans les champs
+  // ACCEPTÉS (`type Body`), ni dans ceux qu'il ÉCRIT (`buildUpdates`, et tout `updates` de la route). La recherche des
+  // `.update(` ci-dessous ne le voit pas : la route écrit `u.updates`, un objet construit ailleurs.
+  {
+    const blocBody = /\btype Body = \{([\s\S]*?)\n\}/.exec(patch)?.[1]
+    const blocBuild = /\bfunction buildUpdates\([\s\S]*?\n\}\n/.exec(patch)?.[0]
+    if (blocBody === undefined || blocBuild === undefined) fautes.push('C bis. PATCH : `type Body` ou `buildUpdates` est introuvable — le contrôle des champs permis ne mord plus')
+    if (/review_reason/.test(blocBody ?? '')) fautes.push('C bis. PATCH : `review_reason` est un champ ACCEPTÉ du corps (`type Body`) — l’auteur pourrait effacer ou poser le motif')
+    if (/review_reason/.test(blocBuild ?? '')) fautes.push('C bis. PATCH : `buildUpdates` écrit `review_reason` — l’auteur pourrait effacer ou poser le motif')
+    if (/\bupdates(?:\.review_reason\b|\[\s*['"`]review_reason)/.test(patch)) fautes.push('C bis. PATCH : un `updates` de la route reçoit `review_reason`')
+    if (/\.\.\.\s*body\b/.test(blocBuild ?? '')) fautes.push('C bis. PATCH : `buildUpdates` recopie le corps entier (`...body`) — tout champ envoyé, le motif compris, serait écrit')
+  }
   for (const { p, src } of t.__code) {
     let i = src.indexOf(".from('publications')")
     while (i >= 0) {
@@ -243,6 +255,9 @@ section('F. L’épreuve : chaque mutation fait rougir le contrôle')
       const t = { ...REELS, __code: [...REELS.__code, { p: 'lib/x.ts', src: "await a.from('publications').update({ review_reason: 'x' }).eq('id', id)" }] }
       return t
     }],
+    ['le motif accepté dans le corps du PATCH', () => muter(F.patch, '  confidential?: unknown\n', '  confidential?: unknown\n  review_reason?: unknown\n')],
+    ['le motif écrit par buildUpdates', () => muter(F.patch, "    updates.confidential = body.confidential === true\n", "    updates.confidential = body.confidential === true\n  }\n  if ('review_reason' in body) {\n    updates.review_reason = body.review_reason\n")],
+    ['buildUpdates qui recopie le corps entier', () => muter(F.patch, '  const updates: Record<string, unknown> = {}\n', '  const updates: Record<string, unknown> = { ...body }\n')],
     ['la page de reprise CDI absente', () => { const t = { ...REELS }; t[F.pageRepriseCdi] = null; return t }],
     ['la fiche du besoin sans chemin de reprise', () => muter(F.ficheBesoin, 'isRejected && (', 'false && (')],
     ['le formulaire qui ne laisse plus soumettre une annonce refusée', () => muter(F.formulaire, "(status === 'draft' || status === 'rejected')", "(status === 'draft')")],
