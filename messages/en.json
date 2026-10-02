@@ -6367,7 +6367,9 @@
       "db_error": "The database refused the write: nothing was changed. Try again; if this persists, report it.",
       "forbidden": "This action is reserved for administrators.",
       "auteur_non_approuve": "The expert who posted this subcontracting need is no longer an approved expert (profile rejected, back under verification, or account deleted): the need cannot go live. You can reject it with a reason.",
-      "profile_check_unavailable": "The profile of the expert who posted this need could not be read: nothing was put online. Try again in a moment."
+      "profile_check_unavailable": "The profile of the expert who posted this need could not be read: nothing was put online. Try again in a moment.",
+      "statut_illisible": "The approval could not be completed: the posting’s status cannot be read right now (a fault on our side). Nothing has been changed — try again.",
+      "reessayer": "Try again"
     },
     "avis": {
       "cloche": {

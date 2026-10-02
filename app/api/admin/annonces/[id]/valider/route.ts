@@ -159,19 +159,28 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (reserve !== true) {
       // DEUX VALIDATIONS EN MÊME TEMPS (relecture de l'ARRÊT 28, point 9) : la première a pris la place de CETTE annonce
       // (la réservation ne renumérote pas une ligne qui en porte déjà une) — ce n'est pas un plafond atteint, c'est une
-      // décision déjà prise. Le statut relu le dit ; une lecture impossible n'invente rien (le plafond reste le motif).
-      if ((await statutRelu()) !== STATUT_EN_REVUE) {
+      // décision déjà prise. Le statut relu le dit. UNE LECTURE IMPOSSIBLE N'EST PAS UNE DÉCISION (contre-relecture de
+      // l'ARRÊT 28, point C ; §E.22) : ni « déjà tranchée », ni « plafond atteint » — la panne se dit (503), rien n'a été
+      // touché (aucune place réservée), et l'écran propose de réessayer.
+      const statut = await statutRelu()
+      if (statut === null) {
+        return json({ error: 'Status unreadable', code: 'statut_illisible' }, 503)
+      }
+      if (statut !== STATUT_EN_REVUE) {
         return json({ error: 'Already processed', code: 'already_processed' }, 409)
       }
       return json({ error: 'Active publications limit reached', code: 'active_publications_limit_reached' }, 409)
     }
     placeReservee = true
   }
-  /** Le statut relu après un geste qui n'a rien touché — null s'il ne se lit pas. */
+  /**
+   * Le statut relu après un geste qui n'a rien touché — `null` SEULEMENT s'il ne se lit pas (une panne) ; une annonce
+   * disparue entre-temps n'est pas une panne : elle n'est plus en revue (`'introuvable'`).
+   */
   async function statutRelu(): Promise<string | null> {
     const { data, error } = await auth!.supabaseAdmin.from('publications').select('status').eq('id', id).maybeSingle()
     if (error) { console.error('[admin:annonces/valider] statut illisible après un geste nul', error.message); return null }
-    return (data as { status?: string } | null)?.status ?? null
+    return (data as { status?: string } | null)?.status ?? 'introuvable'
   }
   const rendreLaPlace = async (pourquoi: string): Promise<void> => {
     if (!placeReservee) return

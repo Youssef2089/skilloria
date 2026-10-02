@@ -61,7 +61,10 @@ const ERREURS_CONNUES = ['already_processed', 'active_publications_limit_reached
   'durees_illisibles', 'motif_requis', 'motif_trop_long', 'not_found', 'db_error', 'forbidden',
   // Un besoin de sous-traitance dont l'auteur n'est plus un expert approuvé (relecture ARRÊT 28, point 3), et la lecture
   // de son profil impossible : deux refus distincts.
-  'auteur_non_approuve', 'profile_check_unavailable'] as const
+  'auteur_non_approuve', 'profile_check_unavailable',
+  // Le statut relu ne se lit pas (contre-relecture de l'ARRÊT 28, point C) : une PANNE, jamais « déjà tranchée » — l'écran
+  // le dit et propose de réessayer.
+  'statut_illisible'] as const
 
 function noteCouleur(note: number | null): string {
   if (note == null) return 'var(--sk-muted)'
@@ -91,6 +94,8 @@ export default function AdminAnnonceFichePage({ params }: Props) {
   const [showRefus, setShowRefus] = useState(false)
   const [motif, setMotif] = useState('')
   const [motifErreur, setMotifErreur] = useState<string | null>(null)
+  // Une panne de relecture pendant la validation : l'erreur porte un bouton « Réessayer », qui relance la validation.
+  const [reessaiValidation, setReessaiValidation] = useState(false)
 
   const formatDate = (iso: string | null): string => {
     if (!iso) return '—'
@@ -143,6 +148,7 @@ export default function AdminAnnonceFichePage({ params }: Props) {
     setBusy('valider')
     setIssue(null)
     setError(null)
+    setReessaiValidation(false)
     try {
       const res = await secureFetch(`/api/admin/annonces/${id}/valider`, {
         method: 'POST',
@@ -160,6 +166,7 @@ export default function AdminAnnonceFichePage({ params }: Props) {
             .map((c) => libelleChampPubliable(c, tPub, tCrit))
           : []
         setError(noms.length > 0 ? t('erreurs.missing_fields', { fields: noms.join(', ') }) : messageErreur(p.code, res.status))
+        setReessaiValidation(p.code === 'statut_illisible')
         return
       }
       setIssue({ genre: p.auteur_prevenu ? 'ok' : 'attention', texte: `${t('admin.validee_ok')} ${issueAuteur(p)}` })
@@ -246,7 +253,19 @@ export default function AdminAnnonceFichePage({ params }: Props) {
   return (
     <div>
       {error && (
-        <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16 }}>{error}</div>
+        <div role="alert" style={{ background: 'var(--sk-red-soft)', border: '1px solid var(--sk-red-soft)', color: 'var(--sk-red)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{ flex: '1 1 240px' }}>{error}</span>
+          {reessaiValidation && (
+            <button
+              type="button"
+              onClick={() => { void valider() }}
+              disabled={busy !== null}
+              style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-red)', color: 'var(--sk-red)', borderRadius: 8, padding: '6px 12px', fontSize: 13, fontWeight: 600, cursor: busy !== null ? 'default' : 'pointer' }}
+            >
+              {t('erreurs.reessayer')}
+            </button>
+          )}
+        </div>
       )}
       {issue && (
         <div role="status" style={{ background: issue.genre === 'ok' ? 'var(--sk-success-soft)' : 'var(--sk-amber-soft)', color: issue.genre === 'ok' ? 'var(--sk-success)' : 'var(--sk-amber)', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16 }}>{issue.texte}</div>

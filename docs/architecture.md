@@ -4281,14 +4281,16 @@ métier, jamais au journal (`annonce_refusee`). L'auteur est prévenu dans sa la
 administrateur est EN BASE (42501) : l'anti-relance ne dépend plus de la seule route. **Au regroupement (ARRÊT 28)** : la
 validation applique le prédicat ENTIER de la publication (§D.39) — une annonce en revue sans spécialité ou sans temps de
 travail est refusée `missing_fields`, champs nommés, et l'écran dit que c'est à son AUTEUR de la compléter (la base le tient
-depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (18), `diag-grand-livre`,
+depuis la seconde livraison, §D.51). **Gardé par** `grand_livre/annonce_refusee.test.sql` (19), `diag-grand-livre`,
 `diag-journal-lisible`, et — depuis la relecture de l'ARRÊT 28 — `diag-validation-annonces` (une section par point : une
 décision déjà prise recharge vraiment la fiche et le dit après, point 6 ; « soumise le » lit `soumise_le`, pas
 `updated_at`, point 8 ; deux validations simultanées : la seconde relit le statut et répond « déjà traitée » — jamais
 « plafond atteint » — et ne rend la place que si l'annonce n'est pas en ligne (elle rendait la place de celle que la première
-venait de publier), point 9 ; une annonce jamais jugée par l'IA dit « non
-jugée », jamais « 0/10 », dans la liste — par `raisonsDuVerdict`, comme la fiche — et au journal, où une note 0 est la forme
-d'une vérification qui n'a pas jugé (§E.114), point 7 ; …).
+venait de publier), point 9 — et **une relecture en panne n'est pas une décision** (contre-relecture, point C, §E.22) : 503
+`statut_illisible`, l'écran dit la panne et porte « Réessayer », jamais « déjà tranchée » ; une annonce jamais jugée par
+l'IA dit « non jugée », jamais « 0/10 », dans la liste — par `raisonsDuVerdict`, comme la fiche — et au journal par la MÊME
+règle (contre-relecture, point B : note 0 ET aucun signalement, compté par la base dans `nb_signalements` ; un vrai 0/10,
+signalements à l'appui, se lit 0/10 ; §E.114), point 7 ; …).
 
 **Un besoin de sous-traitance validé par l'administrateur revérifie son auteur** (relecture de l'ARRÊT 28, point 3) : la
 garde même de `/publish` (`expertProfileGate`) — un expert qui n'est plus approuvé (refusé, remis en vérification,

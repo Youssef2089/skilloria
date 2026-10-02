@@ -6367,7 +6367,9 @@
       "db_error": "La base de données a refusé l’écriture : rien n’a été modifié. Réessayez ; si cela persiste, signalez-le.",
       "forbidden": "Cette action est réservée aux administrateurs.",
       "auteur_non_approuve": "L’expert qui a publié ce besoin de sous-traitance n’est plus un expert approuvé (profil refusé, remis en vérification, ou compte supprimé) : le besoin ne peut pas être mis en ligne. Vous pouvez le refuser avec un motif.",
-      "profile_check_unavailable": "Le profil de l’expert qui a publié ce besoin n’a pas pu être lu : rien n’a été mis en ligne. Réessayez dans un instant."
+      "profile_check_unavailable": "Le profil de l’expert qui a publié ce besoin n’a pas pu être lu : rien n’a été mis en ligne. Réessayez dans un instant.",
+      "statut_illisible": "La validation n’a pas pu aboutir : le statut de l’annonce ne se lit pas pour l’instant (une panne de notre côté). Rien n’a été changé — réessayez.",
+      "reessayer": "Réessayer"
     },
     "avis": {
       "cloche": {

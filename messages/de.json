@@ -6367,7 +6367,9 @@
       "db_error": "Die Datenbank hat das Schreiben verweigert: Es wurde nichts geändert. Versuchen Sie es erneut; wenn das Problem bleibt, melden Sie es.",
       "forbidden": "Diese Aktion ist Administratoren vorbehalten.",
       "auteur_non_approuve": "Der Experte, der diesen Unterauftragsbedarf veröffentlicht hat, ist kein freigegebener Experte mehr (Profil abgelehnt, erneut in Prüfung oder Konto gelöscht): Der Bedarf kann nicht veröffentlicht werden. Sie können ihn mit einer Begründung ablehnen.",
-      "profile_check_unavailable": "Das Profil des Experten, der diesen Bedarf veröffentlicht hat, konnte nicht gelesen werden: Nichts wurde veröffentlicht. Versuchen Sie es gleich noch einmal."
+      "profile_check_unavailable": "Das Profil des Experten, der diesen Bedarf veröffentlicht hat, konnte nicht gelesen werden: Nichts wurde veröffentlicht. Versuchen Sie es gleich noch einmal.",
+      "statut_illisible": "Die Freigabe konnte nicht abgeschlossen werden: Der Status der Anzeige lässt sich gerade nicht lesen (eine Störung bei uns). Es wurde nichts geändert – versuchen Sie es erneut.",
+      "reessayer": "Erneut versuchen"
     },
     "avis": {
       "cloche": {

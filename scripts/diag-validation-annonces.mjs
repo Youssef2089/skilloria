@@ -63,9 +63,20 @@ function juger(t) {
   if (!/const enRevue = a\.status === 'pending_review'/.test(t.fiche)) fautes.push('6. les boutons ne dépendent plus du statut relu')
   // 9 — DEUX VALIDATIONS EN MÊME TEMPS : la seconde lit « déjà traitée », et ne rend pas la place de la première.
   const blocReserve = /if \(reserve !== true\) \{([\s\S]*?)\n    \}\n    placeReservee = true/.exec(t.valider)?.[1] ?? ''
-  const iRelu = blocReserve.search(/if \(\(await statutRelu\(\)\) !== STATUT_EN_REVUE\) \{\s*return json\(\{[^}]*code: 'already_processed' \}, 409\)/)
+  const iRelu = blocReserve.search(/if \(statut !== STATUT_EN_REVUE\) \{\s*return json\(\{[^}]*code: 'already_processed' \}, 409\)/)
   const iPlafond = blocReserve.indexOf("code: 'active_publications_limit_reached'")
   if (iRelu < 0 || iPlafond < 0 || iRelu > iPlafond) fautes.push('9. une réservation perdue au profit d’une validation simultanée se dit encore « plafond atteint »')
+  // 9 bis (contre-relecture de l'ARRÊT 28, point C ; §E.22) — UNE RELECTURE EN PANNE N'EST PAS UNE DÉCISION : elle se dit
+  // (503 `statut_illisible`) AVANT « déjà tranchée » et « plafond atteint », et l'écran propose de réessayer.
+  const iPanne = blocReserve.search(/const statut = await statutRelu\(\)\s*if \(statut === null\) \{\s*return json\(\{[^}]*code: 'statut_illisible' \}, 503\)/)
+  if (iPanne < 0 || (iRelu >= 0 && iPanne > iRelu)) fautes.push('9 bis. une relecture du statut en panne se dit « déjà tranchée » (ou « plafond atteint ») au lieu de la panne')
+  if (!/if \(error\) \{[^}]*return null \}\s*return \(data as \{ status\?: string \} \| null\)\?\.status \?\? 'introuvable'/.test(t.valider)) {
+    fautes.push('9 bis. statutRelu ne distingue plus la panne (null) d’une annonce disparue')
+  }
+  if (!/'statut_illisible'\] as const/.test(t.fiche) || !/setReessaiValidation\(p\.code === 'statut_illisible'\)/.test(t.fiche)
+      || !/\{reessaiValidation && \(\s*<button[\s\S]{0,200}?onClick=\{\(\) => \{ void valider\(\) \}\}/.test(t.fiche) || !/\{t\('erreurs\.reessayer'\)\}/.test(t.fiche)) {
+    fautes.push('9 bis. l’écran ne dit pas la panne de relecture, ou ne propose pas de réessayer la validation')
+  }
   const blocNul = /if \(!miseEnLigne\) \{([\s\S]*?)\n  \}/.exec(t.valider)?.[1] ?? ''
   if (!/const statut = await statutRelu\(\)\s*if \(statut !== null && statut !== 'published'\) await rendreLaPlace\(/.test(blocNul) || /^\s*await rendreLaPlace\(/m.test(blocNul)) {
     fautes.push('9. la seconde validation rend la place d’une annonce que la première vient de mettre en ligne')
@@ -128,7 +139,10 @@ section('L’épreuve : chaque mutation fait rougir le contrôle')
     ['« soumise le » redevenu updated_at', () => muter('fiche', 'formatDate(a.soumise_le)', 'formatDate(a.updated_at)')],
     ['la validation qui réécrit la date de soumission', () => muter('migration', 'case when v_par_admin then p.soumise_le else now() end', 'now()')],
     ['la place rendue sans relire le statut', () => muter('valider', "if (statut !== null && statut !== 'published') await rendreLaPlace(", "await rendreLaPlace(")],
-    ['« plafond atteint » pour une validation simultanée', () => muter('valider', 'if ((await statutRelu()) !== STATUT_EN_REVUE) {', 'if (false) {')],
+    ['« plafond atteint » pour une validation simultanée', () => muter('valider', 'if (statut !== STATUT_EN_REVUE) {', 'if (false) {')],
+    ['une relecture en panne dite « déjà tranchée »', () => muter('valider', 'if (statut === null) {', 'if (false) {')],
+    ['statutRelu qui confond la panne et l’annonce disparue', () => muter('valider', "?.status ?? 'introuvable'", '?.status ?? null')],
+    ['l’écran sans « Réessayer »', () => muter('fiche', "setReessaiValidation(p.code === 'statut_illisible')", 'setReessaiValidation(false)')],
     ['le refus qui oublie « déjà tranchée »', () => muter('fiche', "      if (!res.ok && p.code === 'already_processed') { await dejaTranchee(); return }\n      if (!res.ok) {\n        if (p.code === 'motif_requis'", "      if (!res.ok) {\n        if (p.code === 'motif_requis'")],
   ]
   for (const [nom, fabriquer] of EPREUVES) {
