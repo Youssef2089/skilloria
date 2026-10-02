@@ -16,7 +16,10 @@
 --   12-15. un profil et une annonce qui avaient le Royaume-Uni couvrent les quatre, sans rien perdre d'autre ; le
 --        rejeu ne touche rien ;
 --   16-18. le remplacement refuse ce qu'il ne connaît pas (ZN001, ZN002), et le navigateur ne peut pas l'appeler ;
---   19. la forme d'un code pays est tenue en base (un code en minuscules est refusé).
+--   19. la forme d'un code pays est tenue en base (un code en minuscules est refusé) ;
+--   20-21. LA TABLE `countries` EST INTACTE EN ENTIER (relecture de l'ARRÊT 28, point 16) : ses 64 lignes, colonne par
+--        colonne, sont EXACTEMENT celles que `parametrage_de_production` a semées (recopiées ci-dessous telles quelles), dans
+--        les deux sens — aucun pays ajouté, retiré, désactivé ou renommé par la liste des zones.
 --
 --  LE CHEMIN NORMAL : comptes, profils, organisation et annonce naissent par les fabriques (inscription réelle). Le
 --  profil « qui avait le Royaume-Uni » est écrit comme la route l'écrivait AVANT la migration (`update … set
@@ -24,7 +27,87 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir ../grand_livre/_fabriques.psql
-select plan(19);
+select plan(21);
+
+-- Les 64 pays SEMÉS par parametrage_de_production, recopiés tels quels (code, quatre noms, drapeau, indicatif, région,
+-- actif, ordre). Aucune migration ultérieure ne change ces colonnes (format_numero_identification n'en AJOUTE que d'autres).
+create or replace function pg_temp.pays_semes()
+returns table (code text, name_fr text, name_en text, name_es text, name_de text, flag_emoji text, phone_code text,
+               region text, active boolean, sort_order integer)
+language sql as $$ values
+  ('FR', 'France', 'France', 'Francia', 'Frankreich', '🇫🇷', '+33', 'europe', true, 10),
+  ('BE', 'Belgique', 'Belgium', 'Bélgica', 'Belgien', '🇧🇪', '+32', 'europe', true, 20),
+  ('CH', 'Suisse', 'Switzerland', 'Suiza', 'Schweiz', '🇨🇭', '+41', 'europe', true, 30),
+  ('LU', 'Luxembourg', 'Luxembourg', 'Luxemburgo', 'Luxemburg', '🇱🇺', '+352', 'europe', true, 40),
+  ('MC', 'Monaco', 'Monaco', 'Mónaco', 'Monaco', '🇲🇨', '+377', 'europe', true, 50),
+  ('GB', 'Royaume-Uni', 'United Kingdom', 'Reino Unido', 'Vereinigtes Königreich', '🇬🇧', '+44', 'europe', true, 60),
+  ('IE', 'Irlande', 'Ireland', 'Irlanda', 'Irland', '🇮🇪', '+353', 'europe', true, 70),
+  ('DE', 'Allemagne', 'Germany', 'Alemania', 'Deutschland', '🇩🇪', '+49', 'europe', true, 80),
+  ('AT', 'Autriche', 'Austria', 'Austria', 'Österreich', '🇦🇹', '+43', 'europe', true, 90),
+  ('IT', 'Italie', 'Italy', 'Italia', 'Italien', '🇮🇹', '+39', 'europe', true, 100),
+  ('ES', 'Espagne', 'Spain', 'España', 'Spanien', '🇪🇸', '+34', 'europe', true, 110),
+  ('PT', 'Portugal', 'Portugal', 'Portugal', 'Portugal', '🇵🇹', '+351', 'europe', true, 120),
+  ('NL', 'Pays-Bas', 'Netherlands', 'Países Bajos', 'Niederlande', '🇳🇱', '+31', 'europe', true, 130),
+  ('DK', 'Danemark', 'Denmark', 'Dinamarca', 'Dänemark', '🇩🇰', '+45', 'europe', true, 140),
+  ('SE', 'Suède', 'Sweden', 'Suecia', 'Schweden', '🇸🇪', '+46', 'europe', true, 150),
+  ('NO', 'Norvège', 'Norway', 'Noruega', 'Norwegen', '🇳🇴', '+47', 'europe', true, 160),
+  ('FI', 'Finlande', 'Finland', 'Finlandia', 'Finnland', '🇫🇮', '+358', 'europe', true, 170),
+  ('IS', 'Islande', 'Iceland', 'Islandia', 'Island', '🇮🇸', '+354', 'europe', true, 180),
+  ('PL', 'Pologne', 'Poland', 'Polonia', 'Polen', '🇵🇱', '+48', 'europe', true, 190),
+  ('CZ', 'République tchèque', 'Czech Republic', 'República Checa', 'Tschechien', '🇨🇿', '+420', 'europe', true, 200),
+  ('SK', 'Slovaquie', 'Slovakia', 'Eslovaquia', 'Slowakei', '🇸🇰', '+421', 'europe', true, 210),
+  ('HU', 'Hongrie', 'Hungary', 'Hungría', 'Ungarn', '🇭🇺', '+36', 'europe', true, 220),
+  ('RO', 'Roumanie', 'Romania', 'Rumania', 'Rumänien', '🇷🇴', '+40', 'europe', true, 230),
+  ('BG', 'Bulgarie', 'Bulgaria', 'Bulgaria', 'Bulgarien', '🇧🇬', '+359', 'europe', true, 240),
+  ('GR', 'Grèce', 'Greece', 'Grecia', 'Griechenland', '🇬🇷', '+30', 'europe', true, 250),
+  ('HR', 'Croatie', 'Croatia', 'Croacia', 'Kroatien', '🇭🇷', '+385', 'europe', true, 260),
+  ('SI', 'Slovénie', 'Slovenia', 'Eslovenia', 'Slowenien', '🇸🇮', '+386', 'europe', true, 270),
+  ('EE', 'Estonie', 'Estonia', 'Estonia', 'Estland', '🇪🇪', '+372', 'europe', true, 280),
+  ('LV', 'Lettonie', 'Latvia', 'Letonia', 'Lettland', '🇱🇻', '+371', 'europe', true, 290),
+  ('LT', 'Lituanie', 'Lithuania', 'Lituania', 'Litauen', '🇱🇹', '+370', 'europe', true, 300),
+  ('CY', 'Chypre', 'Cyprus', 'Chipre', 'Zypern', '🇨🇾', '+357', 'europe', true, 310),
+  ('MT', 'Malte', 'Malta', 'Malta', 'Malta', '🇲🇹', '+356', 'europe', true, 320),
+  ('AD', 'Andorre', 'Andorra', 'Andorra', 'Andorra', '🇦🇩', '+376', 'europe', true, 330),
+  ('LI', 'Liechtenstein', 'Liechtenstein', 'Liechtenstein', 'Liechtenstein', '🇱🇮', '+423', 'europe', true, 340),
+  ('SM', 'Saint-Marin', 'San Marino', 'San Marino', 'San Marino', '🇸🇲', '+378', 'europe', true, 350),
+  ('VA', 'Vatican', 'Vatican City', 'Ciudad del Vaticano', 'Vatikanstadt', '🇻🇦', '+379', 'europe', true, 360),
+  ('AL', 'Albanie', 'Albania', 'Albania', 'Albanien', '🇦🇱', '+355', 'europe', true, 370),
+  ('BA', 'Bosnie-Herzégovine', 'Bosnia and Herzegovina', 'Bosnia y Herzegovina', 'Bosnien und Herzegowina', '🇧🇦', '+387', 'europe', true, 380),
+  ('ME', 'Monténégro', 'Montenegro', 'Montenegro', 'Montenegro', '🇲🇪', '+382', 'europe', true, 390),
+  ('MK', 'Macédoine du Nord', 'North Macedonia', 'Macedonia del Norte', 'Nordmazedonien', '🇲🇰', '+389', 'europe', true, 400),
+  ('RS', 'Serbie', 'Serbia', 'Serbia', 'Serbien', '🇷🇸', '+381', 'europe', true, 410),
+  ('MD', 'Moldavie', 'Moldova', 'Moldavia', 'Moldau', '🇲🇩', '+373', 'europe', true, 420),
+  ('UA', 'Ukraine', 'Ukraine', 'Ucrania', 'Ukraine', '🇺🇦', '+380', 'europe', true, 430),
+  ('US', 'États-Unis', 'United States', 'Estados Unidos', 'Vereinigte Staaten', '🇺🇸', '+1', 'americas', true, 500),
+  ('CA', 'Canada', 'Canada', 'Canadá', 'Kanada', '🇨🇦', '+1', 'americas', true, 510),
+  ('MX', 'Mexique', 'Mexico', 'México', 'Mexiko', '🇲🇽', '+52', 'americas', true, 520),
+  ('BR', 'Brésil', 'Brazil', 'Brasil', 'Brasilien', '🇧🇷', '+55', 'americas', true, 530),
+  ('AR', 'Argentine', 'Argentina', 'Argentina', 'Argentinien', '🇦🇷', '+54', 'americas', true, 540),
+  ('CL', 'Chili', 'Chile', 'Chile', 'Chile', '🇨🇱', '+56', 'americas', true, 550),
+  ('AU', 'Australie', 'Australia', 'Australia', 'Australien', '🇦🇺', '+61', 'oceania', true, 600),
+  ('NZ', 'Nouvelle-Zélande', 'New Zealand', 'Nueva Zelanda', 'Neuseeland', '🇳🇿', '+64', 'oceania', true, 610),
+  ('MA', 'Maroc', 'Morocco', 'Marruecos', 'Marokko', '🇲🇦', '+212', 'africa', true, 700),
+  ('DZ', 'Algérie', 'Algeria', 'Argelia', 'Algerien', '🇩🇿', '+213', 'africa', true, 710),
+  ('TN', 'Tunisie', 'Tunisia', 'Túnez', 'Tunesien', '🇹🇳', '+216', 'africa', true, 720),
+  ('EG', 'Égypte', 'Egypt', 'Egipto', 'Ägypten', '🇪🇬', '+20', 'africa', true, 730),
+  ('IL', 'Israël', 'Israel', 'Israel', 'Israel', '🇮🇱', '+972', 'asia', true, 740),
+  ('AE', 'Émirats arabes unis', 'United Arab Emirates', 'Emiratos Árabes Unidos', 'Vereinigte Arabische Emirate', '🇦🇪', '+971', 'asia', true, 800),
+  ('IN', 'Inde', 'India', 'India', 'Indien', '🇮🇳', '+91', 'asia', true, 810),
+  ('SG', 'Singapour', 'Singapore', 'Singapur', 'Singapur', '🇸🇬', '+65', 'asia', true, 820),
+  ('JP', 'Japon', 'Japan', 'Japón', 'Japan', '🇯🇵', '+81', 'asia', true, 830),
+  ('SN', 'Sénégal', 'Senegal', 'Senegal', 'Senegal', '🇸🇳', '+221', 'africa', true, 900),
+  ('CI', 'Côte d''Ivoire', 'Ivory Coast', 'Costa de Marfil', 'Elfenbeinküste', '🇨🇮', '+225', 'africa', true, 910),
+  ('CM', 'Cameroun', 'Cameroon', 'Camerún', 'Kamerun', '🇨🇲', '+237', 'africa', true, 920),
+  ('MU', 'Maurice', 'Mauritius', 'Mauricio', 'Mauritius', '🇲🇺', '+230', 'africa', true, 930)
+$$;
+create or replace function pg_temp.pays_en_base()
+returns table (code text, name_fr text, name_en text, name_es text, name_de text, flag_emoji text, phone_code text,
+               region text, active boolean, sort_order integer)
+language sql as $$
+  select c.code::text, c.name_fr::text, c.name_en::text, c.name_es::text, c.name_de::text, c.flag_emoji::text,
+         c.phone_code::text, c.region::text, c.active, c.sort_order::integer
+    from public.countries c
+$$;
 
 create or replace function pg_temp.zone(p_code text) returns uuid
 language sql as $$ select z.id from public.work_zones z where z.code = p_code $$;
@@ -151,6 +234,12 @@ begin
     format($q$ insert into public.work_zones (parent_id, kind, code, country_code, name, slug)
                values (%L, 'country', 'C_SONDE', 'gb-eng', 'Sonde', 'pays-sonde') $q$, v_eu),
     '23514', null, '19. la forme d''un code pays est tenue en base : « gb-eng » est refusé (work_zones_code_pays_forme)');
+
+  -- ── LA TABLE countries, EN ENTIER (relecture de l'ARRÊT 28, point 16) ──
+  return next is((select count(*) from (select * from pg_temp.pays_semes() except select * from pg_temp.pays_en_base()) d), 0::bigint,
+    '20. chacun des 64 pays semés est dans countries, à l''identique (code, quatre noms, drapeau, indicatif, région, actif, ordre)');
+  return next is((select count(*) from (select * from pg_temp.pays_en_base() except select * from pg_temp.pays_semes()) d), 0::bigint,
+    '21. countries ne porte AUCUNE autre ligne ni valeur : ni pays ajouté, ni pays modifié par la liste des zones');
 end $$;
 
 select * from pg_temp.essai();

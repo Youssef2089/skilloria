@@ -507,7 +507,8 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   qui renverrait l'une des deux zones reçoit `bad_work_zone`, nommé) et `recreee` (preuve nouvelle : la fonction
 >   supprimée est recréée plus loin dans la même migration, et aucun `.rpc` ne l'appelle). Requête d'avant-push : ⑮ à ⑱
 >   (64 zones au départ ; Israël et Royaume-Uni actifs ; le COMPTE des profils et annonces qui les avaient choisis).
->   Tests : `matching/zones_liste_des_pays.test.sql` (19) ; `matching/zones_pays_rattaches.test.sql` (5) réécrit pour
+>   Tests : `matching/zones_liste_des_pays.test.sql` (21 — dont, relecture de l'ARRÊT 28 point 16, la table `countries`
+>   EN ENTIER : ses 64 lignes identiques au semis, colonne par colonne, dans les deux sens) ; `matching/zones_pays_rattaches.test.sql` (5) réécrit pour
 >   l'état final (il lisait les pays actifs de `countries`). Contrôle : `diag-zones-liste-des-pays`.
 
 > **LE LOT « ALERTES ET RECOMMANDATIONS » (S2, 02/10/2026, ARRÊT S2-1) — une migration, AVANT, plage S2
@@ -4245,7 +4246,7 @@ observateurs de l'ONU, **Israël excepté** ; le **Royaume-Uni en ses quatre pay
 Irlande du Nord), donnés à qui l'avait ; la **Turquie en Europe**, « Turkey » en anglais. 197 pays actifs, sur staging comme
 sur une base neuve. `countries` n'est ni lue ni écrite. Un changement de continent est une ligne (avant le push) ou un
 `update … set parent_id` (après : le déclencheur recalcule). **Gardé par** `diag-zones-liste-des-pays` (la liste contre la
-source, la migration, le test) et `matching/zones_liste_des_pays.test.sql` (19).
+source, la migration, le test) et `matching/zones_liste_des_pays.test.sql` (21).
 
 <a id="d48"></a>
 ### D.48 — UNE ANNONCE QUI S'AFFICHE PRÉVIENT ; AUCUN RÉGLAGE NE LE CONTREDIT (S2, décision de Youssef, 02/10/2026)

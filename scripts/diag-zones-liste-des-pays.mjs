@@ -27,7 +27,7 @@
  *   F. la requête d'avant-push COMPTE les profils et annonces qui avaient Israël, et ceux qui avaient le Royaume-Uni.
  *
  * CE QU'IL NE VOIT PAS : la base — l'insertion, le remplacement, le recalcul et les refus ne tournent que dans
- * `npx supabase test db --local` (matching/zones_liste_des_pays, 19 assertions) ; la justesse d'une traduction.
+ * `npx supabase test db --local` (matching/zones_liste_des_pays, 21 assertions) ; la justesse d'une traduction.
  *
  * Sortie : 0 vert · 1 rouge · 2 n'a pas tourné.
  */
@@ -136,7 +136,20 @@ ok(attenduTest.length === finale.size && attenduTest.every((c) => finale.has(c))
 const comptesTest = JSON.parse(/'(\{"EU"[^']*\})'::jsonb/.exec(T)?.[1] ?? '{}')
 ok(JSON.stringify(Object.keys(comptesTest).sort().map((k) => [k, comptesTest[k]])) === JSON.stringify(Object.keys(parContinent).sort().map((k) => [k, parContinent[k]])),
   `le test attend les comptes par continent de la liste (${JSON.stringify(parContinent)})`, JSON.stringify(comptesTest))
-ok(/select plan\(19\)/.test(T) && (T.match(/return next /g) ?? []).length === 19, 'le test annonce 19 assertions et en fait 19')
+ok(/select plan\(21\)/.test(T) && (T.match(/return next /g) ?? []).length === 21, 'le test annonce 21 assertions et en fait 21')
+// LA TABLE countries EN ENTIER (relecture de l'ARRÊT 28, point 16) : le semis recopié dans le test est EXACTEMENT celui de
+// parametrage_de_production — sinon la comparaison prouverait l'égalité avec une copie, pas avec l'origine.
+{
+  const seedSql = lire('supabase/migrations/' + readdirSync(join(ROOT, 'supabase/migrations')).find((f) => f.endsWith('_parametrage_de_production.sql')))
+  const entete = 'insert into public.countries (code, name_fr, name_en, name_es, name_de, flag_emoji, phone_code, region, active, sort_order)\nvalues\n'
+  const iS = seedSql.indexOf(entete)
+  const semis = iS < 0 ? [] : seedSql.slice(iS + entete.length, seedSql.indexOf('\non conflict do nothing;', iS)).split('\n').map((l) => l.trim().replace(/,$/, '')).filter((l) => l.startsWith('('))
+  const blocTest = /create or replace function pg_temp\.pays_semes\(\)[\s\S]*?language sql as \$\$ values\n([\s\S]*?)\n\$\$;/.exec(T)?.[1] ?? ''
+  const copie = blocTest.split('\n').map((l) => l.trim().replace(/,$/, '')).filter((l) => l.startsWith('('))
+  ok(semis.length === 64 && JSON.stringify(copie) === JSON.stringify(semis), `le test recopie les ${semis.length} pays semés à l’identique (${copie.length} lignes)`)
+  ok(/select \* from pg_temp\.pays_semes\(\) except select \* from pg_temp\.pays_en_base\(\)/.test(T) && /select \* from pg_temp\.pays_en_base\(\) except select \* from pg_temp\.pays_semes\(\)/.test(T),
+    'le test compare countries au semis dans les DEUX sens (rien de perdu, rien d’ajouté ni de modifié)')
+}
 ok(/remplacer_zone_de_travail\('C_GB', array\['C_GB-ENG', 'C_GB-SCT', 'C_GB-WLS', 'C_GB-NIR'\]\)/.test(T) && /'ZN001'/.test(T) && /'ZN002'/.test(T) && /'23514'/.test(T),
   'le test fait tourner le remplacement réel, ses deux refus, et la forme')
 
