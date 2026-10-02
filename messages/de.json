@@ -2233,14 +2233,17 @@
       "selected_mission": "Mission zugewiesen",
       "selected_offre": "Stelle zugesagt",
       "rejected": "Bewerbung abgelehnt",
-      "waiting": "Auf Antwort wartend"
+      "waiting": "Auf Antwort wartend",
+      "selected_sous_traitance": "Unterauftrag vergeben"
     },
     "empty_filter_title": "Keine Bewerbungen in diesem Filter",
     "empty_filter_body": "Versuchen Sie einen anderen Filter, um alle Bewerbungen zu sehen.",
     "detail_empty_title": "Wählen Sie eine Bewerbung",
     "detail_empty_subtitle": "Klicken Sie links auf eine Bewerbung, um deren Verfolgung und verfügbare Aktionen zu sehen.",
     "detail_not_found_title": "Bewerbung nicht gefunden",
-    "detail_not_found_body": "Diese Bewerbung existiert nicht oder ist nicht mehr verfügbar."
+    "detail_not_found_body": "Diese Bewerbung existiert nicht oder ist nicht mehr verfügbar.",
+    "selected_banner_title_sous_traitance": "Unterauftrag gewonnen 🎉",
+    "selected_banner_body_sous_traitance": "Der Experte, der diesen Unterauftragsbedarf veröffentlicht hat, hat Sie ausgewählt. Setzen Sie das Gespräch fort, um die Details zu klären (Startdatum, Bedingungen…)."
   },
   "candidatures": {
     "casting": {
@@ -2361,7 +2364,9 @@
       "error_reason_too_long": "Der Grund überschreitet 2000 Zeichen.",
       "error_candidature_archived": "Diese Bewerbung ist archiviert: Die Anzeige ist nicht mehr offen, das Profil kann nicht mehr freigeschaltet werden.",
       "error_unlock_limit_reached": "Sie haben alle in Ihrem Tarif enthaltenen Freischaltungen diesen Monat genutzt. Der Zähler beginnt am 1. des nächsten Monats neu.",
-      "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen."
+      "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
+      "selected_section_label_sous_traitance": "Für diesen Unterauftragsbedarf angenommener Kandidat",
+      "select_confirm_body_sous_traitance": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für diesen Unterauftragsbedarf an. Die anderen Bewerbungen zu dieser Anzeige bleiben in Ihrem Dashboard verfügbar."
     }
   },
   "messages": {
@@ -4269,7 +4274,8 @@
       "publication_closed": "Diese Anzeige wurde zurückgezogen",
       "rejected": "Bewerbung abgelehnt",
       "withdrawn": "Bewerbung zurückgezogen",
-      "archived": "Bewerbung archiviert"
+      "archived": "Bewerbung archiviert",
+      "selected_sous_traitance": "Unterauftrag gewonnen"
     },
     "org": {
       "selected_mission": "Kandidat für diesen Auftrag ausgewählt",
@@ -4281,7 +4287,8 @@
       "publication_closed": "Diese Anzeige wurde zurückgezogen",
       "rejected": "Bewerbung abgelehnt",
       "withdrawn": "Bewerbung vom Kandidaten zurückgezogen",
-      "archived": "Bewerbung archiviert"
+      "archived": "Bewerbung archiviert",
+      "selected_sous_traitance": "Kandidat für diesen Unterauftragsbedarf ausgewählt"
     },
     "facets": {
       "all": "Alle",
@@ -6336,7 +6343,7 @@
       "already_processed": "Über diese Anzeige wurde bereits entschieden (von Ihnen in einem anderen Tab oder von einem anderen Administrator). Die Seite wird mit der Entscheidung neu geladen.",
       "active_publications_limit_reached": "Die Organisation hat die Obergrenze aktiver Anzeigen ihres Angebots erreicht. Die Anzeige kann veröffentlicht werden, sobald eine andere geschlossen ist, oder nach einem Angebotswechsel der Organisation (Seite „Organisationen“).",
       "active_publications_check_failed": "Die Zahl der aktiven Anzeigen der Organisation konnte nicht geprüft werden: Es wurde nichts veröffentlicht. Versuchen Sie es gleich noch einmal.",
-      "missing_fields": "Die Anzeige ist unvollständig (Titel, Beschreibung, Bereich oder Einsatzgebiete): Sie kann so nicht veröffentlicht werden.",
+      "missing_fields": "Der Anzeige fehlt: {fields}. Sie kann so nicht veröffentlicht werden: Ihr Verfasser muss sie vervollständigen. Lehnen Sie sie ab und sagen Sie es ihm in der Begründung – er kann sie dann bearbeiten und erneut einreichen.",
       "durees_illisibles": "Die Laufzeiten der Plattform (Lebensdauer einer Anzeige) sind nicht lesbar: Es wurde nichts veröffentlicht. Prüfen Sie die Seite „Laufzeiten der Plattform“.",
       "motif_requis": "Geben Sie den Ablehnungsgrund an: Er wird dem Verfasser übermittelt.",
       "motif_trop_long": "Die Begründung ist zu lang: Bitte kürzen Sie sie.",

@@ -6,7 +6,7 @@ import Avatar from '@/components/ui/Avatar'
 import { castingTheme } from '@/lib/casting-theme'
 import { relativeTimeFromNow } from '@/lib/relative-time'
 import { formatPublicationBudget } from './PublicationSynthesisLine'
-import { libelleDuree, libellesModesTravail } from '@/lib/annonces/mise-en-forme'
+import { libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 import type { MissionCardData } from './MissionCard'
 
 /**
@@ -55,11 +55,13 @@ export default function MissionCastingCard({
   // Les critères mis en mots par lib/annonces/mise-en-forme.ts (§D.39) : les modes (multiples), la durée AVEC son unité.
   const workModeLabel = libellesModesTravail(pub, tCrit).join(' · ') || null
   const dureeLabel = pub.type === 'offre' ? null : libelleDuree(pub, tCrit)
+  // Le temps de travail aussi (regroupement, ARRÊT 28) : la carte recommandée le taisait, la liste et le détail le disent.
+  const tempsLabel = libellesTempsTravail(pub, tCrit).join(', ') || null
   const freshness = relativeTimeFromNow(pub.published_at, locale)
   const zoneLabel = pub.work_zone_labels.length > 0
     ? pub.work_zone_labels.join(' · ')
     : pub.location_note
-  const metaParts = [zoneLabel, workModeLabel, dureeLabel, freshness].filter(Boolean) as string[]
+  const metaParts = [zoneLabel, workModeLabel, tempsLabel, dureeLabel, freshness].filter(Boolean) as string[]
 
   // L'unité suit le TYPE d'annonce (budgetUnitForAnnonce, dans la mise en forme).
   const budgetText = formatPublicationBudget(pub, tPub, locale)

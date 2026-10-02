@@ -2233,14 +2233,17 @@
       "selected_mission": "Mission attribuée",
       "selected_offre": "Poste attribué",
       "rejected": "Candidature refusée",
-      "waiting": "En attente de réponse"
+      "waiting": "En attente de réponse",
+      "selected_sous_traitance": "Sous-traitance attribuée"
     },
     "empty_filter_title": "Aucune candidature dans ce filtre",
     "empty_filter_body": "Essayez un autre filtre pour voir l'ensemble de vos candidatures.",
     "detail_empty_title": "Sélectionnez une candidature",
     "detail_empty_subtitle": "Cliquez sur une candidature à gauche pour voir son suivi et les actions disponibles.",
     "detail_not_found_title": "Candidature introuvable",
-    "detail_not_found_body": "Cette candidature n'existe pas ou n'est plus disponible."
+    "detail_not_found_body": "Cette candidature n'existe pas ou n'est plus disponible.",
+    "selected_banner_title_sous_traitance": "Sous-traitance remportée 🎉",
+    "selected_banner_body_sous_traitance": "L'expert qui a publié ce besoin de sous-traitance vous a retenu(e). Poursuivez la conversation pour caler les détails (date de démarrage, conditions…)."
   },
   "candidatures": {
     "casting": {
@@ -2361,7 +2364,9 @@
       "error_reason_too_long": "Le motif dépasse 2000 caractères.",
       "error_candidature_archived": "Cette candidature est archivée : l'annonce n'est plus ouverte, le profil ne peut plus être déverrouillé.",
       "error_unlock_limit_reached": "Vous avez utilisé tous les dévoilements inclus dans votre offre ce mois-ci. Le compteur repart le 1er du mois prochain.",
-      "error_generic": "Une erreur est survenue. Réessayez dans un instant."
+      "error_generic": "Une erreur est survenue. Réessayez dans un instant.",
+      "selected_section_label_sous_traitance": "Candidat accepté pour ce besoin de sous-traitance",
+      "select_confirm_body_sous_traitance": "Cette action est définitive : vous acceptez ce candidat pour ce besoin de sous-traitance. Les autres candidatures sur cette annonce resteront accessibles dans votre tableau de bord."
     }
   },
   "messages": {
@@ -4269,7 +4274,8 @@
       "publication_closed": "Cette annonce a été retirée",
       "rejected": "Candidature refusée",
       "withdrawn": "Candidature retirée",
-      "archived": "Candidature archivée"
+      "archived": "Candidature archivée",
+      "selected_sous_traitance": "Sous-traitance remportée"
     },
     "org": {
       "selected_mission": "Candidat retenu pour cette mission",
@@ -4281,7 +4287,8 @@
       "publication_closed": "Cette annonce a été retirée",
       "rejected": "Candidature refusée",
       "withdrawn": "Candidature retirée par le candidat",
-      "archived": "Candidature archivée"
+      "archived": "Candidature archivée",
+      "selected_sous_traitance": "Candidat retenu pour ce besoin de sous-traitance"
     },
     "facets": {
       "all": "Toutes",
@@ -6336,7 +6343,7 @@
       "already_processed": "Cette annonce a déjà été tranchée (par vous dans un autre onglet, ou par un autre administrateur). La fiche est rechargée avec la décision.",
       "active_publications_limit_reached": "L’organisation a atteint le plafond d’annonces actives de son offre. L’annonce pourra être mise en ligne dès qu’une autre sera clôturée, ou après un changement d’offre de l’organisation (écran « Organisations »).",
       "active_publications_check_failed": "Le nombre d’annonces actives de l’organisation n’a pas pu être vérifié : rien n’a été mis en ligne. Réessayez dans un instant.",
-      "missing_fields": "L’annonce est incomplète (titre, description, branche ou zones de travail) : elle ne peut pas être mise en ligne en l’état.",
+      "missing_fields": "Il manque à l’annonce : {fields}. Elle ne peut pas être mise en ligne en l’état : c’est à son auteur de la compléter. Refusez-la en le lui disant dans le motif — il pourra la modifier et la soumettre à nouveau.",
       "durees_illisibles": "Les durées de la place (vie d’une annonce) sont illisibles : rien n’a été mis en ligne. Vérifiez l’écran « Durées de la place ».",
       "motif_requis": "Écrivez le motif du refus : il est transmis à l’auteur.",
       "motif_trop_long": "Le motif est trop long : raccourcissez-le.",

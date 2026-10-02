@@ -4,6 +4,7 @@ import { useCallback } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
 import type { StatusPillKind } from '@/components/ui/StatusPill'
 import type { CandidatureLifecycle, CandidatureLifecycleReason } from '@/lib/candidatures/lifecycle'
+import { motDuType } from '@/lib/annonces/mise-en-forme'
 
 /**
  * lib/candidatures/use-lifecycle-label.ts — SEUL point de rendu du libellé
@@ -21,8 +22,8 @@ import type { CandidatureLifecycle, CandidatureLifecycleReason } from '@/lib/can
 
 export type LifecycleViewpoint = 'expert' | 'org'
 
-/** Type de publication, pour les raisons dont le mot dépend (mission/offre). */
-export type LifecyclePublicationType = 'mission' | 'offre' | string | null | undefined
+/** Type de publication, pour les raisons dont le mot dépend (mission / offre / sous-traitance — `motDuType`). */
+export type LifecyclePublicationType = 'mission' | 'offre' | 'sous_traitance' | string | null | undefined
 
 /** Raisons dont le libellé se décline selon le type de publication. */
 const TYPED_REASONS = new Set<CandidatureLifecycleReason>(['selected'])
@@ -36,7 +37,7 @@ export function useCandidatureLifecycleLabel(viewpoint: LifecycleViewpoint) {
       if (!lifecycle) return ''
       const { reason, until } = lifecycle
       const key = TYPED_REASONS.has(reason)
-        ? `${reason}_${pubType === 'offre' ? 'offre' : 'mission'}`
+        ? `${reason}_${motDuType(pubType)}`
         : reason
       const date = until
         ? new Date(until).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })

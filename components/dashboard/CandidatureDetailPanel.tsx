@@ -17,6 +17,7 @@ import TimelineStep from '@/components/ui/TimelineStep'
 import PublicationSynthesisLine, { type PublicationSynthesisData } from '@/components/dashboard/PublicationSynthesisLine'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
+import { motDuType } from '@/lib/annonces/mise-en-forme'
 
 /**
  * CandidatureDetailPanel — détail d'UNE candidature côté expert.
@@ -104,7 +105,9 @@ export default function CandidatureDetailPanel({
     (c.status === 'unlocked' || c.status === 'selected') && !!c.conversation_id
   const showMissionAction = !!c.publication?.id && !publicationUnavailable
   const isSelected = c.status === 'selected'
-  const isMission = c.publication?.type === 'mission'
+  // Le mot suit le TYPE d'annonce, les trois (motDuType, regroupement ARRÊT 28) — un besoin de sous-traitance n'est
+  // ni un « poste » ni une offre d'« entreprise ».
+  const mot = motDuType(c.publication?.type)
   const isArchived = c.lifecycle?.bucket === 'archived'
   return (
     <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 'var(--sk-r-lg)', padding: '24px 26px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
@@ -145,10 +148,10 @@ export default function CandidatureDetailPanel({
           <div style={{ fontSize: 24, lineHeight: 1 }} aria-hidden>🏆</div>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--sk-amber)', letterSpacing: '-0.2px' }}>
-              {t(isMission ? 'selected_banner_title_mission' : 'selected_banner_title_offre')}
+              {t(`selected_banner_title_${mot}`)}
             </div>
             <div style={{ fontSize: 13, color: 'var(--sk-amber)', marginTop: 4, lineHeight: 1.55 }}>
-              {t(isMission ? 'selected_banner_body_mission' : 'selected_banner_body_offre')}
+              {t(`selected_banner_body_${mot}`)}
             </div>
           </div>
         </div>
@@ -198,7 +201,7 @@ export default function CandidatureDetailPanel({
         {c.status === 'selected' && c.selected_at && (
           <TimelineStep
             icon={<IconTrophy size={16} />}
-            label={t(isMission ? 'timeline.selected_mission' : 'timeline.selected_offre')}
+            label={t(`timeline.selected_${mot}`)}
             sub={t('selected_since', { time: relTime(c.selected_at) })}
             state="done"
             isLast

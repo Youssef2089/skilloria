@@ -9,6 +9,7 @@ import { useOrgRole } from '@/lib/use-org-role'
 import type { CandidatureData } from '@/components/dashboard/CandidatureCard'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 import { budgetUnitForAnnonce, estTypeAnnonce } from '@/lib/annonces/audience'
+import { motDuType } from '@/lib/annonces/mise-en-forme'
 import ImageOuRepli from '@/components/ui/ImageOuRepli'
 
 /**
@@ -548,7 +549,7 @@ export default function SpotlightCandidateCard({
               <div style={{ background: 'var(--sk-amber-soft)', border: '1.5px solid var(--sk-amber)', borderRadius: 10, padding: 12 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--sk-amber)', marginBottom: 5 }}>{t('select_confirm_title')}</div>
                 <div style={{ fontSize: 12, color: 'var(--sk-amber)', lineHeight: 1.5, marginBottom: 10 }}>
-                  {t(publicationType === 'mission' ? 'select_confirm_body_mission' : 'select_confirm_body_offre')}
+                  {t(`select_confirm_body_${motDuType(publicationType)}`)}
                 </div>
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button type="button" onClick={() => { setConfirmSelect(false); setError(null); setLimiteAtteinte(false) }} disabled={disabled} style={{ padding: '7px 11px', background: 'transparent', color: 'var(--sk-amber)', border: '1px solid var(--sk-amber-soft)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>

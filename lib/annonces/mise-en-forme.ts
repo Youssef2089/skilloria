@@ -49,6 +49,21 @@ export function libellesTempsTravail(c: Pick<CriteresAnnonceLus, 'temps_travail'
   return c.temps_travail.map((v) => t(`temps_travail.${v}`))
 }
 
+/**
+ * LE MOT QUI SUIT LE TYPE D'ANNONCE — le suffixe des clés qui se déclinent par type (« retenu pour cette mission »,
+ * « pour ce poste », « pour ce besoin de sous-traitance »). Regroupement, ARRÊT 28 : la fiche de candidat disait « pour
+ * ce poste » à un besoin de sous-traitance (`mission ? mission : offre`), le suivi « mission » (`offre ? offre :
+ * mission`) — deux règles « X ? A : B » sur un type à TROIS valeurs, la classe de §E.96. Les trois cas, écrits ; un type
+ * inconnu (une ligne d'avant les types) garde le mot « mission », le défaut historique du suivi.
+ */
+export function motDuType(type: string | null | undefined): AnnonceType {
+  switch (type) {
+    case 'offre': return 'offre'
+    case 'sous_traitance': return 'sous_traitance'
+    default: return 'mission'
+  }
+}
+
 /** La clé de l'unité du budget dans l'espace `publications` — le TYPE la décide (`budgetUnitForAnnonce`). */
 export function cleUniteBudget(type: AnnonceType): 'budget_unit.day' | 'budget_unit.year' {
   return budgetUnitForAnnonce(type) === 'year' ? 'budget_unit.year' : 'budget_unit.day'

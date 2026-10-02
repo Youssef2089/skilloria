@@ -6,6 +6,7 @@ import { logAudit } from '@/lib/audit'
 import { getOrgEntitlements } from '@/lib/entitlements'
 import { activePublishedOrClause } from '@/lib/publications/expiry'
 import { missingForPublish } from '@/lib/publications/publishable'
+import { COLONNES_CRITERES_ANNONCE, criteresDeLaLigne } from '@/lib/annonces/criteres'
 import { chargerDurees, DUREES_ILLISIBLES_CODE } from '@/lib/durees'
 import { runMatchingForPublication } from '@/lib/matching'
 import { siteOriginPourRequete } from '@/lib/site-url'
@@ -73,11 +74,17 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Durations unavailable', code: DUREES_ILLISIBLES_CODE }, 503)
   }
 
-  const { data: pub, error: lectureErr } = await auth.supabaseAdmin
+  const { data: pubLue, error: lectureErr } = await auth.supabaseAdmin
     .from('publications')
-    .select('id, organization_id, domain_id, created_by, status, type, title, description, branch_id, work_zone_ids')
+    // Les critères de l'annonce (§D.39) : le prédicat de la publication les exige, ici comme à la soumission.
+    .select(
+      'id, organization_id, domain_id, created_by, status, type, title, description, branch_id, work_zone_ids, ' +
+        `speciality_ids, speciality_other, ${COLONNES_CRITERES_ANNONCE}`,
+    )
     .eq('id', id)
     .maybeSingle()
+  // La liste des colonnes est composée : le client non typé ne déduit plus la forme de la ligne (comme /publish).
+  const pub = pubLue as unknown as Record<string, unknown> | null
   if (lectureErr) {
     console.error('[admin:annonces/valider] lecture impossible', lectureErr.message)
     return json({ error: 'Query failed', code: 'db_error' }, 500)
@@ -87,13 +94,22 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Already processed', code: 'already_processed', current_status: pub.status }, 409)
   }
 
-  // Le même prédicat que la publication : une annonce en revue l'a passé à sa soumission, mais une zone peut avoir
-  // disparu depuis — la contrainte de base rendrait alors un « db_error » sans raison nommable.
+  // Le même prédicat que la publication, ENTIER (regroupement, ARRÊT 28) : une annonce en revue peut avoir été
+  // soumise avant que la spécialité et le temps de travail soient exigés (§D.39), ou une zone avoir disparu depuis.
+  // Elle ne passe pas en ligne : son AUTEUR doit la compléter — le refus nomme les champs, et l'écran le dit (la base
+  // le tient aussi depuis la seconde livraison).
+  const criteres = criteresDeLaLigne(pub)
   const manquants = missingForPublish({
     title: pub.title as string | null,
     description: pub.description as string | null,
     branch_id: pub.branch_id as string | null,
+    speciality_ids: (pub.speciality_ids as string[] | null) ?? [],
+    speciality_other: pub.speciality_other as string | null,
     work_zone_ids: (pub.work_zone_ids as string[] | null) ?? [],
+    work_modes: criteres.work_modes,
+    temps_travail: criteres.temps_travail,
+    jours_sur_site: criteres.jours_sur_site,
+    jours_teletravail: criteres.jours_teletravail,
   })
   if (manquants.length > 0) {
     return json({ error: 'Publication incomplete', code: 'missing_fields', missing: manquants }, 400)

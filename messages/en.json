@@ -2233,14 +2233,17 @@
       "selected_mission": "Mission awarded",
       "selected_offre": "Position offered",
       "rejected": "Application rejected",
-      "waiting": "Awaiting response"
+      "waiting": "Awaiting response",
+      "selected_sous_traitance": "Subcontracting awarded"
     },
     "empty_filter_title": "No applications in this filter",
     "empty_filter_body": "Try another filter to see all your applications.",
     "detail_empty_title": "Select an application",
     "detail_empty_subtitle": "Click an application on the left to see its tracking and available actions.",
     "detail_not_found_title": "Application not found",
-    "detail_not_found_body": "This application doesn't exist or is no longer available."
+    "detail_not_found_body": "This application doesn't exist or is no longer available.",
+    "selected_banner_title_sous_traitance": "Subcontracting won 🎉",
+    "selected_banner_body_sous_traitance": "The expert who posted this subcontracting need has selected you. Keep the conversation going to work out the details (start date, terms…)."
   },
   "candidatures": {
     "casting": {
@@ -2361,7 +2364,9 @@
       "error_reason_too_long": "Reason exceeds 2000 characters.",
       "error_candidature_archived": "This application is archived: the listing is no longer open, so the profile can no longer be unlocked.",
       "error_unlock_limit_reached": "You have used every reveal included in your plan this month. The counter resets on the 1st of next month.",
-      "error_generic": "An error occurred. Please try again."
+      "error_generic": "An error occurred. Please try again.",
+      "selected_section_label_sous_traitance": "Candidate accepted for this subcontracting need",
+      "select_confirm_body_sous_traitance": "This action is final: you're accepting this candidate for this subcontracting need. Other applications on this listing will remain available in your dashboard."
     }
   },
   "messages": {
@@ -4269,7 +4274,8 @@
       "publication_closed": "This listing was withdrawn",
       "rejected": "Application declined",
       "withdrawn": "Application withdrawn",
-      "archived": "Application archived"
+      "archived": "Application archived",
+      "selected_sous_traitance": "Subcontracting won"
     },
     "org": {
       "selected_mission": "Candidate selected for this mission",
@@ -4281,7 +4287,8 @@
       "publication_closed": "This listing was withdrawn",
       "rejected": "Application declined",
       "withdrawn": "Application withdrawn by the candidate",
-      "archived": "Application archived"
+      "archived": "Application archived",
+      "selected_sous_traitance": "Candidate selected for this subcontracting need"
     },
     "facets": {
       "all": "All",
@@ -6336,7 +6343,7 @@
       "already_processed": "This listing has already been decided (by you in another tab, or by another administrator). The page is reloaded with the decision.",
       "active_publications_limit_reached": "The organisation has reached the active listings cap of its plan. The listing can go online as soon as another one is closed, or after the organisation’s plan is changed (“Organisations” screen).",
       "active_publications_check_failed": "The organisation’s number of active listings could not be checked: nothing was published. Try again in a moment.",
-      "missing_fields": "The listing is incomplete (title, description, branch or work areas): it cannot go online as it is.",
+      "missing_fields": "The posting is missing: {fields}. It cannot go live as it stands: its author must complete it. Reject it and say so in the reason — they will be able to edit it and submit it again.",
       "durees_illisibles": "The marketplace durations (listing lifetime) cannot be read: nothing was published. Check the “Marketplace durations” screen.",
       "motif_requis": "Write the reason for the rejection: it is sent to the author.",
       "motif_trop_long": "The reason is too long: please shorten it.",

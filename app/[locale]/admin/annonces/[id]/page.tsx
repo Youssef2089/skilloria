@@ -6,6 +6,8 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 import PublicationSynthesisLine from '@/components/dashboard/PublicationSynthesisLine'
 import type { PublicationSynthesis } from '@/lib/publication-synthesis'
 import { MOTIF_LONGUEUR_MAX } from '@/lib/validation-annonces/motif'
+import { libelleChampPubliable } from '@/lib/annonces/formulaire'
+import { PUBLICATION_PUBLISHABLE_FIELDS, type PublicationPublishableField } from '@/lib/publications/publishable'
 
 /**
  * /admin/annonces/[id] — LA FICHE D'UNE ANNONCE À VALIDER, ET LA DÉCISION (lot S3), sur le modèle de /admin/experts/[id].
@@ -55,7 +57,7 @@ const TYPES_ORG = ['client', 'cabinet', 'esn', 'freelance'] as const
 const STATUTS = ['draft', 'pending_review', 'published', 'suspended', 'expired', 'archived', 'rejected'] as const
 // Les refus du serveur que l'écran sait nommer — tout autre code se dit « réponse inattendue », avec son code.
 const ERREURS_CONNUES = ['already_processed', 'active_publications_limit_reached', 'active_publications_check_failed',
-  'missing_fields', 'durees_illisibles', 'motif_requis', 'motif_trop_long', 'not_found', 'db_error', 'forbidden'] as const
+  'durees_illisibles', 'motif_requis', 'motif_trop_long', 'not_found', 'db_error', 'forbidden'] as const
 
 function noteCouleur(note: number | null): string {
   if (note == null) return 'var(--sk-muted)'
@@ -73,6 +75,8 @@ export default function AdminAnnonceFichePage({ params }: Props) {
   const t = useTranslations('validation_annonces')
   const tAdmin = useTranslations('admin_back_office')
   const tCommon = useTranslations('common')
+  const tPub = useTranslations('publications')
+  const tCrit = useTranslations('criteres')
   const locale = useLocale()
   const secureFetch = useSecureFetch()
 
@@ -129,9 +133,16 @@ export default function AdminAnnonceFichePage({ params }: Props) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ site_url: window.location.origin }),
       })
-      const p = (await res.json().catch(() => ({}))) as { code?: string; auteur_prevenu?: boolean; auteur_introuvable?: boolean; auteur_illisible?: boolean }
+      const p = (await res.json().catch(() => ({}))) as { code?: string; missing?: unknown; auteur_prevenu?: boolean; auteur_introuvable?: boolean; auteur_illisible?: boolean }
       if (!res.ok) {
-        setError(messageErreur(p.code, res.status))
+        // Une annonce incomplète (une spécialité, le temps de travail…) : les champs sont NOMMÉS, et l'écran dit que
+        // c'est à son auteur de la compléter — les mêmes libellés que le formulaire de l'auteur (regroupement, ARRÊT 28).
+        const noms = p.code === 'missing_fields' && Array.isArray(p.missing)
+          ? p.missing.filter((c): c is PublicationPublishableField =>
+            typeof c === 'string' && (PUBLICATION_PUBLISHABLE_FIELDS as readonly string[]).includes(c))
+            .map((c) => libelleChampPubliable(c, tPub, tCrit))
+          : []
+        setError(noms.length > 0 ? t('erreurs.missing_fields', { fields: noms.join(', ') }) : messageErreur(p.code, res.status))
         return
       }
       setIssue({ genre: p.auteur_prevenu ? 'ok' : 'attention', texte: `${t('admin.validee_ok')} ${issueAuteur(p)}` })

@@ -12,7 +12,7 @@ import {
   useCandidatureLifecycleLabel,
 } from '@/lib/candidatures/use-lifecycle-label'
 import { formatPublicationBudget, type PublicationSynthesisData } from './PublicationSynthesisLine'
-import { libelleDuree, libellesModesTravail } from '@/lib/annonces/mise-en-forme'
+import { libelleDuree, libellesModesTravail, libellesTempsTravail } from '@/lib/annonces/mise-en-forme'
 import type { MissionCardData } from './MissionCard'
 
 /**
@@ -80,10 +80,12 @@ export default function CandidatureCastingCard({
   // Les critères mis en mots par lib/annonces/mise-en-forme.ts (§D.39) : les modes (multiples), la durée AVEC son unité.
   const workModeLabel = libellesModesTravail(pub, tCrit).join(' · ') || null
   const dureeLabel = pub.type === 'offre' ? null : libelleDuree(pub, tCrit)
+  // Le temps de travail aussi (regroupement, ARRÊT 28), comme la ligne de synthèse du suivi.
+  const tempsLabel = libellesTempsTravail(pub, tCrit).join(', ') || null
   const zoneLabel = pub.work_zone_labels.length > 0
     ? pub.work_zone_labels.join(' · ')
     : pub.location_note
-  const metaParts = [zoneLabel, workModeLabel, dureeLabel].filter(Boolean) as string[]
+  const metaParts = [zoneLabel, workModeLabel, tempsLabel, dureeLabel].filter(Boolean) as string[]
 
   // L'unité suit le TYPE d'annonce (budgetUnitForAnnonce, dans la mise en forme).
   const budgetText = formatPublicationBudget(pub, tPub, locale)

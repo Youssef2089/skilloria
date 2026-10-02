@@ -9,6 +9,7 @@ import { useMarkCandidatureViewed } from '@/lib/candidature-view-client'
 import type { CandidatureLifecycle } from '@/lib/candidatures/lifecycle'
 import { useCandidatureLifecycleLabel } from '@/lib/candidatures/use-lifecycle-label'
 import { budgetUnitForAnnonce, estTypeAnnonce } from '@/lib/annonces/audience'
+import { motDuType } from '@/lib/annonces/mise-en-forme'
 
 /**
  * Carte de candidature côté ORG (Lot 2c).
@@ -129,7 +130,7 @@ export type CandidatureData = {
 
 type Props = {
   candidature: CandidatureData
-  publicationType: string                 // 'mission' | 'offre'
+  publicationType: string                 // 'mission' | 'offre' | 'sous_traitance' — le mot suit le type (motDuType)
   onMutated: () => void                   // re-fetch parent
 }
 
@@ -582,7 +583,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
             }}
           >
             {isSelected
-              ? `🏆 ${t(publicationType === 'mission' ? 'selected_section_label_mission' : 'selected_section_label_offre')}`
+              ? `🏆 ${t(`selected_section_label_${motDuType(publicationType)}`)}`
               : `✓ ${t('unlocked_section_label')}`}
           </div>
           {/* Lot masquage : aucune coordonnée personnelle. Le seul canal de
@@ -671,7 +672,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
                 {t('select_confirm_title')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--sk-amber)', lineHeight: 1.55, marginBottom: 12 }}>
-                {t(publicationType === 'mission' ? 'select_confirm_body_mission' : 'select_confirm_body_offre')}
+                {t(`select_confirm_body_${motDuType(publicationType)}`)}
               </div>
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button

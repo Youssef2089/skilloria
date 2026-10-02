@@ -2233,14 +2233,17 @@
       "selected_mission": "Misión asignada",
       "selected_offre": "Puesto adjudicado",
       "rejected": "Candidatura rechazada",
-      "waiting": "Esperando respuesta"
+      "waiting": "Esperando respuesta",
+      "selected_sous_traitance": "Subcontratación asignada"
     },
     "empty_filter_title": "Sin candidaturas en este filtro",
     "empty_filter_body": "Prueba otro filtro para ver todas tus candidaturas.",
     "detail_empty_title": "Selecciona una candidatura",
     "detail_empty_subtitle": "Haz clic en una candidatura a la izquierda para ver su seguimiento y las acciones disponibles.",
     "detail_not_found_title": "Candidatura no encontrada",
-    "detail_not_found_body": "Esta candidatura no existe o ya no está disponible."
+    "detail_not_found_body": "Esta candidatura no existe o ya no está disponible.",
+    "selected_banner_title_sous_traitance": "Subcontratación ganada 🎉",
+    "selected_banner_body_sous_traitance": "El experto que publicó esta necesidad de subcontratación te ha seleccionado. Continúa la conversación para concretar los detalles (fecha de inicio, condiciones…)."
   },
   "candidatures": {
     "casting": {
@@ -2361,7 +2364,9 @@
       "error_reason_too_long": "El motivo supera los 2000 caracteres.",
       "error_candidature_archived": "Esta candidatura está archivada: el anuncio ya no está abierto, por lo que el perfil ya no puede desbloquearse.",
       "error_unlock_limit_reached": "Has utilizado todas las revelaciones incluidas en tu plan este mes. El contador se reinicia el día 1 del mes próximo.",
-      "error_generic": "Se produjo un error. Inténtalo de nuevo."
+      "error_generic": "Se produjo un error. Inténtalo de nuevo.",
+      "selected_section_label_sous_traitance": "Candidato aceptado para esta necesidad de subcontratación",
+      "select_confirm_body_sous_traitance": "Esta acción es definitiva: aceptas a este candidato para esta necesidad de subcontratación. Las demás candidaturas de este anuncio seguirán disponibles en tu panel."
     }
   },
   "messages": {
@@ -4269,7 +4274,8 @@
       "publication_closed": "Este anuncio ha sido retirado",
       "rejected": "Candidatura rechazada",
       "withdrawn": "Candidatura retirada",
-      "archived": "Candidatura archivada"
+      "archived": "Candidatura archivada",
+      "selected_sous_traitance": "Subcontratación conseguida"
     },
     "org": {
       "selected_mission": "Candidato seleccionado para esta misión",
@@ -4281,7 +4287,8 @@
       "publication_closed": "Este anuncio ha sido retirado",
       "rejected": "Candidatura rechazada",
       "withdrawn": "Candidatura retirada por el candidato",
-      "archived": "Candidatura archivada"
+      "archived": "Candidatura archivada",
+      "selected_sous_traitance": "Candidato seleccionado para esta necesidad de subcontratación"
     },
     "facets": {
       "all": "Todas",
@@ -6336,7 +6343,7 @@
       "already_processed": "Este anuncio ya ha sido decidido (por usted en otra pestaña, o por otro administrador). La ficha se recarga con la decisión.",
       "active_publications_limit_reached": "La organización ha alcanzado el máximo de anuncios activos de su oferta. El anuncio podrá publicarse en cuanto se cierre otro, o tras un cambio de oferta de la organización (pantalla «Organizaciones»).",
       "active_publications_check_failed": "No se pudo comprobar el número de anuncios activos de la organización: no se ha publicado nada. Vuelva a intentarlo en un momento.",
-      "missing_fields": "El anuncio está incompleto (título, descripción, rama o zonas de trabajo): no puede publicarse tal como está.",
+      "missing_fields": "Al anuncio le falta: {fields}. No puede publicarse tal como está: su autor debe completarlo. Recházalo indicándoselo en el motivo; podrá modificarlo y enviarlo de nuevo.",
       "durees_illisibles": "Las duraciones de la plataforma (vida de un anuncio) no se pueden leer: no se ha publicado nada. Revise la pantalla «Duraciones de la plataforma».",
       "motif_requis": "Escriba el motivo del rechazo: se envía al autor.",
       "motif_trop_long": "El motivo es demasiado largo: acórtelo.",
