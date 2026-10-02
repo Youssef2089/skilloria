@@ -497,7 +497,9 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   **131 pays ajoutés** (membres et observateurs de l'ONU absents des 64, Israël excepté ; continent de la division M49,
 >   Amérique centrale et Caraïbes en Amérique du Nord ; noms CLDR en quatre langues) et **les quatre pays du Royaume-Uni**
 >   (Angleterre, Écosse, Pays de Galles, Irlande du Nord, en Europe) ; les 64 rattachements existants ne bougent pas
->   (Chypre reste en Europe). `remplacer_zone_de_travail(text, text[])` (fermée au navigateur ; ZN001 zone inconnue,
+>   (Chypre reste en Europe). **Un pays de la liste déjà présent mais INACTIF est RÉACTIVÉ** sous son continent (relecture
+>   de l'ARRÊT 28, point 17 — il serait resté hors des 197 sans rien dire), la notice le nomme ; ce qui reste inactif hors
+>   de la liste est nommé aussi. `remplacer_zone_de_travail(text, text[])` (fermée au navigateur ; ZN001 zone inconnue,
 >   ZN002 remplaçante introuvable ou inactive) donne les quatre pays à chaque profil et annonce qui avait le Royaume-Uni,
 >   sans rien perdre ; puis la reprise DÉSACTIVE « Royaume-Uni » et « Israël » (le déclencheur recalcule ; une liste
 >   devenue vide ne retient personne, règle en place). **Résultat : 197 pays actifs**, sur staging comme sur une base neuve
@@ -505,8 +507,9 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   nommée « Turkey » en anglais, décision de Youssef du 02/10/2026 ; l'ONU la range en Asie). Exceptions de
 >   `diag-deux-temps` : `aucun_ecrivain` (déclencheur reposé, contrainte, désactivation — une page chargée avant le push
 >   qui renverrait l'une des deux zones reçoit `bad_work_zone`, nommé) et `recreee` (preuve nouvelle : la fonction
->   supprimée est recréée plus loin dans la même migration, et aucun `.rpc` ne l'appelle). Requête d'avant-push : ⑮ à ⑱
->   (64 zones au départ ; Israël et Royaume-Uni actifs ; le COMPTE des profils et annonces qui les avaient choisis).
+>   supprimée est recréée plus loin dans la même migration, et aucun `.rpc` ne l'appelle). Requête d'avant-push : ⑮ à ⑲
+>   (64 zones au départ ; Israël et Royaume-Uni actifs ; le COMPTE des profils et annonces qui les avaient choisis ; ⑲ le
+>   compte et les codes des zones pays INACTIVES avant le push, à lire).
 >   Tests : `matching/zones_liste_des_pays.test.sql` (21 — dont, relecture de l'ARRÊT 28 point 16, la table `countries`
 >   EN ENTIER : ses 64 lignes identiques au semis, colonne par colonne, dans les deux sens) ; `matching/zones_pays_rattaches.test.sql` (5) réécrit pour
 >   l'état final (il lisait les pays actifs de `countries`). Contrôle : `diag-zones-liste-des-pays`.

@@ -228,6 +228,40 @@ ok(/prochain push : profils et annonces qui ont choisi le Royaume-Uni/.test(Q) &
 ok(/prochain push : zones pays actives aujourd''hui — 64/.test(Q) && /'64',\s*\(select count\(\*\)::text from public\.work_zones w where w\.kind = 'country' and w\.active\)/.test(Q),
   'une ligne vérifie que staging part des 64 zones (même liste qu’une base neuve)')
 
+// UNE ZONE PAYS INACTIVE NE RESTE PAS INACTIVE EN SILENCE (relecture de l'ARRÊT 28, point 17) : la migration RÉACTIVE un
+// pays de la liste présent mais inactif, et NOMME ce qui reste inactif hors de la liste ; la requête d'avant-push COMPTE les
+// zones pays inactives avant le push. Le jugement est une fonction, éprouvée par mutation.
+{
+  const juger17 = (m, q) => {
+    const f = []
+    const bloc = /reactives as \(([\s\S]*?)returning w\.code\s*\)/.exec(m)?.[1] ?? ''
+    if (!/update public\.work_zones w\s+set active = true/.test(bloc) || !/from liste l/.test(bloc)
+      || !/w\.country_code = l\.country_code/.test(bloc) || !/and not w\.active/.test(bloc)) {
+      f.push('la migration ne réactive pas un pays de la liste présent mais inactif')
+    }
+    if (!/\(select count\(\*\) from reactives\)/.test(m) || !/raise notice 'zones de travail : % pays de la liste déjà présent\(s\) mais INACTIF\(S\), RÉACTIVÉ\(S\)/.test(m)) {
+      f.push('la migration ne dit pas ce qu’elle a réactivé')
+    }
+    if (!/where z\.kind = 'country' and not z\.active;\s*raise notice 'zones de travail : % zone\(s\) pays inactive\(s\) hors de la liste/.test(m)) {
+      f.push('la migration ne nomme pas ce qui reste inactif hors de la liste')
+    }
+    const l19 = /\(19, 'prochain push : zones pays INACTIVES aujourd''hui[\s\S]*?\)\s*\) as v\(/.exec(q)?.[0] ?? ''
+    if ((l19.match(/from public\.work_zones z where z\.kind = 'country' and not z\.active\)/g) ?? []).length !== 2 || !/string_agg\(z\.code/.test(l19)) {
+      f.push('la requête d’avant-push ne compte pas (ni ne nomme) les zones pays inactives')
+    }
+    return f
+  }
+  const f17 = juger17(M, Q)
+  ok(f17.length === 0, 'un pays de la liste présent mais inactif est RÉACTIVÉ ; ce qui reste inactif est nommé ; la requête compte les zones inactives', f17.join(' · '))
+  const EPREUVES = [
+    ['la réactivation retirée', [M.replace(/and not w\.active/, 'and false'), Q]],
+    ['la notice de réactivation retirée', [M.replace(/RÉACTIVÉ\(S\) sous leur continent/, 'vus'), Q]],
+    ['les inactifs hors liste tus', [M.replace(/hors de la liste, laissée\(s\) inactive\(s\)/, 'divers'), Q]],
+    ['la ligne ⑲ retirée de la requête', [M, Q.replace(/zones pays INACTIVES aujourd''hui/, 'zones')]],
+  ]
+  for (const [nom, [m, q]] of EPREUVES) ok(juger17(m, q).length > 0, `épreuve « ${nom} » : le contrôle rougit`)
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 section('G. Une zone désactivée ne s’affiche plus, et ne compte plus (relecture de l’ARRÊT 28, point 10)')
 // ══════════════════════════════════════════════════════════════════════════

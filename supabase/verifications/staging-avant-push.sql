@@ -247,7 +247,17 @@ from (values
              (select count(*) from public.publications a where z.id = any (a.work_zone_ids)),
              (select count(*) from public.publications a where z.id = any (a.work_zone_ids) and a.status = 'published'),
              (select count(*) from public.publications a where a.work_zone_ids = array[z.id]))
-      from public.work_zones z where z.code = 'C_GB'))
+      from public.work_zones z where z.code = 'C_GB')),
+
+  -- ⑲ LES ZONES PAYS INACTIVES AUJOURD'HUI (relecture de l'ARRÊT 28, point 17) — ligne de COMPTE, verdict toujours OK :
+  --    on LIT avant le push. Celles qui font partie de la liste des 197 sont RÉACTIVÉES par la migration (sa notice les
+  --    nomme) ; les autres restent inactives, hors de la liste (sa notice les nomme aussi). Rien ne reste inactif sans
+  --    qu'on l'ait lu.
+  (19, 'prochain push : zones pays INACTIVES aujourd''hui — le compte et les codes, à lire (celles de la liste seront réactivées)',
+   (select format('%s zone(s) pays inactive(s) : %s', count(*), coalesce(string_agg(z.code, ', ' order by z.code), '—'))
+      from public.work_zones z where z.kind = 'country' and not z.active),
+   (select format('%s zone(s) pays inactive(s) : %s', count(*), coalesce(string_agg(z.code, ', ' order by z.code), '—'))
+      from public.work_zones z where z.kind = 'country' and not z.active))
 
 ) as v(ordre, verification, attendu, observe)
 order by v.ordre;

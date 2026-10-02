@@ -36,8 +36,10 @@
 --      Nord — SAUF LA TURQUIE, rangée en EUROPE (décision de Youssef, 02/10/2026 ; l'ONU la met en Asie occidentale).
 --      Noms : CLDR (fr, en, es, de), corrigés là où il abrège (« Congo-Kinshasa », « St. Lucia ») ou vise une autre forme
 --      que celle qu'on cherche (« Türkiye » → « Turkey » : une recherche « Turkey » ne la trouvait pas) ; le français
---      dans `work_zones.name`, les trois autres dans `translations`. Un pays déjà présent n'est pas touché (`not
---      exists` sur le code pays, puis `on conflict do nothing`) : staging (64 zones) et une base neuve (64, par
+--      dans `work_zones.name`, les trois autres dans `translations`. Un pays déjà présent ACTIF n'est pas touché (`not
+--      exists` sur le code pays, puis `on conflict do nothing`) ; un pays de la liste déjà présent mais INACTIF est
+--      RÉACTIVÉ sous son continent, et nommé (relecture de l'ARRÊT 28, point 17 — il serait resté inactif en silence) ;
+--      ce qui reste inactif hors de la liste est nommé aussi. Ainsi staging (64 zones) et une base neuve (64, par
 --      `zones_pays_rattaches`) aboutissent à la MÊME liste — 197 pays actifs. Les continents entiers et « Partout dans
 --      le monde » les couvrent : le déclencheur `work_zones_couverture` recalcule à chaque insertion.
 --
@@ -116,6 +118,10 @@ comment on function public.work_zone_country_codes(uuid[]) is
 do $liste$
 declare
   v_pays  integer;
+  v_reactives integer;
+  v_codes_reactives text;
+  v_hors_liste integer;
+  v_codes_hors_liste text;
   v_trad  integer;
 begin
   with liste(country_code, continent_code, fr, en, es, de) as (values
@@ -266,6 +272,19 @@ begin
     on conflict (code) do nothing
     returning id, country_code
   ),
+  -- UN PAYS DE LA LISTE DÉJÀ PRÉSENT MAIS INACTIF NE RESTE PAS INACTIF EN SILENCE (relecture de l'ARRÊT 28, point 17) :
+  -- il fait partie des 197 — il est RÉACTIVÉ, sous le continent de la liste, et compté (la notice le nomme).
+  reactives as (
+    update public.work_zones w
+       set active = true,
+           parent_id = cont.id
+      from liste l
+      join public.work_zones cont on cont.code = l.continent_code and cont.kind = 'continent'
+     where w.country_code = l.country_code
+       and w.kind = 'country'
+       and not w.active
+    returning w.code
+  ),
   traduites as (
     insert into public.translations (table_name, row_id, field, locale, value)
     select 'work_zones', a.id, 'name', t.locale, t.value
@@ -275,9 +294,24 @@ begin
     on conflict do nothing
     returning 1
   )
-  select (select count(*) from ajoutes), (select count(*) from traduites) into v_pays, v_trad;
+  select (select count(*) from ajoutes), (select count(*) from traduites),
+         (select count(*) from reactives), (select coalesce(string_agg(r.code, ', ' order by r.code), '') from reactives r)
+    into v_pays, v_trad, v_reactives, v_codes_reactives;
 
   raise notice 'zones de travail : % pays ajouté(s) à la liste, % traduction(s) posée(s)', v_pays, v_trad;
+  if v_reactives > 0 then
+    raise notice 'zones de travail : % pays de la liste déjà présent(s) mais INACTIF(S), RÉACTIVÉ(S) sous leur continent : %',
+      v_reactives, v_codes_reactives;
+  else
+    raise notice 'zones de travail : aucun pays de la liste n''était présent inactif';
+  end if;
+  -- Ce qui reste inactif HORS de la liste se nomme aussi (des territoires hors ONU) — Israël et le Royaume-Uni, encore
+  -- actifs ici, sont désactivés juste après (étape 4) : rien ne reste inactif sans qu'on le lise.
+  select count(*), coalesce(string_agg(z.code, ', ' order by z.code), '')
+    into v_hors_liste, v_codes_hors_liste
+    from public.work_zones z
+   where z.kind = 'country' and not z.active;
+  raise notice 'zones de travail : % zone(s) pays inactive(s) hors de la liste, laissée(s) inactive(s) : %', v_hors_liste, v_codes_hors_liste;
 end
 $liste$;
 
