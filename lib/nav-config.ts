@@ -185,6 +185,10 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         extraActivePaths: [ADMIN_ROOT_ROUTE],
       },
       { key: 'experts', href: '/admin/experts', labelKey: 'nav_experts', iconKey: 'user' },
+      // LES ANNONCES en revue : celles que la vérification automatique n'a pas mises en ligne — annonces des
+      // organisations et besoins de sous-traitance des experts (lot S3). Sans elle, une annonce notée sous la note de
+      // publication automatique restait « en attente de validation » pour toujours.
+      { key: 'annonces', href: '/admin/annonces', labelKey: 'nav_annonces', iconKey: 'annonce' },
       // LES DOMAINES D'ADRESSE que la règle d'inscription lit (bloqués, publics) : rangés sous la
       // validation des organisations, parce qu'ils décident laquelle peut se préinscrire (§D.27).
       { key: 'domaines-adresse', href: '/admin/domaines-adresse', labelKey: 'nav_domaines_adresse', iconKey: 'building' },

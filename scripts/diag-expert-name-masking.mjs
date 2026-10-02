@@ -236,6 +236,7 @@ const estCron = (src) => /CRON_SECRET/.test(src)
 /** GEL — lib et routes LUES, une raison chacune (§G.8). */
 const GEL_D4 = {
   'lib/notifications/dispatch.ts': 'LÉGITIME — le dispatcher lit l’e-mail du DESTINATAIRE pour lui envoyer sa notification ; jamais projeté vers un tiers',
+  'lib/validation-annonces/avis.ts': 'LÉGITIME — l’e-mail de l’AUTEUR d’une annonce, lu pour lui écrire la décision de l’administrateur sur SA propre annonce ; ses appelants sont des routes requireAdmin, rien ne part vers une organisation ni un expert tiers',
   // `lib/verification/expert-verification.ts` EST SORTI le 01/10/2026 (recette S1, §D.43) : la vérification IA
   // ignore LinkedIn et ne lit plus `linkedin_url` — le gel ne fait que descendre.
   'lib/hooks/useCdiProfile.ts': 'LÉGITIME — hook CLIENT qui lit le compte de l’utilisateur connecté (son propre e-mail) ; pas une projection vers une organisation',

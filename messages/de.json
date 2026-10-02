@@ -2554,7 +2554,8 @@
       "nav_journal": "Hauptbuch",
       "nav_depots_echec": "Fehlgeschlagene Einreichungen",
       "nav_travaux_ia": "KI-Aufträge",
-      "nav_journal_conservation": "Aufbewahrung des Protokolls"
+      "nav_journal_conservation": "Aufbewahrung des Protokolls",
+      "nav_annonces": "Anzeigen"
     },
     "quotas_ia": {
       "title": "KI-Kontingente",
@@ -5060,7 +5061,8 @@
       "travail_ia_relance": "KI-Arbeit neu gestartet",
       "desabonnement_email": "Abmeldung von einer E-Mail",
       "photo_deposee": "Profilfoto hochgeladen",
-      "cv_consulte": "Lebenslauf von einem Administrator geöffnet"
+      "cv_consulte": "Lebenslauf von einem Administrator geöffnet",
+      "annonce_refusee": "Anzeige abgelehnt"
     },
     "familles": {
       "annonce": "Anzeigen",
@@ -5214,11 +5216,15 @@
       "sous_traitance_creee": "{qui} hat {annonce} als Entwurf erstellt (Unterauftragsbedarf).",
       "annonce_publiee": {
         "simple": "{qui} hat {annonce} veröffentlicht.",
-        "note": "{qui} hat {annonce} veröffentlicht, nach einer automatischen Qualitätsprüfung (Note {note}/10)."
+        "note": "{qui} hat {annonce} veröffentlicht, nach einer automatischen Qualitätsprüfung (Note {note}/10).",
+        "validee": "{qui} hat {annonce} nach Prüfung freigegeben und veröffentlicht.",
+        "validee_note": "{qui} hat {annonce} nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} hat {annonce} veröffentlicht (Unterauftragsbedarf).",
-        "note": "{qui} hat {annonce} veröffentlicht (Unterauftragsbedarf), nach einer automatischen Qualitätsprüfung (Note {note}/10)."
+        "note": "{qui} hat {annonce} veröffentlicht (Unterauftragsbedarf), nach einer automatischen Qualitätsprüfung (Note {note}/10).",
+        "validee": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung freigegeben und veröffentlicht.",
+        "validee_note": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung freigegeben und veröffentlicht (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben)."
       },
       "annonce_modifiee": {
         "champs": "{qui} hat {annonce} geändert: {champs}.",
@@ -5473,7 +5479,13 @@
         "depot_autre": "{qui} hat ein Profilfoto für {profil} hochgeladen.",
         "remplacement_autre": "{qui} hat das Profilfoto für {profil} ersetzt."
       },
-      "cv_consulte": "{qui} hat den für {profil} hochgeladenen Lebenslauf schreibgeschützt geöffnet."
+      "cv_consulte": "{qui} hat den für {profil} hochgeladenen Lebenslauf schreibgeschützt geöffnet.",
+      "annonce_refusee": {
+        "annonce": "{qui} hat {annonce} nach Prüfung abgelehnt; die Begründung wurde ihrem Verfasser übermittelt.",
+        "annonce_note": "{qui} hat {annonce} nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben); die Begründung wurde ihrem Verfasser übermittelt.",
+        "sous_traitance": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung abgelehnt; die Begründung wurde ihrem Verfasser übermittelt.",
+        "sous_traitance_note": "{qui} hat {annonce} (Unterauftragsbedarf) nach Prüfung abgelehnt (die automatische Qualitätsprüfung hatte ihr {note}/10 gegeben); die Begründung wurde ihrem Verfasser übermittelt."
+      }
     },
     "valeurs": {
       "inconnu": "eine weitere Angabe",
@@ -6218,6 +6230,152 @@
       "refus_inconnu": "Der Server hat das Speichern abgelehnt (Code: {code}).",
       "reponse_sans_identifiant": "Die Anzeige wurde gesendet, aber der Server hat ihre Kennung nicht zurückgegeben. Laden Sie Ihre Anzeigenliste neu.",
       "temps_travail": "Wählen Sie Vollzeit, Teilzeit oder beides"
+    }
+  },
+  "validation_annonces": {
+    "admin": {
+      "titre": "Zu prüfende Anzeigen",
+      "sous_titre": "Anzeigen von Organisationen und Unterauftragsbedarfe von Experten, die die automatische Prüfung nicht veröffentlicht hat. Geben Sie sie frei, um sie zu veröffentlichen, oder lehnen Sie sie mit einer Begründung ab, die ihrem Verfasser übermittelt wird.",
+      "onglet_attente": "Ausstehend",
+      "onglet_validees": "Freigegeben",
+      "onglet_refusees": "Abgelehnt",
+      "onglet_toutes": "Alle",
+      "chargement": "Wird geladen…",
+      "vide_pending": "Keine Anzeige wartet auf eine Prüfung.",
+      "vide_validated": "Es wurde noch keine Anzeige veröffentlicht.",
+      "vide_rejected": "Es wurde keine Anzeige abgelehnt.",
+      "vide_all": "Noch keine Anzeige hat die Prüfung durchlaufen.",
+      "par_auteur": "von {auteur}",
+      "note_titre": "Note der automatischen Qualitätsprüfung",
+      "bouton_valider": "Freigeben und veröffentlichen",
+      "validation_en_cours": "Wird veröffentlicht…",
+      "bouton_refuser": "Ablehnen",
+      "refus_titre": "Ablehnungsgrund",
+      "refus_aide": "Diese Begründung wird dem Verfasser übermittelt, in der Benachrichtigungsglocke und per E-Mail. Sagen Sie ihm, was sich ändern muss.",
+      "refus_placeholder": "Zum Beispiel: Die Beschreibung enthält eine Telefonnummer; bitte entfernen Sie sie – der Austausch läuft über die Nachrichtenfunktion.",
+      "refus_compteur": "{n} / {max} Zeichen",
+      "refus_en_cours": "Wird abgelehnt…",
+      "refus_confirmer": "Anzeige ablehnen",
+      "validee_ok": "Anzeige freigegeben: Sie ist online, und die Suche nach passenden Experten hat begonnen.",
+      "refusee_ok": "Anzeige abgelehnt.",
+      "auteur_prevenu": "Ihr Verfasser wurde in der App benachrichtigt; die E-Mail folgt sofort.",
+      "auteur_non_prevenu": "Ihr Verfasser konnte in der App nicht benachrichtigt werden: Die E-Mail wird trotzdem versucht.",
+      "auteur_introuvable": "Ihr Verfasser hat kein Konto mehr: Niemand konnte benachrichtigt werden.",
+      "auteur_illisible": "Ihr Verfasser konnte nicht ermittelt werden (Lesen fehlgeschlagen): Weder die Benachrichtigung noch die E-Mail wurde gesendet."
+    },
+    "types": {
+      "mission": "Auftrag",
+      "offre": "Stellenangebot",
+      "sous_traitance": "Unterauftragsbedarf",
+      "autre": "Andere Anzeige"
+    },
+    "types_organisation": {
+      "client": "Unternehmen",
+      "cabinet": "Personalberatung",
+      "esn": "IT-Dienstleister / Anbieter",
+      "freelance": "Unabhängiger Experte (persönliche Organisation)"
+    },
+    "statuts": {
+      "draft": "Entwurf",
+      "pending_review": "Wartet auf Prüfung",
+      "published": "Online",
+      "suspended": "Ausgesetzt",
+      "expired": "Abgelaufen",
+      "archived": "Geschlossen",
+      "rejected": "Abgelehnt",
+      "autre": "Anderer Zustand"
+    },
+    "voies": {
+      "automatique": "Automatisch veröffentlicht",
+      "administrateur": "Von einem Administrator freigegeben"
+    },
+    "signalements": {
+      "incoherent": "Widersprüchlicher Inhalt",
+      "spam": "Unerwünschter Inhalt",
+      "contact_info": "Persönliche Kontaktdaten im Klartext",
+      "discriminatory": "Diskriminierendes Kriterium",
+      "illegal": "Rechtswidriger Inhalt"
+    },
+    "verdict": {
+      "titre": "Automatische Qualitätsprüfung",
+      "titre_revue": "Warum diese Anzeige auf Ihre Prüfung wartet",
+      "non_aboutie": "Die automatische Prüfung konnte kein Urteil fällen (Dienst nicht verfügbar, Prüfung deaktiviert oder Ausgabenobergrenze erreicht): Die Anzeige wartet auf eine Prüfung durch einen Menschen.",
+      "bloquant": "Eine Meldung, die jede automatische Veröffentlichung verhindert, unabhängig von der Note: {signalements}.",
+      "bloquant_titre": "Diese Meldung verhindert die automatische Veröffentlichung",
+      "note_insuffisante": "Note {note}/10, unter der Note für die automatische Veröffentlichung.",
+      "signalements": "Meldungen",
+      "autres": "{count, plural, one {# weitere Meldung} other {# weitere Meldungen}}",
+      "commentaire": "Kommentar der automatischen Prüfung"
+    },
+    "fiche": {
+      "soumise_le": "eingereicht am {date}",
+      "titre_auteur": "Verfasser und Organisation",
+      "auteur": "Verfasser",
+      "auteur_inconnu": "Gelöschtes Konto",
+      "email": "E-Mail",
+      "organisation": "Organisation",
+      "type_organisation": "Art der Organisation",
+      "titre_contenu": "Inhalt der Anzeige",
+      "branche": "Bereich",
+      "specialites": "Fachgebiete",
+      "specialite_autre": "Andere: {valeur}",
+      "zones": "Einsatzgebiete",
+      "precision_lieu": "Angaben zum Ort",
+      "competences": "Geforderte Kompetenzen",
+      "description": "Beschreibung",
+      "refusee_par": "Abgelehnt von {par} am {date}",
+      "validee_par": "Freigegeben von {par} am {date}: Die Anzeige wurde veröffentlicht",
+      "en_ligne_automatiquement": "Am {date} automatisch veröffentlicht, nach der Prüfung ihrer Qualität",
+      "refus_anterieur": "Ein erstes Mal am {date} abgelehnt – dem Verfasser übermittelte Begründung:",
+      "administrateur": "einem Administrator"
+    },
+    "erreurs": {
+      "chargement": "Die Anzeigen konnten nicht geladen werden. Laden Sie die Seite neu; wenn das Problem bleibt, antwortet die Datenbank nicht.",
+      "reseau": "Der Server hat nicht geantwortet. Prüfen Sie Ihre Verbindung und versuchen Sie es erneut.",
+      "inattendue": "Der Server hat eine unerwartete Antwort zurückgegeben (Code {code}). Auf dieser Seite wurde nichts geändert; laden Sie die Seite neu, bevor Sie es erneut versuchen.",
+      "already_processed": "Über diese Anzeige wurde bereits entschieden (von Ihnen in einem anderen Tab oder von einem anderen Administrator). Die Seite wird mit der Entscheidung neu geladen.",
+      "active_publications_limit_reached": "Die Organisation hat die Obergrenze aktiver Anzeigen ihres Angebots erreicht. Die Anzeige kann veröffentlicht werden, sobald eine andere geschlossen ist, oder nach einem Angebotswechsel der Organisation (Seite „Organisationen“).",
+      "active_publications_check_failed": "Die Zahl der aktiven Anzeigen der Organisation konnte nicht geprüft werden: Es wurde nichts veröffentlicht. Versuchen Sie es gleich noch einmal.",
+      "missing_fields": "Die Anzeige ist unvollständig (Titel, Beschreibung, Bereich oder Einsatzgebiete): Sie kann so nicht veröffentlicht werden.",
+      "durees_illisibles": "Die Laufzeiten der Plattform (Lebensdauer einer Anzeige) sind nicht lesbar: Es wurde nichts veröffentlicht. Prüfen Sie die Seite „Laufzeiten der Plattform“.",
+      "motif_requis": "Geben Sie den Ablehnungsgrund an: Er wird dem Verfasser übermittelt.",
+      "motif_trop_long": "Die Begründung ist zu lang: Bitte kürzen Sie sie.",
+      "not_found": "Diese Anzeige existiert nicht oder nicht mehr.",
+      "db_error": "Die Datenbank hat das Schreiben verweigert: Es wurde nichts geändert. Versuchen Sie es erneut; wenn das Problem bleibt, melden Sie es.",
+      "forbidden": "Diese Aktion ist Administratoren vorbehalten."
+    },
+    "avis": {
+      "cloche": {
+        "validee": {
+          "titre": "Ihre Anzeige „{titre}“ ist online",
+          "corps": "Nach Prüfung wurde Ihre Anzeige „{titre}“ freigegeben und veröffentlicht. Die Suche nach passenden Experten hat begonnen."
+        },
+        "refusee": {
+          "titre": "Ihre Anzeige „{titre}“ wurde nicht freigegeben",
+          "corps": "Nach Prüfung wurde Ihre Anzeige „{titre}“ nicht veröffentlicht. Begründung: {motif}"
+        }
+      },
+      "email": {
+        "validee": {
+          "sujet": "Ihre Anzeige „{titre}“ ist online",
+          "preambule": "Sie wurde nach Prüfung freigegeben.",
+          "titre": "Ihre Anzeige ist online",
+          "bonjour": "Guten Tag {prenom},",
+          "corps": "Nach Prüfung wurde Ihre Anzeige <strong>„{titre}“</strong> freigegeben und veröffentlicht.",
+          "suite": "Die Suche nach passenden Experten hat begonnen: Sie werden bei jeder Bewerbung benachrichtigt.",
+          "bouton": "Meine Anzeige ansehen"
+        },
+        "refusee": {
+          "sujet": "Ihre Anzeige „{titre}“ wurde nicht freigegeben",
+          "preambule": "Die Begründung steht in dieser Nachricht.",
+          "titre": "Ihre Anzeige wurde nicht freigegeben",
+          "bonjour": "Guten Tag {prenom},",
+          "corps": "Nach Prüfung wurde Ihre Anzeige <strong>„{titre}“</strong> aus folgendem Grund nicht veröffentlicht:",
+          "motif": "{motif}",
+          "suite": "Sie finden Ihre Anzeige und diese Begründung in Ihrem Bereich.",
+          "bouton": "Meine Anzeige ansehen"
+        }
+      }
     }
   }
 }

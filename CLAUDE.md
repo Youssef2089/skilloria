@@ -368,6 +368,7 @@ Plages **observées dans le dépôt** :
 | `3xxxxx` | S2 | `20260910300000_stripe_socle_serveur`, `20260910300010_quota_analyses_cv` |
 | `010000`–`015959` **le 03/10/2026** | S1 | consigne du lot « finitions et pays » (principal `…000000`–`…005959`, S2 `…020000`, S3 `…030000`) : `zones_liste_des_pays`. Sous `0xxxxx` pour le cliquet, qui ne voit pas les sous-plages. |
 | `1xxxxx` **à partir du 01/10/2026** | S1 | attribuée par la consigne du lot « corrections de la recette » (tronc `20261001000000`–`…099999`, S1 `20261001100000`–`…199999`) : `specialite_autre_hors_referentiel`, `langues_liste_fermee`, `photo_par_le_serveur`. **Datée** : avant cette date, `1xxxxx` reste la plage fausse des quatre migrations gelées (le cliquet de `diag-migration-donnees` porte la date). |
+| `03xxxx` **le 03/10/2026** | S3 (lot « validation des annonces ») | `20261003030000`–`…035959`, attribuée par la consigne des quatre lots parallèles : `validation_annonces` (l'écran `/admin/annonces`, `refuser_annonce`, la voie administrateur de `publier_annonce`). Suffixe en `0` : le cliquet le range dans la plage du tronc. Rapport et propositions de mémoire : [docs/reprise-s3.md](docs/reprise-s3.md). |
 
 > **TRANCHÉ.** La plage du tronc est **`0xxxxx`**. La consigne orale « 1xxxxx » était fausse, elle
 > est corrigée. Toute migration du tronc porte un suffixe `0xxxxx` **et** un horodatage strictement

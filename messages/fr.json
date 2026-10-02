@@ -2554,7 +2554,8 @@
       "nav_journal": "Grand livre",
       "nav_depots_echec": "Dépôts en échec",
       "nav_travaux_ia": "Travaux d'IA",
-      "nav_journal_conservation": "Conservation du journal"
+      "nav_journal_conservation": "Conservation du journal",
+      "nav_annonces": "Annonces"
     },
     "quotas_ia": {
       "title": "Quotas IA",
@@ -5060,7 +5061,8 @@
       "travail_ia_relance": "Travail d’IA relancé",
       "desabonnement_email": "Désabonnement d’un e-mail",
       "photo_deposee": "Photo de profil déposée",
-      "cv_consulte": "CV consulté par un administrateur"
+      "cv_consulte": "CV consulté par un administrateur",
+      "annonce_refusee": "Annonce refusée"
     },
     "familles": {
       "annonce": "Annonces",
@@ -5214,11 +5216,15 @@
       "sous_traitance_creee": "{qui} a créé {annonce} en brouillon (besoin de sous-traitance).",
       "annonce_publiee": {
         "simple": "{qui} a publié {annonce}.",
-        "note": "{qui} a publié {annonce}, après une vérification automatique de sa qualité (note {note}/10)."
+        "note": "{qui} a publié {annonce}, après une vérification automatique de sa qualité (note {note}/10).",
+        "validee": "{qui} a validé {annonce} après examen et l’a mise en ligne.",
+        "validee_note": "{qui} a validé {annonce} après examen et l’a mise en ligne (la vérification automatique de sa qualité lui avait donné {note}/10)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} a publié {annonce} (besoin de sous-traitance).",
-        "note": "{qui} a publié {annonce} (besoin de sous-traitance), après une vérification automatique de sa qualité (note {note}/10)."
+        "note": "{qui} a publié {annonce} (besoin de sous-traitance), après une vérification automatique de sa qualité (note {note}/10).",
+        "validee": "{qui} a validé {annonce} (besoin de sous-traitance) après examen et l’a mise en ligne.",
+        "validee_note": "{qui} a validé {annonce} (besoin de sous-traitance) après examen et l’a mise en ligne (la vérification automatique de sa qualité lui avait donné {note}/10)."
       },
       "annonce_modifiee": {
         "champs": "{qui} a modifié {annonce} : {champs}.",
@@ -5473,7 +5479,13 @@
         "depot_autre": "{qui} a déposé une photo de profil pour {profil}.",
         "remplacement_autre": "{qui} a remplacé la photo de profil pour {profil}."
       },
-      "cv_consulte": "{qui} a ouvert, en lecture seule, le CV déposé pour {profil}."
+      "cv_consulte": "{qui} a ouvert, en lecture seule, le CV déposé pour {profil}.",
+      "annonce_refusee": {
+        "annonce": "{qui} a refusé {annonce} après examen ; le motif a été transmis à son auteur.",
+        "annonce_note": "{qui} a refusé {annonce} après examen (la vérification automatique de sa qualité lui avait donné {note}/10) ; le motif a été transmis à son auteur.",
+        "sous_traitance": "{qui} a refusé {annonce} (besoin de sous-traitance) après examen ; le motif a été transmis à son auteur.",
+        "sous_traitance_note": "{qui} a refusé {annonce} (besoin de sous-traitance) après examen (la vérification automatique de sa qualité lui avait donné {note}/10) ; le motif a été transmis à son auteur."
+      }
     },
     "valeurs": {
       "inconnu": "une autre information",
@@ -6218,6 +6230,152 @@
       "refus_inconnu": "Le serveur a refusé l’enregistrement (code : {code}).",
       "reponse_sans_identifiant": "L’annonce a été envoyée, mais le serveur n’a pas rendu son identifiant. Rechargez la liste de vos annonces.",
       "temps_travail": "Choisissez temps plein, temps partiel, ou les deux"
+    }
+  },
+  "validation_annonces": {
+    "admin": {
+      "titre": "Annonces à valider",
+      "sous_titre": "Les annonces des organisations et les besoins de sous-traitance des experts que la vérification automatique n’a pas mis en ligne. Validez-les pour les publier, ou refusez-les avec un motif transmis à leur auteur.",
+      "onglet_attente": "En attente",
+      "onglet_validees": "Validées",
+      "onglet_refusees": "Refusées",
+      "onglet_toutes": "Toutes",
+      "chargement": "Chargement…",
+      "vide_pending": "Aucune annonce n’attend de validation.",
+      "vide_validated": "Aucune annonce n’a encore été mise en ligne.",
+      "vide_rejected": "Aucune annonce n’a été refusée.",
+      "vide_all": "Aucune annonce n’est encore passée par la validation.",
+      "par_auteur": "par {auteur}",
+      "note_titre": "Note de la vérification automatique de la qualité",
+      "bouton_valider": "Valider et mettre en ligne",
+      "validation_en_cours": "Mise en ligne…",
+      "bouton_refuser": "Refuser",
+      "refus_titre": "Motif du refus",
+      "refus_aide": "Ce motif est transmis à l’auteur, dans la cloche et par e-mail. Dites-lui ce qui doit changer.",
+      "refus_placeholder": "Par exemple : la description contient un numéro de téléphone ; retirez-le, les échanges passent par la messagerie.",
+      "refus_compteur": "{n} / {max} caractères",
+      "refus_en_cours": "Refus…",
+      "refus_confirmer": "Refuser l’annonce",
+      "validee_ok": "Annonce validée : elle est en ligne, et la recherche des experts correspondants est lancée.",
+      "refusee_ok": "Annonce refusée.",
+      "auteur_prevenu": "Son auteur a été prévenu dans l’application ; l’e-mail part dans la foulée.",
+      "auteur_non_prevenu": "Son auteur n’a pas pu être prévenu dans l’application : l’e-mail est tout de même tenté.",
+      "auteur_introuvable": "Son auteur n’a plus de compte : personne n’a pu être prévenu.",
+      "auteur_illisible": "Son auteur n’a pas pu être identifié (lecture impossible) : ni la notification ni l’e-mail ne sont partis."
+    },
+    "types": {
+      "mission": "Mission",
+      "offre": "Offre d’emploi",
+      "sous_traitance": "Besoin de sous-traitance",
+      "autre": "Autre annonce"
+    },
+    "types_organisation": {
+      "client": "Entreprise",
+      "cabinet": "Cabinet de recrutement",
+      "esn": "ESN / Prestataire",
+      "freelance": "Expert indépendant (organisation personnelle)"
+    },
+    "statuts": {
+      "draft": "Brouillon",
+      "pending_review": "En attente de validation",
+      "published": "En ligne",
+      "suspended": "Suspendue",
+      "expired": "Expirée",
+      "archived": "Clôturée",
+      "rejected": "Refusée",
+      "autre": "Autre état"
+    },
+    "voies": {
+      "automatique": "Mise en ligne automatique",
+      "administrateur": "Validée par un administrateur"
+    },
+    "signalements": {
+      "incoherent": "Contenu incohérent",
+      "spam": "Contenu indésirable",
+      "contact_info": "Coordonnées personnelles en clair",
+      "discriminatory": "Critère discriminatoire",
+      "illegal": "Contenu illégal"
+    },
+    "verdict": {
+      "titre": "Vérification automatique de la qualité",
+      "titre_revue": "Pourquoi cette annonce attend votre validation",
+      "non_aboutie": "La vérification automatique n’a pas pu se prononcer (service indisponible, contrôle désactivé ou plafond de dépense atteint) : l’annonce attend un examen humain.",
+      "bloquant": "Signalement qui empêche toute mise en ligne automatique, quelle que soit la note : {signalements}.",
+      "bloquant_titre": "Ce signalement empêche la mise en ligne automatique",
+      "note_insuffisante": "Note de {note}/10, en dessous de la note de publication automatique.",
+      "signalements": "Signalements",
+      "autres": "{count, plural, one {# autre signalement} other {# autres signalements}}",
+      "commentaire": "Commentaire de la vérification automatique"
+    },
+    "fiche": {
+      "soumise_le": "soumise le {date}",
+      "titre_auteur": "Auteur et organisation",
+      "auteur": "Auteur",
+      "auteur_inconnu": "Compte supprimé",
+      "email": "E-mail",
+      "organisation": "Organisation",
+      "type_organisation": "Type d’organisation",
+      "titre_contenu": "Contenu de l’annonce",
+      "branche": "Branche",
+      "specialites": "Spécialités",
+      "specialite_autre": "Autre : {valeur}",
+      "zones": "Zones de travail",
+      "precision_lieu": "Précision sur le lieu",
+      "competences": "Compétences demandées",
+      "description": "Description",
+      "refusee_par": "Refusée par {par} le {date}",
+      "validee_par": "Validée par {par} le {date} : l’annonce a été mise en ligne",
+      "en_ligne_automatiquement": "Mise en ligne automatiquement le {date}, après la vérification de sa qualité",
+      "refus_anterieur": "Refusée une première fois le {date} — motif transmis à l’auteur :",
+      "administrateur": "un administrateur"
+    },
+    "erreurs": {
+      "chargement": "Impossible de charger les annonces. Rechargez la page ; si cela persiste, la base de données ne répond pas.",
+      "reseau": "Le serveur n’a pas répondu. Vérifiez votre connexion, puis réessayez.",
+      "inattendue": "Le serveur a rendu une réponse inattendue (code {code}). Rien n’a été modifié de ce côté ; rechargez la page avant de réessayer.",
+      "already_processed": "Cette annonce a déjà été tranchée (par vous dans un autre onglet, ou par un autre administrateur). La fiche est rechargée avec la décision.",
+      "active_publications_limit_reached": "L’organisation a atteint le plafond d’annonces actives de son offre. L’annonce pourra être mise en ligne dès qu’une autre sera clôturée, ou après un changement d’offre de l’organisation (écran « Organisations »).",
+      "active_publications_check_failed": "Le nombre d’annonces actives de l’organisation n’a pas pu être vérifié : rien n’a été mis en ligne. Réessayez dans un instant.",
+      "missing_fields": "L’annonce est incomplète (titre, description, branche ou zones de travail) : elle ne peut pas être mise en ligne en l’état.",
+      "durees_illisibles": "Les durées de la place (vie d’une annonce) sont illisibles : rien n’a été mis en ligne. Vérifiez l’écran « Durées de la place ».",
+      "motif_requis": "Écrivez le motif du refus : il est transmis à l’auteur.",
+      "motif_trop_long": "Le motif est trop long : raccourcissez-le.",
+      "not_found": "Cette annonce n’existe pas, ou plus.",
+      "db_error": "La base de données a refusé l’écriture : rien n’a été modifié. Réessayez ; si cela persiste, signalez-le.",
+      "forbidden": "Cette action est réservée aux administrateurs."
+    },
+    "avis": {
+      "cloche": {
+        "validee": {
+          "titre": "Votre annonce « {titre} » est en ligne",
+          "corps": "Après examen, votre annonce « {titre} » a été validée et mise en ligne. La recherche des experts correspondants est lancée."
+        },
+        "refusee": {
+          "titre": "Votre annonce « {titre} » n’a pas été validée",
+          "corps": "Après examen, votre annonce « {titre} » n’a pas été mise en ligne. Motif : {motif}"
+        }
+      },
+      "email": {
+        "validee": {
+          "sujet": "Votre annonce « {titre} » est en ligne",
+          "preambule": "Elle a été validée après examen.",
+          "titre": "Votre annonce est en ligne",
+          "bonjour": "Bonjour {prenom},",
+          "corps": "Après examen, votre annonce <strong>« {titre} »</strong> a été validée et mise en ligne.",
+          "suite": "La recherche des experts correspondants est lancée : vous serez prévenu à chaque candidature.",
+          "bouton": "Voir mon annonce"
+        },
+        "refusee": {
+          "sujet": "Votre annonce « {titre} » n’a pas été validée",
+          "preambule": "Le motif est dans ce message.",
+          "titre": "Votre annonce n’a pas été validée",
+          "bonjour": "Bonjour {prenom},",
+          "corps": "Après examen, votre annonce <strong>« {titre} »</strong> n’a pas été mise en ligne, pour le motif suivant :",
+          "motif": "{motif}",
+          "suite": "Vous retrouvez votre annonce, et ce motif, dans votre espace.",
+          "bouton": "Voir mon annonce"
+        }
+      }
     }
   }
 }

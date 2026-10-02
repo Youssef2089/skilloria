@@ -269,9 +269,24 @@ export function phraseDe(l: LignePhrase): Phrase {
     case 'annonce_publiee':
     case 'sous_traitance_publiee': {
       const note = nombre(d.verification_score)
+      // La voie ADMINISTRATEUR (lot S3) : l'annonce était en revue, un administrateur l'a validée. Une ligne ancienne
+      // n'a pas de voie : elle se lit comme une publication directe, ce qu'elle était.
+      if (d.voie === 'administrateur') {
+        return note === null
+          ? { cle: `${l.type_action}.validee`, args: { qui, annonce: sujet(l, 'publications') } }
+          : { cle: `${l.type_action}.validee_note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note) } }
+      }
       return note === null
         ? { cle: `${l.type_action}.simple`, args: { qui, annonce: sujet(l, 'publications') } }
         : { cle: `${l.type_action}.note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note) } }
+    }
+    case 'annonce_refusee': {
+      // Le motif n'est jamais au journal (texte libre) : la phrase dit qu'il a été transmis, pas ce qu'il dit.
+      const note = nombre(d.verification_score)
+      const genre = d.type === 'sous_traitance' ? 'sous_traitance' : 'annonce'
+      return note === null
+        ? { cle: `annonce_refusee.${genre}`, args: { qui, annonce: sujet(l, 'publications') } }
+        : { cle: `annonce_refusee.${genre}_note`, args: { qui, annonce: sujet(l, 'publications'), note: n(note) } }
     }
     case 'annonce_modifiee': {
       const champs = liste(d.champs)

@@ -72,7 +72,10 @@ with
       ('fonction', 'remplacer_zone_de_travail'),
       ('contrainte', 'work_zones_code_pays_forme'),
       -- mission_postulee (S2)
-      ('fonction', 'mission_postulee')
+      ('fonction', 'mission_postulee'),
+      -- validation_annonces (S3) : le refus d'une annonce en revue — publier_annonce() est redéfinie, signature
+      -- inchangée, et n'est donc pas « créée ».
+      ('fonction', 'refuser_annonce')
     ) v(genre, nom)
   )
 

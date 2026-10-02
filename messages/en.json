@@ -2554,7 +2554,8 @@
       "nav_journal": "General ledger",
       "nav_depots_echec": "Failed submissions",
       "nav_travaux_ia": "AI jobs",
-      "nav_journal_conservation": "Log retention"
+      "nav_journal_conservation": "Log retention",
+      "nav_annonces": "Listings"
     },
     "quotas_ia": {
       "title": "AI quotas",
@@ -5060,7 +5061,8 @@
       "travail_ia_relance": "AI work restarted",
       "desabonnement_email": "E-mail unsubscribe",
       "photo_deposee": "Profile photo uploaded",
-      "cv_consulte": "CV opened by an administrator"
+      "cv_consulte": "CV opened by an administrator",
+      "annonce_refusee": "Listing rejected"
     },
     "familles": {
       "annonce": "Listings",
@@ -5214,11 +5216,15 @@
       "sous_traitance_creee": "{qui} created {annonce} as a draft (subcontracting need).",
       "annonce_publiee": {
         "simple": "{qui} published {annonce}.",
-        "note": "{qui} published {annonce}, after an automatic quality check (score {note}/10)."
+        "note": "{qui} published {annonce}, after an automatic quality check (score {note}/10).",
+        "validee": "{qui} approved {annonce} after review and put it online.",
+        "validee_note": "{qui} approved {annonce} after review and put it online (the automatic quality check had given it {note}/10)."
       },
       "sous_traitance_publiee": {
         "simple": "{qui} published {annonce} (subcontracting need).",
-        "note": "{qui} published {annonce} (subcontracting need), after an automatic quality check (score {note}/10)."
+        "note": "{qui} published {annonce} (subcontracting need), after an automatic quality check (score {note}/10).",
+        "validee": "{qui} approved {annonce} (subcontracting need) after review and put it online.",
+        "validee_note": "{qui} approved {annonce} (subcontracting need) after review and put it online (the automatic quality check had given it {note}/10)."
       },
       "annonce_modifiee": {
         "champs": "{qui} edited {annonce}: {champs}.",
@@ -5473,7 +5479,13 @@
         "depot_autre": "{qui} uploaded a profile photo for {profil}.",
         "remplacement_autre": "{qui} replaced the profile photo for {profil}."
       },
-      "cv_consulte": "{qui} opened, read-only, the CV uploaded for {profil}."
+      "cv_consulte": "{qui} opened, read-only, the CV uploaded for {profil}.",
+      "annonce_refusee": {
+        "annonce": "{qui} rejected {annonce} after review; the reason was sent to its author.",
+        "annonce_note": "{qui} rejected {annonce} after review (the automatic quality check had given it {note}/10); the reason was sent to its author.",
+        "sous_traitance": "{qui} rejected {annonce} (subcontracting need) after review; the reason was sent to its author.",
+        "sous_traitance_note": "{qui} rejected {annonce} (subcontracting need) after review (the automatic quality check had given it {note}/10); the reason was sent to its author."
+      }
     },
     "valeurs": {
       "inconnu": "another piece of information",
@@ -6218,6 +6230,152 @@
       "refus_inconnu": "The server refused to save (code: {code}).",
       "reponse_sans_identifiant": "The posting was sent, but the server did not return its identifier. Reload your postings list.",
       "temps_travail": "Choose full-time, part-time, or both"
+    }
+  },
+  "validation_annonces": {
+    "admin": {
+      "titre": "Listings to review",
+      "sous_titre": "Organisation listings and expert subcontracting needs that the automatic check did not put online. Approve them to publish them, or reject them with a reason sent to their author.",
+      "onglet_attente": "Pending",
+      "onglet_validees": "Approved",
+      "onglet_refusees": "Rejected",
+      "onglet_toutes": "All",
+      "chargement": "Loading…",
+      "vide_pending": "No listing is waiting for review.",
+      "vide_validated": "No listing has been put online yet.",
+      "vide_rejected": "No listing has been rejected.",
+      "vide_all": "No listing has gone through review yet.",
+      "par_auteur": "by {auteur}",
+      "note_titre": "Score from the automatic quality check",
+      "bouton_valider": "Approve and publish",
+      "validation_en_cours": "Publishing…",
+      "bouton_refuser": "Reject",
+      "refus_titre": "Reason for rejection",
+      "refus_aide": "This reason is sent to the author, in the notification bell and by email. Tell them what needs to change.",
+      "refus_placeholder": "For example: the description contains a phone number; please remove it — conversations go through the messaging.",
+      "refus_compteur": "{n} / {max} characters",
+      "refus_en_cours": "Rejecting…",
+      "refus_confirmer": "Reject the listing",
+      "validee_ok": "Listing approved: it is online, and the search for matching experts has started.",
+      "refusee_ok": "Listing rejected.",
+      "auteur_prevenu": "Its author has been notified in the app; the email follows right away.",
+      "auteur_non_prevenu": "Its author could not be notified in the app: the email is still attempted.",
+      "auteur_introuvable": "Its author no longer has an account: nobody could be notified.",
+      "auteur_illisible": "Its author could not be identified (read failed): neither the notification nor the email was sent."
+    },
+    "types": {
+      "mission": "Assignment",
+      "offre": "Job offer",
+      "sous_traitance": "Subcontracting need",
+      "autre": "Other listing"
+    },
+    "types_organisation": {
+      "client": "Company",
+      "cabinet": "Recruitment firm",
+      "esn": "IT services / Provider",
+      "freelance": "Independent expert (personal organisation)"
+    },
+    "statuts": {
+      "draft": "Draft",
+      "pending_review": "Pending review",
+      "published": "Online",
+      "suspended": "Suspended",
+      "expired": "Expired",
+      "archived": "Closed",
+      "rejected": "Rejected",
+      "autre": "Other state"
+    },
+    "voies": {
+      "automatique": "Published automatically",
+      "administrateur": "Approved by an administrator"
+    },
+    "signalements": {
+      "incoherent": "Incoherent content",
+      "spam": "Unwanted content",
+      "contact_info": "Personal contact details in plain text",
+      "discriminatory": "Discriminatory criterion",
+      "illegal": "Illegal content"
+    },
+    "verdict": {
+      "titre": "Automatic quality check",
+      "titre_revue": "Why this listing is waiting for your review",
+      "non_aboutie": "The automatic check could not reach a verdict (service unavailable, check disabled or spending cap reached): the listing is waiting for a human review.",
+      "bloquant": "A flag that prevents any automatic publication, whatever the score: {signalements}.",
+      "bloquant_titre": "This flag prevents automatic publication",
+      "note_insuffisante": "Score of {note}/10, below the automatic publication score.",
+      "signalements": "Flags",
+      "autres": "{count, plural, one {# other flag} other {# other flags}}",
+      "commentaire": "Comment from the automatic check"
+    },
+    "fiche": {
+      "soumise_le": "submitted on {date}",
+      "titre_auteur": "Author and organisation",
+      "auteur": "Author",
+      "auteur_inconnu": "Deleted account",
+      "email": "Email",
+      "organisation": "Organisation",
+      "type_organisation": "Organisation type",
+      "titre_contenu": "Listing content",
+      "branche": "Branch",
+      "specialites": "Specialities",
+      "specialite_autre": "Other: {valeur}",
+      "zones": "Work areas",
+      "precision_lieu": "Location details",
+      "competences": "Required skills",
+      "description": "Description",
+      "refusee_par": "Rejected by {par} on {date}",
+      "validee_par": "Approved by {par} on {date}: the listing was put online",
+      "en_ligne_automatiquement": "Put online automatically on {date}, after its quality check",
+      "refus_anterieur": "Rejected a first time on {date} — reason sent to the author:",
+      "administrateur": "an administrator"
+    },
+    "erreurs": {
+      "chargement": "The listings could not be loaded. Reload the page; if this persists, the database is not responding.",
+      "reseau": "The server did not respond. Check your connection, then try again.",
+      "inattendue": "The server returned an unexpected response (code {code}). Nothing was changed on this side; reload the page before trying again.",
+      "already_processed": "This listing has already been decided (by you in another tab, or by another administrator). The page is reloaded with the decision.",
+      "active_publications_limit_reached": "The organisation has reached the active listings cap of its plan. The listing can go online as soon as another one is closed, or after the organisation’s plan is changed (“Organisations” screen).",
+      "active_publications_check_failed": "The organisation’s number of active listings could not be checked: nothing was published. Try again in a moment.",
+      "missing_fields": "The listing is incomplete (title, description, branch or work areas): it cannot go online as it is.",
+      "durees_illisibles": "The marketplace durations (listing lifetime) cannot be read: nothing was published. Check the “Marketplace durations” screen.",
+      "motif_requis": "Write the reason for the rejection: it is sent to the author.",
+      "motif_trop_long": "The reason is too long: please shorten it.",
+      "not_found": "This listing does not exist, or no longer exists.",
+      "db_error": "The database refused the write: nothing was changed. Try again; if this persists, report it.",
+      "forbidden": "This action is reserved for administrators."
+    },
+    "avis": {
+      "cloche": {
+        "validee": {
+          "titre": "Your listing “{titre}” is online",
+          "corps": "After review, your listing “{titre}” was approved and put online. The search for matching experts has started."
+        },
+        "refusee": {
+          "titre": "Your listing “{titre}” was not approved",
+          "corps": "After review, your listing “{titre}” was not put online. Reason: {motif}"
+        }
+      },
+      "email": {
+        "validee": {
+          "sujet": "Your listing “{titre}” is online",
+          "preambule": "It was approved after review.",
+          "titre": "Your listing is online",
+          "bonjour": "Hello {prenom},",
+          "corps": "After review, your listing <strong>“{titre}”</strong> was approved and put online.",
+          "suite": "The search for matching experts has started: you will be notified of each application.",
+          "bouton": "View my listing"
+        },
+        "refusee": {
+          "sujet": "Your listing “{titre}” was not approved",
+          "preambule": "The reason is in this message.",
+          "titre": "Your listing was not approved",
+          "bonjour": "Hello {prenom},",
+          "corps": "After review, your listing <strong>“{titre}”</strong> was not put online, for the following reason:",
+          "motif": "{motif}",
+          "suite": "You will find your listing, and this reason, in your space.",
+          "bouton": "View my listing"
+        }
+      }
     }
   }
 }

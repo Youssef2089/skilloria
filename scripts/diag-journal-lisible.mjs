@@ -129,6 +129,8 @@ function valeursDe(action, cle) {
     case 'role_in_org': case 'role_de': case 'role_vers': return [...D.role_org]
     case 'type_de_compte': return [...D.type_compte]
     case 'voie_declaree': return [...D.voie]
+    // La voie d'une mise en ligne (lot S3, validation des annonces) — dérivée en base par publier_annonce().
+    case 'voie': return ['automatique', 'administrateur', 'code_que_personne_ne_connait']
     case 'org_type': return [...D.org_type]
     case 'operation': return action === 'organisation_modifiee' ? ['modification', 'logo_depose', 'logo_retire']
       : action === 'taxonomie_modifiee' ? ['creee', 'modifiee', 'supprimee']
