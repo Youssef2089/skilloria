@@ -357,17 +357,6 @@ export default function DashboardCDI() {
         <div style={{ background: 'var(--sk-surface)', border: '1px solid var(--sk-border)', borderRadius: 16, padding: 32, maxWidth: 440, textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }} aria-hidden>🔒</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--sk-text)', marginBottom: 8 }}>403</div>
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            style={{
-              background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none',
-              borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            ←
-          </button>
         </div>
       </div>
     )

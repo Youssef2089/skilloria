@@ -246,17 +246,13 @@ for (const f of ['app/[locale]/admin/experts/page.tsx', 'app/[locale]/admin/orga
   ok(/truncated_notice/.test(read(f)), `${f} : affiche le bandeau de troncature`)
 }
 
-// Écrans : règle du bouton Retour + i18n.
+// Écrans : aucun bouton Retour, nulle part — on navigue par les menus (décision
+// de Youssef, 02/10/2026). La règle entière est gardée par `diag-aucun-retour` ;
+// ces deux lignes restent pour les deux écrans de ce lot.
 ok(!/back_to_list/.test(read('app/[locale]/admin/utilisateurs/page.tsx')),
   'écran liste (MENU) : aucun bouton Retour')
-// Ce contrôle exigeait un lien « Retour » LOCAL sur la fiche. C'était une
-// erreur : le layout admin monte déjà <GlobalBackButton>, si bien que la page
-// en affichait DEUX, empilés. La règle projet dit « un bouton Retour global
-// UNIQUE » — donc aucun bouton local, ni ici ni ailleurs sous /admin.
 ok(!/back_to_list/.test(read('app/[locale]/admin/utilisateurs/[id]/page.tsx')),
-  'écran fiche (DÉTAIL) : aucun bouton Retour local (le global suffit)')
-ok(/GlobalBackButton/.test(read('app/[locale]/admin/layout.tsx')),
-  'layout admin : rend LE bouton Retour global, pour toutes ses pages de détail')
+  'écran fiche (DÉTAIL) : aucun bouton Retour')
 ok(/ReauthModal/.test(read('app/[locale]/admin/utilisateurs/[id]/page.tsx')),
   'écran fiche : réutilise <ReauthModal> existant')
 

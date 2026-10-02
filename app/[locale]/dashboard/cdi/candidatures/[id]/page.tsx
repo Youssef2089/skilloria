@@ -6,7 +6,7 @@ import CandidatureDetailView from '@/components/dashboard/CandidatureDetailView'
 /**
  * /dashboard/cdi/candidatures/[id] — page de détail d'une candidature (wrapper
  * thin, miroir exact de freelance/candidatures/[id]). side='cdi'. Passe par
- * DashboardShell → bouton Retour global automatique.
+ * DashboardShell (aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026)).
  */
 
 type Props = { params: Promise<{ id: string }> }

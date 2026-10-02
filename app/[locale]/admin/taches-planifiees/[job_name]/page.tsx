@@ -9,8 +9,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
 /**
  * /admin/taches-planifiees/[job_name] — HISTORIQUE D'UNE TÂCHE.
  *
- * Page de DÉTAIL : le bouton Retour est celui du layout admin
- * (<GlobalBackButton>), UNIQUE. Aucun bouton Retour local ici.
+ * Page de DÉTAIL, sans bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * POURQUOI CETTE FICHE EXISTE
  *   La liste ne montre que la DERNIÈRE exécution. Elle répond à « est-ce que ça
@@ -188,8 +187,6 @@ export default function AdminScheduledTaskDetailPage() {
 
   return (
     <div style={{ padding: '24px 26px 40px', fontFamily: 'inherit' }}>
-      {/* AUCUN bouton Retour local : le layout admin rend déjà LE bouton global,
-          et un seul (règle projet). */}
 
       {pendingMigration !== null && (
         <div role="note" style={{ ...card, background: 'var(--sk-amber-soft)', borderColor: 'var(--sk-amber-soft)', color: 'var(--sk-amber)', marginBottom: 14 }}>

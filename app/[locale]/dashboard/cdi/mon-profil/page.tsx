@@ -334,23 +334,6 @@ export default function CdiMonProfilPage() {
           <div style={{ fontSize: 14, color: 'var(--sk-muted)', lineHeight: 1.6, marginBottom: 20 }}>
             {t('error_loading')}
           </div>
-          <button
-            type="button"
-            onClick={() => router.push('/')}
-            style={{
-              background: 'var(--sk-accent)',
-              color: 'var(--sk-sur-accent)',
-              border: 'none',
-              borderRadius: 10,
-              padding: '10px 18px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            ←
-          </button>
         </div>
       </div>
     )

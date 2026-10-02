@@ -1,6 +1,6 @@
 import SousTraitanceDetailView from '@/components/collaboration/SousTraitanceDetailView'
 
-// Parité freelance : page de DÉTAIL (hors menu) → bouton Retour global.
+// Parité freelance : page de DÉTAIL ; aucun bouton Retour (on navigue par les menus (décision de Youssef, 02/10/2026)).
 export default function CdiSousTraitanceDetailPage({
   params,
 }: {

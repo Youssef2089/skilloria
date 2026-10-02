@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import { type CandidatureData } from '@/components/dashboard/CandidatureCard'
 import CastingCarousel from '@/components/dashboard/CastingCarousel'
@@ -12,7 +11,7 @@ import { libelleBudget, libelleDuree, libellesModesTravail, libellesTempsTravail
 
 /**
  * SousTraitanceDetailView — DÉTAIL d'un besoin de sous-traitance + candidatures
- * reçues (page de DÉTAIL → bouton Retour global fourni par la coquille).
+ * reçues (page de DÉTAIL ; aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026)).
  *
  * RÉUTILISE la chaîne de divulgation SANS duplication :
  *   - GET /api/publications/[id]            → rappel du besoin (owner-scoped)
@@ -78,7 +77,6 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   const tLifecycle = useTranslations('candidature_lifecycle')
   const tPlafond = useTranslations('plafonds')
   const locale = useLocale()
-  const router = useRouter()
   const secureFetch = useSecureFetch()
 
   const [pubId, setPubId] = useState<string | null>(null)
@@ -185,20 +183,10 @@ export default function SousTraitanceDetailView({ basePath, params }: Props) {
   }
   if (state.kind === 'error') {
     return (
-      // Bouton de RÉCUPÉRATION, pas de navigation : sur un lien profond ou un
-      // rechargement en erreur, la pile de NavHistory n'a pas de cible et le
-      // <GlobalBackButton> ne s'affiche pas — sans celui-ci l'utilisateur
-      // resterait bloqué sur l'écran d'erreur. Même motif qu'admin/experts/[id].
-      // Le rendu NORMAL, lui, ne porte aucun bouton Retour local (règle projet).
+      // Le message seul : la barre latérale reste affichée, « Besoin / Sous-traitance »
+      // y est à un clic — on navigue par les menus (décision de Youssef, 02/10/2026).
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push(`${basePath}/sous-traitance`)}
-          style={{ padding: '10px 18px', background: 'var(--sk-accent)', color: 'var(--sk-sur-accent)', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-        >
-          {t('back_to_list')}
-        </button>
       </div>
     )
   }

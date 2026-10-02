@@ -768,9 +768,6 @@ export default function MonProfilPage() {
               type: ['admin', 'expert_cdi', 'client', 'cabinet'].includes(forbidden) ? t(`types.${forbidden}` as 'types.admin') : t('types.inconnu'),
             })}
           </p>
-          <Link href="/" className="icon-btn" style={{ display: 'inline-flex' }}>
-            ← {t('back_to_dashboard')}
-          </Link>
         </div>
       </div>
     )

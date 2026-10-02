@@ -1,20 +1,24 @@
 /**
- * SOURCE UNIQUE de la structure de navigation (sidebars) de toute l'app.
+ * SOURCE UNIQUE de la structure de navigation (sidebars) de toute l'app — ET
+ * du NOM que l'en-tête de chaque page affiche.
  *
- * Pourquoi ce fichier existe : le bouton Retour global ne doit jamais
- * apparaître sur une page de MENU (entrée de sidebar). Tant que la liste des
- * routes de menu était recopiée à la main dans lib/menu-routes.ts, chaque
- * nouvelle entrée de sidebar y était oubliée et faisait apparaître un Retour
- * parasite (cas vécu : /admin/packages).
+ * ON NAVIGUE PAR LES MENUS (décision de Youssef, 02/10/2026) : il n'existe
+ * plus aucun bouton « Retour », nulle part, pages de détail comprises. Le menu
+ * est donc le seul chemin — et l'en-tête dit, sur chaque page, dans quel menu
+ * on se trouve, avec le MÊME mot que la barre latérale. Une page de détail
+ * porte le nom de son menu (« Mes annonces » sur le détail d'une annonce).
  *
- * Désormais les sidebars ET lib/menu-routes.ts lisent CE fichier. Ajouter une
- * entrée ici la fait apparaître dans la sidebar ET la déclare comme route de
- * menu — la désynchronisation n'est plus possible.
+ * LE DÉFAUT QUI A FAIT DÉRIVER LE TITRE D'ICI : la coquille des tableaux de
+ * bord tenait sa propre table « section → titre », et une section oubliée
+ * tombait sur le titre par défaut — « Besoin / Sous-traitance » s'affichait
+ * « Tableau de bord ». Deux inventaires des mêmes écrans : le second vieillit
+ * seul (§E.20). L'admin dérivait déjà son titre du menu ; les tableaux de bord
+ * font désormais de même, et `diag-aucun-retour` vérifie chaque page.
  *
  * Consommateurs :
- *   - components/shell/DashboardSidebar.tsx  → dashboardNavSections()
- *   - app/[locale]/admin/layout.tsx          → ADMIN_NAV_SECTIONS
- *   - lib/menu-routes.ts                     → allMenuRoutes()
+ *   - components/shell/DashboardSidebar.tsx  → dashboardNavSections(), cleDuLibelle()
+ *   - components/shell/DashboardShell.tsx    → titreDeTableauDeBord()
+ *   - app/[locale]/admin/layout.tsx          → ADMIN_NAV_SECTIONS, titreAdmin()
  *
  * Les chemins sont SANS préfixe de locale (format de `usePathname()` next-intl).
  */
@@ -75,8 +79,7 @@ export function dashboardNavSections(
         items: [
           { key: 'organisation', href: '/dashboard/entreprise/organisation', iconKey: 'organisation' },
           // Membres équipe : page livrée au Lot B (invitations). `locked`
-          // retiré → lien actif normal. La route reste une route de MENU
-          // (dérivée via allMenuRoutes) → aucun bouton Retour.
+          // retiré → lien actif normal.
           { key: 'members',      href: '/dashboard/entreprise/membres',      iconKey: 'members' },
           // Ex-« Factures et paiements » → « Mon offre ». Stripe n'est pas
           // branché et `transactions` est indexée sur user_id (inexploitable
@@ -350,7 +353,7 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
         // LE GRAND LIVRE (§D.26), rangé dans « Exploitation » : on n'y règle rien
         // (sauf sa conservation, qui s'y lit au même endroit que ce qu'elle
         // efface) ; on y REMONTE ce qui s'est passé, pièce par pièce. La pièce
-        // (/admin/journal/[piece]) est une page de détail : elle a son Retour.
+        // (/admin/journal/[piece]) est une page de détail : son en-tête dit « Journal ».
         key: 'journal',
         href: '/admin/journal',
         labelKey: 'nav_journal',
@@ -384,17 +387,66 @@ export const ADMIN_NAV_SECTIONS: readonly AdminNavSection[] = [
 ] as const
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Dérivation des routes de MENU (consommée par lib/menu-routes.ts)
+// LE NOM DE CHAQUE PAGE — dérivé du menu, jamais recopié (décision du 02/10/2026)
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Retire la query, le hash et le slash final (sauf racine). */
+function normaliser(pathname: string): string {
+  const propre = pathname.replace(/[?#].*$/, '')
+  return propre.length > 1 ? propre.replace(/\/+$/, '') : propre
+}
+
+/** L'entrée qui couvre la page : son chemin exact, ou le PLUS LONG chemin qui la préfixe. */
+function laPlusLongue<T extends { href: string }>(entrees: readonly T[], chemin: string, exacteSeulement: (e: T) => boolean): T | null {
+  return entrees
+    .filter((e) => chemin === e.href || (!exacteSeulement(e) && chemin.startsWith(e.href + '/')))
+    .sort((a, b) => b.href.length - a.href.length)[0] ?? null
+}
+
 /**
- * Tous les href de sidebar, tous rôles confondus. `userIsVerified` est sans
- * effet sur les href : on passe `true` pour énumérer la structure complète.
+ * La clé du libellé d'une entrée, sous `shell.nav` — celle que la barre latérale AFFICHE.
+ * SC5 : côté CDI, « missions » se lit « Offres » (route, clé et badge inchangés).
  */
-export function allMenuRoutes(): string[] {
-  const dashboards = (['freelance', 'cdi', 'entreprise'] as const).flatMap((side) =>
-    dashboardNavSections(side, { userIsVerified: true }).flatMap((s) => s.items.map((i) => i.href)),
-  )
-  const admin = ADMIN_NAV_SECTIONS.flatMap((s) => s.items.map((i) => i.href))
-  return [...dashboards, ...admin, ADMIN_ROOT_ROUTE]
+export function cleDuLibelle(side: DashboardSide, item: Pick<NavItem, 'key'>): string {
+  return item.key === 'missions' && side === 'cdi' ? 'offres' : item.key
+}
+
+/**
+ * Les pages d'un tableau de bord qui ne sont SOUS AUCUNE entrée de menu, et leur nom (clé sous
+ * `shell.page_titles`). L'import du CV et la validation du profil s'atteignent par « Mon profil » et
+ * par le guide de démarrage ; leur chemin (`/profil`) n'est pas celui du menu (`/mon-profil`).
+ */
+export const PAGES_HORS_MENU: readonly { suffixe: string; cle: string }[] = [
+  { suffixe: 'profil', cle: 'profil' },
+  { suffixe: 'profil/valider', cle: 'profil_valider' },
+]
+
+/**
+ * Le NOM qu'affiche l'en-tête d'une page de tableau de bord : `{ espace, cle }` à traduire sous
+ * `shell.<espace>`, ou `null` si la page n'est couverte par rien — ce que `diag-aucun-retour`
+ * interdit pour toute page du dépôt. La racine (`/dashboard/<side>`) ne couvre QU'ELLE-MÊME : c'est
+ * en couvrant tout que le tableau de bord donnait son nom à « Besoin / Sous-traitance ». Une entrée
+ * « bientôt disponible » ne nomme rien (son lien est mort).
+ */
+export function titreDeTableauDeBord(side: DashboardSide, pathname: string): { espace: 'nav' | 'page_titles'; cle: string } | null {
+  const chemin = normaliser(pathname)
+  const hors = PAGES_HORS_MENU.find((p) => chemin === `/dashboard/${side}/${p.suffixe}`)
+  if (hors) return { espace: 'page_titles', cle: hors.cle }
+  const racine = `/dashboard/${side}`
+  const entrees = dashboardNavSections(side, { userIsVerified: true }).flatMap((s) => s.items).filter((i) => !i.soon)
+  const trouvee = laPlusLongue(entrees, chemin, (e) => e.href === racine)
+  return trouvee ? { espace: 'nav', cle: cleDuLibelle(side, trouvee) } : null
+}
+
+/**
+ * Le NOM qu'affiche l'en-tête d'une page d'administration : la `labelKey` (sous
+ * `admin_back_office.sidebar`) de l'entrée qui la couvre, ou `null`. `/admin/packages/new` donne
+ * « Offres », pas l'entrée racine ; `/admin` est servi par Organisations (`extraActivePaths`).
+ */
+export function titreAdmin(pathname: string): string | null {
+  const chemin = normaliser(pathname)
+  const entrees = ADMIN_NAV_SECTIONS.flatMap((s) => s.items)
+  const directe = entrees.find((i) => (i.extraActivePaths ?? []).includes(chemin))
+  if (directe) return directe.labelKey
+  return laPlusLongue(entrees, chemin, () => false)?.labelKey ?? null
 }

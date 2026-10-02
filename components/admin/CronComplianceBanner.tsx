@@ -16,7 +16,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  *   voir. Le bandeau doit trouver l'administrateur, pas l'inverse.
  *
  *   Corollaire : l'écran des tâches ne rend PAS son propre bandeau. Un seul
- *   bandeau, un seul endroit — même raisonnement que le bouton Retour global.
+ *   bandeau, un seul endroit.
  *
  * NE CASSE JAMAIS LE LAYOUT
  *   Toute erreur (403, migration non poussée, réseau) → on ne rend RIEN. Un

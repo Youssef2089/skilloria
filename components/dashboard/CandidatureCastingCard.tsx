@@ -22,7 +22,7 @@ import type { MissionCardData } from './MissionCard'
  *
  * Vocabulaire expert PRÉSERVÉ via dashboard_{freelance,cdi} : « Mission
  * remportée » / « Poste décroché » pour 'selected' (jamais « Acceptée »).
- * Lien → page de DÉTAIL de la candidature (/candidatures/[id], Retour global).
+ * Lien → page de DÉTAIL de la candidature (/candidatures/[id]).
  * Pill « Nouveau » via viewed_by_me,
  * décrément à l'ouverture du détail, pas au scroll. Confidential : Avatar
  * initiales + 🔒, nom masqué (bandeau reste teinté).

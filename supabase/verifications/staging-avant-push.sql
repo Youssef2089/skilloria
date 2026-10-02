@@ -37,20 +37,29 @@
 with
   -- Les signatures que les migrations EN ATTENTE suppriment (§E.72, étape 3) :
   -- présentes avant le push, absentes après. Tenue égale aux `drop function` en attente.
-  -- CE PUSH, LE LOT « CRITÈRES DES ANNONCES » (03/10/2026, ARRÊT 27) : staging est à jour jusqu'à
-  -- specialite_ecriture_et_avis_une_fois (lot « zones de travail » déployé, e27fa56).
-  -- Une migration, AVANT : annonce_criteres_communs — six colonnes neuves sur publications et une sur profiles (nullables
-  -- ou à défaut vide), six contraintes qui ne gardent qu'elles, deux fonctions (lire_duree, reprendre_criteres_annonces)
-  -- et une reprise (work_mode → work_modes, duration lisible → duree_valeur + duree_unite). AUCUNE ne supprime de
-  -- signature. (Les migrations de S1, S2 et S3 s'ajoutent ici au regroupement.)
+  -- CE PUSH, LA PREMIÈRE LIVRAISON DU REGROUPEMENT (03/10/2026, ARRÊT 28) : staging est à jour jusqu'à
+  -- specialite_ecriture_et_avis_une_fois (lot « zones de travail » déployé, e27fa56). Quatre migrations, toutes AVANT,
+  -- dans l'ordre des noms :
+  --  · annonce_criteres_communs (principal) — six colonnes neuves sur publications et une sur profiles (nullables ou à
+  --    défaut vide), six contraintes qui ne gardent qu'elles, deux fonctions (lire_duree, reprendre_criteres_annonces) et
+  --    une reprise (work_mode → work_modes, duration lisible → duree_valeur + duree_unite) ;
+  --  · zones_liste_des_pays (S1) — la liste des zones détachée de countries (clé étrangère retirée, une contrainte de
+  --    forme posée), les codes pays des zones en text, 131 pays et les quatre du Royaume-Uni ajoutés, le Royaume-Uni
+  --    remplacé par eux, Royaume-Uni et Israël désactivés. Elle SUPPRIME work_zone_country_codes(uuid[]) et la RECRÉE
+  --    aussitôt, même signature, en text[] (le type de retour ne se change pas par « or replace ») : présente avant ET
+  --    après le push — la ligne ① ne vérifie que l'avant ;
+  --  · mission_postulee (S2) — un champ calculé de matches, fermé au navigateur ; deux commentaires de colonnes ;
+  --  · validation_annonces (S3) — l'action annonce_refusee, la clé « voie » ajoutée à deux listes blanches,
+  --    publier_annonce() redéfinie (signature inchangée : elle n'est pas « créée »), refuser_annonce() nouvelle.
   prochain_push_retire(signature) as (
-    select unnest(array[]::text[])
+    select unnest(array['public.work_zone_country_codes(uuid[])']::text[])
   ),
   -- Ce que les migrations EN ATTENTE créent : absent avant le push (§E.60 : un nom
   -- déjà pris fait sauter `if not exists` EN SILENCE). genre ∈ fonction, table, index, contrainte.
   -- Un déclencheur et des lignes reprises ne sont pas « créés » au sens de cette liste.
   prochain_push_cree(genre, nom) as (
     select v.genre, v.nom from (values
+      -- annonce_criteres_communs (principal)
       ('fonction', 'lire_duree'),
       ('fonction', 'reprendre_criteres_annonces'),
       ('contrainte', 'publications_work_modes_valid'),
@@ -58,7 +67,10 @@ with
       ('contrainte', 'publications_repartition_hybride_check'),
       ('contrainte', 'publications_duree_check'),
       ('contrainte', 'publications_offre_sans_duree'),
-      ('contrainte', 'profiles_temps_travail_valid')
+      ('contrainte', 'profiles_temps_travail_valid'),
+      -- zones_liste_des_pays (S1)
+      ('fonction', 'remplacer_zone_de_travail'),
+      ('contrainte', 'work_zones_code_pays_forme')
     ) v(genre, nom)
   )
 
@@ -185,7 +197,52 @@ from (values
   --    inscription est refusée (IN011). Il se pose AVANT le push, à la MÊME valeur que INSCRIPTION_HMAC_SECRET
   --    sur Vercel (docs/reprise.md, les étapes de Youssef). Compté par son NOM ; sa valeur n'est pas lue.
   (13, 'invariant : Vault, secret inscription_hmac_secret présent (par son nom)', '1',
-   (select count(*)::text from vault.secrets s where s.name = 'inscription_hmac_secret'))
+   (select count(*)::text from vault.secrets s where s.name = 'inscription_hmac_secret')),
+
+  -- ⑮ à ⑱ LA LISTE DES PAYS DES ZONES (lot finitions et pays). ⑮ : staging part des 64 zones pays de départ — c'est ce
+  --    qui fait aboutir staging et une base neuve à la MÊME liste après le push (197). Un autre nombre : quelqu'un a
+  --    touché le référentiel hors migration — on s'arrête et on lit.
+  (15, 'prochain push : zones pays actives aujourd''hui — 64, la liste de départ (après le push : 197, comme une base neuve)', '64',
+   (select count(*)::text from public.work_zones w where w.kind = 'country' and w.active)),
+
+  -- ⑯ Les deux zones que le push désactive existent, actives.
+  (16, 'prochain push : zones Israël et Royaume-Uni présentes et actives (le push les retire de la liste)', '2',
+   (select count(*)::text from public.work_zones w where w.code in ('C_IL', 'C_GB') and w.active)),
+
+  -- ⑰ ⑱ LIGNES DE COMPTE (décision de Youssef) : le verdict est toujours OK, on LIT l'observé avant le push. Israël :
+  --    ces profils et annonces le PERDENT, et une liste devenue vide ne retient plus personne (règle en place) — ceux qui
+  --    « n'avaient que lui » ne recouperont plus rien. Royaume-Uni : ils reçoivent ses quatre pays, sans perte.
+  (17, 'prochain push : profils et annonces qui ont choisi Israël — le compte, à lire (ils le perdent)',
+   (select format('profils %s (dont %s n''avaient que lui) · annonces %s (dont %s publiées, %s n''avaient que lui)',
+             (select count(*) from public.profiles p where z.id = any (p.work_zone_ids)),
+             (select count(*) from public.profiles p where p.work_zone_ids = array[z.id]),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids)),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids) and a.status = 'published'),
+             (select count(*) from public.publications a where a.work_zone_ids = array[z.id]))
+      from public.work_zones z where z.code = 'C_IL'),
+   (select format('profils %s (dont %s n''avaient que lui) · annonces %s (dont %s publiées, %s n''avaient que lui)',
+             (select count(*) from public.profiles p where z.id = any (p.work_zone_ids)),
+             (select count(*) from public.profiles p where p.work_zone_ids = array[z.id]),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids)),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids) and a.status = 'published'),
+             (select count(*) from public.publications a where a.work_zone_ids = array[z.id]))
+      from public.work_zones z where z.code = 'C_IL')),
+
+  (18, 'prochain push : profils et annonces qui ont choisi le Royaume-Uni — le compte, à lire (ils reçoivent ses quatre pays)',
+   (select format('profils %s (dont %s n''avaient que lui) · annonces %s (dont %s publiées, %s n''avaient que lui)',
+             (select count(*) from public.profiles p where z.id = any (p.work_zone_ids)),
+             (select count(*) from public.profiles p where p.work_zone_ids = array[z.id]),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids)),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids) and a.status = 'published'),
+             (select count(*) from public.publications a where a.work_zone_ids = array[z.id]))
+      from public.work_zones z where z.code = 'C_GB'),
+   (select format('profils %s (dont %s n''avaient que lui) · annonces %s (dont %s publiées, %s n''avaient que lui)',
+             (select count(*) from public.profiles p where z.id = any (p.work_zone_ids)),
+             (select count(*) from public.profiles p where p.work_zone_ids = array[z.id]),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids)),
+             (select count(*) from public.publications a where z.id = any (a.work_zone_ids) and a.status = 'published'),
+             (select count(*) from public.publications a where a.work_zone_ids = array[z.id]))
+      from public.work_zones z where z.code = 'C_GB'))
 
 ) as v(ordre, verification, attendu, observe)
 order by v.ordre;

@@ -11,8 +11,8 @@ import { estUuid, type PieceJournal } from '@/lib/journal/lecture'
 import { Acteur, Montant, PastilleStatut, PhraseEcriture, Quand, lienObjet, type Ligne } from '@/components/admin/journal/presentation'
 
 /**
- * /admin/journal/[piece] — LES ÉCRITURES D'UN MÊME GESTE (§D.26, phase B 2.6). Page de DÉTAIL : le bouton Retour est
- * celui de la coquille (GlobalBackButton), aucun autre.
+ * /admin/journal/[piece] — LES ÉCRITURES D'UN MÊME GESTE (§D.26, phase B 2.6). Page de DÉTAIL, sans bouton
+ * Retour : on navigue par les menus (décision de Youssef, 02/10/2026) ; l'en-tête dit « Journal ».
  *
  * Toutes les écritures du geste, le geste qu'il reprend (rejeu, contrepassation) et ceux qui le reprennent, et ce que
  * les journaux détaillés gardent pour lui. Lecture EN BASE (`lire_piece`, bornée, AD002) ; une troncature se dit, une

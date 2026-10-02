@@ -20,7 +20,7 @@ import { useAvatarUrl } from '@/hooks/useAvatarUrl'
 import { deriveVerificationUiState } from '@/lib/verification-state'
 import DashboardSidebar from './DashboardSidebar'
 import DashboardTopbar from './DashboardTopbar'
-import GlobalBackButton from './GlobalBackButton'
+import { titreDeTableauDeBord } from '@/lib/nav-config'
 
 /**
  * DashboardShell — shell pleine largeur partagé (Lot refonte UX).
@@ -66,7 +66,7 @@ export default function DashboardShell({
   children,
 }: {
   side: 'freelance' | 'entreprise' | 'cdi'
-  /** Override optionnel ; sinon dérivé du pathname + i18n shell.page_titles. */
+  /** Override optionnel ; sinon le nom de l'entrée de menu qui couvre la page (lib/nav-config). */
   pageTitle?: string
   children: React.ReactNode
 }) {
@@ -185,37 +185,16 @@ export default function DashboardShell({
     verificationStatus: profile?.verification_status ?? null,
   }) === 'approved'
 
-  // Titre topbar : prop si fournie, sinon résolution pathname → i18n key.
-  //   /dashboard/{side}                                  → 'dashboard'
-  //   /dashboard/freelance/missions [.. /[id]]           → 'missions'
-  //   /dashboard/freelance/candidatures                  → 'candidatures'
-  //   /dashboard/{side}/messages [.. /[id]]              → 'messages'
-  //   /dashboard/freelance/mon-profil                    → 'mon_profil'
-  //   /dashboard/freelance/profil/valider                → 'profil_valider'
-  //   /dashboard/entreprise/annonces/...                 → 'annonces'
-  //   etc. (cf. shell.page_titles)
+  // L'EN-TÊTE PORTE LE NOM DE LA PAGE (décision de Youssef, 02/10/2026) : le nom de l'entrée de
+  // menu qui la couvre, le MÊME mot que la barre latérale — « Besoin / Sous-traitance » sur un besoin,
+  // « Mes annonces » sur le détail d'une annonce. La table « section → titre » écrite ici donnait
+  // « Tableau de bord » à toute section oubliée ; le nom se DÉRIVE désormais du menu (lib/nav-config),
+  // et `diag-aucun-retour` vérifie chaque page du dépôt. Aucun repli inventé : une page que rien ne
+  // couvre n'affiche aucun nom plutôt qu'un faux.
   let resolvedTitle: string = pageTitle ?? ''
   if (!resolvedTitle) {
-    const p = pathname.toLowerCase()
-    const segs = p.split('/').filter(Boolean)
-    // /dashboard / {side} / {section?} / {subsection?}
-    const section = segs[2] ?? null
-    let key = 'dashboard'
-    if (!section) key = 'dashboard'
-    // SC5 correctif libellé CDI : /dashboard/cdi/missions affiche "Offres".
-    else if (section === 'missions')     key = side === 'cdi' ? 'offres' : 'missions'
-    else if (section === 'candidatures') key = 'candidatures'
-    else if (section === 'messages')     key = 'messages'
-    else if (section === 'mon-profil')   key = 'mon_profil'
-    else if (section === 'profil')       key = segs[3] === 'valider' ? 'profil_valider' : 'profil'
-    else if (section === 'annonces')     key = 'annonces'
-    else if (section === 'parametres')   key = 'settings'
-    // Section COMPTE entreprise (Lot A). 'membres' est déclaré ici bien que la
-    // page arrive au Lot B : le titre est prêt, l'entrée de sidebar est locked.
-    else if (section === 'organisation') key = 'organisation'
-    else if (section === 'membres')      key = 'membres'
-    else if (section === 'offre')        key = 'offre'
-    resolvedTitle = tShell(`page_titles.${key}` as 'page_titles.dashboard')
+    const titre = titreDeTableauDeBord(side, pathname)
+    if (titre) resolvedTitle = tShell(`${titre.espace}.${titre.cle}` as 'nav.dashboard')
   }
 
   // StatusPill côté topbar (expert uniquement) — DYNAMIQUE selon le statut
@@ -277,7 +256,6 @@ export default function DashboardShell({
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         <DashboardTopbar side={side} title={resolvedTitle} statusPill={statusPill} />
         <main style={{ flex: 1, overflow: 'auto', minHeight: 0 }}>
-          <GlobalBackButton />
           {children}
         </main>
       </div>

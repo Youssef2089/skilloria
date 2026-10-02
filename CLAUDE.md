@@ -365,6 +365,7 @@ Plages **observées dans le dépôt** :
 | `0xxxxx` | tronc | `20260903000000_abonnement_sur_organisation`, `20260903000020_reglages_matching_et_depense` |
 | `2xxxxx` | S1 | `20260904200000_relance_expert`, `20260911200000_reprise_notation` |
 | `3xxxxx` | S2 | `20260910300000_stripe_socle_serveur`, `20260910300010_quota_analyses_cv` |
+| `010000`–`015959` **le 03/10/2026** | S1 | consigne du lot « finitions et pays » (principal `…000000`–`…005959`, S2 `…020000`, S3 `…030000`) : `zones_liste_des_pays`. Sous `0xxxxx` pour le cliquet, qui ne voit pas les sous-plages. |
 | `1xxxxx` **à partir du 01/10/2026** | S1 | attribuée par la consigne du lot « corrections de la recette » (tronc `20261001000000`–`…099999`, S1 `20261001100000`–`…199999`) : `specialite_autre_hors_referentiel`, `langues_liste_fermee`, `photo_par_le_serveur`. **Datée** : avant cette date, `1xxxxx` reste la plage fausse des quatre migrations gelées (le cliquet de `diag-migration-donnees` porte la date). |
 
 > **TRANCHÉ.** La plage du tronc est **`0xxxxx`**. La consigne orale « 1xxxxx » était fausse, elle

@@ -3,9 +3,304 @@
 > Le journal de reprise du worktree S1. `docs/reprise.md` reste au principal. Le **pourquoi** vit dans la mémoire :
 > architecture §D.40 à §D.44, pièges §E.100 à §E.105.
 
-**Dernière mise à jour : 01/10/2026.** Branche `s1/corrections-recette`, partie de `feat/sprint-archi-orga` à
-`13d1524` (déployée sur staging). Tag local `sauvegarde-avant-s1-recette` sur `7a2fd1f` (l'ancienne tête de
+**Dernière mise à jour : 02/10/2026** — ARRÊT S1-2, branche `lot/finitions-et-pays` (ci-dessous). L'ARRÊT S1-1 :
+branche `s1/corrections-recette`, partie de `feat/sprint-archi-orga` à `13d1524` (déployée sur staging). Tag local `sauvegarde-avant-s1-recette` sur `7a2fd1f` (l'ancienne tête de
 `feat/s1-ux-profil`, déjà contenue dans le tronc). Aucun `git push`, aucune écriture en base.
+
+## ⛔ ARRÊT S1-2 — FINITIONS ET LISTE DES PAYS (02/10/2026)
+
+Branche `lot/finitions-et-pays`, partie de `feat/sprint-archi-orga` à **`e27fa56`** (en ligne sur staging), arbre
+propre, `npm install` fait. Quatre sessions en parallèle : principal (`lot/criteres-annonces`), S1 (ce lot), S2
+(`lot/alertes-recommandations`), S3 (`lot/validation-annonces`). Aucun `git push`, aucune écriture en base, ni Docker
+ni base lancés.
+
+**Lu avant d'écrire** (règle de lecture) : CLAUDE.md ; docs/produit.md (le cadre de l'espace connecté, la ligne du
+journal) ; docs/architecture.md (§D.14, le tableau des cadres) ; docs/pieges.md par mots-clés (Retour, coquille) ;
+`lib/nav-config.ts`, `lib/menu-routes.ts`, `lib/auth-routing.ts`, `components/shell/*` ; les migrations des tables
+touchées par la partie B (`referentiel_zones_de_travail`, `profil_annonce_multivalues`, `parametrage_de_production`
+— les 64 pays —, `zones_couverture_suit_le_referentiel`, `zones_pays_rattaches`, la baseline pour `translations` et
+les déclencheurs) ; chaque usage de `countries` dans le code ; les tests pgTAP de `matching/` et `_fabriques.psql` ;
+`diag-deux-temps`, `diag-requete-staging`, `diag-postconditions-structure`, `diag-lot-zones`, `diag-zones-de-travail`,
+`diag-migration-donnees` (les plages) ; la requête d'avant-push.
+
+**Le départ, mesuré** (copie propre de `e27fa56` dans un worktree jetable du scratchpad — la première série avait
+tourné pendant mes premières modifications, elle ne faisait pas foi) : série **124 verts / 0 rouge**,
+`diag-lint-cliquet` en délai dépassé dans la série (lancé seul : 50/23).
+
+### PARTIE A — FINITIONS (commit 1)
+
+**1. PLUS AUCUN BOUTON « RETOUR », NULLE PART — fait.**
+- **Le mécanisme global est retiré** : `GlobalBackButton`, `NavHistoryProvider` (et sa pile en `sessionStorage`),
+  `lib/menu-routes.ts` (`isMenuRoute`, `isMessagingRoute`), `allMenuRoutes`, et dans `lib/auth-routing.ts` les trois
+  aides qui ne servaient qu'à lui (`isSafeInternalPath`, `deriveBackLabel`, `resolveBackNav` — le mécanisme `?from=`
+  était déjà mort : aucun appelant). Démonté de `DashboardShell`, du layout admin et du layout racine.
+- **Chaque retour propre à une page est retiré** — 17, en plus du bouton global. Le premier inventaire (par nom de
+  clé) en ratait cinq — les deux liens de la fiche organisation admin (`t('detail.back')`) et les trois « ← » nus du
+  CDI : il a été refait par la VALEUR des messages et par la flèche dans le code, et c'est ce que le contrôle fait :
+  · « ← Retour » de « Valider votre profil » : c'était le bouton global (retiré avec lui) ;
+  · les boutons de « récupération » des écrans d'erreur — détail d'une mission, d'une conversation, d'un besoin de
+    sous-traitance, d'une annonce, de ses candidatures, de la modification d'une annonce, des candidatures reçues, du
+    formulaire d'annonce publiée, de la fiche expert admin, de la fiche organisation admin (deux liens) ;
+  · « ← Retour à la supervision » (détail d'un sujet) ; « ← Tableau de bord » (refus de `freelance/mon-profil`) ;
+    « Retour à l'accueil » (refus de `cdi/profil`) ;
+  · **trois boutons « ← » nus** sur les écrans 403 / erreur du CDI (`cdi`, `cdi/mon-profil`, `cdi/profil/valider`).
+  Le menu reste affiché sur tous ces écrans : la barre latérale est la sortie.
+- **24 clés de messages devenues sans lecteur** retirées des quatre langues (l'espace `back_nav`, les libellés de
+  retour, et les titres `shell.page_titles` que le menu remplace) — édition sur l'objet parsé, aller-retour vérifié
+  identique à l'octet. Parité : **4 934 clés** dans chaque langue.
+- **Les commentaires de l'ancienne règle** (« Page de MENU : aucun bouton Retour (règle projet) », « le bouton Retour
+  global fourni par la coquille ») sont réécrits dans 35 fichiers : ils décrivaient un mécanisme qui n'existe plus.
+- **La règle de juin est remplacée dans la mémoire** : docs/produit.md (le cadre de l'espace connecté, la ligne du
+  journal) et docs/architecture.md (§D.14, le tableau des cadres). **CLAUDE.md ne la portait pas** (aucune ligne ne
+  parlait du bouton Retour) : rien à y remplacer. **Contrôle bloquant : `diag-aucun-retour`** (ci-dessous).
+
+**2. L'EN-TÊTE DE CHAQUE PAGE PORTE SON NOM — fait.**
+- **La cause** : `DashboardShell` tenait sa propre table « section → titre » ; `sous-traitance` n'y était pas et tombait
+  sur le titre par défaut, « Tableau de bord ». L'admin, lui, dérivait déjà son titre du menu.
+- **Le correctif** : une seule règle, dans `lib/nav-config.ts` (la source des deux barres latérales) —
+  `titreDeTableauDeBord(side, chemin)` et `titreAdmin(chemin)` : le nom de l'entrée de menu qui couvre la page (le
+  chemin le plus long qui la préfixe), **le même mot que la barre latérale** (`cleDuLibelle`, que la barre latérale
+  lit aussi). La racine (`/dashboard/<side>`) ne couvre qu'elle-même ; une page que rien ne couvre n'affiche **aucun**
+  nom (jamais « Tableau de bord » par défaut) ; deux pages hors menu sont nommées explicitement (« Mon profil » pour
+  l'import du CV, « Valider mon profil »).
+- **Vérifié sur toutes les pages de tous les profils** : les 73 `page.tsx` des trois tableaux de bord et de l'admin,
+  exécutées une à une par le contrôle (72 nommées, 1 redirection serveur déclarée — `/dashboard/cabinet`).
+- ✅ **Deux en-têtes changent de mot — VALIDÉ par Youssef (02/10/2026)** : ils disent désormais ce que dit leur entrée de menu —
+  « Mes candidatures » → **« Candidatures »**, « Messagerie » → **« Messages »**. Le reste est inchangé (« Mon profil »,
+  « Missions », « Offres » côté CDI, « Mes annonces », « Paramètres », « Mon entreprise », « Membres équipe », « Mon
+  offre »). Si Youssef préfère les anciens mots, c'est le libellé du MENU qui change (`shell.nav`), et les deux suivent.
+
+**Le contrôle — `scripts/diag-aucun-retour.mjs`, bloquant (la série `diag.mjs` rougit) :**
+A. le mécanisme global est parti (fichiers, noms dans le code hors commentaires, espace `back_nav`) ; B. aucun
+`router.back()`, `history.back()`, `history.go(-n)` ; C. aucune flèche « ← », `&larr;`, `←`, ni icône de flèche
+gauche dans le code ; D. chaque message dont le NOM dit « back/retour » ou dont la VALEUR commence par « ← » ou
+« Retour » est DÉCLARÉ avec sa raison (11 déclarations, aucune morte) ; E. chaque lecture d'un tel message est déclarée
+fichier par fichier, et l'espace connecté n'en lit aucun hors action vers l'avant (« Tableau de bord → » après
+l'enregistrement d'un brouillon) ; F. le nom de chaque page, EXÉCUTÉ sur les 73 pages, traduit dans les 4 langues,
+plus onze cas nommés (dont « Besoin / Sous-traitance »). **Éprouvé par mutation : 9 sur 9 rougissent** (bouton global
+remis, `router.back()`, « ← » nu, libellé « ← Retour aux offres », clé publique lue dans une page connectée, racine qui
+couvre tout, table « section → titre » remise, entrée de menu retirée, déclaration sans raison).
+Ce qu'il ne voit pas, et le dit : un retour écrit avec un mot qu'aucune règle ne reconnaît (« Revenir à… ») dans une
+clé nommée autrement ; un lien vers la page parente sans mot ni flèche.
+
+✅ **TRANCHÉ PAR YOUSSEF (02/10/2026) — voir « Décisions de Youssef » plus bas : un lien de sortie, SANS FLÈCHE, qui dit où il mène.** *Le constat d'origine :* Elles n'ont **aucun menu** : leur lien est la seule issue de la
+page, le retirer en ferait une impasse. Je les ai **gardées**, déclarées une à une dans le contrôle :
+404 (« Retour à l'accueil »), écosystème indisponible (idem), mot de passe oublié (« ← Retour à la connexion »),
+retour d'une confirmation d'adresse (« Retour à l'inscription »), confirmations d'inscription expert et organisation
+(« Retour à l'accueil »), invitation (« Retour à l'accueil »), formulaire d'inscription (« ← Changer de profil »).
+Si la décision les vise aussi, c'est une ligne chacune (et sa déclaration retirée du contrôle).
+
+**Ce que les retraits ont laissé, et nettoyé** : 11 variables devenues inutiles (`router`, `Link`, `domain`,
+`basePath`, la propriété `side` de `ConversationView`, qui ne servait qu'aux adresses de retour) — le lint des
+fichiers touchés est **identique au départ** (19 erreurs / 12 avertissements, toutes préexistantes) ; et le lint
+global **descend à 49/23** : la base du cliquet est abaissée dans le même commit (§G.5 ter). Deux diagnostics qui
+exigeaient l'ancien mécanisme sont mis à jour (`diag-admin-users` exigeait le bouton global dans le layout admin ;
+`diag-cron-supervision`, un libellé).
+
+### PARTIE B — LA LISTE DES PAYS DES ZONES DE TRAVAIL (commit 2)
+
+**L'audit d'abord (point 3 : « audite chaque usage de la table des pays avant d'écrire »).** `countries` compte **64
+pays** (semés par `parametrage_de_production`) et sert : `/api/countries` → `CountrySelect` (adresse, pays de
+l'organisation à l'inscription et dans « Mon entreprise », indicatif du téléphone), `finalize-org-registration` et
+`me/organisation` (validation du pays), `/api/admin/seuils` (réglages de vérification par pays), `inscription_refus()`
+et la règle du numéro d'identification. Y ajouter 130 pays aurait changé **toutes** ces listes, et retirer le Royaume-Uni
+l'aurait sorti de l'adresse et du téléphone. Le seul lien des zones vers `countries` était la clé étrangère
+`work_zones.country_code → countries` : les zones portent déjà leurs noms (`work_zones.name` + `translations`).
+**Conclusion : le remplacement n'oblige PAS à toucher ces usages** — la liste des zones se détache de `countries`, et
+`countries` n'est ni lue, ni écrite, ni changée (gardé par `diag-zones-liste-des-pays` C et par le test, assertions 6-7).
+
+**La migration — `zones_liste_des_pays` (`20261003010000`, plage S1), AVANT le déploiement :**
+1. la clé étrangère vers `countries` est retirée, remplacée par la contrainte de forme `work_zones_code_pays_forme`
+   (ISO 3166-1, ou ISO 3166-2 pour une nation) ;
+2. les codes des quatre pays du Royaume-Uni ont six caractères (`GB-ENG`, `GB-SCT`, `GB-WLS`, `GB-NIR`) :
+   `work_zones.country_code`, `profiles.work_zone_countries` et `publications.work_zone_countries` passent de
+   `varchar(2)` à `text` (élargissement : le code en ligne les lit comme des chaînes) ; l'aplatissement
+   `work_zone_country_codes(uuid[])` est **supprimé et recréé** dans la même migration, même signature, même corps, en
+   `text[]` (un type de retour ne se change pas par « or replace » ; aucun `.rpc` ne l'appelle) ; le déclencheur
+   `work_zones_couverture` est retiré avant le changement de type et reposé à l'identique (PostgreSQL refuse de changer le
+   type d'une colonne citée dans un `UPDATE OF` — **NON VÉRIFIÉ en base** : écrit d'après la documentation de
+   PostgreSQL, le rejeu le dira) ;
+3. **131 pays ajoutés** + **les quatre du Royaume-Uni**, noms dans les 4 langues (le français dans la zone, les trois
+   autres dans `translations`) ; un pays déjà présent n'est pas touché ;
+4. `remplacer_zone_de_travail(text, text[])` (fermée au navigateur, ZN001 / ZN002) donne les quatre pays à chaque profil
+   et annonce qui avait le Royaume-Uni, sans rien perdre d'autre ; **puis** « Royaume-Uni » et « Israël » sont
+   désactivés (reprise dans son propre bloc) ; le déclencheur recalcule les couvertures.
+
+**Point par point :**
+- **3. Royaume-Uni → Angleterre, Écosse, Pays de Galles, Irlande du Nord — fait.** Quatre zones en Europe, nommées en
+  fr / en / es / de (Angleterre · England · Inglaterra · England ; Écosse · Scotland · Escocia · Schottland ; Pays de
+  Galles · Wales · Gales · Wales ; Irlande du Nord · Northern Ireland · Irlanda del Norte · Nordirland). Chacune a son
+  code : « Angleterre » ne recoupe pas « Écosse » (test 9, témoin 10 ; miroir JS exécuté). Profils et annonces qui
+  avaient le Royaume-Uni reçoivent les quatre (tests 12-15). Le Royaume-Uni reste un pays de `countries` (test 7).
+- **4. Israël retiré — fait.** Zone désactivée ; « Partout dans le monde » et l'Asie ne le couvrent plus (test 6) ; il
+  reste dans `countries` (adresse, téléphone). **La requête d'avant-push compte, avant le push**, les profils et
+  annonces qui l'avaient choisi — et combien n'avaient que lui (ligne ⑰) ; une liste devenue vide ne retient personne
+  (règle en place, inchangée). Même compte pour le Royaume-Uni (ligne ⑱, ils reçoivent les quatre).
+- **5. Tous les autres pays — fait.** Source : les 193 États membres de l'ONU et les deux observateurs (Saint-Siège,
+  Palestine), Israël excepté. Les 64 rattachements existants ne changent pas ; les 131 nouveaux vont dans le continent de
+  la division géographique de l'ONU, l'Amérique centrale et les Caraïbes avec l'Amérique du Nord. Noms : CLDR (la base de
+  noms d'Unicode, celle des navigateurs), corrigés là où CLDR abrège (« Congo-Kinshasa » → « République démocratique du
+  Congo », « St. Lucia » → « Saint Lucia » en anglais, « & » → « and », « Myanmar (Birmanie) » → « Myanmar »). Une base neuve
+  (64 zones par `zones_pays_rattaches`) et staging (64 zones — vérifié avant le push par la ligne ⑮) aboutissent à la
+  **même liste de 197 pays**. Les continents entiers et « Partout dans le monde » les couvrent : le déclencheur en place
+  recalcule à chaque insertion (test 11 : le monde couvre exactement les 197).
+- **6. Preuve — écrite, À REJOUER** (je ne lance ni Docker ni la base) : `supabase/tests/database/matching/
+  zones_liste_des_pays.test.sql`, **19 assertions**, sur une base construite depuis zéro : la liste EXACTE (197 codes) et
+  les comptes par continent ; chaque pays actif a son continent et ses 4 noms ; Israël absent ; les quatre présents, en
+  Europe ; Angleterre et Écosse ne se recoupent pas ; un profil et une annonce qui avaient le Royaume-Uni couvrent les
+  quatre, la France gardée ; le rejeu ne touche rien ; ZN001, ZN002, le navigateur exclu, la forme refusée (23514).
+  `matching/zones_pays_rattaches.test.sql` (5) est **réécrit pour l'état final** : il lisait les pays actifs de
+  `countries`, ce qui devient faux par décision (Israël y reste). Les fabriques `fab_brouillon` et le test
+  `specialite_autre` prenaient « la première zone par identifiant » : désormais une zone **active** (sinon, au hasard des
+  uuid, Royaume-Uni ou Israël désactivés).
+
+**Le contrôle — `scripts/diag-zones-liste-des-pays.mjs`** (statique) : la liste de la migration contre la SOURCE (l'ONU
+par continent, écrite dans le contrôle) ; le test attend exactement cette liste et ces comptes ; la migration (clé
+retirée, `countries` intacte, types, aplatissement recréé avec le même corps, déclencheur reposé à l'identique,
+remplacement fermé, reprise dans l'ordre) ; le miroir JS ; les fabriques ; les lignes de la requête. **15 mutations sur
+15 rougissent** (dont trois sur `diag-deux-temps`). `diag-deux-temps` reçoit quatre exceptions raisonnées et une preuve
+nouvelle, `recreee` ; `diag-ecritures-effectives` reçoit au gel, avec leur raison, les deux écritures du remplacement
+(zéro ligne est légitime : personne n'avait la zone remplacée). Un contrôle qui coupait par `process.exit()` **plantait** sous Windows sur un rouge (assertion
+libuv, 0xC0000409) — le rouge devenait un muet : mes deux contrôles finissent par `process.exitCode`.
+
+**Les migrations du lot :** une seule, `20261003010000_zones_liste_des_pays.sql` (AVANT). Requête d'avant-push : elle
+supprime (et recrée) `work_zone_country_codes(uuid[])`, crée `remplacer_zone_de_travail` et la contrainte
+`work_zones_code_pays_forme` ; lignes ⑮ à ⑱.
+
+**Tests de base attendus : 690** (65 fichiers) — 671 au départ (`e27fa56`), **+19**. À rejouer par Youssef :
+`npx supabase db reset --local` puis `npx supabase test db --local` (la séquence §G.4 ter, étapes 0 à 3).
+
+**Fichiers partagés touchés** : `messages/*.json` (partie A : 24 clés retirées, aucune ajoutée) ; CLAUDE.md : la ligne de
+ma plage dans §G.2, et le nombre de migrations de §G.4 bis (187 → 188 — **chaque session le change** : à la fusion, le
+nombre final est la somme) ; `docs/pieges.md` : le compte mesuré de `diag-migration-donnees` (188, mesure refaite :
+79 / 66 / 3 354, inchangée) ; `supabase/verifications/staging-avant-push.sql` (lignes ⑮-⑱ et les deux listes —
+**conflit attendu** avec les autres sessions, à résoudre par UNION, les numéros de ligne à renuméroter si besoin) ;
+la navigation de l'admin (`app/[locale]/admin/layout.tsx`) : le bouton Retour retiré et le titre par `titreAdmin` —
+S3 y ajoute une entrée de menu : **conflit possible, sans recouvrement de fond** (la dérivation du titre suivra son
+entrée d'elle-même).
+
+⚠️ **NON VÉRIFIÉ** : l'état ⓪ de la requête d'avant-push dit encore `photo_par_le_serveur` et `CODE_EN_LIGNE` de
+`diag-deux-temps` vise `1182e02`, alors que la consigne dit `e27fa56` en ligne sur staging. Je ne les ai pas changés (ce
+n'est pas mon périmètre, et les quatre sessions les changeraient en même temps) : mes lignes et mes exceptions sont
+justes dans les deux états.
+
+### À PART — POUR VALIDATION DE YOUSSEF : LES PAYS PAR CONTINENT
+
+**197 pays actifs** dans la liste des zones (sur staging comme sur une base neuve) :
+
+| Continent | Pays | dont existants (inchangés) | dont nouveaux |
+|---|---|---|---|
+| Europe | **49** | 42 (les 43 de départ, moins le Royaume-Uni) | 3 (Biélorussie, Russie, **Turquie**) + les 4 du Royaume-Uni |
+| Afrique | **54** | 8 | 46 |
+| Asie | **45** | 4 (les 5 de départ, moins Israël) | 41 |
+| Amérique du Nord (avec l'Amérique centrale et les Caraïbes) | **23** | 3 | 20 |
+| Amérique du Sud | **12** | 3 | 9 |
+| Océanie | **14** | 2 | 12 |
+
+**Les rattachements qui se discutent** (j'ai suivi la règle : l'ONU pour un pays nouveau, l'existant inchangé) :
+- **Russie → Europe** (ONU : Europe de l'Est) — l'essentiel de son territoire est en Asie.
+- ✅ **Turquie → EUROPE — décision de Youssef (02/10/2026)** ; l'ONU la range en Asie occidentale. Les autres
+  rattachements restent tels quels.
+- **Caucase : Arménie, Azerbaïdjan, Géorgie → Asie** (ONU : Asie occidentale) — tous trois au Conseil de l'Europe.
+- **Asie centrale : Kazakhstan → Asie** (une partie à l'ouest de l'Oural est en Europe) ; Kirghizistan, Tadjikistan,
+  Turkménistan, Ouzbékistan → Asie.
+- **Chypre → Europe** : rattachement EXISTANT, gardé (membre de l'UE) — l'ONU la range en Asie occidentale.
+- **Égypte → Afrique** : existant (le Sinaï est en Asie).
+- **Palestine → Asie** (observateur de l'ONU, comme le Saint-Siège → Europe, existant).
+- **Guyana, Suriname → Amérique du Sud** (ONU) — culturellement caribéens.
+- **Panama et l'Amérique centrale → Amérique du Nord** (votre consigne) ; **Mexique** : existant, Amérique du Nord.
+- **Indonésie, Timor oriental → Asie** (une partie de l'Indonésie est en Océanie) ; **Papouasie-Nouvelle-Guinée → Océanie**.
+- **Maldives → Asie** (Asie du Sud) ; **Cap-Vert, Maurice, Seychelles, Madagascar, Comores, Sao Tomé → Afrique**.
+- **Hors liste** (pas membres de l'ONU) : Kosovo, Taïwan, Hong Kong, Macao, Sahara occidental, Porto Rico, Groenland,
+  et les territoires français (Guyane, Nouvelle-Calédonie, Polynésie) — ils figuraient dans la correspondance d'origine,
+  mais n'ont jamais été actifs (absents de `countries`).
+- ✅ **Un nom** : la Turquie s'appelait « Türkiye » en anglais (CLDR) — une recherche « Turkey » ne la trouvait pas ;
+  **elle s'appelle « Turkey »** (décision de Youssef).
+
+Un changement de continent est une ligne de la migration (avant le push) ou un `update … set parent_id` (après — le
+déclencheur recalcule).
+
+### DÉCISIONS DE YOUSSEF SUR LES POINTS À VALIDER (02/10/2026, commit 3)
+
+**Lu avant d'écrire** : les quatre valeurs de chaque lien public, et le fichier de chacun (sa destination réelle).
+
+1. **Turquie : en EUROPE, « Turkey » en anglais — fait.** La migration (jamais appliquée) la range en Europe sous ce
+   nom ; le contrôle (`diag-zones-liste-des-pays`, dont la SOURCE l'écrit en Europe avec la raison) et le test
+   attendent **Europe 49, Asie 45** ; la liste des 197 ne change pas. Le contrôle vérifie la Turquie nommément.
+2. **En-têtes « Candidatures » et « Messages » : validés** — rien à changer.
+3. **Pages publiques sans menu : un lien pour en sortir, SANS FLÈCHE, qui dit où il mène — fait**, dans les 4 langues,
+   par les VALEURS seules (les clés et le code ne changent pas) :
+
+| Page | Mène à | fr · en · es · de |
+|---|---|---|
+| 404, écosystème indisponible, confirmations d'inscription (expert, organisation), invitation | l'accueil | Accueil · Home · Inicio · Startseite |
+| mot de passe oublié | `/connexion` | Se connecter · Sign in · Iniciar sesión · Anmelden |
+| retour d'une confirmation d'adresse refusée | `/inscription` | S'inscrire · Sign up · Registrarse · Registrieren |
+| (même page, seconde sortie, inchangée) | `/connexion` | Se connecter · Sign in · Iniciar sesión · Anmelden |
+| formulaire d'inscription | `/inscription` (le choix du profil) | Changer de profil · Change profile · Cambiar de perfil · Profil ändern |
+
+   **`diag-aucun-retour` en tient compte** : aucune valeur de message ne porte « ← », dans aucune des quatre langues ;
+   les **8 sorties** des pages publiques sont déclarées avec leur DESTINATION, que le contrôle retrouve dans le fichier,
+   et leur libellé ne porte ni flèche ni mot de retour (Retour, Revenir, Back, Return, Volver, Regresar, Zurück), dans
+   aucune langue. **Mutations : 12 sur 12** pour `diag-aucun-retour` (dont une flèche remise en allemand, « Back to
+   home » remis en anglais, une sortie qui ne mène plus où elle dit) ; **16 sur 16** pour `diag-zones-liste-des-pays`
+   et `diag-deux-temps` (dont la Turquie remise en Asie, renommée « Türkiye »).
+
+**Tests de base attendus : toujours 690** (le test change ses comptes, pas son nombre d'assertions). À rejouer.
+
+**L'épreuve du commit 3** (dans ce dossier, sans copie de travail ni installation ailleurs) :
+- série `diag-*` : **127 verts / 0 rouge / 0 muet** (6 écartés : base) ;
+- lint (cliquet) : **49/23**, inchangé ; parité i18n : **4 934 clés** ; `tsc` : **0 erreur dans le code** ;
+- `next build` : **ÉCHEC À LA VÉRIFICATION DES TYPES, pas à la compilation** — « Compiled successfully », puis
+  `.next/dev/types/validator.ts:1160` cite `app/api/profile/cv/route.js`, route supprimée par le principal. Ce fichier
+  est GÉNÉRÉ (non versionné) et périmé (ARRÊT S1-1 ⑦) ; la consigne était de supprimer `.next/dev` avant le build,
+  mais **la suppression a été REFUSÉE par les permissions de la session** (deux tentatives, `rm -rf` puis `rm -r`) —
+  je ne l'ai pas contournée. **À faire par Youssef** : supprimer `.next/dev` dans `skilloria-s1`, puis `npm run build`.
+  Les deux builds précédents, sur un dossier sans `.next/dev`, passaient (parties A et B) ; ce commit ne change que des
+  valeurs de messages, une ligne de migration, un test et deux contrôles — **NON VÉRIFIÉ par un build vert ici**.
+- mutations : **12 sur 12** (`diag-aucun-retour`), **16 sur 16** (`diag-zones-liste-des-pays`, `diag-deux-temps`).
+
+### L'ÉPREUVE (les deux commits)
+
+| Validation | Partie A (`c50953b`) | Partie B |
+|---|---|---|
+| `tsc` | 0 erreur dans le code (1 ligne, dans `.next/dev/types` : périmé, non versionné — cf. ARRÊT S1-1 ⑦) | idem |
+| `next build` | **vert**, depuis un worktree jetable propre à `c50953b`, dépendances installées (le build du poste bute sur `.next/dev/types` ; une jonction vers `node_modules` est refusée par Turbopack) | **vert**, même worktree jetable, fichiers de la partie B recopiés |
+| lint (cliquet) | **49/23** — descend d'une erreur : base abaissée dans le commit | **49/23** — inchangé |
+| parité i18n | 4 934 clés dans chaque langue | inchangée |
+| série `diag-*` | **126 verts / 0 rouge / 0 muet** (6 écartés : base) | **126 verts / 0 rouge** (6 écartés : base ; `diag-lint-cliquet` en délai dépassé pendant le build, lancé seul : vert) |
+| mutations | `diag-aucun-retour` : **9 sur 9** | `diag-zones-liste-des-pays` + `diag-deux-temps` : **15 sur 15** |
+| tests de base | — | **690 attendus** (+19), **à rejouer** : ni Docker ni base lancés |
+
+### PROPOSITIONS POUR LE PRINCIPAL (non numérotées ici, selon la consigne)
+
+**Décisions (§D, plage S1 à partir de D.45) :**
+- *On navigue par les menus* — aucun bouton Retour, nulle part, pages de détail et écrans d'erreur compris, tous profils,
+  admin compris ; remplace la règle de juin ; pages publiques sans menu : à trancher. Gardé par `diag-aucun-retour`.
+- *L'en-tête de chaque page porte son nom* — dérivé du menu (`titreDeTableauDeBord`, `titreAdmin`), le même mot que la
+  barre latérale ; jamais « Tableau de bord » par défaut.
+- *La liste des zones est son propre référentiel* — tous les pays de l'ONU, Israël excepté, le Royaume-Uni en ses quatre
+  pays ; `countries` reste la liste de l'adresse, de l'organisation et du téléphone ; un code ISO 3166-1 ou 3166-2.
+
+**Pièges (§E, plage S1 à partir de E.106) :**
+- *Un inventaire par NOM de clé rate des retours* : 5 sur 17 (`t('detail.back')`, trois « ← » nus) ; il a fallu la
+  VALEUR des messages et la flèche dans le code — c'est ce que le contrôle fait.
+- *Une fabrique de test qui prend « la première ligne » sans filtre d'état dépend du hasard des uuid* — une zone
+  désactivée pouvait être prise.
+- *`process.exit()` sous Windows pendant une écriture : plantage libuv (0xC0000409)* — un rouge devenait un muet ; vu en
+  éprouvant le contrôle par mutation ; parade : `process.exitCode`.
+- *PostgreSQL refuse de changer le type d'une colonne citée dans l'`UPDATE OF` d'un déclencheur* — **NON VÉRIFIÉ en
+  base** (le rejeu le dira) ; parade appliquée : retirer, changer, reposer à l'identique, et le contrôle compare.
+- *Le build du poste et le build propre* : `.next/dev/types` périmé fait échouer `next build` ; un worktree jetable
+  avec une jonction vers `node_modules` est refusé par Turbopack — il lui faut ses propres dépendances.
+
+**Lu pour la partie B, en plus de la liste d'en tête** : `lib/work-zones.ts`, `components/ui/WorkZoneSelector.tsx`
+(le tri par nom), les routes qui écrivent les zones (`/api/profile`, `/api/publications`, `/api/publications/[id]`) et
+`/api/taxonomy`, `scripts/lib/schema-migrations.mjs` (par ses effets).
+
+⛔ **ARRÊT.** Rien n'est poussé. Les décisions de Youssef sont appliquées (commit 3). Ses étapes : la séquence §G.4 ter — `db reset --local`,
+`db lint`, `test db --local` (690), la requête d'avant-push sur staging (lignes ⑮ à ⑱ : le compte d'Israël et du
+Royaume-Uni), `npm run build`, `db push`, `git push`.
 
 ## ⛔ ARRÊT S1-1 — RECETTE STAGING DU PARCOURS EXPERT : LES CORRECTIONS D'ÉCRANS (01/10/2026)
 

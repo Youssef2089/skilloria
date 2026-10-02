@@ -23,7 +23,7 @@ import { useDomain } from '@/context/DomainContext'
 import Avatar from '@/components/ui/Avatar'
 import { useNavBadges } from '@/hooks/useNavBadges'
 import { useSecureLogout } from '@/lib/secure-fetch'
-import { dashboardNavSections } from '@/lib/nav-config'
+import { cleDuLibelle, dashboardNavSections } from '@/lib/nav-config'
 
 /**
  * DashboardSidebar — sidebar unifiée multi-side (Lot refonte UX).
@@ -196,12 +196,9 @@ export default function DashboardSidebar(props: DashboardSidebarProps) {
                 >
                   <Icon size={18} stroke={1.8} />
                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {/* SC5 correctif — libellé CDI : "missions" devient "Offres"
-                        côté cdi. Route /dashboard/cdi/missions, key item.key
-                        et badgeSource INCHANGÉS — seul le label change. */}
-                    {item.key === 'missions' && side === 'cdi'
-                      ? t('nav.offres')
-                      : t(`nav.${item.key}` as 'nav.dashboard')}
+                    {/* Le libellé vient de cleDuLibelle — la MÊME règle que le nom affiché
+                        par l'en-tête (SC5 : « missions » se lit « Offres » côté CDI). */}
+                    {t(`nav.${cleDuLibelle(side, item)}` as 'nav.dashboard')}
                   </span>
                   {/* Verrou métier (profil non vérifié) → cadenas. */}
                   {item.locked && <span aria-hidden style={{ fontSize: 11 }}>🔒</span>}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { Link, useRouter } from '@/i18n/navigation'
+import { Link } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { CriteresAnnonceLus } from '@/lib/annonces/criteres'
@@ -63,7 +63,6 @@ export default function AnnonceDetailPage({ params }: Props) {
   const tPub = useTranslations('publications')
   const tCrit = useTranslations('criteres')
   const locale = useLocale()
-  const router = useRouter()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
@@ -112,17 +111,6 @@ export default function AnnonceDetailPage({ params }: Props) {
     return (
       <div style={{ maxWidth: 560, margin: '60px auto', padding: '0 24px', textAlign: 'center' }}>
         <p style={{ fontSize: 14, color: 'var(--sk-red)', marginBottom: 18 }}>{state.message}</p>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/entreprise/annonces')}
-          style={{
-            padding: '10px 18px', background: domain.primaryColor, color: 'var(--sk-surface)',
-            border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          {t('back_to_annonces')}
-        </button>
       </div>
     )
   }

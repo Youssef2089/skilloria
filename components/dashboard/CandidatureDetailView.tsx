@@ -18,9 +18,8 @@ import { BandeauTroncature, type Troncature } from '@/components/ui/BandeauTronc
  * candidatures) et on sélectionne par id → shape STRICTEMENT identique au
  * master-detail, zéro nouvel endpoint, aucune logique matching/messagerie.
  *
- * Pas de bouton Retour bespoke : c'est une page de détail sous DashboardShell,
- * le GlobalBackButton s'affiche tout seul (« Retour au tableau de bord » quand
- * on vient du dashboard). Marque la candidature consultée (parité master-detail).
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
+ * Marque la candidature consultée (parité master-detail).
  */
 
 type State =

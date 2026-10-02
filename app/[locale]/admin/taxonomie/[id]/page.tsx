@@ -15,7 +15,7 @@ import { useSecureFetch } from '@/lib/secure-fetch'
  * spécialité utilisée → confirmation chiffrée ; suppression désactivée tant que
  * l'usage > 0 (défense en profondeur côté serveur : 409 in_use).
  *
- * Détail hors ADMIN_NAV_SECTIONS → le bouton Retour global apparaît seul.
+ * Détail sans bouton Retour (on navigue par les menus (décision de Youssef, 02/10/2026)) ; l'en-tête dit « Taxonomie ».
  */
 
 type Translations = { en?: string; es?: string; de?: string }

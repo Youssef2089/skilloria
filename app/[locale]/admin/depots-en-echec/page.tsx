@@ -9,7 +9,7 @@ import { CONDITIONS_ELIGIBILITE } from '@/lib/matching/eligibilite'
 /**
  * /admin/depots-en-echec — LES CANDIDATURES QUI N'ONT PAS PU ÊTRE ÉCRITES.
  *
- * Page de MENU : aucun bouton Retour (règle projet).
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  *
  * ┌─ POURQUOI CET ÉCRAN EXISTE, ET POURQUOI IL EST BLOQUANT ────────────────┐
  * │ Depuis le 23/09/2026, une candidature dont le jugement échoue n'est PAS │

@@ -24,8 +24,7 @@ import { summarizeLimitParts } from '@/lib/packages-display'
  * └────────────────────────────────────────────────────────────────────────┘
  *
  * PAS DE SECOND MOTEUR D'ÉDITION : « Modifier » ouvre la fiche partagée
- * /admin/packages/[id] (dont le bouton Retour revient ici, dérivé de
- * target_role) et « Nouvelle offre » ouvre /admin/packages/new?target=
+ * /admin/packages/[id] (son en-tête dit « Offres » ; la barre latérale ramène ici) et « Nouvelle offre » ouvre /admin/packages/new?target=
  * collaboration. Le catalogue n'a qu'un seul formulaire, pour toutes les cibles.
  *
  * DEUX COMPTEURS, SYSTÉMATIQUEMENT : publications du mois (compteur consommable
@@ -33,7 +32,7 @@ import { summarizeLimitParts } from '@/lib/packages-display'
  * règle 30 j — aucun batch, aucun cron). Le second est le blocage réellement
  * ressenti par l'expert ; l'afficher n'est pas optionnel.
  *
- * Page de MENU → aucun bouton Retour.
+ * Aucun bouton Retour : on navigue par les menus (décision de Youssef, 02/10/2026).
  */
 
 type Feature = { feature_code: string; value: string; reset_period: string | null }

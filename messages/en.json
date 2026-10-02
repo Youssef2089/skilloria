@@ -25,15 +25,6 @@
       "body": "An expert has applied to your posting \"{title}\"."
     }
   },
-  "back_nav": {
-    "back_to_dashboard": "← Back to dashboard",
-    "back_to_feed": "← Back to opportunities",
-    "back_to_candidatures": "← Back to applications",
-    "back_to_messages": "← Back to messages",
-    "back_to_annonces": "← Back to listings",
-    "back_to_experts": "← Back to experts",
-    "back": "← Back"
-  },
   "app": {
     "name": "Skilloria",
     "meta": {
@@ -44,7 +35,7 @@
   "not_found": {
     "title": "Page not found",
     "description": "The page you're looking for doesn't exist or has moved.",
-    "back_home": "Back to home"
+    "back_home": "Home"
   },
   "shell": {
     "user_fallback": "User",
@@ -79,19 +70,8 @@
       "logout": "Sign out"
     },
     "page_titles": {
-      "dashboard": "Dashboard",
-      "missions": "Missions",
-      "offres": "Job offers",
-      "candidatures": "My applications",
-      "messages": "Messaging",
-      "mon_profil": "My profile",
       "profil": "My profile",
-      "profil_valider": "Complete my profile",
-      "annonces": "My listings",
-      "settings": "Settings",
-      "organisation": "My company",
-      "membres": "Team members",
-      "offre": "My plan"
+      "profil_valider": "Complete my profile"
     },
     "topbar": {
       "status_available": "Available",
@@ -885,7 +865,6 @@
     },
     "page_title": "My profile",
     "page_subtitle": "Read-only view of your profile as clients will see it.",
-    "back_to_dashboard": "← Dashboard",
     "edit_button": "Edit my profile →",
     "loading": "Loading your profile…",
     "error": "Unable to load your profile.",
@@ -1004,7 +983,7 @@
     "submitting": "Sending…",
     "sent_title": "Check your inbox",
     "sent_message": "If an account exists for this address, a reset link has just been sent.",
-    "back_to_login": "← Back to sign in",
+    "back_to_login": "Sign in",
     "errors": {
       "missing_email": "Please enter your email.",
       "generic": "Something went wrong. Please try again."
@@ -1105,7 +1084,7 @@
       "verifying_subtitle": "We are validating your email.",
       "error_title": "Verification error",
       "error_subtitle": "The link looks invalid or expired.",
-      "back_to_signup": "Back to sign up",
+      "back_to_signup": "Sign up",
       "back_to_signin": "Sign in",
       "error_expired_title": "This link has expired",
       "error_expired_subtitle": "This confirmation link has expired or has already been used. Sign in: if your address is not confirmed yet, you can get a new link.",
@@ -1162,7 +1141,7 @@
     "message_line1": "A confirmation email has been sent to your address.",
     "message_line2": "Click the link in the email to activate your account and access the platform.",
     "spam_notice": "💡 Remember to check your <strong>spam</strong> folder if you don't receive the email within 2 minutes.",
-    "back_to_home": "Back to home",
+    "back_to_home": "Home",
     "already_confirmed": "Already confirmed?",
     "sign_in": "Sign in"
   },
@@ -1200,7 +1179,7 @@
       "speciality_other_placeholder": "e.g. FinOps, Green IT…",
       "taxonomy_loading": "Loading branches…"
     },
-    "change_profile": "← Change profile",
+    "change_profile": "Change profile",
     "cgu": "I agree to the <terms>terms of service</terms> and the <privacy>privacy policy</privacy>",
     "submit": "Create my account →",
     "submitting": "Creating account...",
@@ -1523,8 +1502,7 @@
       "refuse_corps": "Your account is not of this type. Nothing has been changed.",
       "indisponible_titre": "We could not verify your access",
       "indisponible_corps": "Checking your account failed. This is not a refusal: we do not know. Please try again in a moment.",
-      "reessayer": "Try again",
-      "retour_accueil": "Back to home"
+      "reessayer": "Try again"
     }
   },
   "cdi_profile_validation": {
@@ -2030,7 +2008,6 @@
       "loading": "Loading listing…",
       "error_generic": "Could not load this listing.",
       "error_not_found": "This listing no longer exists or is no longer accessible.",
-      "back_to_annonces": "← My listings",
       "edit_cta": "Edit",
       "view_candidatures_cta": "View applications",
       "section_description": "Description",
@@ -2149,7 +2126,6 @@
       "button_save_draft_loading": "Saving…",
       "button_publish": "Publish",
       "button_publish_loading": "Publishing…",
-      "button_back_to_list": "← Back to my listings",
       "publish_disabled_reason": "Cannot publish — current status: {status}",
       "success_draft_created": "Draft saved.",
       "success_draft_updated": "Changes saved.",
@@ -2280,7 +2256,6 @@
       "master_aria_label": "List of your listings with applications"
     },
     "feed_global": {
-      "back_to_dashboard": "← Dashboard",
       "header_kicker": "Applications",
       "header_title": "All your applications",
       "header_subtitle": "Aggregated view of applications received across all your listings. The full profile is revealed only after you accept the exchange.",
@@ -2299,7 +2274,6 @@
       "view_pub": "View listing"
     },
     "feed": {
-      "back_to_dashboard": "← Dashboard",
       "header_kicker": "Applications",
       "untitled_publication": "(untitled listing)",
       "header_subtitle": "Applications received on this listing. The full profile is revealed only after you accept the exchange.",
@@ -2428,7 +2402,6 @@
       "role_applicant": "You’re applying"
     },
     "view": {
-      "back_to_inbox": "← Messages",
       "loading": "Loading conversation…",
       "error_generic": "An error occurred. Please try again.",
       "error_not_found": "This conversation no longer exists or is no longer available.",
@@ -2500,7 +2473,6 @@
       "more_skills": "+{count}"
     },
     "detail": {
-      "back_to_feed": "← Back to opportunities",
       "loading": "Loading opportunity…",
       "error_generic": "Could not load this opportunity.",
       "error_not_found": "This opportunity no longer exists or is no longer available to you.",
@@ -2780,7 +2752,6 @@
       "col_decided": "Decided on"
     },
     "detail": {
-      "back": "← Back to list",
       "section_company": "Company",
       "section_contact": "Contact",
       "section_verification": "Verification result",
@@ -2840,7 +2811,6 @@
       "tab_all": "All",
       "loading": "Loading…",
       "empty": "No experts in this filter.",
-      "back": "Back to experts",
       "section_ai_verdict": "AI verdict",
       "section_identity": "Identity & contact",
       "section_profile": "Professional profile",
@@ -3214,7 +3184,6 @@
       "intro": "What is observed. Settings live on the matching screen.",
       "loading": "Loading…",
       "err_load": "Could not read the engine state. Try again in a moment.",
-      "back": "← Back to monitoring",
       "open": "Open",
       "since": "since {date}",
       "problems_title": "What is wrong",
@@ -3970,7 +3939,7 @@
     "loading": "Loading…",
     "invalid_title": "Invalid invitation",
     "invalid_body": "This invitation link is invalid, has expired, or has already been used.",
-    "go_home": "Back to home",
+    "go_home": "Home",
     "accepted_title": "Invitation accepted",
     "accepted_body": "Redirecting to your workspace…",
     "invite_title": "Join {company}",
@@ -4100,7 +4069,6 @@
       "loading": "Loading…",
       "error_generic": "Something went wrong. Please try again.",
       "error_not_found": "This need could not be found.",
-      "back_to_list": "Back to my needs",
       "type_label": "Subcontracting",
       "section_recap": "The need",
       "field_budget": "Budget",
@@ -4527,7 +4495,7 @@
   },
   "ecosystem_unavailable": {
     "meta_title": "Ecosystem unavailable",
-    "back_home": "Back to home",
+    "back_home": "Home",
     "generic": {
       "title": "This ecosystem is unavailable",
       "body": "We could not open this ecosystem. Try again in a moment; if the problem persists, contact support."

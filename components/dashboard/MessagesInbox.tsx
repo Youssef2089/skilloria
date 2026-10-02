@@ -506,7 +506,7 @@ export default function MessagesInbox({
           }}
         >
           {localSelectedConvId ? (
-            <ConversationView convId={localSelectedConvId} side={side} embedded />
+            <ConversationView convId={localSelectedConvId} embedded />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: 40, textAlign: 'center' }}>
               <div style={{ fontSize: 36, marginBottom: 10 }} aria-hidden>💬</div>

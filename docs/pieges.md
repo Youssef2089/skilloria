@@ -308,7 +308,8 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
 Sur les **188** migrations : **79 insertions vues, 66 analysées, 3354 valeurs confrontées** (mesuré le
 03/10/2026 sur le lot « critères des annonces » — sa migration n'ajoute aucune insertion : des colonnes, des contraintes, une
-reprise par `update` ; sur 187, le 02/10/2026 sur le lot « zones de travail », relecture comprise — ses quatre migrations n'ajoutent aucune insertion analysable : le
+reprise par `update` ; le 02/10/2026 sur le lot « finitions et pays » de S1 — sa migration n'ajoute aucune insertion
+analysable : la liste des pays vit dans un bloc `do` ; sur 187, le 02/10/2026 sur le lot « zones de travail », relecture comprise — ses quatre migrations n'ajoutent aucune insertion analysable : le
 rattachement des pays vit dans un bloc `do`, les avis et les traductions dans des fonctions ; sur 183, le 01/10/2026 sur le lot B — ses
 quatre migrations ne sèment rien ; sur 179, à la relecture indépendante (lot A) : les
 mêmes — `photo_par_le_serveur` part au lot B, elle ne semait rien ; sur 180, après la

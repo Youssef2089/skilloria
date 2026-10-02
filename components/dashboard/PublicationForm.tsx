@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useRouter } from '@/i18n/navigation'
 import { useDomain } from '@/context/DomainContext'
 import { useSecureFetch } from '@/lib/secure-fetch'
 import type { PublicationDraft } from '@/types/publication'
@@ -79,7 +78,6 @@ export default function PublicationForm(props: Props) {
   const tCommerce = useTranslations('commerce')
   const tCrit = useTranslations('criteres')
   const locale = useLocale()
-  const router = useRouter()
   const domain = useDomain()
   const secureFetch = useSecureFetch()
 
@@ -413,23 +411,6 @@ export default function PublicationForm(props: Props) {
             {t('gate.score_label', { score: Math.round(outcome.score) })}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => router.push('/dashboard/entreprise')}
-          style={{
-            padding: '12px 22px',
-            background: domain.primaryColor,
-            color: 'var(--sk-surface)',
-            border: 'none',
-            borderRadius: 10,
-            fontSize: 14,
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          {t('form.button_back_to_list')}
-        </button>
       </div>
     )
   }
