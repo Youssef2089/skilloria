@@ -540,7 +540,8 @@ deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commi
 La moitié « écriture en base » est **gardée dans le dépôt** (§E.4 : `garde-ecriture.mjs` +
 `diag-scripts-destructeurs.mjs`), avec l'angle mort des trois scripts hors périmètre.
 La moitié « aucun push » est une **convention d'équipe — NON VÉRIFIÉE dans le dépôt** : aucun hook,
-aucune configuration ne l'impose.
+aucune configuration ne l'impose. **`supabase/snippets/`** (les requêtes de l'éditeur SQL de Youssef) ne se livre jamais :
+ignoré par `.gitignore` depuis la contre-relecture de l'ARRÊT 28 (un fichier y était entré par un `git add -A`).
 
 **G.7 — Conflits `messages/*.json` résolus en UNION. NON VÉRIFIÉ.**
 Aucun `.gitattributes`, aucun pilote de fusion, aucune documentation dans le dépôt ne porte cette

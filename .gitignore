@@ -51,3 +51,6 @@ supabase/.temp/
 
 # Supabase CLI local branches (artefact de db reset local)
 supabase/.branches/
+
+# Les requêtes de l'éditeur SQL de Youssef (Supabase Studio) — à lui, jamais livrées (contre-relecture ARRÊT 28, point D)
+supabase/snippets/
