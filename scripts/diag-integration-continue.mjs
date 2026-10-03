@@ -28,7 +28,7 @@
 //   node scripts/diag-integration-continue.mjs     → statique (+ un import exécuté), aucun accès base.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -177,6 +177,26 @@ ok(/open-pull-requests-limit: 0/.test(blocNpm) && /applies-to: security-updates/
 ok(/package-ecosystem: github-actions/.test(dependabot), 'les actions du flux sont tenues à jour')
 const tousLesFlux = ['.github/workflows/controles.yml'].map((p) => (existsSync(join(ROOT, p)) ? read(p) : '')).join('\n')
 ok(!/auto-?merge|gh pr merge|enable-pull-request-automerge/i.test(sansCommentairesYaml(tousLesFlux)), 'aucune fusion automatique dans nos flux')
+
+// ── F bis. LES TÂCHES PLANIFIÉES ONT CHACUNE LEUR PREUVE ─────────────────────
+section('F bis. Chaque tâche planifiée est nommée dans le test de ses effets')
+{
+  const dossierMig = join(ROOT, 'supabase/migrations')
+  const planifiees = new Set()
+  for (const f of readdirSync(dossierMig).filter((x) => x.endsWith('.sql')).sort()) {
+    const sql = read(`supabase/migrations/${f}`).split('\n').filter((l) => !/^\s*--/.test(l)).join('\n')
+    for (const m of sql.matchAll(/cron\.schedule\(\s*'([a-z0-9_-]+)'/g)) planifiees.add(m[1])
+  }
+  const CHEMIN_EFFETS = 'supabase/tests/database/taches_planifiees/effets.test.sql'
+  const effets = existsSync(join(ROOT, CHEMIN_EFFETS)) ? read(CHEMIN_EFFETS) : ''
+  const bloc = /insert into taches_attendues values([\s\S]*?);/.exec(effets)?.[1] ?? ''
+  const nommees = new Set([...bloc.matchAll(/\('([a-z0-9_-]+)',/g)].map((m) => m[1]))
+  const sansPreuve = [...planifiees].filter((n) => !nommees.has(n))
+  const fantomes = [...nommees].filter((n) => !planifiees.has(n))
+  ok(planifiees.size >= 12 && sansPreuve.length === 0 && fantomes.length === 0,
+    `les ${planifiees.size} tâches planifiées par les migrations sont exactement celles que nomme ${CHEMIN_EFFETS.split('/').slice(-2).join('/')}`,
+    [...sansPreuve.map((n) => `${n} : sans preuve d’effet`), ...fantomes.map((n) => `${n} : nommée, jamais planifiée`)].join(' · '))
+}
 
 // ── G. LE MOTEUR SE CHARGE HORS DE NEXT ──────────────────────────────────────
 section('G. Le moteur se charge hors de Next (exécuté)')

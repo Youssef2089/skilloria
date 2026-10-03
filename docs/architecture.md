@@ -2623,6 +2623,17 @@ fabrique de comptes dans le dépôt (§E.20).
   puis, au même filtre, trois paliers : affichage et alertes identiques, étiquettes toutes différentes (§D.48 : le palier
   ne décide que de l'étiquette).
 
+**Les tâches planifiées** (partie A bis, point 4) : les douze tâches de pg_cron sont NOMMÉES, chacune avec la preuve de
+son effet, dans `taches_planifiees/effets.test.sql` (18) — l'inventaire en base (`cron.job` : ces douze, elles seules, chacune
+appelant la fonction ou la route que son test éprouve) et les six qui n'avaient pas de test d'effet : `purge_cron_maintenance`
+(détail anonymisé à 90 jours, ligne retirée à 5 ans), `reconcile_cron_run_log` (seulement ce que la tâche n'a pas clos, moins
+de 24 h), `purger_notes_partielles` (24 h), la commande même de `rate_limit_hits_purge` lue dans `cron.job`,
+`next_unfinished_matching_run` (inachevé, après la grâce, sous le plafond de tentatives) et `cloturer_run_cron` (le verdict de
+chaque passage, jamais réécrit). Les autres ont la leur ailleurs (expiration, fermeture des échanges, purges et suppression
+programmée, travaux d'IA, relances, effacement des IP, joignabilité) ; la lecture de Stripe de la vérification de nuit est du
+code applicatif, Stripe coupé au lancement (§D.1). `diag-integration-continue` (F bis) rougit sur une tâche planifiée sans
+preuve.
+
 **Ce qui n’y tourne pas** : staging, la production, un vrai fournisseur ; la requête de staging, `db push`, `git push`
 (gestes de Youssef jusqu’au lot DevOps 2) ; les parcours d’écran (S1, partie B, son propre flux `parcours.yml`).
 
