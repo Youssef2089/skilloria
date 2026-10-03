@@ -9,9 +9,13 @@ Ce fichier **ne fait pas foi** : la séquence vit dans **CLAUDE.md §G.4, §G.4 
 production dans `docs/mise-en-production.md`. En cas d'écart, ce sont eux qui ont raison.
 
 **Qui fait quoi.** Une session Claude **prépare et vérifie** ; elle ne lance ni Docker ni base, et ne pousse
-rien (§G.6). Les étapes qui touchent la base locale, staging ou git distant sont **écrites pour Youssef**, qui
-les exécute — « il ne dit pas que les tests passent : seul `test db --local` le dit, et c'est Youssef qui le
-lance » (§G.4 ter).
+rien (§G.6). **Depuis le 03/10/2026, les tests tournent sur GitHub Actions, plus sur le PC de Youssef**
+(CLAUDE.md §G.13, `docs/integration-continue.md`) : la demande de fusion de la branche du lot déclenche
+`.github/workflows/controles.yml`, qui rejoue sur une base JETABLE démarrée dans le runner les étapes 1 (`db reset`),
+2 (`db lint`), 3 (`test db`) et 5 (`npm run build`, barrière comprise, §D.51) — et c'est son résultat qui dit que
+les tests passent. Restent **des gestes de Youssef, jusqu'au lot DevOps 2** : l'étape 0 (version de Postgres de la
+base liée), l'étape 4 (la requête de staging), l'étape 6 (`db push`) et l'étape 7 (le `git push` / la fusion qui
+déploie). **Principe, écrit dès maintenant : la production reçoit EXACTEMENT le commit validé sur staging.**
 
 ## 1. Les deux temps — la règle
 
@@ -51,7 +55,10 @@ lance » (§G.4 ter).
 
 ## 3. La séquence — pour Youssef, dans cet ordre, chaque étape verte avant la suivante
 
-Recopiée de **CLAUDE.md §G.4 ter** (« LA SÉQUENCE DE DÉPLOIEMENT D'UN LOT DE MIGRATIONS ») :
+Recopiée de **CLAUDE.md §G.4 ter** (« LA SÉQUENCE DE DÉPLOIEMENT D'UN LOT DE MIGRATIONS »). **Les étapes 1, 2, 3
+et 5 sont celles que GitHub Actions exécute sur la demande de fusion (§G.13)** : Youssef ne les relance pas sur son
+poste — il lit les trois contrôles **statique**, **base**, **application** de la demande de fusion, et ne passe à
+l'étape 4 que tous verts. Le rapport donne toujours le nombre de tests attendu, pour le comparer à ce que GitHub affiche.
 
 0. Docker lancé, sur la branche du lot : `npx supabase link --project-ref <ref>` (staging :
    `wnayuerhakekxccgimeg`), puis `node scripts/verifier-version-postgres.mjs` — **au moins 17.6.1.121**, sinon

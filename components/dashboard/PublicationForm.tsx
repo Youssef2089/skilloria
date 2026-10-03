@@ -125,6 +125,13 @@ export default function PublicationForm(props: Props) {
   const [errorCode, setErrorCode] = useState<string | null>(null)
   const [successMsg, setSuccessMsg] = useState<string | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<ChampAnnonce, string>>>({})
+  /**
+   * L'ORGANISATION EST-ELLE APPROUVÉE ? (§D.52) — lue au serveur (`/api/me/organisation`), jamais devinée.
+   * Non approuvée : le serveur refuse de créer, modifier et publier (403 `org_not_approved`). L'écran le dit AVANT la
+   * saisie, et remplace les boutons d'envoi par la raison — jamais un bouton grisé (§D.21). `null` : pas encore lu,
+   * ou illisible — les boutons restent, et c'est le serveur qui tranche (son refus a son message).
+   */
+  const [organisationApprouvee, setOrganisationApprouvee] = useState<boolean | null>(null)
 
   // ── Charger taxonomie ──────────────────────────────────────────────────
   useEffect(() => {
@@ -171,6 +178,27 @@ export default function PublicationForm(props: Props) {
         // gagne pas une date inventée.
         console.error('[PublicationForm] durées non lues — la date d expiration ne sera pas annoncée', err)
         setVieAnnonceJours(null)
+      }
+    }
+    void load()
+    return () => {
+      cancelled = true
+    }
+  }, [secureFetch])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const res = await secureFetch('/api/me/organisation', { cache: 'no-store' })
+        if (!res.ok) throw new Error(`organisation ${res.status}`)
+        const data = (await res.json()) as { organization?: { verification_status?: string | null } }
+        if (cancelled) return
+        setOrganisationApprouvee(data.organization?.verification_status === 'approved')
+      } catch (err) {
+        if (cancelled) return
+        console.error('[PublicationForm] état de l organisation non lu — le serveur tranchera', err)
+        setOrganisationApprouvee(null)
       }
     }
     void load()
@@ -435,6 +463,28 @@ export default function PublicationForm(props: Props) {
         </div>
       )}
 
+      {organisationApprouvee === false && (
+        <div
+          role="status"
+          style={{
+            position: 'sticky',
+            top: 12,
+            zIndex: 5,
+            background: 'var(--sk-amber-soft)',
+            border: '1px solid var(--sk-amber-soft)',
+            color: 'var(--sk-amber)',
+            padding: '12px 16px',
+            borderRadius: 10,
+            fontSize: 13,
+            marginBottom: 18,
+            lineHeight: 1.55,
+          }}
+        >
+          <strong style={{ display: 'block', marginBottom: 2 }}>{t('form.org_non_approuvee_titre')}</strong>
+          {t('form.org_non_approuvee_texte')}
+        </div>
+      )}
+
       {errorMsg && (
         <div
           role="alert"
@@ -508,7 +558,12 @@ export default function PublicationForm(props: Props) {
         {/* LES CHAMPS — exactement ceux du besoin de sous-traitance (un composant, §D.39). */}
         <ChampsAnnonce type={type} valeurs={form} changer={setField} erreurs={fieldErrors} referentiel={taxonomy} />
 
-        {/* Boutons */}
+        {/* Boutons — remplacés par la raison quand l'organisation n'est pas approuvée (§D.52 ; jamais grisés, §D.21). */}
+        {organisationApprouvee === false ? (
+          <p style={{ marginTop: 28, textAlign: 'right', fontSize: 13, color: 'var(--sk-amber)' }}>
+            {t('form.org_non_approuvee_boutons')}
+          </p>
+        ) : (
         <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 28 }}>
           <button
             type="submit"
@@ -548,6 +603,7 @@ export default function PublicationForm(props: Props) {
             {publishing ? t('form.button_publish_loading') : t('form.button_publish')}
           </button>
         </div>
+        )}
       </form>
 
       {/* Modale de confirmation publish */}

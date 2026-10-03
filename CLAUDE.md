@@ -74,7 +74,7 @@ npm run db:pull          # pull remote schema into a migration
 npm run db:lint         # lint the schema
 ```
 
-**⚠️ PÉRIMÉ depuis le 26/09/2026 — voir §G.4 ter** : la base a des tests **pgTAP** (`supabase/tests/database/`, lancés par `npx supabase test db --local`), et toute action nouvelle du grand livre arrive avec son test. Le reste de ce paragraphe vaut toujours pour le code applicatif. ~~There is **no test framework**.~~ Verification is done via ad-hoc diagnostic scripts in `scripts/` (`diag-*.mjs`, run with `node`), which connect to Supabase with the service-role key and exercise real flows (matching, verification, messaging). Use them as the pattern when you need to validate a backend change end-to-end.
+**⚠️ PÉRIMÉ depuis le 26/09/2026 — voir §G.4 ter** : la base a des tests **pgTAP** (`supabase/tests/database/`, lancés par `npx supabase test db --local`), et toute action nouvelle du grand livre arrive avec son test. **Depuis le 03/10/2026, ils tournent sur GitHub Actions à chaque demande de fusion (§G.13).** Le reste de ce paragraphe vaut toujours pour le code applicatif. ~~There is **no test framework**.~~ Verification is done via ad-hoc diagnostic scripts in `scripts/` (`diag-*.mjs`, run with `node`), which connect to Supabase with the service-role key and exercise real flows (matching, verification, messaging). Use them as the pattern when you need to validate a backend change end-to-end.
 
 Environment is targeted per-remote with `supabase link <ref>` (staging ref `wnayuerhakekxccgimeg`); the linked ref lives in gitignored `supabase/.temp/`, so `config.toml` itself is env-agnostic.
 
@@ -231,6 +231,9 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 - **D.48** — **Une annonce qui s'affiche dans les recommandations PRÉVIENT l'expert, et aucun réglage ne le contredit** (S2, décision de Youssef, 02/10/2026) : chaque correspondance FRAÎCHE pose son avis (cloche ; e-mail sauf si l'expert l'a coupé — il part par défaut) ; `notify_enabled` inerte, `notify_threshold` ne règle que le palier « Correspondance forte » ; le FILTRE du flux décide aussi de qui est prévenu (§P4.3 réécrit). Une mission postulée quitte le flux ET son compteur (`mission_postulee`). → [détail](docs/architecture.md#d48)
 - **D.49** — **Une annonce en revue ne sort que par un administrateur, et par le mécanisme de la publication** (S3) : `/admin/annonces` ; valider = `publier_annonce()` depuis `pending_review` (voie dérivée sous verrou, compteur non reconsommé, garde 42501 EN BASE) ; refuser = `refuser_annonce()`, motif sur la ligne métier, jamais au journal ; l'auteur prévenu dans sa langue ; le prédicat ENTIER de la publication s'applique. → [détail](docs/architecture.md#d49)
 - **D.50** — **Une annonce refusée se modifie et se soumet à nouveau ; elle ne compte pas deux fois** (regroupement, décision de Youssef, 03/10/2026) : l'auteur corrige N'IMPORTE QUEL champ, tout ce qu'il modifie est enregistré, et `PATCH` la repasse en brouillon dès qu'un champ a vraiment changé (contre-relecture de l'ARRÊT 28 : la restriction aux champs lus par l'IA est TOMBÉE) — rien de changé : 409 `annonce_refusee_inchangee`, rien d'écrit ; elle est jugée de nouveau (en ligne si la note atteint le minimum de `/admin/seuils`, sinon en revue) ; le marqueur est `review_reason` (seule `refuser_annonce()` le pose) et `/publish` ne recompte pas ; le motif servi à l'auteur, le refus le dit ×4. `diag-resoumission` BLOQUANT. → [détail](docs/architecture.md#d50)
+- **D.51** — **La construction s'arrête si un réglage obligatoire manque, en le nommant ; toute variable `TEST_…` est interdite en production** (décision de Youssef, 03/10/2026) : `barriereDeConstruction()` (`lib/configuration/variables.ts`), première commande de `npm run build`, imposée à Vercel par `vercel.json` ; sur Vercel (Production ET Preview) et dans GitHub Actions, jamais sur le poste ; Vercel sans `VERCEL_ENV` reste fermé. Le démarrage, lui, ne fait toujours que DIRE (§E.86) : il ne coupe pas un site en ligne. → [détail](docs/architecture.md#d51)
+- **D.52** — **Une organisation non approuvée ne crée, ne modifie, ne publie, ne retient, ne décline, ne dévoile rien** (décision de Youssef, 03/10/2026, checklist point 4) : `requireOrgApproved` après `requireOrgRole`, avant toute lecture (403 `org_not_approved`) ; en base, deux déclencheurs gardent les transitions vers `published`, `unlocked`, `selected` (OA001, migration APRÈS) ; l'écran remplace ses boutons par la raison. Lire, régler sa fiche et son équipe, clôturer restent ouverts. → [détail](docs/architecture.md#d52)
+- **D.53** — **L'annonce d'une autre organisation se refuse partout comme une annonce qui n'existe pas : 404 `not_found`, même corps** (décision de Youssef, 03/10/2026) — jamais 403, qui dirait qu'elle existe (la règle de §D.3, étendue à la propriété). → [détail](docs/architecture.md#d53)
 
 ---
 
@@ -362,6 +365,8 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.115](docs/pieges.md#e115) | `verified_by` SURVIT À LA DÉCISION SUIVANTE : sa présence ne dit pas « validée par un administrateur ». |
 | [E.116](docs/pieges.md#e116) | UN PRÉDICAT PARTAGÉ QUI GAGNE UN CHAMP CASSE L'APPELANT QU'UNE AUTRE BRANCHE VIENT D'ÉCRIRE — fusion sans conflit, vu par `tsc` parce qu'aucun champ n'est facultatif. |
 | [E.118](docs/pieges.md#e118) | UN CHECK LAISSE PASSER NULL : « un nombre ET une unité » acceptait un nombre seul (`true and null` = NULL) — « les deux » commence par `a is not null and b is not null`. Et un `end $$;` perdu : 0 test joué. |
+| [E.119](docs/pieges.md#e119) | LE CODE DE `lib/` NE SE CHARGE PAS TEL QUEL DANS NODE : paramètre de constructeur, import sans extension, JSON sans attribut, `resend` → `svix` — `scripts/lib/chargeur-ts.mjs` les résout sans toucher au code. |
+| [E.120](docs/pieges.md#e120) | DEUX VALEURS SANS TYPE NE SE COMPARENT PAS : `is(:'x', '')` fait tomber le fichier pgTAP avant son premier test (68 prévus, 0 joués) — un `::type` sur l'une ; `diag-tests-grand-livre` (M). |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---
@@ -441,7 +446,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 191 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 192 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé
@@ -533,7 +538,7 @@ fichiers a cassé **55 liens** relatifs, et il les a tous nommés avant le commi
 > moitié des phrases, et aucune machine ne les aurait trouvées. Ce qui les a trouvées, c'est une
 > relecture contre le code — il n'y a pas de raccourci.
 
-**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (50 erreurs / 21 avertissements au 03/10/2026)
+**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (49 erreurs / 19 avertissements au 03/10/2026, lot DevOps CI)
 vit dans [`diag-lint-cliquet`](scripts/diag-lint-cliquet.mjs), pas dans une consigne : rouge dès qu'un des
 deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commit**.
 
@@ -653,6 +658,18 @@ est livré ne doit être remis en cause plus tard ; aucun raccourci.
 corrigé **avant la production**. **Tous** les points, mineurs compris, sont corrigés **avant le déploiement suivant**,
 sauf report décidé par Youssef.
 > Les rapports d'avant le 03/10/2026 citent parfois sous « 0 » ce qui est ici le point 1 (« aucun nom, aucune valeur »).
+
+**G.13 — LES CONTRÔLES TOURNENT SUR GITHUB ACTIONS, PLUS SUR LE POSTE** (lot DevOps CI, 03/10/2026, décision de Youssef).
+Une tâche = une branche = une demande de fusion = les contrôles = une revue = la fusion. Le flux
+`.github/workflows/controles.yml` (`statique` · `base` · `application`) rejoue, sur chaque demande de fusion vers
+`feat/sprint-archi-orga` et `main`, les étapes 1, 2, 3 et 5 de §G.4 ter sur une base JETABLE démarrée dans le runner,
+la série complète des diagnostics, les accès croisés (base et routes) et le jeu de référence du moteur ; chaque nuit,
+`nuit-matching.yml` fait tourner le vrai moteur sur un grand jeu généré (jamais sur une demande de fusion). Les contrôles
+exigés, et le moment où chacun le devient (après son premier passage vert) : `.github/controles-exiges.json` ; le verrou
+demande GitHub Pro sur un dépôt privé. **La requête de staging, `db push` et `git push` restent des gestes de Youssef
+jusqu'au lot DevOps 2.** **Principe, écrit dès maintenant : la production reçoit EXACTEMENT le commit validé sur
+staging.** Guide, réglages clic par clic, coût : [docs/integration-continue.md](docs/integration-continue.md) ; gardé par
+`diag-integration-continue`. Les bancs de `tests/integration/` refusent une base qui n'est pas locale au runner.
 
 ---
 

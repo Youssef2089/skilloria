@@ -2152,7 +2152,10 @@
         "description": "Renseignez une description",
         "branch_id": "Sélectionnez une branche",
         "work_zone_ids": "Sélectionnez au moins une zone de travail"
-      }
+      },
+      "org_non_approuvee_titre": "Organisation en cours de vérification",
+      "org_non_approuvee_texte": "Tant que votre organisation n’est pas approuvée, une annonce ne peut être ni enregistrée ni publiée. Vous serez prévenu par e-mail dès l’approbation.",
+      "org_non_approuvee_boutons": "Enregistrement et publication possibles dès l’approbation de votre organisation."
     },
     "gate": {
       "published_title": "Annonce en ligne ✓",
@@ -2180,7 +2183,8 @@
       "generic": "Une erreur est survenue. Veuillez réessayer.",
       "missing_fields": "Il manque des informations pour publier : {fields}.",
       "annonce_refusee_inchangee": "Cette annonce a été refusée et rien n’y a changé : corrigez ce que demande le motif (affiché en haut de la page) — n’importe quel champ, tout ce que vous modifiez est enregistré — avant de la soumettre à nouveau. Dès qu’un champ change, elle repasse par la vérification automatique, et cette nouvelle soumission ne compte pas une seconde fois dans vos publications du mois.",
-      "type_immuable": "Le type d’une annonce (mission ou offre d’emploi) ne change plus une fois le brouillon enregistré. Pour l’autre type, créez une nouvelle annonce."
+      "type_immuable": "Le type d’une annonce (mission ou offre d’emploi) ne change plus une fois le brouillon enregistré. Pour l’autre type, créez une nouvelle annonce.",
+      "org_not_approved": "Votre organisation est en cours de vérification : vous pourrez créer et publier des annonces dès qu’elle sera approuvée."
     },
     "refus": {
       "titre": "Cette annonce n’a pas été validée",
@@ -2374,7 +2378,8 @@
       "error_unlock_limit_reached": "Vous avez utilisé tous les dévoilements inclus dans votre offre ce mois-ci. Le compteur repart le 1er du mois prochain.",
       "error_generic": "Une erreur est survenue. Réessayez dans un instant.",
       "selected_section_label_sous_traitance": "Candidat accepté pour ce besoin de sous-traitance",
-      "select_confirm_body_sous_traitance": "Cette action est définitive : vous acceptez ce candidat pour ce besoin de sous-traitance. Les autres candidatures sur cette annonce resteront accessibles dans votre tableau de bord."
+      "select_confirm_body_sous_traitance": "Cette action est définitive : vous acceptez ce candidat pour ce besoin de sous-traitance. Les autres candidatures sur cette annonce resteront accessibles dans votre tableau de bord.",
+      "error_org_not_approved": "Votre organisation est en cours de vérification : retenir, refuser ou dévoiler un candidat sera possible dès qu’elle sera approuvée."
     }
   },
   "messages": {
@@ -6369,7 +6374,9 @@
       "auteur_non_approuve": "L’expert qui a publié ce besoin de sous-traitance n’est plus un expert approuvé (profil refusé, remis en vérification, ou compte supprimé) : le besoin ne peut pas être mis en ligne. Vous pouvez le refuser avec un motif.",
       "profile_check_unavailable": "Le profil de l’expert qui a publié ce besoin n’a pas pu être lu : rien n’a été mis en ligne. Réessayez dans un instant.",
       "statut_illisible": "La validation n’a pas pu aboutir : le statut de l’annonce ne se lit pas pour l’instant (une panne de notre côté). Rien n’a été changé — réessayez.",
-      "reessayer": "Réessayer"
+      "reessayer": "Réessayer",
+      "org_not_approved": "L’organisation qui a soumis cette annonce n’est pas approuvée : l’annonce ne peut pas être mise en ligne. Approuvez d’abord l’organisation (écran Organisations), ou refusez l’annonce avec un motif.",
+      "organisation_illisible": "L’état de vérification de l’organisation n’a pas pu être lu : rien n’a été mis en ligne. Réessayez dans un instant."
     },
     "avis": {
       "cloche": {

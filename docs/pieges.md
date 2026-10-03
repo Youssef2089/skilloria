@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **191** migrations : **80 insertions vues, 67 analysées, 3358 valeurs confrontées** (mesuré le 03/10/2026 sur le
+Sur les **192** migrations : **80 insertions vues, 67 analysées, 3358 valeurs confrontées** (remesuré le 03/10/2026 au lot DevOps CI — `organisation_approuvee_en_base` n'insère rien ; mesuré le 03/10/2026 sur le
 regroupement des quatre lots, ARRÊT 28 — la même mesure que celle de S3, les trois autres lots ne semant rien ; mesuré le
 02/10/2026 sur le lot S3 « validation des annonces » — `validation_annonces` sème
 une action, `annonce_refusee` ; le 03/10/2026 sur le lot « critères des annonces » — sa migration n'ajoute aucune
@@ -4756,6 +4756,51 @@ CHECK du schéma — la règle se relit à chaque contrainte écrite.
 balise `$…$` paire, dans tout `supabase/tests/database/`, éprouvé par mutation).
 
 ---
+<a id="e119"></a>
+### E.119 — LE CODE DE `lib/` NE SE CHARGE PAS TEL QUEL DANS NODE : QUATRE OBSTACLES, MESURÉS, ET UN CROCHET QUI LES RÉSOUT SANS TOUCHER AU CODE.
+
+**Le cas mesuré (03/10/2026, lot DevOps CI).** Le jeu de référence du moteur devait exécuter `lib/matching/` TEL QU’IL
+EST LIVRÉ, hors de Next (une base jetable, une IA simulée). Quatre échecs, l’un après l’autre, en important
+`lib/matching/index.ts` avec Node 24 :
+1. **`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`** — « parameter property is not supported in strip-only mode » :
+   `lib/collaboration/ensure-personal-org.ts` déclare `constructor(public code: string, …)`. Le retrait des types ne
+   suffit pas : il faut `node --experimental-transform-types`.
+2. **Les imports sans extension** (`./pool`) et l’alias `@/` : Node ne les résout pas — Next, si.
+3. **`ERR_IMPORT_ATTRIBUTE_MISSING`** sur `messages/fr.json` : importé sans `with { type: 'json' }`, comme Next le permet.
+4. **« The requested module 'svix' does not provide an export named 'Webhook' »** : `resend` (ESM) importe un nom
+   d’un paquet CommonJS que Node ne sait pas détecter ; le bundler de Next s’en accommode.
+Et un cinquième, né de la correction du deuxième : un crochet de résolution s’applique AUSSI à `require` ; résoudre
+les chemins relatifs à l’intérieur de `node_modules` cassait `@supabase/functions-js` (« Cannot find module file:///… »).
+
+**La parade** : `scripts/lib/chargeur-ts.mjs` (crochets synchrones `registerHooks`) — l’alias `@/` et les imports
+relatifs du DÉPÔT seulement (jamais dans `node_modules`), le JSON servi en module, `resend` résolu vers sa version
+CommonJS (même paquet, même version). Aucune ligne du produit n’est changée. Le banc tourne avec
+`--experimental-transform-types`.
+
+**Le contrôle** : `diag-integration-continue` (G) importe le moteur dans un processus enfant, avec ce crochet et ce
+drapeau, et rougit si l’une des quatre fonctions du banc ne se charge plus — une syntaxe nouvelle dans `lib/` se voit
+sur le poste, avant le passage sur GitHub. **Ce qu’il ne voit pas** : une API propre à Next appelée à l’exécution
+(`after()`, `headers()`) dans un chemin que le banc traverse — elle lèverait pendant le banc, pas au chargement.
+
+<a id="e120"></a>
+### E.120 — DEUX VALEURS SANS TYPE NE SE COMPARENT PAS : UN `is()` DE pgTAP FAIT TOMBER LE FICHIER AVANT SON PREMIER TEST.
+
+**Le cas mesuré (03/10/2026, premier passage de GitHub Actions, lot DevOps CI).** `vrai_appelant/acces_croises.test.sql`,
+ligne 101 : `select is(:'sans_rls', '', '…')`. `is(anyelement, anyelement, text)` est POLYMORPHE : PostgreSQL déduit le type
+des deux valeurs. Une variable psql `:'x'` se déplie en littéral sans type, `''` aussi : « ERROR: could not determine
+polymorphic type because input has type unknown ». L'erreur arrive au PREMIER `select` qui la porte : **68 tests prévus, 0
+joués** — le fichier entier, pas une assertion. Les 762 autres passaient. Le test avait été écrit sans base (lot sans Docker) :
+rien ne pouvait l'exécuter avant GitHub.
+
+**La parade** : un type explicite sur l'une des deux valeurs (`:'sans_rls'::text`) — une seule suffit, PostgreSQL déduit l'autre.
+Même faute pour `isnt` et `cmp_ok` (ses premier et troisième arguments), et avec `null`.
+
+**Le contrôle** : `diag-tests-grand-livre` (M) lit CHAQUE appel `is` / `isnt` / `cmp_ok` de tous les tests, corps de fonction
+compris, et rougit quand les deux valeurs comparées sont sans type (littéral nu, variable psql non typée, `null`). Il désignait,
+avant la correction, exactement la ligne 101, et elle seule parmi 184 appels. Éprouvé par mutation (premier niveau, corps de
+fonction, `null` : trois rougissent ; un seul côté typé reste vert). **Ce qu'il ne voit pas** : un appel polymorphe d'une autre
+fonction (`results_eq`, une fonction maison `anyelement`), et une valeur sans type cachée derrière une expression.
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

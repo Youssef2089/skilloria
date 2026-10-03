@@ -310,6 +310,8 @@ export function messageDeRefusCommun(code: string | undefined, tPub: Traduire, t
     case 'wrong_status': return tPub('errors.wrong_status')
     case 'not_found': return tPub('errors.not_found')
     case 'forbidden': return tPub('errors.forbidden')
+    // Une organisation non approuvée ne crée, ne modifie ni ne publie (§D.52) : le refus du serveur, en clair.
+    case 'org_not_approved': return tPub('errors.org_not_approved')
     case 'verification_failed': return tPub('errors.verification_failed')
     case 'repartition_hybride_invalide': return tCrit('erreurs.repartition_hybride_invalide')
     case 'duree_invalide': return tCrit('erreurs.duree_invalide')

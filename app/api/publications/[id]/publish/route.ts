@@ -1,6 +1,6 @@
 import { contexteDepuisAuth, parametresJournal } from '@/lib/journal/contexte'
 import { NextRequest, after } from 'next/server'
-import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { AuthError, requireAuth, requireOrgRole, requireOrgApproved, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { runPublicationVerification } from '@/lib/verification/publication-verification'
@@ -119,6 +119,13 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // L'ORGANISATION APPROUVÉE (§D.52, checklist point 4) : publier une annonce est réservé à une organisation dont la vérification
+  // est approuvée — refus nommé 403 `org_not_approved`, AVANT toute lecture de l'objet (rien n'est révélé, rien n'est écrit).
+  // L'organisation personnelle d'un expert naît approuvée (sous-traitance) : elle passe.
+  try { requireOrgApproved(auth) } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
 
   // ── Id de route ─────────────────────────────────────────────────────────
   const { id } = await ctx.params
@@ -150,7 +157,9 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
   if ((pub.organization_id as string) !== orgId) {
-    return json({ error: 'Forbidden', code: 'forbidden' }, 403)
+    // L'ANNONCE D'UNE AUTRE ORGANISATION SE REFUSE COMME UNE ANNONCE QUI N'EXISTE PAS (§D.53) : 404 `not_found`,
+    // jamais 403 — un 403 dirait qu'elle existe. Le même refus sur chaque route qui prend l'identifiant d'une annonce.
+    return json({ error: 'Not found', code: 'not_found' }, 404)
   }
   const currentStatus = pub.status as string
   if (!(PUBLISHABLE_FROM as readonly string[]).includes(currentStatus)) {

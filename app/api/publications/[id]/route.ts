@@ -3,7 +3,7 @@ import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { clesModifiees } from '@/lib/profil/changements'
 import { memesZones } from '@/lib/work-zones'
 import { NextRequest, after } from 'next/server'
-import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { AuthError, requireAuth, requireOrgRole, requireOrgApproved, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { loadTranslations } from '@/lib/translations'
@@ -268,6 +268,13 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }
+  // L'ORGANISATION APPROUVÉE (§D.52, checklist point 4) : modifier une annonce est réservé à une organisation dont la vérification
+  // est approuvée — refus nommé 403 `org_not_approved`, AVANT toute lecture de l'objet (rien n'est révélé, rien n'est écrit).
+  // L'organisation personnelle d'un expert naît approuvée (sous-traitance) : elle passe.
+  try { requireOrgApproved(auth) } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
 
   // ── Id de route ─────────────────────────────────────────────────────────
   const { id } = await ctx.params
@@ -343,7 +350,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   }
   const avantAnnonce = pub as unknown as Record<string, unknown>
   if ((avantAnnonce.organization_id as string) !== orgId) {
-    return json({ error: 'Forbidden', code: 'forbidden' }, 403)
+    // L'ANNONCE D'UNE AUTRE ORGANISATION SE REFUSE COMME UNE ANNONCE QUI N'EXISTE PAS (§D.53) : 404 `not_found`,
+    // jamais 403 — un 403 dirait qu'elle existe. Le même refus sur chaque route qui prend l'identifiant d'une annonce.
+    return json({ error: 'Not found', code: 'not_found' }, 404)
   }
   // LES ZONES SONT UN ENSEMBLE (lot zones de travail, 02/10/2026) : la même sélection dans un autre ordre garde la
   // valeur LUE — « Annonce modifiée » ne nomme pas une zone qui n'a pas bougé.
@@ -539,7 +548,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
   if (pub.organization_id !== orgId) {
-    return json({ error: 'Forbidden', code: 'forbidden' }, 403)
+    // L'ANNONCE D'UNE AUTRE ORGANISATION SE REFUSE COMME UNE ANNONCE QUI N'EXISTE PAS (§D.53) : 404 `not_found`,
+    // jamais 403 — un 403 dirait qu'elle existe. Le même refus sur chaque route qui prend l'identifiant d'une annonce.
+    return json({ error: 'Not found', code: 'not_found' }, 404)
   }
 
   // ── LIBELLÉS des référentiels multiples ─────────────────────────────────

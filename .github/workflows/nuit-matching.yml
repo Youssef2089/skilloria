@@ -1,0 +1,52 @@
+# .github/workflows/nuit-matching.yml — LE GRAND JEU DE NUIT DU MOTEUR (lot DevOps CI, partie A bis, point 5).
+#
+# Chaque nuit, JAMAIS sur une demande de fusion : 1 000 experts, 200 organisations, 300 missions générés (Faker, graine
+# fixe) dans une base Supabase JETABLE démarrée dans le runner ; le vrai moteur de mise en relation sur tout le jeu, avec
+# une IA simulée aux notes fixes. Le résultat — chiffré — se lit dans le résumé de l'exécution (onglet Actions →
+# « Nuit — moteur de mise en relation » → l'exécution → Summary), et dans l'artefact nuit-matching.json.
+# Détail : tests/integration/nuit-matching.mjs. Aucun secret, aucun accès à staging ni à la production.
+
+name: Nuit — moteur de mise en relation
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: nuit-matching
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_EXCLUS: studio,imgproxy,inbucket,realtime,edge-runtime,functions,analytics,vector
+
+jobs:
+  grand-jeu:
+    name: grand-jeu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Démarrer une base Supabase jetable dans le runner (les migrations s'y appliquent)
+        run: npx supabase start -x "$SUPABASE_EXCLUS"
+      - name: Lire les clés de la base locale
+        run: node tests/integration/env-supabase-local.mjs
+      - name: Le grand jeu — générer, puis le vrai moteur sur tout le jeu
+        run: node --experimental-transform-types --no-warnings tests/integration/nuit-matching.mjs
+      - name: Garder le résultat chiffré
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuit-matching
+          path: nuit-matching.json
+          if-no-files-found: warn
+          retention-days: 30

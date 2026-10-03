@@ -185,7 +185,7 @@ ne soit créée pour eux** : inventer des seuils qu'on n'a pas décidés serait 
 > chemin expert — et elle n'était pas documentée.
 **Règle métier : jamais d'auto-rejet.** En dessous du seuil → `pending_admin_review`, un humain
 tranche depuis `/admin/organisations/[id]`.
-`requireOrgApproved(ctx)` garde ensuite les routes réservées.
+`requireOrgApproved(ctx)` garde ensuite les routes réservées — **vraiment depuis le 03/10/2026** (il n'était appelé nulle part) : créer, modifier, publier une annonce, retenir, décliner, dévoiler un candidat, demander son argumentaire ; la base tient les transitions (§D.52). Le formulaire d'annonce le dit avant la saisie et remplace ses boutons par la raison.
 
 **Le refus ne ment pas, et il n'explique rien — mais la distinction existe pour l'admin.**
 L'organisation lit **« En cours de revue »**, et rien d'autre : ni le pays, ni le registre, ni le

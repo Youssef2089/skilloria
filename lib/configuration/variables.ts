@@ -163,6 +163,13 @@ export const VARIABLES: readonly VariableEnvironnement[] = [
   { nom: 'VERCEL_GIT_COMMIT_SHA', exigence: 'plateforme',
     role: 'le commit déployé — posé par Vercel ; la supervision dit la version qu’elle a contrôlée',
     siAbsente: 'la version ne se dit pas (poste local, ou variables système de Vercel non exposées)' },
+  // Lues par la BARRIÈRE DE CONSTRUCTION (§D.51) : où la construction a lieu.
+  { nom: 'VERCEL', exigence: 'plateforme',
+    role: 'vaut « 1 » dans toute construction et toute exécution sur Vercel — posé par Vercel',
+    siAbsente: 'hors de Vercel' },
+  { nom: 'GITHUB_ACTIONS', exigence: 'plateforme',
+    role: 'vaut « true » dans les contrôles de GitHub Actions — posé par GitHub',
+    siAbsente: 'hors de GitHub Actions' },
 ]
 
 export type Manque = {
@@ -231,4 +238,79 @@ export function etatConfiguration(env: Record<string, string | undefined>, commi
 /** Les manques qui CASSENT une fonction (exigence `deploye`) — ceux que la supervision dit BLOQUANTS. */
 export function variablesExigeesManquantes(env: Record<string, string | undefined>): Manque[] {
   return variablesManquantes(env).filter((m) => m.exigence === 'deploye')
+}
+
+/**
+ * ═══ LA BARRIÈRE DE CONSTRUCTION (§D.51 — décision de Youssef, 03/10/2026) ═══════════════════════════
+ *   La construction ÉCHOUE, en nommant chaque variable, si un réglage obligatoire manque — sur Vercel comme
+ *   dans GitHub Actions. Le démarrage (`instrumentation.ts`) ne fait que le DIRE, et c'est voulu : il ne coupe
+ *   pas un site en ligne. La construction, elle, n'a encore rien remplacé — l'arrêter laisse en ligne la
+ *   version d'avant, intacte, au lieu d'en publier une qui casse au premier SMS.
+ *
+ *   Et toute variable `TEST_…` (les fournisseurs simulés des tests de parcours) est INTERDITE en production :
+ *   une seule, et la construction de production échoue en la nommant. Une simulation qui atteindrait la
+ *   production y remplacerait un vrai fournisseur — un SMS, un e-mail, un paiement — sans que personne le voie.
+ *
+ *   Où elle s'applique : Vercel (`VERCEL` ou `VERCEL_ENV` posés) et GitHub Actions (`GITHUB_ACTIONS`). Sur le
+ *   poste local, elle ne bloque rien — `.env.local` n'est pas un environnement déployé. Sur Vercel SANS
+ *   `VERCEL_ENV` (variables système non exposées), elle refuse : sans savoir si c'est la production, on ne
+ *   saurait pas appliquer l'interdiction des `TEST_` — une barrière qui ne sait pas où elle est reste fermée.
+ *   Lue par `scripts/barriere-construction.mjs`, première commande de `npm run build`. Jamais une valeur.
+ */
+export type CibleConstruction = 'production' | 'preview' | 'integration_continue' | 'poste_local' | 'vercel_sans_environnement'
+
+export type Blocage = {
+  nom: string
+  motif: Manque['motif'] | 'interdite_en_production' | 'environnement_vercel_inconnu'
+  /** Ce qui casse, ou pourquoi c'est interdit. */
+  explication: string
+}
+
+export type VerdictConstruction = {
+  cible: CibleConstruction
+  /** Vide : la construction continue. Sinon elle s'arrête, en les nommant tous. */
+  blocages: Blocage[]
+  /** Signalés sans arrêter : une capacité optionnelle éteinte, une variable du poste local posée ailleurs. */
+  avertissements: Manque[]
+}
+
+/** Le préfixe des fournisseurs simulés — interdit en production. */
+export const PREFIXE_SIMULATION = 'TEST_'
+
+export function cibleDeConstruction(env: Record<string, string | undefined>): CibleConstruction {
+  const vercelEnv = (env.VERCEL_ENV ?? '').trim()
+  if (vercelEnv === 'production') return 'production'
+  if (vercelEnv) return 'preview'
+  if ((env.VERCEL ?? '').trim()) return 'vercel_sans_environnement'
+  if ((env.GITHUB_ACTIONS ?? '').trim() === 'true') return 'integration_continue'
+  return 'poste_local'
+}
+
+export function barriereDeConstruction(env: Record<string, string | undefined>): VerdictConstruction {
+  const cible = cibleDeConstruction(env)
+  if (cible === 'poste_local') return { cible, blocages: [], avertissements: [] }
+  const blocages: Blocage[] = []
+  if (cible === 'vercel_sans_environnement') {
+    blocages.push({
+      nom: 'VERCEL_ENV',
+      motif: 'environnement_vercel_inconnu',
+      explication: 'Vercel construit sans dire l’environnement : cochez « Automatically expose System Environment Variables »',
+    })
+  }
+  const manques = variablesManquantes(env)
+  for (const m of manques) {
+    if (m.exigence === 'deploye') blocages.push({ nom: m.nom, motif: m.motif, explication: m.siAbsente })
+  }
+  if (cible === 'production' || cible === 'vercel_sans_environnement') {
+    for (const nom of Object.keys(env).sort()) {
+      if (nom.startsWith(PREFIXE_SIMULATION)) {
+        blocages.push({
+          nom,
+          motif: 'interdite_en_production',
+          explication: 'variable d’un fournisseur simulé : elle remplacerait un vrai fournisseur en production',
+        })
+      }
+    }
+  }
+  return { cible, blocages, avertissements: manques.filter((m) => m.exigence !== 'deploye') }
 }

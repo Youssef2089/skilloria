@@ -90,7 +90,7 @@ Dans cet ordre, et chaque résultat chiffré dans le rapport :
 5. **Tout contrôle nouveau s'éprouve par MUTATION** : casser la règle, voir le rouge, rétablir, vérifier que
    l'arbre est identique (§G.5). Un contrôle jamais vu rouge ne prouve rien.
 6. Les tests pgTAP ne tournent pas ici (ni Docker ni base) : donnez le **nombre attendu** et écrivez
-   **NON exécutés ici**.
+   **NON exécutés ici** — ils tournent sur GitHub Actions, à la demande de fusion du lot (CLAUDE.md §G.13).
 
 Pièges à lire avant d'écrire un diagnostic : §E.3, §E.7, §E.8, §E.22, §E.33, §E.34, §E.38 (index de CLAUDE.md).
 
