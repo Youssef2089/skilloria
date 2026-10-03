@@ -57,6 +57,19 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
 
+## ⛔ ARRÊT 29 ter — LE PREMIER PASSAGE SUR GITHUB : `base` ROUGE, UN TYPAGE (03/10/2026)
+
+Premier passage de GitHub Actions sur la demande de fusion : `statique` et `application` verts ; `base` rouge — les 762 tests
+existants passent, `vrai_appelant/acces_croises.test.sql` tombe à sa ligne 101 avant son premier test (68 prévus, 0 joués) :
+`is(:'sans_rls', '', …)`, deux valeurs sans type passées à une fonction polymorphe (§E.120).
+**Corrigé** : `is(:'sans_rls'::text, ''::text, …)`. **Cherché partout** : un contrôle neuf, `diag-tests-grand-livre` (M), lit les
+184 appels `is` / `isnt` / `cmp_ok` de tous les tests (les miens : acces_croises, organisation_approuvee, effets) — c'était la
+seule. Relu à la main dans mes trois fichiers : `format`, `json_build_object`, `||`, `like` et `throws_ok` reçoivent des
+valeurs sans type sans ambiguïté (les tests existants emploient les mêmes formes et passent). Mutations : 3 sur 3 rougissent.
+**Pour Youssef** : renvoyer la branche ; `base` doit afficher **859** tests (762 + 68 + 11 + 18).
+
+---
+
 ## ⛔ ARRÊT 29 bis — LOT DEVOPS CI, PARTIE A BIS : CINQ AJOUTS SUR `lot/devops-ci`, AVANT LA RELECTURE (03/10/2026)
 
 Même branche, à la suite de l’ARRÊT 29 (`0afac6c`). Un commit par point. Aucun `git push`, aucune écriture en base, ni Docker

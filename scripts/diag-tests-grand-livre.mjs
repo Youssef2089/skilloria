@@ -439,6 +439,53 @@ ok(plansFaux.length === 0, `C bis. le plan de chacun des ${tousLesTests.filter((
     fautives.length ? fautives.join('\n       → ') : undefined)
 }
 
+// ── M. DEUX VALEURS SANS TYPE NE SE COMPARENT PAS (lot DevOps CI, premier passage sur GitHub, 03/10/2026) ──
+//  `is(anyelement, anyelement, text)`, `isnt(…)` et `cmp_ok(anyelement, text, anyelement)` sont POLYMORPHES : PostgreSQL
+//  déduit le type des valeurs comparées. Si les deux sont sans type — un littéral nu `'…'`, une variable psql `:'x'` (qui
+//  se déplie en littéral), `null` —, il ne peut pas : « could not determine polymorphic type because input has type
+//  unknown », et le fichier entier tombe AVANT son premier test (acces_croises : 68 prévus, 0 joués). La parade : un type
+//  explicite sur l'une des deux (`:'x'::text`). Le contrôle lit chaque appel, dans les corps de fonction compris.
+{
+  const SANS_TYPE = /^(?:E?'(?:[^']|'')*'|:'[A-Za-z_][A-Za-z0-9_]*'|null)$/i
+  /** Les arguments d'un appel, à partir de sa parenthèse ouvrante : coupés aux virgules de premier niveau. */
+  const argumentsDe = (s, debut) => {
+    const args = []
+    let prof = 0, cour = '', i = debut
+    for (; i < s.length; i++) {
+      const c = s[i]
+      if (c === "'") { const fin = s.indexOf("'", i + 1); let j = fin; while (j >= 0 && s[j + 1] === "'") j = s.indexOf("'", j + 2); cour += s.slice(i, j + 1); i = j; continue }
+      if (c === '(') { prof++; if (prof === 1) continue }
+      if (c === ')') { prof--; if (prof === 0) { args.push(cour.trim()); break } }
+      if (c === ',' && prof === 1) { args.push(cour.trim()); cour = ''; continue }
+      if (prof >= 1) cour += c
+    }
+    return args
+  }
+  const fautes = []
+  let appels = 0
+  for (const p of tousLesTests) {
+    const s = sansCommentaires(lire(p))
+    for (const m of s.matchAll(/\b(is|isnt|cmp_ok)\s*\(/g)) {
+      const args = argumentsDe(s, m.index + m[0].length - 1)
+      const [a, b] = m[1] === 'cmp_ok' ? [args[0], args[2]] : [args[0], args[1]]
+      if (a === undefined || b === undefined) continue
+      appels++
+      if (SANS_TYPE.test(a) && SANS_TYPE.test(b)) {
+        const ligne = s.slice(0, m.index).split('\n').length
+        fautes.push(`${relative(ROOT, p).split('\\').join('/')}:${ligne} — ${m[1]}(${a}, ${b}, …) : donnez un type à l'une des deux (::text, ::bigint…)`)
+      }
+    }
+  }
+  ok(appels > 100 && fautes.length === 0, `M. aucune comparaison is / isnt / cmp_ok entre deux valeurs sans type (${appels} appels lus)`,
+    fautes.length ? fautes.join('\n       → ') : undefined)
+  // L'épreuve du contrôle lui-même, sur des appels fabriqués.
+  const essai = (texte) => { const m = /\b(is|isnt|cmp_ok)\s*\(/.exec(texte); const a = argumentsDe(texte, m.index + m[0].length - 1); const [x, y] = m[1] === 'cmp_ok' ? [a[0], a[2]] : [a[0], a[1]]; return SANS_TYPE.test(x) && SANS_TYPE.test(y) }
+  ok(essai("select is(:'v', '', 'x');") && essai("select is('a', 'b', 'x');") && essai("select cmp_ok(:'n', '=', '3', 'x');")
+     && !essai("select is(:'v'::text, '', 'x');") && !essai("select is((select 'a'), 'a', 'x');") && !essai("select is(:n::bigint, 1::bigint, 'x');")
+     && !essai("return next is(v_r ->> 'issue', 'devoilee', 'x');") && essai("select is('l''a', null, 'x');"),
+    'M. le contrôle reconnaît la faute (littéraux nus, variable psql, null) et laisse passer un type explicite, une sous-requête, une colonne')
+}
+
 // ── E. La commande de test ne vise jamais la base liée ──
 const INTERDIT = new RegExp('test\\s+db\\s+--' + 'linked|test\\s+db\\s+--' + 'db-url')
 const RACINES = ['CLAUDE.md', 'AGENTS.md', 'package.json', 'docs', 'scripts', 'supabase/tests']

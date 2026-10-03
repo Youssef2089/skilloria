@@ -366,6 +366,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.116](docs/pieges.md#e116) | UN PRÉDICAT PARTAGÉ QUI GAGNE UN CHAMP CASSE L'APPELANT QU'UNE AUTRE BRANCHE VIENT D'ÉCRIRE — fusion sans conflit, vu par `tsc` parce qu'aucun champ n'est facultatif. |
 | [E.118](docs/pieges.md#e118) | UN CHECK LAISSE PASSER NULL : « un nombre ET une unité » acceptait un nombre seul (`true and null` = NULL) — « les deux » commence par `a is not null and b is not null`. Et un `end $$;` perdu : 0 test joué. |
 | [E.119](docs/pieges.md#e119) | LE CODE DE `lib/` NE SE CHARGE PAS TEL QUEL DANS NODE : paramètre de constructeur, import sans extension, JSON sans attribut, `resend` → `svix` — `scripts/lib/chargeur-ts.mjs` les résout sans toucher au code. |
+| [E.120](docs/pieges.md#e120) | DEUX VALEURS SANS TYPE NE SE COMPARENT PAS : `is(:'x', '')` fait tomber le fichier pgTAP avant son premier test (68 prévus, 0 joués) — un `::type` sur l'une ; `diag-tests-grand-livre` (M). |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

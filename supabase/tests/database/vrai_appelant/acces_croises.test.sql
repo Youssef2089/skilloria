@@ -98,7 +98,7 @@ insert into public.notifications (user_id, domain_id, type) values (:'expert_b',
 select coalesce(string_agg(c.relname, ', ' order by c.relname), '') as sans_rls
   from pg_class c join pg_namespace n on n.oid = c.relnamespace
  where n.nspname = 'public' and c.relkind in ('r', 'p') and not c.relrowsecurity \gset
-select is(:'sans_rls', '', 'catalogue : la RLS est active sur chaque table du schéma public (aucune porte ouverte par défaut)');
+select is(:'sans_rls'::text, ''::text, 'catalogue : la RLS est active sur chaque table du schéma public (aucune porte ouverte par défaut)');
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- VISITEUR (anon, sans jeton)
