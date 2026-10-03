@@ -2616,6 +2616,12 @@ fabrique de comptes dans le dépôt (§E.20).
   `scripts/lib/chargeur-ts.mjs` (§E.119), intercepte `fetch` — `api.cohere.com` rend les notes fixes du jeu, tout autre hôte
   externe est coupé —, pose les filtres par `regler_matching` (3 et 8), exécute `chargerVivierPourAnnonce`,
   `runMatchingForExpert`, `runMatchingForPublication`, relit `matches` et `notifications`.
+  **Selon les réglages** (partie A bis, point 3) : les notes simulées sont FIXES (9, 5,5 et 1,5 sur 10) et le jeu est rejoué
+  depuis zéro sous cinq couples (note minimale d'affichage, palier « Correspondance forte ») posés par `regler_matching` —
+  0/8, 3/8, 6/8, 3/5, 3/10. Pour chacun : l'AFFICHAGE par la vraie requête du flux de l'expert (`expertMissionsQuery`,
+  lib/missions/feed.ts), une ALERTE par annonce affichée et aucune sous le filtre, l'ÉTIQUETTE `strong` au-dessus du palier ;
+  puis, au même filtre, trois paliers : affichage et alertes identiques, étiquettes toutes différentes (§D.48 : le palier
+  ne décide que de l'étiquette).
 
 **Ce qui n’y tourne pas** : staging, la production, un vrai fournisseur ; la requête de staging, `db push`, `git push`
 (gestes de Youssef jusqu’au lot DevOps 2) ; les parcours d’écran (S1, partie B, son propre flux `parcours.yml`).

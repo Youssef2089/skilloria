@@ -29,7 +29,7 @@
 
 import { Banc, environnementLocal, executerSql, lireJson, nAPasTourne } from './outils.mjs'
 import { importerDuDepot } from '../../scripts/lib/chargeur-ts.mjs'
-import { ANNONCES, ATTENDU, EXPERTS, FEED, INELIGIBLES, NOTES, PALIER, SENS_EXPERT } from './jeu-de-reference.mjs'
+import { ANNONCES, ATTENDU, EXPERTS, FEED, INELIGIBLES, NOTE_SIMULEE, NOTES, PALIER, REGLAGES, SENS_EXPERT } from './jeu-de-reference.mjs'
 
 // ═══ LE JEU DE RÉFÉRENCE ══════════════════════════════════════════════════════
 // Des données, dans leur propre module (tests/integration/jeu-de-reference.mjs) : leur cohérence interne se
@@ -130,7 +130,8 @@ end $$;`)
 // ═══ L'IA SIMULÉE ════════════════════════════════════════════════════════════
 const repere = (texte) => /REF-([A-Z][0-9])/.exec(texte ?? '')?.[1] ?? null
 const ia = { mode: 'normal', appels: 0, couplesManquants: [] }
-let notes = null // { fort, normal, sous } en 0-1, dérivées des filtres relus
+// Les notes FIXES de l'IA simulée (jeu-de-reference.mjs), rendues comme le fournisseur les rend : en 0-1.
+const notes = Object.fromEntries(Object.entries(NOTE_SIMULEE).map(([k, v]) => [k, v / 10]))
 
 function fauxCohere(init) {
   ia.appels++
@@ -200,8 +201,8 @@ async function principal() {
   banc.section('Les filtres, posés par la fonction de l’écran')
   banc.ok(Number(reglage.feed_threshold) === FEED && Number(reglage.notify_threshold) === PALIER,
     `filtre du flux ${FEED}/10, palier « Correspondance forte » ${PALIER}/10`, JSON.stringify(reglage))
-  const f = Number(reglage.feed_threshold), p = Number(reglage.notify_threshold)
-  notes = { fort: (p + 10) / 20, normal: (f + p) / 20, sous: f / 20 }
+  banc.ok(NOTE_SIMULEE.fort >= PALIER && PALIER > NOTE_SIMULEE.normal && NOTE_SIMULEE.normal >= FEED && FEED > NOTE_SIMULEE.sous,
+    `les notes simulées tombent dans les trois issues : fort ${NOTE_SIMULEE.fort}, normal ${NOTE_SIMULEE.normal}, sous ${NOTE_SIMULEE.sous}`)
 
   const parProfil = new Map(EXPERTS.map((e) => [refs[`profil_${e.ref}`], e.ref]))
   const parAnnonce = new Map(ANNONCES.map((a) => [refs[`pub_${a.ref}`], a.ref]))
@@ -292,6 +293,74 @@ async function principal() {
   ia.mode = 'normal'
   banc.ok(enPanne.status === 'error', 'O1 avec un reranker en panne : le run est INACHEVÉ (error), pas « personne ne correspond »', `${enPanne.status} — ${enPanne.notes}`)
   banc.ok(egal(trierObjet(await lireCorrespondances()), attenduTout), 'O1 : la correspondance de C1 est conservée')
+
+  // ── 6. Le moteur SELON LES RÉGLAGES ──
+  //  Chaque couple (note minimale d'affichage, palier « Correspondance forte ») est posé par la fonction de l'écran, puis
+  //  le jeu est rejoué depuis zéro (correspondances et avis du jeu effacés — la base est jetable). On lit trois choses :
+  //  l'AFFICHAGE (la vraie requête du flux de l'expert, `expertMissionsQuery`), les ALERTES (les avis), l'ÉTIQUETTE
+  //  (`relevance_tier`). La note minimale décide des deux premières, le palier de la troisième seulement (§D.48).
+  banc.section('6. Selon les réglages — la note minimale décide de l’affichage et de l’alerte, le palier de l’étiquette seule')
+  const { buildExpertMissionsSelect, expertMissionsQuery } = await importerDuDepot('lib/missions/feed.ts')
+  const { chargerDurees } = await importerDuDepot('lib/durees.ts')
+  const durees = await chargerDurees(supabase)
+  if (!durees.ok) return nAPasTourne(banc.titre, `durées illisibles : ${durees.raison}`)
+  const pubs = [...parAnnonce.keys()]
+  const lireAffichage = async () => {
+    const out = {}
+    for (const e of EXPERTS) {
+      const { data, error } = await expertMissionsQuery(supabase, refs[`profil_${e.ref}`], {
+        select: buildExpertMissionsSelect({ matchColumns: 'id, publication_id' }), vieAnnonceJours: durees.durees.vieAnnonceJours,
+      })
+      if (error) throw new Error(`flux de ${e.ref} illisible : ${error.message}`)
+      for (const m of data ?? []) {
+        const a = parAnnonce.get(m.publication_id)
+        if (a) (out[a] ??= []).push(e.ref)
+      }
+    }
+    return Object.fromEntries(Object.entries(out).map(([a, xs]) => [a, xs.sort()]).sort())
+  }
+  const note = (a, e) => NOTE_SIMULEE[NOTES[a][e]]
+  const vues = {}
+  for (const reglage of REGLAGES) {
+    executerSql(`select public.regler_matching(gen_random_uuid(), '${refs.admin}', '${refs.domaine}', '${refs.domaine}',
+        jsonb_build_object('feed_threshold', ${reglage.feed}, 'notify_threshold', ${reglage.palier}),
+        (select jsonb_build_object('feed_threshold', m.feed_threshold, 'notify_threshold', m.notify_threshold)
+           from public.matching_settings m where m.domain_id = '${refs.domaine}'));
+      delete from public.notifications where entity_id in (${pubs.map((x) => `'${x}'`).join(', ')});
+      delete from public.matches where publication_id in (${pubs.map((x) => `'${x}'`).join(', ')});`, { db: env.db })
+    for (const a of ANNONCES) await moteur.runMatchingForPublication({ supabaseAdmin: supabase, publicationId: refs[`pub_${a.ref}`], journal: contexte() })
+    const affichees = {}, etiquettes = {}
+    for (const [a, { vivier }] of Object.entries(ATTENDU)) {
+      for (const e of vivier) {
+        if (note(a, e) < reglage.feed) continue
+        ;(affichees[a] ??= []).push(e)
+        ;(etiquettes[a] ??= {})[e] = reglage.palier > 0 && note(a, e) >= reglage.palier ? 'strong' : 'normal'
+      }
+    }
+    const attenduAffichage = Object.fromEntries(Object.entries(affichees).map(([a, xs]) => [a, xs.sort()]).sort())
+    const affichage = await lireAffichage()
+    const avis = await lireAvis()
+    const correspondances = trierObjet(await lireCorrespondances())
+    const nom = `filtre ${reglage.feed}, palier ${reglage.palier}`
+    banc.ok(egal(affichage, attenduAffichage), `${nom} — l’affichage (le flux de chaque expert) : ${reglage.pourquoi}`,
+      `rendu : ${JSON.stringify(affichage)} — attendu : ${JSON.stringify(attenduAffichage)}`)
+    const couplesAffiches = Object.entries(attenduAffichage).flatMap(([a, xs]) => xs.map((e) => `${a}×${e}`)).sort()
+    banc.ok(egal(Object.keys(avis).sort(), couplesAffiches) && Object.values(avis).every((n) => n === 1),
+      `${nom} — une alerte par annonce affichée, aucune pour une annonce sous le filtre (${couplesAffiches.length})`, JSON.stringify(avis))
+    banc.ok(egal(correspondances, trierObjet(etiquettes)), `${nom} — l’étiquette « Correspondance forte » suit le palier`,
+      `rendu : ${JSON.stringify(correspondances)} — attendu : ${JSON.stringify(trierObjet(etiquettes))}`)
+    vues[`${reglage.feed}/${reglage.palier}`] = { affichage, avis: Object.keys(avis).sort(), correspondances }
+  }
+  // Le palier seul ne change NI l'affichage NI les alertes : comparé, réglage contre réglage, au même filtre.
+  const memeFiltre = REGLAGES.filter((x) => x.feed === FEED).map((x) => vues[`${x.feed}/${x.palier}`])
+  banc.ok(memeFiltre.length >= 2 && memeFiltre.every((v) => egal(v.affichage, memeFiltre[0].affichage) && egal(v.avis, memeFiltre[0].avis))
+    && new Set(memeFiltre.map((v) => JSON.stringify(v.correspondances))).size === memeFiltre.length,
+    `au même filtre (${FEED}), ${memeFiltre.length} paliers : affichage et alertes IDENTIQUES, étiquettes toutes différentes`)
+  // On rend au jeu ses réglages.
+  executerSql(`select public.regler_matching(gen_random_uuid(), '${refs.admin}', '${refs.domaine}', '${refs.domaine}',
+      jsonb_build_object('feed_threshold', ${FEED}, 'notify_threshold', ${PALIER}),
+      (select jsonb_build_object('feed_threshold', m.feed_threshold, 'notify_threshold', m.notify_threshold)
+         from public.matching_settings m where m.domain_id = '${refs.domaine}'));`, { db: env.db })
 
   banc.conclure()
 }

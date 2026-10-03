@@ -63,6 +63,27 @@ export const ATTENDU = {
 export const FEED = 3
 export const PALIER = 8
 
+/**
+ * Les notes FIXES de l'IA simulée, sur 10 (le reranker rend du 0-1, le moteur le multiplie par 10 à la frontière).
+ * Elles ne bougent pas quand les réglages bougent — c'est ce qui permet de voir l'effet de chaque réglage.
+ * Avec les filtres du jeu : « fort » au-dessus du palier, « normal » entre les deux, « sous » sous le filtre.
+ */
+export const NOTE_SIMULEE = { fort: 9, normal: 5.5, sous: 1.5 }
+
+/**
+ * LE MOTEUR SELON LES RÉGLAGES (partie A bis, point 3) : le jeu rejoué sous chaque couple (note minimale d'affichage,
+ * palier « Correspondance forte »). La note minimale décide de l'AFFICHAGE et de l'ALERTE ; le palier ne décide que de
+ * l'ÉTIQUETTE (§D.48). Le résultat attendu se lit dans les notes fixes : affichée et alertée si note ≥ filtre,
+ * « Correspondance forte » si note ≥ palier (et palier > 0).
+ */
+export const REGLAGES = [
+  { feed: 0, palier: 8, pourquoi: 'filtre à zéro : tout le vivier s’affiche et alerte, « sous » compris' },
+  { feed: 3, palier: 8, pourquoi: 'les réglages du jeu' },
+  { feed: 6, palier: 8, pourquoi: 'filtre relevé : « normal » ne s’affiche plus et n’alerte plus' },
+  { feed: 3, palier: 5, pourquoi: 'palier abaissé : « normal » devient « Correspondance forte » — affichage et alertes inchangés' },
+  { feed: 3, palier: 10, pourquoi: 'palier au maximum : plus aucune « Correspondance forte » — affichage et alertes inchangés' },
+]
+
 /** Les experts que le sens expert → annonces fait tourner en premier (les autres suivent par le sens annonce). */
 export const SENS_EXPERT = ['E1', 'E3', 'C1']
 /** Des experts inéligibles que le sens expert → annonces doit laisser sans correspondance. */

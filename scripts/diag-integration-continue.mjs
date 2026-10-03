@@ -157,6 +157,16 @@ for (const e of jeu.INELIGIBLES) {
 for (const e of jeu.SENS_EXPERT) if (!experts.has(e)) incoherences.push(`${e} : inconnu`)
 ok(incoherences.length === 0, `vivier noté, correspondances tirées des notes, références existantes (${experts.size} experts, ${annonces.size} annonces)`, incoherences.join(' · '))
 ok(jeu.FEED < jeu.PALIER && jeu.PALIER <= 10 && jeu.FEED > 0, `les filtres du jeu laissent trois issues : sous ${jeu.FEED}, entre, au-dessus de ${jeu.PALIER}`)
+const N = jeu.NOTE_SIMULEE
+ok(N && N.fort >= jeu.PALIER && jeu.PALIER > N.normal && N.normal >= jeu.FEED && jeu.FEED > N.sous && N.fort <= 10 && N.sous >= 0,
+  `les notes simulées fixes (fort ${N?.fort}, normal ${N?.normal}, sous ${N?.sous}) tombent dans les trois issues des filtres du jeu`)
+const R = jeu.REGLAGES ?? []
+const memeFiltre = R.filter((x) => x.feed === jeu.FEED).map((x) => x.palier)
+const filtres = new Set(R.map((x) => x.feed))
+ok(R.length >= 4 && R.every((x) => x.feed >= 0 && x.feed <= x.palier && x.palier <= 10 && typeof x.pourquoi === 'string')
+   && new Set(memeFiltre).size >= 2 && filtres.size >= 2
+   && R.some((x) => x.feed > N.normal) && R.some((x) => x.palier <= N.normal) && R.some((x) => x.palier > N.fort),
+  `les réglages rejoués (${R.length}) font bouger le filtre ET le palier, et chaque note change d’issue au moins une fois`)
 
 // ── F. DEPENDABOT ────────────────────────────────────────────────────────────
 section('F. Dependabot : la sécurité regroupée, rien ne fusionne seul')
@@ -173,11 +183,12 @@ section('G. Le moteur se charge hors de Next (exécuté)')
 const essai = spawnSync(process.execPath, ['--experimental-transform-types', '--no-warnings', '--input-type=module', '-e',
   `import { importerDuDepot } from ${JSON.stringify(pathToFileURL(join(ROOT, 'scripts/lib/chargeur-ts.mjs')).href)};
    const m = await importerDuDepot('lib/matching/index.ts'); const p = await importerDuDepot('lib/matching/pool.ts');
+   const f = await importerDuDepot('lib/missions/feed.ts'); const d = await importerDuDepot('lib/durees.ts');
    const j = await importerDuDepot('lib/journal/contexte.ts');
-   console.log([typeof m.runMatchingForPublication, typeof m.runMatchingForExpert, typeof p.chargerVivierPourAnnonce, typeof j.ouvrirContexte].join(','))`],
+   console.log([typeof m.runMatchingForPublication, typeof m.runMatchingForExpert, typeof p.chargerVivierPourAnnonce, typeof j.ouvrirContexte, typeof f.expertMissionsQuery, typeof d.chargerDurees].join(','))`],
   { cwd: ROOT, encoding: 'utf8', timeout: 60_000, env: { ...process.env, NEXT_PUBLIC_SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '' } })
-ok(essai.stdout?.trim().split('\n').pop() === 'function,function,function,function',
-  'runMatchingForPublication, runMatchingForExpert, chargerVivierPourAnnonce et ouvrirContexte se chargent tels qu’ils sont livrés',
+ok(essai.stdout?.trim().split('\n').pop() === 'function,function,function,function,function,function',
+  'runMatchingForPublication, runMatchingForExpert, chargerVivierPourAnnonce, ouvrirContexte, expertMissionsQuery et chargerDurees se chargent tels qu’ils sont livrés',
   (essai.stderr || essai.stdout || '').trim().slice(-400))
 
 console.log(failures === 0
