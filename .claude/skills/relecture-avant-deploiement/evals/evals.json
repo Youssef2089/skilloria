@@ -1,0 +1,23 @@
+{
+  "skill_name": "relecture-avant-deploiement",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Relis lot/regroupement avant qu'on le deploie. Je veux ton verdict.",
+      "expected_output": "Lit l'ARRET, le diff reel et le commit en ligne ; parcourt la liste (restrictions contre le code en ligne, requete de staging, chemins reels des tests, atomicite, rejeu, codes et quatre langues, memoire, epreuve refaite) ; rend FEU ROUGE ou FEU VERT avec des points BLOQUANT/MAJEUR/mineur, fichier:ligne, et sa liste Lu / Non relu ; ne corrige pas et ne pousse rien.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Les corrections de la relecture sont commitees, tu peux faire la contre-relecture ?",
+      "expected_output": "Reprend chaque point de la relecture par lettre, dit pour chacun s'il est corrige et ce qui le prouve (test, controle vu rouge par mutation), et remonte a Youssef ce qui demande une decision produit.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "c'est bon pour partir ? tsc et build sont verts",
+      "expected_output": "Ne s'arrete pas a tsc et build : verifie aussi diag-deux-temps, la requete de staging, diag.mjs, diag-controles-a-rejouer, le cliquet de lint et le nombre de tests pgTAP attendu ; rend un verdict.",
+      "files": []
+    }
+  ]
+}

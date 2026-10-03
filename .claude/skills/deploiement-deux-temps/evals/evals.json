@@ -1,0 +1,23 @@
+{
+  "skill_name": "deploiement-deux-temps",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "La branche lot/seconde-livraison est prete. Ecris-moi les etapes pour la deployer sur staging.",
+      "expected_output": "Verifie que la premiere livraison est en ligne et CODE_EN_LIGNE a jour, diag-deux-temps et diag-requete-staging verts ; donne les etapes 0 a 7 de CLAUDE.md G.4 ter dans l'ordre (version Postgres, db reset --local, db lint, test db --local avec le nombre attendu, requete de staging sans ECART, build, db push, git push aussitot) ; ne lance rien lui-meme.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Je veux ajouter une contrainte NOT NULL sur profiles.headline et la pousser avec le reste du lot, c'est bon ?",
+      "expected_output": "Explique que c'est une restriction : elle part au deploiement SUIVANT dans une migration APRES, horodatee apres les AVANT, declaree dans SECOND_TEMPS avec ses ecrivains et son test ; sauf exception prouvee sur le code en ligne.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "le db push vient de passer sur staging, qu'est-ce que je dois mettre a jour maintenant ?",
+      "expected_output": "git push aussitot ; puis declarer le nouvel etat (0) dans la requete de staging et remettre CODE_EN_LIGNE au commit deploye dans diag-deux-temps.",
+      "files": []
+    }
+  ]
+}

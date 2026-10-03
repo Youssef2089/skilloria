@@ -623,6 +623,20 @@ pas reçu.
 
 **G.10 — AVANT d'écrire une fonction, une route ou un test, on lit dans les migrations les contraintes RÉELLES des tables touchées (CHECK, FK, NOT NULL, longueurs, déclencheurs)** — un test écrit de mémoire a posé `experience_type = 'mission'`, que la table refuse (§E.88).
 
+**G.11 — LES SKILLS PARTAGÉES (`.claude/skills/`, lot skills, 03/10/2026).** Livrées dans git (seul ce dossier de
+`.claude/` l'est) : toute session du dépôt les a — principal, S1, S2, S3, relecteur — **une fois sa branche à jour**.
+Provenance, commits, licences et code exécuté : [.claude/skills/PROVENANCE.md](.claude/skills/PROVENANCE.md).
+· **Les nôtres** (écrites depuis cette mémoire, sans règle nouvelle ; elles ne font pas foi, ce fichier et `docs/` si) :
+  `regles-communes-des-lots` — au début de chaque lot (périmètre, migrations, quatre langues, codes, contrôles, ARRÊT) ;
+  `deploiement-deux-temps` — préparer un déploiement (§G.4 ter, deux temps) ; `relecture-avant-deploiement` — relire un lot.
+· **Les officielles**, copiées à l'octet chez l'éditeur : `supabase`, `supabase-postgres-best-practices` (base, RLS,
+  migrations) ; `vercel-react-best-practices` (React / Next) ; `stripe-best-practices` ; `resend`, `email-best-practices`
+  (envoi, délivrabilité) ; `frontend-design` (écran nouveau) ; `webapp-testing` (Playwright — **Python requis**) ;
+  `skill-creator` (écrire une skill — **Python requis** ; son épreuve des descriptions ne tourne pas sous Windows).
+· **En cas de conflit, ce fichier et `docs/` l'emportent** sur une skill externe — frictions relevées dans la provenance
+  (`supabase` itère sur la base, contre §G.6 ; `frontend-design` contre §D.12).
+· Fournies par Claude Code, rien à installer : `claude-api`, `code-review` (pas de `verify` dans cette version).
+
 ---
 
 ## Les trois autres fichiers de la mémoire

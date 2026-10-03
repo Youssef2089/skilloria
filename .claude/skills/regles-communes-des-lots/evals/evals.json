@@ -1,0 +1,23 @@
+{
+  "skill_name": "regles-communes-des-lots",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "LOT CRITERES DES MISSIONS. Branche lot/criteres-missions depuis feat/sprint-archi-orga. Ajoute une colonne duree_max sur publications, avec son message d'erreur si elle manque a la publication. Aucun push.",
+      "expected_output": "Cree la branche depuis la tete verifiee ; cree la migration par npm run db:new dans la plage attribuee, en-tete AVANT/APRES ; lit les contraintes reelles de publications ; code d'erreur nouveau nomme, message dans les quatre langues ; epreuve (tsc, build, lint cliquet, diag-controles-a-rejouer, diag.mjs) ; memoire mise a jour dans le meme commit ; rapport ARRET avec Lu / Non relu ; aucun push.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "ajoute juste un bouton 'Retour a la liste' sur la fiche d'annonce cote expert, c'est rapide",
+      "expected_output": "Signale que la decision figee D.45 interdit tout bouton Retour (navigation par les menus) et ne l'ajoute pas sans arbitrage de Youssef.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Ecris le rapport de fin de lot pour ce qu'on vient de faire sur les zones de travail.",
+      "expected_output": "Rapport au format ARRET : branche et commit de depart, Lu / Non relu, tableau # | Fait | Prouve par, migrations et leur ordre, tests attendus NON executes, epreuve chiffree, ce qui reste, Pour Youssef dans l'ordre ; puis s'arrete.",
+      "files": []
+    }
+  ]
+}

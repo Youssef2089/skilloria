@@ -41,7 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 # Claude Code (local config, logs, scheduled tasks)
-.claude/
+# Les skills du projet sont PARTAGÉES par toutes les sessions (lot skills, 03/10/2026) : seul
+# `.claude/skills/` est livré ; réglages, journaux et tâches planifiées restent sur chaque poste.
+.claude/*
+!.claude/skills/
 
 # Supabase CLI cache (link metadata, version stamps)
 supabase/.temp/
