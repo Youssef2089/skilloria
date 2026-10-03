@@ -350,7 +350,9 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   }
   const avantAnnonce = pub as unknown as Record<string, unknown>
   if ((avantAnnonce.organization_id as string) !== orgId) {
-    return json({ error: 'Forbidden', code: 'forbidden' }, 403)
+    // L'ANNONCE D'UNE AUTRE ORGANISATION SE REFUSE COMME UNE ANNONCE QUI N'EXISTE PAS (§D.53) : 404 `not_found`,
+    // jamais 403 — un 403 dirait qu'elle existe. Le même refus sur chaque route qui prend l'identifiant d'une annonce.
+    return json({ error: 'Not found', code: 'not_found' }, 404)
   }
   // LES ZONES SONT UN ENSEMBLE (lot zones de travail, 02/10/2026) : la même sélection dans un autre ordre garde la
   // valeur LUE — « Annonce modifiée » ne nomme pas une zone qui n'a pas bougé.
@@ -546,7 +548,9 @@ export async function GET(request: NextRequest, ctx: RouteContext): Promise<Resp
     return json({ error: 'Not found', code: 'not_found' }, 404)
   }
   if (pub.organization_id !== orgId) {
-    return json({ error: 'Forbidden', code: 'forbidden' }, 403)
+    // L'ANNONCE D'UNE AUTRE ORGANISATION SE REFUSE COMME UNE ANNONCE QUI N'EXISTE PAS (§D.53) : 404 `not_found`,
+    // jamais 403 — un 403 dirait qu'elle existe. Le même refus sur chaque route qui prend l'identifiant d'une annonce.
+    return json({ error: 'Not found', code: 'not_found' }, 404)
   }
 
   // ── LIBELLÉS des référentiels multiples ─────────────────────────────────

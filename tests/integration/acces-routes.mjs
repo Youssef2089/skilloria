@@ -152,9 +152,8 @@ async function principal() {
       'org_b',   (select md5(row(o.*)::text) from public.organizations o where o.id = '${refs.org_client_b}'))::text;`, { db: env.db }), 'EMPREINTE')
   const avant = empreinte()
   const REFUS_ID = { statut: 404, codes: ['not_found'] }
-  // Une annonce d'une autre organisation : 403 `forbidden` sur certaines routes, 404 `not_found` sur d'autres
-  // (relevé du lot DevOps CI) — deux refus NOMMÉS ; l'écart est signalé dans le rapport, pas tranché ici.
-  const REFUS_ANNONCE = { statut: 403, codes: ['forbidden'] }
+  // L'annonce d'une autre organisation se refuse PARTOUT comme une annonce qui n'existe pas (§D.53) : 404 `not_found`.
+  const REFUS_ANNONCE = REFUS_ID
   await attendre('expert_a', 'GET', `/api/me/missions/${refs.pub_b}`, REFUS_ID, 'la mission proposée à B')
   await attendre('expert_a', 'POST', `/api/me/missions/${refs.pub_b}/dismiss`, REFUS_ID, 'écarter la mission de B')
   await attendre('expert_a', 'POST', `/api/me/candidatures/${refs.cand_b}/view`, REFUS_ID, 'marquer vue la candidature de B')
@@ -163,6 +162,7 @@ async function principal() {
   await attendre('client_a', 'GET', `/api/publications/${refs.pub_b}`, REFUS_ANNONCE, 'lire l’annonce du client B')
   await attendre('client_a', 'PATCH', `/api/publications/${refs.pub_b}`, REFUS_ANNONCE, 'modifier l’annonce du client B', { title: 'Annonce détournée par le client A' })
   await attendre('client_a', 'POST', `/api/publications/${refs.pub_b}/close`, REFUS_ANNONCE, 'clôturer l’annonce du client B')
+  await attendre('client_a', 'POST', `/api/publications/${refs.pub_b}/publish`, REFUS_ANNONCE, 'publier l’annonce du client B')
   await attendre('client_a', 'GET', `/api/publications/${refs.pub_b}/candidatures`, REFUS_ID, 'lire les candidatures du client B')
   await attendre('client_a', 'POST', `/api/candidatures/${refs.cand_a}/select`, REFUS_ID, 'retenir une candidature reçue par B')
   await attendre('client_a', 'POST', `/api/candidatures/${refs.cand_a}/pitch`, REFUS_ID, 'demander l’argumentaire d’une candidature reçue par B')
@@ -173,6 +173,18 @@ async function principal() {
     await attendre(o, 'GET', `/api/publications/${refs.pub_a}/candidatures`, REFUS_ID, 'lire les candidatures du client A')
   }
   await attendre('expert_a', 'GET', `/api/conversations/${randomUUID()}/messages`, REFUS_ID, 'une conversation qui n’est pas la sienne')
+  const PAR_ID = [['GET', ''], ['PATCH', ''], ['POST', '/close'], ['POST', '/publish'], ['GET', '/candidatures']]
+  const differentes = []
+  for (const [methode, suffixe] of PAR_ID) {
+    const corps = methode === 'PATCH' ? { title: 'Annonce détournée par le client A' } : undefined
+    const autre = await appel('client_a', methode, `/api/publications/${refs.pub_b}${suffixe}`, corps)
+    const absente = await appel('client_a', methode, `/api/publications/${randomUUID()}${suffixe}`, corps)
+    if (autre.statut !== absente.statut || JSON.stringify(autre.json) !== JSON.stringify(absente.json)) {
+      differentes.push(`${methode} …${suffixe} : ${decrire(autre)} ≠ ${decrire(absente)}`)
+    }
+  }
+  banc.ok(differentes.length === 0, `l’annonce d’une autre organisation et une annonce inexistante rendent la MÊME réponse, sur les ${PAR_ID.length} routes à identifiant d’annonce — rien ne révèle qu’elle existe`,
+    differentes.join(' · '))
   const apres = empreinte()
   const changees = Object.keys(avant).filter((k) => avant[k] !== apres[k])
   banc.ok(changees.length === 0 && Object.values(avant).every(Boolean),
@@ -196,7 +208,7 @@ async function principal() {
     await attendre(o, 'GET', '/api/publications', OK, 'lit encore SES annonces (une lecture n’est pas réservée)')
   }
   //  Le client A est approuvé : la garde le laisse passer — il bute ensuite sur la propriété de l'annonce (R4), pas sur elle.
-  await attendre('client_a', 'PATCH', `/api/publications/${refs.pub_b}`, REFUS_ANNONCE, 'approuvé : passe la garde, puis bute sur la propriété de l’annonce de B', { title: 'Annonce détournée par le client A' })
+  await attendre('client_a', 'PATCH', `/api/publications/${refs.pub_b}`, REFUS_ID, 'approuvé : passe la garde, puis l’annonce de B lui est introuvable', { title: 'Annonce détournée par le client A' })
   const apresR6 = empreinte()
   banc.ok(Object.keys(avant).every((k) => avant[k] === apresR6[k]), 'la base relue après R6 : rien n’a changé')
 

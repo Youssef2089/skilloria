@@ -4442,6 +4442,21 @@ par `statuer_sur_organisation` → retenir et dévoiler refusés, ce qui est en 
 `tests/integration/acces-routes.mjs` R6 (cabinet et ESN non approuvés × sept gestes : 403 `org_not_approved` ; le client
 approuvé passe la garde ; la base relue). `diag-deux-temps` vert (second temps déclaré).
 
+<a id="d53"></a>
+### D.53 — L'ANNONCE D'UNE AUTRE ORGANISATION SE REFUSE PARTOUT COMME UNE ANNONCE QUI N'EXISTE PAS : 404 `not_found` (lot DevOps CI, partie A bis, décision de Youssef, 03/10/2026)
+
+**Le cas.** Le relevé de la partie A : `GET` et `PATCH /api/publications/[id]`, `/close` et `/publish` rendaient 403
+`forbidden` pour l'annonce d'une autre organisation, quand `/candidatures` et les actions sur une candidature rendaient 404
+`not_found`. Un 403 dit « elle existe, mais pas pour vous » : il révèle l'existence d'un identifiant — la même faute que §D.3
+ferme pour l'écosystème (« 404, jamais 403 »).
+
+**La règle** : sur chaque route qui prend l'identifiant d'une annonce, l'annonce d'une autre organisation rend EXACTEMENT
+la réponse d'une annonce inexistante — 404 `not_found`, même corps. Les écrans connaissaient déjà `not_found`.
+
+**Prouvé par** : `tests/integration/acces-routes.mjs` R4 — le client A sur l'annonce du client B (lire, modifier,
+clôturer, publier, ses candidatures) : 404 `not_found` ; puis, sur les cinq routes, la réponse pour l'annonce de B
+comparée octet par octet à celle d'un identifiant inventé.
+
 ---
 ---
 
@@ -4856,7 +4871,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   vérification n’est pas `approved` publie, retient, dévoile. Checklist V1, point 4 (« `is_verified` bloquant ») — **à
   arbitrer par Youssef** : bloquer change le parcours d’inscription d’une organisation (qui publierait après
   l’approbation seulement). Le banc des routes ne l’éprouve pas : il ne fige pas un comportement non arbitré.
-- **Deux refus pour « l’annonce d’une autre organisation »** : `GET`/`PATCH /api/publications/[id]`, `/close` et
+- ~~**Deux refus pour « l’annonce d’une autre organisation »**~~ — **FERMÉ le 03/10/2026 (partie A bis, §D.53)**. Le constat :- **Deux refus pour « l’annonce d’une autre organisation »** : `GET`/`PATCH /api/publications/[id]`, `/close` et
   `/publish` rendent 403 `forbidden` ; `/candidatures` et les actions sur une candidature rendent 404 `not_found`. Les
   deux sont nommés ; §D.3 préfère 404 (« jamais 403 », pour l’écosystème). Le banc accepte chacun là où il est ; à
   harmoniser dans un lot qui touchera ces routes (point 12 de la checklist).

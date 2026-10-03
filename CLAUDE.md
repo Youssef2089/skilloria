@@ -233,6 +233,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 - **D.50** — **Une annonce refusée se modifie et se soumet à nouveau ; elle ne compte pas deux fois** (regroupement, décision de Youssef, 03/10/2026) : l'auteur corrige N'IMPORTE QUEL champ, tout ce qu'il modifie est enregistré, et `PATCH` la repasse en brouillon dès qu'un champ a vraiment changé (contre-relecture de l'ARRÊT 28 : la restriction aux champs lus par l'IA est TOMBÉE) — rien de changé : 409 `annonce_refusee_inchangee`, rien d'écrit ; elle est jugée de nouveau (en ligne si la note atteint le minimum de `/admin/seuils`, sinon en revue) ; le marqueur est `review_reason` (seule `refuser_annonce()` le pose) et `/publish` ne recompte pas ; le motif servi à l'auteur, le refus le dit ×4. `diag-resoumission` BLOQUANT. → [détail](docs/architecture.md#d50)
 - **D.51** — **La construction s'arrête si un réglage obligatoire manque, en le nommant ; toute variable `TEST_…` est interdite en production** (décision de Youssef, 03/10/2026) : `barriereDeConstruction()` (`lib/configuration/variables.ts`), première commande de `npm run build`, imposée à Vercel par `vercel.json` ; sur Vercel (Production ET Preview) et dans GitHub Actions, jamais sur le poste ; Vercel sans `VERCEL_ENV` reste fermé. Le démarrage, lui, ne fait toujours que DIRE (§E.86) : il ne coupe pas un site en ligne. → [détail](docs/architecture.md#d51)
 - **D.52** — **Une organisation non approuvée ne crée, ne modifie, ne publie, ne retient, ne décline, ne dévoile rien** (décision de Youssef, 03/10/2026, checklist point 4) : `requireOrgApproved` après `requireOrgRole`, avant toute lecture (403 `org_not_approved`) ; en base, deux déclencheurs gardent les transitions vers `published`, `unlocked`, `selected` (OA001, migration APRÈS) ; l'écran remplace ses boutons par la raison. Lire, régler sa fiche et son équipe, clôturer restent ouverts. → [détail](docs/architecture.md#d52)
+- **D.53** — **L'annonce d'une autre organisation se refuse partout comme une annonce qui n'existe pas : 404 `not_found`, même corps** (décision de Youssef, 03/10/2026) — jamais 403, qui dirait qu'elle existe (la règle de §D.3, étendue à la propriété). → [détail](docs/architecture.md#d53)
 
 ---
 
@@ -444,7 +445,7 @@ annonçait absente une fonction que la migration venait de créer. **Six migrati
 tourné sur une base.** Une postcondition jamais exécutée est une **affirmation**, pas une preuve
 (§E.67), et elle est pire qu'absente : elle accuse le code au lieu d'elle-même.
 
-`npx supabase db reset --local` rejoue les 191 migrations depuis zéro. Il suffit — Docker en
+`npx supabase db reset --local` rejoue les 192 migrations depuis zéro. Il suffit — Docker en
 marche, `pg_cron` et `pg_net` présents dans l'image `major_version = 17`, et **aucun `seed.sql`**
 à prévoir : tarifs, plafonds et réglages sont **semés par des migrations**.
 > **Une sonde ne laisse rien** : tout appel qui écrit dans une postcondition est dans un bloc annulé

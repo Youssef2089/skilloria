@@ -306,7 +306,7 @@ Il couvre : familles de types (tableau / jsonb / booléen / entier / décimal / 
 **colonnes inexistantes**, **`NOT NULL` sans défaut omises**, **arité**, **ordre des clés
 étrangères**, et l'ordre de `translations` — qui n'a **aucune** clé étrangère (`row_id` est un uuid
 libre), donc une dépendance que PostgreSQL ne voit pas et qu'il faut lire **dans les données**.
-Sur les **191** migrations : **80 insertions vues, 67 analysées, 3358 valeurs confrontées** (mesuré le 03/10/2026 sur le
+Sur les **192** migrations : **80 insertions vues, 67 analysées, 3358 valeurs confrontées** (remesuré le 03/10/2026 au lot DevOps CI — `organisation_approuvee_en_base` n'insère rien ; mesuré le 03/10/2026 sur le
 regroupement des quatre lots, ARRÊT 28 — la même mesure que celle de S3, les trois autres lots ne semant rien ; mesuré le
 02/10/2026 sur le lot S3 « validation des annonces » — `validation_annonces` sème
 une action, `annonce_refusee` ; le 03/10/2026 sur le lot « critères des annonces » — sa migration n'ajoute aucune
