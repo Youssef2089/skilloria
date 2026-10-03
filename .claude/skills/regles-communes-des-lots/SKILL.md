@@ -16,9 +16,11 @@ qui n'est écrite nulle part dans le dépôt n'est pas ici ; si vous en avez bes
 - **Aucun `git push`, aucune écriture en base depuis un worktree** (§G.6). Ni Docker ni base, sauf si la
   consigne le dit. Les diagnostics qui écrivent en base existent (§E.4) : `node scripts/diag.mjs` les écarte
   par défaut ; `--avec-ecritures` ne se passe jamais de soi-même.
-- **Les décisions figées (§D de CLAUDE.md) ne se rouvrent pas** sans arbitrage de Youssef. Un défaut trouvé
-  hors du lot se **nomme** dans le rapport ; il ne s'élargit pas le lot tout seul (§G.8 : « corrigés sans
-  arbitrage, ce qui aurait élargi le lot tout seul »).
+- **La RÈGLE D'OR** (checklist V1, point 0, CLAUDE.md §G.12) : la solution propre et durable avant la rapide,
+  l'impact sur toute la plateforme et à 6/12 mois, **aucun « on verra plus tard » — un défaut vu pendant un
+  lot se traite dans ce lot.**
+- **Les décisions figées (§D de CLAUDE.md) ne se rouvrent pas** sans arbitrage de Youssef : un défaut dont la
+  correction rouvrirait une décision se pose à lui d'abord, et le rapport le dit. Seul Youssef décide un report.
 - **La règle de lecture (décision du 26/09/2026)** : CLAUDE.md est l'index ; dans `docs/`, on ne lit **que**
   les sections qui touchent le lot, trouvées par l'index et par mots-clés. Le rapport donne la liste **Lu** et
   **Non relu**.
@@ -62,18 +64,11 @@ qui n'est écrite nulle part dans le dépôt n'est pas ici ; si vous en avez bes
 
 ## 4. Les messages et les codes
 
-Les points de la checklist que le dépôt nomme (rapports de `docs/reprise.md`) :
-
-| Point | Ce qu'il demande (tel qu'écrit dans les rapports) |
-|---|---|
-| 0 | Aucun nom (d'écosystème) et aucune valeur produit dans le code ; état propre |
-| 2 | L'écosystème réellement résolu : par l'adresse de la requête (§D.3, §E.85) |
-| 5 | La garde tranche au serveur ou en base ; l'écran ne fait que déclarer et prévenir |
-| 12 | Codes stables : aucun code renommé, chaque code nouveau nommé |
-| 13-14 | Messages actionnables, dans les quatre langues |
-| 15 | V0 = la production : le même chemin de code partout |
-
-Les autres points de la checklist **ne sont pas écrits dans le dépôt** : ne les devinez pas.
+**La checklist V1 fait foi** (CLAUDE.md §G.12 ; grille détaillée dans la skill `relecture-avant-deploiement`).
+Le rapport la cite par numéro. Pour les messages : **12** — toute voie d'erreur porte un code stable et
+documenté, jamais un message libre ; **13** — jamais d'écran vide et muet ; **14** — quatre langues, FR par
+défaut, parité stricte ; **5** — la règle est en base ou au serveur, l'écran ne fait que déclarer et prévenir.
+Les rapports d'avant le 03/10/2026 citent parfois sous « 0 » ce qui est le point 1 (rien en dur).
 
 - Réponse d'erreur d'une route : `{ error, code? }`, statut juste (CLAUDE.md, « API route conventions »).
 - **Une erreur technique n'est pas un refus métier** : une lecture en panne se dit (503 nommé), elle ne rend

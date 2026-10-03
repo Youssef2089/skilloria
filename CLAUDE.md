@@ -637,6 +637,23 @@ Provenance, commits, licences et code exécuté : [.claude/skills/PROVENANCE.md]
   (`supabase` itère sur la base, contre §G.6 ; `frontend-design` contre §D.12).
 · Fournies par Claude Code, rien à installer : `claude-api`, `code-review` (pas de `verify` dans cette version).
 
+**G.12 — LA CHECKLIST V1 ET LA RÈGLE DU VERDICT** (décision de Youssef, 03/10/2026 ; appliquée par la skill
+`relecture-avant-deploiement`, citée par numéro dans chaque rapport).
+**0. RÈGLE D'OR** : la solution propre et durable toujours avant la rapide ; l'impact sur la plateforme entière et les
+conséquences à 6/12 mois ; aucun « on verra plus tard » — **un défaut vu pendant un lot se traite dans ce lot**.
+**1.** `useDomain()` : rien en dur (écosystèmes, taxonomie, valeurs métier en base ou dans l'admin). **2.** `domain_slug` à
+l'inscription. **3.** Vérification du domaine à la connexion. **4.** `is_verified` bloquant. **5.** RLS : toute règle métier
+ou de sécurité imposée en BASE ou au SERVEUR, jamais à l'écran. **6.** Session unique. **7.** Mobile-first et API-first.
+**8.** Commerce paramétrable depuis l'admin uniquement. **9.** SEO. **10.** RGPD : aucune donnée identifiante exposée
+avant le dévoilement ; stockages privés. **11.** Performance. **12.** APIs documentées : toute voie d'erreur porte un code
+stable et documenté, jamais un message libre. **13.** UX au niveau de Stripe ou Linear : jamais d'écran vide et muet.
+**14.** i18n complet en 4 langues (FR, EN, ES, DE), FR par défaut, parité stricte. **15.** V0 = LA PROD : rien de ce qui
+est livré ne doit être remis en cause plus tard ; aucun raccourci.
+**Le verdict** : **FEU ROUGE dès qu'il y a un BLOQUANT.** Un **MAJEUR** peut laisser un FEU VERT pour staging, mais il est
+corrigé **avant la production**. **Tous** les points, mineurs compris, sont corrigés **avant le déploiement suivant**,
+sauf report décidé par Youssef.
+> Les rapports d'avant le 03/10/2026 citent parfois sous « 0 » ce qui est ici le point 1 (« aucun nom, aucune valeur »).
+
 ---
 
 ## Les trois autres fichiers de la mémoire

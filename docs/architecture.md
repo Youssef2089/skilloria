@@ -4501,6 +4501,21 @@ recommandation — une preuve signée par le serveur, vérifiée par `handle_new
   page de reprise du besoin se lisent dans le code.
 - **La carte d'annonce dit encore le budget deux fois** (§H.8) : non touché au regroupement.
 
+**H.10 — À TRAITER LORS DE L'AUDIT : CE QUE LES SKILLS OFFICIELLES DEMANDENT ET QUE LE PROJET NE FAIT PAS (lot skills,
+03/10/2026). RIEN N'EST MIS À JOUR MAINTENANT** (décision de Youssef). Relevé en lisant les skills, détail dans
+[.claude/skills/PROVENANCE.md](../.claude/skills/PROVENANCE.md).
+- **SDK Resend : 6.10.0 installé** (`package.json` `^6.10.0`) ; la skill `resend` demande **au moins 6.14.0** (pour
+  `webhooks.verify()`, `emails.receiving.get()`, `domains.claims.*`). Le projet n'appelle que `emails.send`
+  (`lib/emails/resend.ts`, un seul client) : à juger à l'audit — monter, ou dire pourquoi non.
+- **SDK Stripe : 22.0.0 installé** ; la skill `stripe-best-practices` cite **22.6.0** et demande la dernière version
+  d'API (`2026-09-30.endive`). Le projet ne passe PAS `apiVersion`, délibérément : la version est celle du SDK, liée au
+  lockfile (`lib/billing/stripe.ts`). Monter le SDK change donc la version d'API — catalogue (§D.17), webhook (§D.16) et
+  verrous (§D.1) à rejouer en test avant.
+- **Les conseils qui contredisent une règle du dépôt** — la règle du dépôt l'emporte, l'audit dit si quelque chose
+  change : `supabase` itère en exécutant le SQL sur la base puis `db pull` (contre §G.6 et §G.4 bis) ;
+  `frontend-design` cherche une identité visuelle propre (contre §D.12) ; `vercel-react-best-practices` propose des
+  bibliothèques (`better-all`, `lru-cache`) que le projet n'a pas.
+
 Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
 
 **Palette**

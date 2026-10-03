@@ -38,7 +38,8 @@ Aucune n'exécute de code. Chacune a ses cas de test dans `evals/evals.json` (m�
 
 ## Ce qui frotte avec les règles du dépôt — constaté en lisant
 
-**CLAUDE.md et `docs/` l'emportent.** Ces points sont relevés, pas tranchés :
+**CLAUDE.md et `docs/` l'emportent.** Ces points sont relevés, pas tranchés — les SDK et les conseils contraires
+sont inscrits **à traiter lors de l'audit** en §H.10 de `docs/architecture.md`, rien n'est mis à jour :
 
 - `supabase`, « Option B » : itérer en exécutant le SQL **sur la base** puis générer la migration par
   `db pull` — or aucun worktree n'écrit en base (§G.6), les migrations s'écrivent à la main (`npm run db:new`)
