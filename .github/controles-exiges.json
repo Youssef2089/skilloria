@@ -1,0 +1,25 @@
+{
+  "$commentaire": "LE VERROU — la liste des contrôles EXIGÉS avant toute fusion vers les branches protégées (lot DevOps CI, 03/10/2026). Un contrôle ne devient exigé qu'APRÈS sa première exécution réussie sur GitHub : avant, l'exiger verrouillerait les branches sur un contrôle qui n'a jamais tourné. Pour en rendre un exigé : (1) une demande de fusion le voit vert sur GitHub ; (2) Youssef l'ajoute à la règle des branches (docs/integration-continue.md, « Le verrou ») ; (3) dans ce fichier, 'etat' passe à 'exige', avec la date et l'adresse de l'exécution verte. scripts/diag-integration-continue.mjs rougit si un travail du flux manque ici, si un nom diffère, ou si un contrôle 'exige' n'a pas sa preuve.",
+  "flux": ".github/workflows/controles.yml",
+  "branches_protegees": ["feat/sprint-archi-orga", "main"],
+  "controles": [
+    {
+      "nom": "statique",
+      "verifie": "tsc, lint (cliquet), parité des quatre langues, mémoire tenue à chaque commit, série complète des diagnostics sans vraie base",
+      "etat": "en_rodage",
+      "premiere_execution_verte": null
+    },
+    {
+      "nom": "base",
+      "verifie": "base Supabase jetable : db reset (toutes les migrations), db lint, tests pgTAP (accès croisés en base compris), jeu de référence du moteur",
+      "etat": "en_rodage",
+      "premiere_execution_verte": null
+    },
+    {
+      "nom": "application",
+      "verifie": "barrière de construction et next build, application démarrée, accès croisés par les routes",
+      "etat": "en_rodage",
+      "premiere_execution_verte": null
+    }
+  ]
+}

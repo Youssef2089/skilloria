@@ -2574,6 +2574,43 @@ Les rendre dynamiques demande de faire descendre la palette jusqu'au point d'env
 aujourd'hui que le **nom de marque** (`brandName`). C'est un lot à soi, et il n'est pas fait — l'écrire
 est plus honnête que de laisser croire le contraire (§E.38).
 
+### C.22 — L’INTÉGRATION CONTINUE : ce qui tourne sur GitHub, sur quelle base, et ce que chaque banc prouve (lot DevOps CI, 03/10/2026)
+
+**La chaîne.** Une demande de fusion vers `feat/sprint-archi-orga` ou `main` déclenche `.github/workflows/controles.yml`.
+Trois travaux en parallèle, sur `ubuntu-24.04`, Node 24, `npm ci` (cache npm) :
+- **`statique`** — historique complet (`fetch-depth: 0` : `diag-memoire-a-jour --base`, `diag-deux-temps` lisent git),
+  `tsc`, `diag-lint-cliquet`, `diag-parite-i18n`, `diag-memoire-a-jour --base=origin/<cible>` (chaque commit de la demande),
+  puis `scripts/diag.mjs --sauf=…` (les deux premiers ne tournent pas deux fois). L’environnement du flux (valeurs
+  factices, `CI`, `GITHUB_ACTIONS`) a été rejoué sur le poste : 132 verts, aucun verdict ne change.
+- **`base`** — `supabase start` (sans studio, imgproxy, inbucket, realtime, edge-runtime, functions, analytics, vector),
+  `db reset --local`, `tests/integration/db-lint.mjs` (la SORTIE de `db lint` est jugée : vide = vert, §G.4 ter étape 2),
+  `test db --local`, puis `tests/integration/moteur-reference.mjs`.
+- **`application`** — `supabase start`, `tests/integration/env-supabase-local.mjs` (les clés de démonstration de la base
+  locale, lues par `supabase status -o json`, posées dans `GITHUB_ENV` — jamais écrites dans le dépôt), `npm run build`
+  (la barrière §D.51, puis `next build`, cache `.next/cache`), `next start` sur 127.0.0.1:3000, puis
+  `tests/integration/acces-routes.mjs`.
+
+**Les bancs de `tests/integration/`** partagent `outils.mjs` : trois états (0 vert · 1 rouge · 2 n’a pas tourné), un résumé
+écrit dans `GITHUB_STEP_SUMMARY`, `executerSql` (psql du runner, sinon `docker exec` dans `supabase_db_*` ; les `\ir` sont
+dépliés), la connexion par GoTrue (mot de passe), une requête HTTP avec l’HÔTE d’un écosystème (`node:http` : `fetch` ne pose
+pas `Host`). **Garde** : `environnementLocal()` refuse une adresse de base qui n’est pas 127.0.0.1 / localhost — éprouvé.
+Les comptes naissent par les fabriques des tests de base (`auth.users` → `handle_new_user`, preuve signée) : une seule
+fabrique de comptes dans le dépôt (§E.20).
+- **Accès croisés en base** (`vrai_appelant/acces_croises.test.sql`, 68) : chaque rôle sous `authenticated` + ses
+  revendications (`request.jwt.claims`), le visiteur sous `anon` ; deux aides (`compte`, `tente`) qui ne changent jamais de
+  rôle (règle J). Un refus = 0 ligne OU une erreur (le code est imprimé) — puis la base relue en postgres.
+- **Accès croisés par les routes** : R1 visiteur × chaque couple route-méthode privé (169, dérivés) ; R2 cinq rôles × 82
+  couples d’administration ; R3 les lectures permises et les refus nommés ; R4 A contre B + empreintes `md5(row)` avant et
+  après ; R5 `compte_different`, `unknown_domain`. La liste des routes publiques et la dérivation des routes vivent dans
+  `tests/integration/routes-publiques.mjs` (une seule dérivation, lue par le banc et par `diag-integration-continue`).
+- **Jeu de référence du moteur** : données dans `jeu-de-reference.mjs` ; le banc charge `lib/matching/` par
+  `scripts/lib/chargeur-ts.mjs` (§E.119), intercepte `fetch` — `api.cohere.com` rend les notes fixes du jeu, tout autre hôte
+  externe est coupé —, pose les filtres par `regler_matching` (3 et 8), exécute `chargerVivierPourAnnonce`,
+  `runMatchingForExpert`, `runMatchingForPublication`, relit `matches` et `notifications`.
+
+**Ce qui n’y tourne pas** : staging, la production, un vrai fournisseur ; la requête de staging, `db push`, `git push`
+(gestes de Youssef jusqu’au lot DevOps 2) ; les parcours d’écran (S1, partie B, son propre flux `parcours.yml`).
+
 ## D. Les décisions figées — le détail
 
 > **L'index tient dans [CLAUDE.md](../CLAUDE.md) §D — une ligne par décision, chargée à chaque
@@ -4335,6 +4372,39 @@ le brouillon), le nouveau jugement dans les deux issues (en ligne au minimum ; e
 l'administrateur). La route et `/publish` (l'appel à l'IA, le compteur) sont du code applicatif : aucun test ne les exécute,
 le contrôle les vérifie par mutation.
 
+<a id="d51"></a>
+### D.51 — LA CONSTRUCTION S’ARRÊTE SI UN RÉGLAGE OBLIGATOIRE MANQUE ; `TEST_…` EST INTERDIT EN PRODUCTION (lot DevOps CI, décision de Youssef, 03/10/2026)
+
+**Le cas.** Depuis §E.86, le démarrage d’un déploiement NOMME chaque variable exigée qui manque (`instrumentation.ts`) — mais
+après la mise en ligne, dans des journaux qu’on lit quand quelque chose a cassé. La décision : **la construction échoue,
+en nommant chaque réglage, sur Vercel comme dans GitHub Actions** ; et toute variable `TEST_…` (les fournisseurs simulés
+des tests de parcours de S1) est **interdite en production** — une simulation qui atteindrait la production y remplacerait
+un vrai SMS, un vrai e-mail, sans que personne le voie.
+
+**La règle, une fois** : `barriereDeConstruction(env)` dans `lib/configuration/variables.ts` (module pur, la liste qui fait
+foi, §E.86). La cible se lit : `VERCEL_ENV=production` → production ; une autre valeur → Preview (staging) ; `VERCEL` sans
+`VERCEL_ENV` → **refus** (`environnement_vercel_inconnu` : sans savoir si c’est la production, l’interdiction des `TEST_`
+ne s’appliquerait pas — une barrière qui ne sait pas où elle est reste fermée) ; `GITHUB_ACTIONS=true` → intégration
+continue ; sinon le poste, où rien ne bloque. Une variable exigée (`deploye`) absente, trop courte, d’une valeur
+inattendue ou hors racine bloque partout sauf sur le poste ; `TEST_…` bloque en production (et sur Vercel sans
+environnement). Les manques optionnels sont signalés, sans bloquer. Jamais une valeur : nom, motif, explication.
+
+**Son application** : `scripts/barriere-construction.mjs`, première commande de `npm run build`
+(`node --no-warnings scripts/barriere-construction.mjs && next build`) ; `vercel.json` impose `"buildCommand": "npm run
+build"` — un réglage de l’écran Vercel ne peut pas la contourner. Node lit le module TypeScript sans outil (≥ 22.18) ;
+plus ancien, la règle est illisible et la construction s’arrête aussi (code 2).
+
+**Ce qui ne change pas** : `instrumentation.ts` ne coupe toujours pas un serveur en ligne (une clé Stripe absente est
+voulue au lancement). Arrêter une CONSTRUCTION ne retire rien de ce qui sert : l’ancienne version reste en ligne.
+
+**Ce qu’il faut savoir avant le prochain déploiement de staging** : si une variable exigée manque sur Preview (la ligne
+de configuration de `/admin/supervision` le dit), la prochaine construction de staging s’arrête. La Production de Vercel
+(`main`) aussi : une fusion prématurée dans `main` ne met plus en ligne une version sans ses réglages.
+
+**Le contrôle** : `diag-variables-environnement` (F) — la règle exécutée sur des environnements fabriqués (production,
+Preview, GitHub Actions, poste, Vercel sans environnement), le branchement dans `package.json` et `vercel.json`, et le flux
+qui nourrit sa construction de chaque variable exigée. Éprouvé par mutation (5 sur 5).
+
 ---
 ---
 
@@ -4743,6 +4813,24 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   La dépense antérieure au découpage apparaît en clair sur une ligne **« non imputable »** :
   elle n'est **jamais proratisée** sur les autres, et elle décroît d'elle-même (lecture mensuelle).
   Ces deux réglages ont désormais leur écran (voir ci-dessus).
+
+**H.11 — CE QUE LE LOT DEVOPS CI (PARTIE A, 03/10/2026) LAISSE OUVERT, DIT.**
+- **`requireOrgApproved` n’est appelé par AUCUNE route** (relevé du lot, `lib/auth-guard.ts`) : une organisation dont la
+  vérification n’est pas `approved` publie, retient, dévoile. Checklist V1, point 4 (« `is_verified` bloquant ») — **à
+  arbitrer par Youssef** : bloquer change le parcours d’inscription d’une organisation (qui publierait après
+  l’approbation seulement). Le banc des routes ne l’éprouve pas : il ne fige pas un comportement non arbitré.
+- **Deux refus pour « l’annonce d’une autre organisation »** : `GET`/`PATCH /api/publications/[id]`, `/close` et
+  `/publish` rendent 403 `forbidden` ; `/candidatures` et les actions sur une candidature rendent 404 `not_found`. Les
+  deux sont nommés ; §D.3 préfère 404 (« jamais 403 », pour l’écosystème). Le banc accepte chacun là où il est ; à
+  harmoniser dans un lot qui touchera ces routes (point 12 de la checklist).
+- **`POST /api/me/notifications/[id]/read` rend 200 sur la notification d’un autre** (sans rien écrire — le banc le
+  vérifie en relisant la base). Inoffensif, mais un refus nommé dirait mieux ce qui s’est passé.
+- **La messagerie entre A et B n’est pas éprouvée** par le banc des routes (une conversation n’existe qu’après un
+  dévoilement) : seulement un identifiant inexistant.
+- **Le premier passage réel est sur GitHub** : `psql` sur le runner (repli `docker exec` prévu), les noms exacts de
+  `supabase status -o json`, la sortie de `db lint`, la connexion GoTrue d’un compte fabriqué en SQL (jetons textuels
+  mis à vide), la sensibilité à la casse des chemins sous Linux — **rien de cela n’a pu s’exécuter sur le poste** (ni
+  Docker ni base). Un « n’a pas tourné » au premier passage se corrige sur la branche.
 
 **H.2 — LES TROIS TABLES DITES « MORTES » : LE VERDICT, MESURÉ LE 24/09/2026. RIEN N'EST SUPPRIMÉ.**
 La revue du journal des transactions (23/09/2026) en déclarait trois mortes, sur un balayage de

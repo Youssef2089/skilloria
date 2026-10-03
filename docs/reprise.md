@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 03/10/2026 (ARRÊT 28 — le regroupement des quatre branches, puis la seconde livraison ; à relire avant tout déploiement).** Branches `lot/regroupement` (première livraison) et `lot/seconde-livraison` (seconde), depuis `e27fa56` (en ligne sur staging). Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 03/10/2026 (ARRÊT 29 — lot DevOps CI, partie A : les contrôles sur GitHub Actions, le verrou, la barrière, les accès croisés, le jeu de référence du moteur ; à relire, puis à envoyer sur GitHub).** Branche `lot/devops-ci`, depuis `3b337a0`. Aucun `git push`, aucune écriture en base. — Avant lui : **03/10/2026 (ARRÊT 28 — le regroupement des quatre branches, puis la seconde livraison ; à relire avant tout déploiement).** Branches `lot/regroupement` (première livraison) et `lot/seconde-livraison` (seconde), depuis `e27fa56` (en ligne sur staging). Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,94 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 29 — LOT DEVOPS CI, PARTIE A : LES CONTRÔLES SUR GITHUB ACTIONS, LE VERROU, LA BARRIÈRE, LES ACCÈS CROISÉS, LE MOTEUR (03/10/2026)
+
+Branche `lot/devops-ci`, créée depuis `3b337a0` (tête de `feat/sprint-archi-orga`, skills comprises — vérifié avant de
+commencer). `lot/seconde-livraison` n’est pas touchée ; la partie B de S1 (Playwright, `parcours.yml`, ses fournisseurs
+simulés) non plus. Aucun `git push`, aucune écriture en base, ni Docker ni base sur le poste : **la première exécution réelle
+sera sur GitHub**. `gh` n’est pas installé : les réglages GitHub sont écrits clic par clic.
+
+**Lu** : CLAUDE.md ; les skills `regles-communes-des-lots`, `deploiement-deux-temps`, `supabase`, `supabase-postgres-best-practices` ;
+docs/mise-en-production.md (« Ce que Vercel sert sous Production », « Le compte Vercel », la voie A de staging, les variables) ;
+lib/auth-guard.ts (`requireAuth`), lib/subdomain.ts, lib/configuration/variables.ts, instrumentation.ts, lib/inscription/preuve.mjs ;
+lib/matching/ (index, pool, eligibilite, recoupement, rerank, document, la tête de settings et de run-for-expert, shared) ;
+lib/journal/contexte.ts ; scripts/diag.mjs, diag-variables-environnement, diag-lint-cliquet, diag-memoire-a-jour (la plage),
+diag-garde-adresse (le crochet), diag-tests-grand-livre (J), diag-portes-laterales (en-tête) ; les fabriques des tests de base,
+vrai_appelant/visiteur et appelant (têtes), matching/zones_recoupement, specialites_recoupement, mission_postulee ; dans les
+migrations : l’état FINAL des politiques (rejoué), les droits accordés et retirés, `handle_new_user`, `inscription_refus`
+(org_type), `publier_annonce`, `regler_matching`, `matching_settings`, les contraintes de `profiles` et `publications` ;
+le relevé des gardes de 31 routes (un agent, lecture seule) et, à la main, init-session, logout, `PATCH publications/[id]`,
+les routes de facturation. **Non relu** : docs/produit.md ; le reste d’architecture.md et de pieges.md ; le corps des 120
+autres routes (leur première garde seulement, statiquement) ; lib/notifications/dispatch au-delà de ses imports.
+
+### Ce que l’audit a trouvé
+- **Bon** : en état final, aucune politique ne laisse le navigateur écrire `users`, `profiles`, `publications`,
+  `candidatures`, `organizations` ni `organization_members` ; `profiles` a ses droits d’écriture retirés ; le grand livre
+  est fermé. Toutes les routes de facturation authentifient avant tout. Les 82 couples d’administration appellent
+  `requireAdmin`.
+- **`requireOrgApproved` n’est appelé par AUCUNE route** : une organisation non approuvée publie, retient, dévoile —
+  checklist point 4. **À arbitrer** (§H.11) : le corriger change le parcours d’une organisation ; non fait.
+- **Deux refus pour l’annonce d’une autre organisation** (403 `forbidden` / 404 `not_found` selon la route) ; et
+  `POST /api/me/notifications/[id]/read` rend 200 sur la notification d’un autre, sans rien écrire. §H.11 ; le banc
+  accepte chaque refus là où il est, et relit la base.
+
+### Les points — ce qui est fait, et ce qui le prouve
+| # | Fait | Prouvé par |
+|---|---|---|
+| 1 | **Le flux** `.github/workflows/controles.yml` : demande de fusion vers `feat/sprint-archi-orga` et `main` ; trois travaux — `statique` (tsc, lint cliquet, parité i18n, mémoire de chaque commit, série complète sans vraie base), `base` (`supabase start` dans le runner, `db reset`, `db lint`, `test db`, jeu de référence du moteur), `application` (barrière + `next build`, application démarrée, accès par les routes) ; cache npm et `.next/cache` ; résumé lisible dans la demande de fusion (`GITHUB_STEP_SUMMARY`, y compris `diag.mjs`) ; `diag.mjs --sauf=` pour ne rien lancer deux fois | `diag-integration-continue` (A) ; la série rejouée sur le poste **avec l’environnement exact du flux** (`CI`, `GITHUB_ACTIONS`, valeurs factices) : 132 verts, 0 rouge, 0 muet |
+| 2 | **Le verrou** : `.github/controles-exiges.json` (statique, base, application — « en rodage » jusqu’au premier passage vert, puis « exige » avec la date et l’adresse de l’exécution) ; réglages GitHub clic par clic, ce que permet un dépôt privé personnel (Free : **aucune** protection de branche ; Pro, 4 $/mois : oui), ce qui est payant | `diag-integration-continue` (B) ; docs/integration-continue.md §3 |
+| 3 | **La barrière** (§D.51) : `barriereDeConstruction()` dans l’inventaire des variables ; `scripts/barriere-construction.mjs`, première commande de `npm run build` ; `vercel.json` impose `npm run build` ; Vercel (Production et Preview) et GitHub Actions : chaque variable exigée, nommée ; `TEST_…` interdite en production ; Vercel sans `VERCEL_ENV` fermé | `diag-variables-environnement` (F, exécutée sur cinq environnements fabriqués) ; essayée sur le poste : poste → passe, GitHub sans réglages → 16 noms, production + `TEST_` → arrêt |
+| 4 | **Les accès croisés** — en base : `vrai_appelant/acces_croises.test.sql` (68 : visiteur, expert A, CDI, client A et B, cabinet, ESN, administrateur ; lecture de ses lignes seulement, aucune écriture directe, aucune promotion, rien avant le dévoilement ; la base relue) ; par les routes : `tests/integration/acces-routes.mjs` (69 contrôles : le visiteur contre les 169 couples privés dérivés, cinq rôles contre les 82 d’administration, les lectures permises et les refus nommés, A contre B puis empreintes de la base, `compte_different`, `unknown_domain`) | `diag-integration-continue` (C, D) ; les 14 routes publiques déclarées une à une avec leur raison |
+| 5 | **Le moteur** : `tests/integration/jeu-de-reference.mjs` (12 experts, 3 annonces, notes simulées, résultat attendu) et `moteur-reference.mjs` (14 contrôles) — vrai moteur (`lib/matching/` tel que livré), vivier sans IA ; avec IA simulée (Cohere intercepté, notes fixes dérivées des filtres 3 et 8 posés par `regler_matching`) : correspondances et « Correspondance forte » dans les deux sens, un avis par correspondance fraîche, aucun au second passage, un reranker en panne n’efface rien | `diag-integration-continue` (E : cohérence du jeu ; G : le moteur se charge hors de Next, exécuté) ; §E.119 |
+| 6 | **Sécurité du dépôt** : Dependabot (npm : sécurité seule, regroupée ; actions du flux mensuelles ; aucune fusion automatique) ; la détection de clés de GitHub est réservée aux organisations → `scripts/diag-aucune-cle-ecrite.mjs` (9 motifs + jeton de service), dans la série ; aucune clé dans le flux | `diag-integration-continue` (A, F) ; `diag-aucune-cle-ecrite` : 1 274 fichiers suivis, aucun |
+| 7 | **La méthode** : CLAUDE.md §G.13 (les contrôles sur GitHub ; requête de staging, `db push`, `git push` manuels jusqu’au lot DevOps 2 ; **la production reçoit exactement le commit validé sur staging**) ; skill `deploiement-deux-temps` (qui fait quoi, étapes 1, 2, 3, 5 sur GitHub) ; une phrase dans `regles-communes-des-lots` | relecture |
+| 8 | **Le coût** : 23 à 32 min par exécution ; ~1 500–1 800 min/mois à un rythme calme, **~4 000–4 300 au rythme actuel** (avec la nuit de S1, estimée) : Free (2 000) et Pro (3 000) ne suffisent pas au rythme actuel — ~8 à 11 $/mois de plus sur Pro (tarif de la minute NON VÉRIFIÉ pour 2026) ; plafond de dépense conseillé : 10 $ | docs/integration-continue.md §4 |
+
+### Les migrations nouvelles
+Aucune. La requête de staging, `diag-deux-temps` et `CODE_EN_LIGNE` sont inchangés.
+
+### Le nombre de tests de base attendu — NON exécutés ici
+**830 tests pgTAP dans 71 fichiers** (762 + les 68 d’`acces_croises`, compté sur les `plan(n)`). Plus, hors pgTAP : `db lint`
+vide ; le moteur, 14 contrôles ; les routes, 69 contrôles. **Tout cela tournera pour la première fois sur GitHub.**
+
+### L’épreuve
+- `npx tsc --noEmit` : 0 erreur. `npm run build` : vert (la barrière dit « poste local », puis `next build` ; 4 pages
+  statiques — aucune ne lit la base en construisant, les valeurs factices de GitHub suffisent).
+- Lint : le cliquet tient (49/21, inchangé) ; ESLint sur les fichiers du lot : 0 problème. Parité i18n : verte (aucune clé).
+- Série complète : **134 verts, 0 rouge, 0 n’a pas tourné, 6 écartés** ;
+  `diag-controles-a-rejouer` : 94 rejoués, tout vert ; `diag-memoire-exacte` : vert (CLAUDE.md 96 812 caractères).
+- **Mutations : 21 sur 21 font rougir leur contrôle** (barrière ×5, flux ×5, verrou ×2, routes publiques ×3 dont une route
+  ajoutée sans garde, plan pgTAP, jeu de référence ×2, Dependabot, clé Stripe et jeton de service écrits), arbre identique
+  après rétablissement. `diag-integration-continue` a attrapé, avant toute exécution, un `plan(62)` faux de mon propre test.
+- Les bancs, sans base : « n’a pas tourné » (code 2) ; avec une adresse de base distante : refus (garde éprouvée).
+
+### Ce qui reste, et se dit
+- **La première exécution réelle est sur GitHub** : psql sur le runner (repli `docker exec`), les noms de
+  `supabase status -o json`, la sortie de `db lint`, la connexion GoTrue d’un compte fabriqué en SQL, la casse des chemins
+  sous Linux — rien de cela n’a pu s’exécuter ici. Un « n’a pas tourné » se corrige sur la branche (§H.11).
+- Les trois constats de l’audit (§H.11) : à arbitrer ou à traiter dans le lot qui touchera ces routes.
+- La messagerie A contre B n’est pas éprouvée par les routes (une conversation suit un dévoilement).
+- Pour S1 : son flux `parcours.yml` construira par `npm run build` — **la barrière exigera les 16 variables** (des
+  valeurs factices suffisent, comme dans `controles.yml`) ; `TEST_…` y est permise (hors production).
+
+### Pour Youssef — dans l’ordre
+1. **La relecture** de ce lot (skill `relecture-avant-deploiement`).
+2. **GitHub** (docs/integration-continue.md §3) : ① passer en **Pro** (4 $/mois) et poser un plafond de dépense de 10 $ ;
+   ② autoriser les actions créées par GitHub ; ③ (conseillé) branche par défaut = `feat/sprint-archi-orga`, puis vérifier
+   chez Vercel que *Production Branch* vaut toujours `main` ; ⑤ Dependabot (graphe, alertes, mises à jour de sécurité,
+   regroupées).
+3. **Staging** : `/admin/supervision` → « toutes les variables exigées sont posées ». Sinon, la prochaine construction de
+   staging s’arrêtera en les nommant (§D.51) — l’ancienne version reste en ligne.
+4. `git push -u origin lot/devops-ci`, puis la demande de fusion vers `feat/sprint-archi-orga` (§6 du guide).
+5. **Lire les trois contrôles** : `statique` (134 diagnostics verts, mémoire, lint, parité, tsc), `base` (830 tests pgTAP,
+   db lint vide, 14 contrôles du moteur), `application` (construction, 69 contrôles des routes). Un rouge ou un « n’a pas
+   tourné » : copier le journal de l’étape (Details) dans la session suivante.
+6. **Tout vert** : la règle des branches (④) avec **statique**, **base**, **application** ; dans
+   `.github/controles-exiges.json`, les trois à `"exige"` avec la date et l’adresse de l’exécution ; puis fusionner.
+7. Prévenir S1 du point « Pour S1 » ci-dessus.
+
+---
 
 ## ⛔ ARRÊT 28 — LE REGROUPEMENT DES QUATRE BRANCHES, PUIS LA SECONDE LIVRAISON (03/10/2026)
 

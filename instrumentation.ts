@@ -13,6 +13,9 @@
 //    une clé Vonage absente ne doit pas couper les pages qui n'envoient pas de SMS. La panne de chaque
 //    fonction dit sa cause quand elle la rencontre ; ce démarrage dit TOUT, une fois, d'un coup d'œil.
 //    La racine des adresses, elle, arrête déjà chaque page en se nommant (lib/subdomain.ts).
+//    LA CONSTRUCTION, ELLE, S'ARRÊTE (§D.51, 03/10/2026) : une variable exigée qui manque fait échouer
+//    `npm run build` sur Vercel — la version en ligne reste celle d'avant. Ce démarrage continue de dire les
+//    manques OPTIONNELS, et un manque exigé qui aurait échappé à la construction.
 //
 // La liste vit dans lib/configuration/variables.ts ; `diag-variables-environnement` la confronte au code.
 

@@ -17,7 +17,11 @@
 //      absente → nommée ; le repli (`ouBien`) tient ; un secret trop court, un interrupteur ≠ 'true', une
 //      variable du poste local posée sur Vercel → nommés ;
 //   D. `instrumentation.ts` le dit au démarrage d'un environnement déployé — nommé, jamais une valeur ;
-//   E. la supervision le dit en BLOQUANT, avec le nom, dans les quatre langues.
+//   E. la supervision le dit en BLOQUANT, avec le nom, dans les quatre langues ;
+//   F. LA BARRIÈRE DE CONSTRUCTION (§D.51) : `barriereDeConstruction` exécutée sur des environnements fabriqués
+//      (production, Preview, GitHub Actions, poste local, Vercel sans environnement) — une variable exigée
+//      absente ARRÊTE la construction, une `TEST_…` en production aussi ; `npm run build` la lance avant
+//      `next build`, `vercel.json` l'impose à Vercel, et le flux de GitHub Actions la nourrit de chaque variable.
 //
 // CE QU'IL NE VOIT PAS : les valeurs réellement posées sur Vercel (le démarrage et la supervision les disent),
 //   et les réglages qui ne sont pas des variables (SMTP de Supabase, compte Vonage, Vault) — nommés dans
@@ -91,6 +95,11 @@ ok(capacites.length >= 4 && dynamiquesInconnues.length === 0,
   `A. une seule lecture dynamique, résolue par son type (${capacites.length} interrupteurs : ${capacites.join(', ')})`,
   dynamiquesInconnues.map((d) => `${d.f} : process.env[${d.expr}]`).join(' · ') || 'type Capacite illisible')
 for (const c of capacites) (lues.get(c) ?? lues.set(c, new Set()).get(c)).add('lib/interrupteurs.ts')
+// L'inventaire lui-même lit des variables sur un environnement INJECTÉ (`env.VERCEL_ENV`, la barrière de
+// construction, §D.51) : ces lectures-là comptent aussi.
+for (const m of sansCommentaires(read('lib/configuration/variables.ts')).matchAll(/\benv\.([A-Z][A-Z0-9_]*)/g)) {
+  (lues.get(m[1]) ?? lues.set(m[1], new Set()).get(m[1])).add('lib/configuration/variables.ts')
+}
 const horsInventaire = [...lues.keys()].filter((n) => !inventaire.has(n))
 ok(horsInventaire.length === 0 && lues.size >= 20,
   `A. chaque variable lue par le code (${lues.size}) est dans lib/configuration/variables.ts`,
@@ -159,6 +168,56 @@ const langues = ['fr', 'en', 'es', 'de'].filter((l) => {
   return typeof v !== 'string' || !v.includes('{nom}')
 })
 ok(langues.length === 0, 'E. la phrase existe dans les quatre langues, et elle NOMME la variable', langues.join(', ') || undefined)
+
+// ── F. LA BARRIÈRE DE CONSTRUCTION (§D.51) ───────────────────────────────────
+section('F. La construction s’arrête si un réglage obligatoire manque ; TEST_ interdit en production')
+const { barriereDeConstruction, cibleDeConstruction } =
+  await import(pathToFileURL(join(ROOT, 'lib/configuration/variables.ts')).href)
+const nomsBloques = (env) => barriereDeConstruction(env).blocages.map((b) => `${b.nom}:${b.motif}`)
+const prod = { ...complet, VERCEL: '1', VERCEL_ENV: 'production' }
+const preview = { ...complet, VERCEL: '1', VERCEL_ENV: 'preview' }
+const ci = { ...complet, GITHUB_ACTIONS: 'true' }
+ok(cibleDeConstruction(prod) === 'production' && cibleDeConstruction(preview) === 'preview'
+   && cibleDeConstruction(ci) === 'integration_continue' && cibleDeConstruction({}) === 'poste_local'
+   && cibleDeConstruction({ VERCEL: '1' }) === 'vercel_sans_environnement',
+  'F. la cible se lit : production, preview, intégration continue, poste local, Vercel sans environnement')
+ok(nomsBloques(prod).length === 0 && nomsBloques(preview).length === 0 && nomsBloques(ci).length === 0,
+  'F. tout posé : la construction continue, sur Vercel comme dans GitHub Actions', JSON.stringify([nomsBloques(prod), nomsBloques(ci)]))
+ok(JSON.stringify(nomsBloques(sans(preview, 'VONAGE_API_KEY'))) === '["VONAGE_API_KEY:absente"]'
+   && JSON.stringify(nomsBloques(sans(ci, 'CRON_SECRET'))) === '["CRON_SECRET:absente"]',
+  'F. une variable exigée absente ARRÊTE la construction, nommée — staging (Preview) et GitHub Actions')
+ok(JSON.stringify(nomsBloques({ ...prod, TEST_VONAGE_SIMULE: '1' })) === '["TEST_VONAGE_SIMULE:interdite_en_production"]',
+  'F. une variable TEST_… en production ARRÊTE la construction, nommée', JSON.stringify(nomsBloques({ ...prod, TEST_VONAGE_SIMULE: '1' })))
+ok(nomsBloques({ ...preview, TEST_VONAGE_SIMULE: '1' }).length === 0 && nomsBloques({ ...ci, TEST_VONAGE_SIMULE: '1' }).length === 0,
+  'F. TEST_… reste permise hors production (staging, GitHub Actions : les fournisseurs simulés des parcours)')
+ok(barriereDeConstruction({ TEST_X: '1' }).blocages.length === 0,
+  'F. le poste local ne bloque rien')
+ok(nomsBloques({ ...complet, VERCEL: '1', TEST_X: '1' }).join() === 'VERCEL_ENV:environnement_vercel_inconnu,TEST_X:interdite_en_production',
+  'F. Vercel sans VERCEL_ENV : la barrière ne sait pas si c’est la production — elle reste FERMÉE', nomsBloques({ ...complet, VERCEL: '1', TEST_X: '1' }).join())
+const scriptBarriere = sansCommentaires(read('scripts/barriere-construction.mjs'))
+const unBlocage = barriereDeConstruction(sans(ci, 'CRON_SECRET')).blocages[0] ?? {}
+ok(!/process\.env\s*(\.|\[)/.test(scriptBarriere) && /barriereDeConstruction\(process\.env\)/.test(scriptBarriere)
+   && JSON.stringify(Object.keys(unBlocage).sort()) === '["explication","motif","nom"]',
+  'F. le script ne lit aucune variable lui-même, et un blocage ne porte que nom, motif, explication — jamais une valeur')
+const pkg = JSON.parse(read('package.json'))
+ok(/^node (--no-warnings )?scripts\/barriere-construction\.mjs && next build$/.test(pkg.scripts?.build ?? ''),
+  'F. `npm run build` lance la barrière AVANT `next build`', pkg.scripts?.build)
+const vercel = JSON.parse(read('vercel.json'))
+ok(vercel.buildCommand === 'npm run build',
+  'F. vercel.json impose `npm run build` : un réglage de l’écran Vercel ne contourne pas la barrière', JSON.stringify(vercel))
+// L'intégration continue construit avec CHAQUE variable exigée — sinon sa propre barrière l'arrête.
+// Deux sources : les valeurs factices écrites dans le flux, et les clés de la base LOCALE du runner, lues après
+// `supabase start` par tests/integration/env-supabase-local.mjs — qui doit donc tourner AVANT la construction.
+const flux = existsSync(join(ROOT, '.github/workflows/controles.yml')) ? read('.github/workflows/controles.yml') : ''
+const lecteurLocal = existsSync(join(ROOT, 'tests/integration/env-supabase-local.mjs')) ? sansCommentaires(read('tests/integration/env-supabase-local.mjs')) : ''
+const exigees = VARIABLES.filter((v) => v.exigence === 'deploye').map((v) => v.nom)
+const absentesDuFlux = exigees.filter((n) => !new RegExp(`^\\s+${n}:`, 'm').test(flux) && !new RegExp(`\\b${n}:`).test(lecteurLocal))
+const application = flux.split(/\n {2}application:\s*\n/)[1] ?? ''
+const lectureAvantConstruction = application.indexOf('tests/integration/env-supabase-local.mjs') > -1
+  && application.indexOf('tests/integration/env-supabase-local.mjs') < application.indexOf('run: npm run build')
+ok(flux.length > 0 && absentesDuFlux.length === 0 && lectureAvantConstruction,
+  `F. la construction du flux reçoit les ${exigees.length} variables exigées — factices dans le flux, ou lues sur la base locale AVANT npm run build`,
+  absentesDuFlux.join(', ') || (flux ? 'la lecture des clés locales ne précède pas la construction' : 'controles.yml absent'))
 
 console.log(failures === 0
   ? '\n✅ Le code ne lit aucune variable inconnue de l’inventaire ; un déploiement dit, au démarrage et en supervision, celles qui lui manquent.'

@@ -47,11 +47,14 @@
 //   node scripts/diag.mjs --detail     → affiche la sortie complète des
 //                                        diagnostics non verts.
 //   node scripts/diag.mjs <motif>      → n'exécute que les noms contenant le motif.
+//   node scripts/diag.mjs --sauf=a,b   → écarte ces diagnostics, NOMMÉS dans la synthèse : le flux de GitHub
+//                                        Actions les lance déjà en étape à part (lint, parité i18n) — les lancer
+//                                        deux fois coûterait des minutes sans rien vérifier de plus.
 //
 // Code de sortie : 0 si tout est vert. Non nul dès qu'un diagnostic est ROUGE
 // ou N'A PAS TOURNÉ — un muet compte autant qu'un rouge, c'est le principe.
 
-import { readFileSync, readdirSync } from 'node:fs'
+import { appendFileSync, readFileSync, readdirSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
@@ -66,6 +69,10 @@ const avecEcritures = args.includes('--avec-ecritures')
 const avecBase = avecEcritures || args.includes('--avec-base')
 const detail = args.includes('--detail')
 const motif = args.find((a) => !a.startsWith('--')) ?? null
+const sauf = new Set(
+  (args.find((a) => a.startsWith('--sauf='))?.slice('--sauf='.length) ?? '')
+    .split(',').map((s) => s.trim().replace(/\.mjs$/, '')).filter(Boolean),
+)
 
 const G = '\x1b[32m', R = '\x1b[31m', J = '\x1b[33m', D = '\x1b[2m', B = '\x1b[1m', N = '\x1b[0m'
 
@@ -288,6 +295,11 @@ console.log(
 for (const f of fichiers) {
   const nom = f.replace(/\.mjs$/, '')
   const chemin = join(SCRIPTS, f)
+  if (sauf.has(nom)) {
+    ecartes.push({ nom, raison: 'ÉCARTÉ À LA DEMANDE (--sauf) — lancé ailleurs, en étape à part' })
+    console.log(`  ${D}○ ${nom.padEnd(42)} ÉCARTÉ (--sauf : lancé à part)${N}`)
+    continue
+  }
   if (!avecEcritures && ecritEnBase(nom)) {
     ecartes.push({ nom, raison: `ÉCRIT EN BASE — ${raisonDEcriture(nom)}` })
     console.log(`  ${D}○ ${nom.padEnd(42)} ÉCARTÉ (écrit en base)${N}`)
@@ -379,6 +391,17 @@ if (detail) {
   }
 } else if (muets.length || rouges.length) {
   console.log(`${D}(--detail pour la sortie complète des diagnostics non verts)${N}\n`)
+}
+
+// Sur GitHub Actions, la synthèse s'écrit aussi dans le résumé de l'exécution, lisible depuis la demande de fusion.
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const lignes = [
+    `### ${rouges.length + muets.length === 0 ? '✅' : '❌'} Diagnostics — ${verts.length} verts, ${rouges.length} rouges, ${muets.length} n'ont pas tourné, ${ecartes.length} écartés`,
+    ...muets.map((m) => `- ≡ **${m.nom}** — n'a pas tourné : ${m.raison}`),
+    ...rouges.map((m) => `- ❌ **${m.nom}** — rouge (le détail est dans le journal de l'étape)`),
+    '',
+  ]
+  appendFileSync(process.env.GITHUB_STEP_SUMMARY, lignes.join('\n') + '\n')
 }
 
 process.exitCode = rouges.length + muets.length > 0 ? 1 : 0

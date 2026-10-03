@@ -1,0 +1,148 @@
+# .github/workflows/controles.yml — LES CONTRÔLES DE CHAQUE DEMANDE DE FUSION (lot DevOps CI, 03/10/2026).
+#
+# Une tâche = une branche = une demande de fusion = ces contrôles = une revue = la fusion.
+# Ils tournent sur GitHub, plus sur le poste de Youssef (CLAUDE.md §G.13) : trois travaux en parallèle,
+# chacun lisible dans la demande de fusion sous « Contrôles / <nom> » :
+#
+#   statique     — tsc, lint (cliquet), parité i18n, mémoire, toute la série des diag-* qui ne touchent pas une
+#                  vraie base (scripts/diag.mjs : ceux qui lisent ou écrivent la vraie base sont écartés).
+#   base         — une base Supabase DÉMARRÉE DANS LE RUNNER, jetable : db reset (rejoue toutes les migrations),
+#                  db lint, test db (pgTAP), puis le jeu de référence du moteur de mise en relation.
+#   application  — la même base jetable, l'application CONSTRUITE (la barrière de construction comprise, §D.51)
+#                  et DÉMARRÉE, puis les accès croisés par les routes.
+#
+# La liste des contrôles EXIGÉS, et le moment où chacun le devient : .github/controles-exiges.json.
+#
+# AUCUN SECRET ICI, ET AUCUN N'EST NÉCESSAIRE : la base est locale au runner (ses clés sont celles de la base de
+# démonstration de la CLI, lues au démarrage) ; les fournisseurs externes reçoivent des valeurs « ci-factice »,
+# que la barrière exige présentes et que rien n'appelle avec succès. `diag-integration-continue` rougit si une
+# valeur de ce fichier ressemble à un vrai secret, ou si une variable exigée manque à la construction.
+#
+# AUCUN ACCÈS À STAGING NI À LA PRODUCTION : la requête de staging, `db push` et `git push` restent des gestes
+# de Youssef jusqu'au lot DevOps 2 (CLAUDE.md §G.4 ter).
+
+name: Contrôles
+
+on:
+  pull_request:
+    branches: [feat/sprint-archi-orga, main]
+  workflow_dispatch:
+
+# Un nouvel envoi sur la même demande de fusion annule le passage en cours : seul le dernier état compte.
+concurrency:
+  group: controles-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Les exclusions de `supabase start` : ce que les tests n'utilisent pas (interface, journaux, courriel de
+  # démonstration, temps réel, fonctions). Restent : la base, l'authentification, le stockage, l'API.
+  SUPABASE_EXCLUS: studio,imgproxy,inbucket,realtime,edge-runtime,functions,analytics,vector
+  # Les valeurs des variables exigées par la barrière de construction (lib/configuration/variables.ts) qui ne
+  # viennent pas de la base locale. FACTICES : aucune n'ouvre quoi que ce soit.
+  NEXT_PUBLIC_DOMAINE_RACINE: skilloria.test
+  NEXT_PUBLIC_SITE_URL: https://skilloria.test
+  CRON_SECRET: ci-factice-cron
+  INSCRIPTION_HMAC_SECRET: ci-factice-inscription-000000000000000000
+  PHONE_OTP_HMAC_SECRET: ci-factice-telephone-0000000000
+  REAUTH_HMAC_SECRET: ci-factice-reauth-0000000000
+  VONAGE_API_KEY: ci-factice
+  VONAGE_API_SECRET: ci-factice
+  RESEND_API_KEY: ci-factice
+  RESEND_FROM_EMAIL: ci@skilloria.test
+  ANTHROPIC_API_KEY: ci-factice
+  COHERE_API_KEY: ci-factice
+  ENABLE_RERANKING: 'true'
+  # Télémétrie de Next coupée : rien ne sort du runner.
+  NEXT_TELEMETRY_DISABLED: '1'
+
+jobs:
+  statique:
+    name: statique
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Récupérer le dépôt (historique complet — la mémoire et les deux temps lisent git)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Node 24 (dépendances en cache)
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Installer les dépendances (package-lock.json)
+        run: npm ci
+      - name: TypeScript — tsc --noEmit
+        run: npx tsc --noEmit
+      - name: Lint — le cliquet (ne peut que descendre)
+        run: node scripts/diag-lint-cliquet.mjs
+      - name: Parité des quatre langues
+        run: node scripts/diag-parite-i18n.mjs
+      - name: Mémoire — chaque commit de la demande de fusion la tient à jour
+        if: github.event_name == 'pull_request'
+        run: node scripts/diag-memoire-a-jour.mjs --base=origin/${{ github.base_ref }}
+      - name: Série complète des diagnostics (sans vraie base)
+        run: node scripts/diag.mjs --detail --sauf=diag-lint-cliquet,diag-parite-i18n
+
+  base:
+    name: base
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Installer les dépendances (la CLI Supabase comprise, version du package-lock)
+        run: npm ci
+      - name: Démarrer une base Supabase jetable dans le runner
+        run: npx supabase start -x "$SUPABASE_EXCLUS"
+      - name: Rejouer toutes les migrations depuis zéro (db reset)
+        run: npx supabase db reset --local
+      - name: db lint — niveau erreur (une sortie vide = aucune erreur)
+        run: node tests/integration/db-lint.mjs
+      - name: Tests de base (pgTAP)
+        run: npx supabase test db --local
+      - name: Lire les clés de la base locale
+        run: node tests/integration/env-supabase-local.mjs
+      - name: Moteur de mise en relation — le jeu de référence (vrai moteur, IA simulée)
+        run: node --experimental-transform-types --no-warnings tests/integration/moteur-reference.mjs
+
+  application:
+    name: application
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Installer les dépendances
+        run: npm ci
+      - name: Démarrer une base Supabase jetable dans le runner (les migrations s'y appliquent)
+        run: npx supabase start -x "$SUPABASE_EXCLUS"
+      - name: Lire les clés de la base locale
+        run: node tests/integration/env-supabase-local.mjs
+      - name: Cache de construction de Next
+        uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'components/**', 'lib/**', 'context/**', 'messages/**') }}
+          restore-keys: |
+            next-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+      - name: Construire — la barrière de construction, puis next build
+        run: npm run build
+      - name: Démarrer l'application
+        run: |
+          nohup npx next start -H 127.0.0.1 -p 3000 > next.log 2>&1 &
+          node tests/integration/attendre-application.mjs
+      - name: Accès croisés par les routes (visiteur, rôles, A contre B)
+        run: node tests/integration/acces-routes.mjs
+      - name: Journal de l'application (en cas d'échec)
+        if: failure()
+        run: tail -n 300 next.log || true

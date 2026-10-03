@@ -4756,6 +4756,32 @@ CHECK du schéma — la règle se relit à chaque contrainte écrite.
 balise `$…$` paire, dans tout `supabase/tests/database/`, éprouvé par mutation).
 
 ---
+<a id="e119"></a>
+### E.119 — LE CODE DE `lib/` NE SE CHARGE PAS TEL QUEL DANS NODE : QUATRE OBSTACLES, MESURÉS, ET UN CROCHET QUI LES RÉSOUT SANS TOUCHER AU CODE.
+
+**Le cas mesuré (03/10/2026, lot DevOps CI).** Le jeu de référence du moteur devait exécuter `lib/matching/` TEL QU’IL
+EST LIVRÉ, hors de Next (une base jetable, une IA simulée). Quatre échecs, l’un après l’autre, en important
+`lib/matching/index.ts` avec Node 24 :
+1. **`ERR_UNSUPPORTED_TYPESCRIPT_SYNTAX`** — « parameter property is not supported in strip-only mode » :
+   `lib/collaboration/ensure-personal-org.ts` déclare `constructor(public code: string, …)`. Le retrait des types ne
+   suffit pas : il faut `node --experimental-transform-types`.
+2. **Les imports sans extension** (`./pool`) et l’alias `@/` : Node ne les résout pas — Next, si.
+3. **`ERR_IMPORT_ATTRIBUTE_MISSING`** sur `messages/fr.json` : importé sans `with { type: 'json' }`, comme Next le permet.
+4. **« The requested module 'svix' does not provide an export named 'Webhook' »** : `resend` (ESM) importe un nom
+   d’un paquet CommonJS que Node ne sait pas détecter ; le bundler de Next s’en accommode.
+Et un cinquième, né de la correction du deuxième : un crochet de résolution s’applique AUSSI à `require` ; résoudre
+les chemins relatifs à l’intérieur de `node_modules` cassait `@supabase/functions-js` (« Cannot find module file:///… »).
+
+**La parade** : `scripts/lib/chargeur-ts.mjs` (crochets synchrones `registerHooks`) — l’alias `@/` et les imports
+relatifs du DÉPÔT seulement (jamais dans `node_modules`), le JSON servi en module, `resend` résolu vers sa version
+CommonJS (même paquet, même version). Aucune ligne du produit n’est changée. Le banc tourne avec
+`--experimental-transform-types`.
+
+**Le contrôle** : `diag-integration-continue` (G) importe le moteur dans un processus enfant, avec ce crochet et ce
+drapeau, et rougit si l’une des quatre fonctions du banc ne se charge plus — une syntaxe nouvelle dans `lib/` se voit
+sur le poste, avant le passage sur GitHub. **Ce qu’il ne voit pas** : une API propre à Next appelée à l’exécution
+(`after()`, `headers()`) dans un chemin que le banc traverse — elle lèverait pendant le banc, pas au chargement.
+
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.
 - **pg_cron valide la FORME d'une expression, pas sa satisfaisabilité.** `0 3 30 2 *` (30 février) est

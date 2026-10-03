@@ -1,0 +1,39 @@
+# .github/dependabot.yml — LES MISES À JOUR DE SÉCURITÉ, REGROUPÉES, JAMAIS FUSIONNÉES SEULES (lot DevOps CI).
+#
+# · npm : AUCUNE mise à jour de version (`open-pull-requests-limit: 0`) — seules les mises à jour de SÉCURITÉ
+#   s'ouvrent, et toutes ensemble dans UNE demande de fusion (`applies-to: security-updates`). GitHub les ouvre
+#   vers la branche PAR DÉFAUT du dépôt (une mise à jour de sécurité ne suit pas `target-branch`) : voir
+#   docs/integration-continue.md, « Dependabot ».
+# · GitHub Actions : les versions des actions du flux, regroupées, une fois par mois, vers la branche de travail.
+# · Rien ne fusionne seul : aucune fusion automatique n'est configurée, et la règle des branches exige une demande
+#   de fusion et des contrôles verts. Une mise à jour se relit et se fusionne comme un lot.
+#
+# Prérequis (réglages du dépôt, docs/integration-continue.md) : « Dependabot alerts » et « Dependabot security
+# updates » activés ; « Grouped security updates » activé.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '06:00'
+      timezone: Europe/Paris
+    open-pull-requests-limit: 0
+    groups:
+      securite-npm:
+        applies-to: security-updates
+        patterns: ['*']
+    commit-message:
+      prefix: 'chore(securite)'
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: feat/sprint-archi-orga
+    schedule:
+      interval: monthly
+    groups:
+      actions-du-flux:
+        patterns: ['*']
+    commit-message:
+      prefix: 'chore(ci)'
