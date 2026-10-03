@@ -12,7 +12,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 \ir ../grand_livre/_fabriques.psql
-select plan(27);
+select plan(29);
 
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
@@ -55,6 +55,11 @@ begin
     '23514', null, 'B5. une répartition de plus de sept jours est refusée');
   return next throws_ok(format($q$update public.publications set work_modes = array['hybrid'], jours_sur_site = 0, jours_teletravail = 5 where id = %L$q$, a_neuve),
     '23514', null, 'B6. zéro jour sur site n''est pas de l''hybride : refusé');
+  -- B6 bis, B7 bis (rejeu local de la première livraison) : une moitié manquante rendait NULL, qu'un CHECK laisse passer.
+  return next throws_ok(format($q$update public.publications set work_modes = array['hybrid'], jours_sur_site = 3 where id = %L$q$, a_neuve),
+    '23514', null, 'B6 bis. une répartition à moitié (des jours sur site, aucun en télétravail) est refusée');
+  return next throws_ok(format($q$update public.publications set duree_unite = 'mois' where id = %L$q$, a_neuve),
+    '23514', null, 'B7 bis. une unité sans nombre est refusée');
   return next throws_ok(format($q$update public.publications set duree_valeur = 6 where id = %L$q$, a_neuve),
     '23514', null, 'B7. une durée sans unité est refusée');
   return next throws_ok(format($q$update public.publications set duree_valeur = 0, duree_unite = 'mois' where id = %L$q$, a_neuve),

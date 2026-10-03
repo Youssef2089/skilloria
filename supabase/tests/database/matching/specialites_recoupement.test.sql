@@ -39,6 +39,7 @@ begin
   values (v_branche, pg_temp.fab_domaine(), p_nom, 'sonde-' || substr(md5(p_nom || clock_timestamp()::text), 1, 12), true, 0)
   returning id into v;
   return v;
+end $$;
 
 -- LE CHEMIN DU MOTEUR, tel quel : le `.or()` de pool.ts, posé seulement quand l'annonce déclare des spécialités.
 create or replace function pg_temp.experts_retenus(p_annonce uuid, p_parmi uuid[]) returns uuid[]

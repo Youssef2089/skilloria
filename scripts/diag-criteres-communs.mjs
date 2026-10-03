@@ -163,6 +163,16 @@ function juger(t) {
       else if (!memeEnsemble(v, LISTES[cle])) fautes.push(`B. ${nom} dit [${v.join(', ')}], le registre [${LISTES[cle].join(', ')}]`)
     }
   }
+  // B bis (rejeu local de la première livraison) — UNE MOITIÉ MANQUANTE NE PASSE PAS PAR LE NULL : « 6, aucune unité »
+  // rendait `true and null` = NULL, qu'un CHECK laisse passer. La DERNIÈRE définition de la durée et de la répartition
+  // hybride exige ses deux moitiés par `is not null`.
+  for (const [nom, a, b] of [['publications_duree_check', 'duree_valeur', 'duree_unite'],
+                             ['publications_repartition_hybride_check', 'jours_sur_site', 'jours_teletravail']]) {
+    let corps = null
+    for (const m of t.__migrations.matchAll(new RegExp(`add constraint ${nom}\\s+check \\(([\\s\\S]*?)\\);`, 'g'))) corps = m[1]
+    if (!corps) fautes.push(`B bis. la contrainte ${nom} est introuvable dans les migrations`)
+    else if (!new RegExp(`${a} is not null and ${b} is not null`).test(corps)) fautes.push(`B bis. ${nom} laisse passer une moitié manquante (${a} sans ${b}, ou l’inverse : NULL passe un CHECK)`)
+  }
   // C — les écrans
   for (const [nom, p] of Object.entries(ECRANS)) {
     const s = texteEcran(t, p)
@@ -371,6 +381,16 @@ section('G. L’épreuve : chaque mutation fait rougir le contrôle')
     ['la contrainte de base de l’annonce qui diverge (temps de travail)', () => {
       const t = { ...REELS }
       t.__migrations += "\nalter table public.publications add constraint publications_temps_travail_valid check (temps_travail <@ array['plein', 'partiel', 'mi_temps']::text[]);\n"
+      return t
+    }],
+    ['la durée sans unité qui repasse (le CHECK d’avant le rejeu)', () => {
+      const t = { ...REELS }
+      t.__migrations += "\nalter table public.publications add constraint publications_duree_check\n  check (\n    (duree_valeur is null and duree_unite is null)\n    or (duree_valeur between 1 and 999 and duree_unite in ('jours', 'semaines', 'mois', 'annees'))\n  );\n"
+      return t
+    }],
+    ['la répartition hybride à moitié qui repasse', () => {
+      const t = { ...REELS }
+      t.__migrations += "\nalter table public.publications add constraint publications_repartition_hybride_check\n  check (\n    (jours_sur_site is null and jours_teletravail is null)\n    or ('hybrid' = any (work_modes) and jours_sur_site between 1 and 7 and jours_teletravail between 1 and 7)\n  );\n"
       return t
     }],
     ['les spécialités construites à la main dans la validation CDI', () => muter(ECRANS['validation CDI'], 'optionsSpecialites(', 'autresOptions(')],

@@ -4736,6 +4736,25 @@ prédicat partagé prend un type dont chaque champ est OBLIGATOIRE (`T | null`, 
 chaque appelant des fonctions que l'autre côté a changées. **Contrôle** : `tsc` ; et `diag-resoumission`/`diag-lot2-socle`
 pour les deux appelants nommés.
 
+<a id="e117"></a>
+### E.117 — UN CHECK LAISSE PASSER NULL : « UN NOMBRE ET UNE UNITÉ » ACCEPTAIT UN NOMBRE SEUL.
+
+**Le cas mesuré (03/10/2026, rejeu local de la première livraison par Youssef).** `publications_duree_check` disait
+`(valeur is null and unite is null) or (valeur between 1 and 999 and unite in (…))`. Avec `valeur = 6, unite = null`, le
+second membre vaut `true and NULL` = **NULL**, le tout `false or NULL` = **NULL** — et un CHECK ne refuse que `false`.
+La base acceptait une durée sans unité ; le test B7 l'a vu (« caught: no exception »), pas la lecture. La même faute
+dormait dans `publications_repartition_hybride_check` (des jours sur site, aucun en télétravail), qu'aucun test ne
+tentait. **La parade** : quand une contrainte veut « les deux ou aucun », le membre « les deux » commence par
+`a is not null and b is not null` — jamais un `in (…)` ou un `between` sur une colonne nullable pour tenir lieu de garde.
+Et le test essaie CHAQUE moitié seule (B6 bis, B7, B7 bis). **Contrôle** : `diag-criteres-communs` B bis (les deux
+contraintes, par mutation) ; les tests `annonces/criteres_communs.test.sql`. **Ce qu'il ne vérifie pas** : les autres
+CHECK du schéma — la règle se relit à chaque contrainte écrite.
+
+**Le même rejeu a montré une seconde faute, de méthode** : `matching/specialites_recoupement.test.sql` avait perdu le
+`end $$;` d'une fabrique, emporté par un remplacement de texte (relecture de l'ARRÊT 28, point 11) — 6 tests prévus,
+0 joués. Aucun contrôle ne lisait la forme d'un fichier de test. **Contrôle** : `diag-tests-grand-livre` L (chaque
+balise `$…$` paire, dans tout `supabase/tests/database/`, éprouvé par mutation).
+
 ---
 <a id="e9"></a>
 ### E.9 — Autres pièges nommés dans le dépôt, à connaître.

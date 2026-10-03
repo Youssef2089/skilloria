@@ -126,6 +126,24 @@ const descendre = (d) => {
 }
 descendre(RACINE_TESTS)
 const corpusTests = tousLesTests.map((p) => sansCommentaires(lire(p))).join('\n')
+
+// UN CORPS DE FONCTION REFERMÉ (rejeu local de la première livraison) : `specialites_recoupement.test.sql` avait perdu le
+// `end $$;` d'une fabrique — « syntax error at or near "select" », 6 tests prévus, 0 joués, et aucun contrôle ne l'avait
+// vu. Chaque balise de dollar-quoting ($$, $q$, $fn$…) apparaît un nombre PAIR de fois par fichier (commentaires `--`
+// retirés). Éprouvé par mutation ci-dessous.
+const balisesImpaires = (texte) => {
+  const n = {}
+  for (const m of texte.split('\n').map((l) => l.replace(/--.*$/, '')).join('\n').matchAll(/\$([A-Za-z_]*)\$/g)) n[m[1]] = (n[m[1]] ?? 0) + 1
+  return Object.entries(n).filter(([, c]) => c % 2 !== 0).map(([t, c]) => `$${t}$ ×${c}`)
+}
+{
+  const impairs = tousLesTests.map((p) => [relative(ROOT, p), balisesImpaires(lire(p))]).filter(([, b]) => b.length)
+  ok(impairs.length === 0, `L. chaque corps de fonction des ${tousLesTests.length} fichiers de test est refermé (balises $…$ paires)`,
+    impairs.map(([f, b]) => `${f} : ${b.join(', ')}`).join(' · ') || undefined)
+  const temoin = tousLesTests.map((p) => lire(p)).find((s) => s.includes('end $$;'))
+  ok(temoin !== undefined && balisesImpaires(temoin.replace('end $$;', 'end;')).length > 0,
+    'L. épreuve « un end $$; perdu » : le contrôle rougit')
+}
 if (tests.length === 0) {
   console.error('✘ aucun fichier *.test.sql — le contrôle ne tourne pas')
   process.exit(2)

@@ -84,7 +84,10 @@ alter table public.publications
   add constraint publications_repartition_hybride_check
   check (
     (jours_sur_site is null and jours_teletravail is null)
+    -- Les deux `is not null` : une répartition À MOITIÉ (des jours sur site, aucun en télétravail) rendait NULL, qu'un
+    -- CHECK laisse passer — la même faute que la durée sans unité (rejeu local de la première livraison).
     or ('hybrid' = any (work_modes)
+        and jours_sur_site is not null and jours_teletravail is not null
         and jours_sur_site between 1 and 7
         and jours_teletravail between 1 and 7
         and jours_sur_site + jours_teletravail <= 7)
@@ -95,7 +98,11 @@ alter table public.publications
   add constraint publications_duree_check
   check (
     (duree_valeur is null and duree_unite is null)
-    or (duree_valeur between 1 and 999 and duree_unite in ('jours', 'semaines', 'mois', 'annees'))
+    -- Une durée, c'est un nombre ET une unité (règle de Youssef). Les deux `is not null` sont NÉCESSAIRES : sans eux,
+    -- « 6, aucune unité » rendait `true and null` = NULL, qu'un CHECK LAISSE PASSER (rejeu local de la première
+    -- livraison : le test B7 n'était pas refusé).
+    or (duree_valeur is not null and duree_unite is not null
+        and duree_valeur between 1 and 999 and duree_unite in ('jours', 'semaines', 'mois', 'annees'))
   );
 
 alter table public.publications drop constraint if exists publications_offre_sans_duree;
