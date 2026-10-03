@@ -24,7 +24,7 @@ create or replace function pg_temp.essai() returns setof text language plpgsql a
 declare
   v_admin  uuid := pg_temp.fab_admin();
   v_auteur uuid := pg_temp.fab_compte('entreprise');
-  v_org    uuid := pg_temp.fab_organisation(v_auteur);
+  v_org    uuid := pg_temp.fab_organisation_approuvee(v_auteur);
   v_dom    uuid := pg_temp.fab_domaine();
   v_sp     uuid;
   v_a      uuid := pg_temp.fab_brouillon(v_org);

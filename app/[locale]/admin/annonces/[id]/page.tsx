@@ -62,6 +62,8 @@ const ERREURS_CONNUES = ['already_processed', 'active_publications_limit_reached
   // Un besoin de sous-traitance dont l'auteur n'est plus un expert approuvé (relecture ARRÊT 28, point 3), et la lecture
   // de son profil impossible : deux refus distincts.
   'auteur_non_approuve', 'profile_check_unavailable',
+  // L'organisation de l'annonce n'est pas approuvée (§D.52) ; et son état illisible — deux refus distincts.
+  'org_not_approved', 'organisation_illisible',
   // Le statut relu ne se lit pas (contre-relecture de l'ARRÊT 28, point C) : une PANNE, jamais « déjà tranchée » — l'écran
   // le dit et propose de réessayer.
   'statut_illisible'] as const

@@ -3,7 +3,7 @@ import { journaliserDans, JournalError } from '@/lib/journal/journaliser'
 import { clesModifiees } from '@/lib/profil/changements'
 import { memesZones } from '@/lib/work-zones'
 import { NextRequest, after } from 'next/server'
-import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { AuthError, requireAuth, requireOrgRole, requireOrgApproved, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { loadTranslations } from '@/lib/translations'
@@ -265,6 +265,13 @@ export async function PATCH(request: NextRequest, ctx: RouteContext): Promise<Re
   }
   // D2 : éditer une annonce = gestion des annonces → editor+ (viewer refusé).
   try { requireOrgRole(auth, 'editor') } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+  // L'ORGANISATION APPROUVÉE (§D.52, checklist point 4) : modifier une annonce est réservé à une organisation dont la vérification
+  // est approuvée — refus nommé 403 `org_not_approved`, AVANT toute lecture de l'objet (rien n'est révélé, rien n'est écrit).
+  // L'organisation personnelle d'un expert naît approuvée (sous-traitance) : elle passe.
+  try { requireOrgApproved(auth) } catch (err) {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }

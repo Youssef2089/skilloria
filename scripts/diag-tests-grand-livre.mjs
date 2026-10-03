@@ -74,6 +74,10 @@ const DECLENCHEURS = {
   work_zones_couverture: "values (v_eu, 'country', 'C_QZ', 'QZ'",
   // La garde de réactivation « Autre » (lot zones de travail) : elle tourne quand un test attend son refus nommé.
   specialite_reactivee_hors_autre: "'%specialities_autre_hors_referentiel%'",
+  // Les deux gardes de l'organisation approuvée (lot DevOps CI, §D.52) : elles tournent quand un test attend leur refus
+  // OA001 (organisations/organisation_approuvee : publier, puis retenir et dévoiler après une approbation retirée).
+  garde_publication_organisation_approuvee: "'OA001', null, 'non approuvée : publier_annonce",
+  garde_candidature_organisation_approuvee: "'OA001', null, 'approbation retirée : retenir",
 }
 
 // LE GEL — une raison par entrée (§G.8). Il ne fait que descendre.

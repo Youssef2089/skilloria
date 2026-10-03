@@ -179,6 +179,27 @@ async function principal() {
     'la base relue : le rapprochement, la notification, l’annonce, les candidatures, le membre et l’organisation de B sont intacts',
     changees.length ? `modifiés : ${changees.join(', ')}` : `lignes absentes : ${Object.keys(avant).filter((k) => !avant[k]).join(', ')}`)
 
+  // ── R6. L'organisation non approuvée ──
+  //  Le cabinet et l'ESN n'ont jamais été approuvés (ils n'ont rien publié) ; le client A l'a été (sa première annonce, par
+  //  l'administration). La garde passe AVANT toute lecture de l'objet : n'importe quel identifiant suffit.
+  banc.section('R6. Une organisation non approuvée ne crée, ne modifie, ne publie, ne retient, ne refuse, ne dévoile rien')
+  const REFUS_APPROBATION = { statut: 403, codes: ['org_not_approved'] }
+  const nouvelle = { type: 'mission', title: 'Annonce du banc des routes', description: 'Une annonce que le banc tente de créer pour une organisation non approuvée.' }
+  for (const o of ['cabinet', 'esn']) {
+    await attendre(o, 'POST', '/api/publications', REFUS_APPROBATION, 'créer une annonce', nouvelle)
+    await attendre(o, 'PATCH', `/api/publications/${randomUUID()}`, REFUS_APPROBATION, 'modifier une annonce', { title: 'Titre modifié par le banc' })
+    await attendre(o, 'POST', `/api/publications/${randomUUID()}/publish`, REFUS_APPROBATION, 'publier une annonce')
+    await attendre(o, 'POST', `/api/candidatures/${refs.cand_b}/select`, REFUS_APPROBATION, 'retenir un candidat')
+    await attendre(o, 'POST', `/api/candidatures/${refs.cand_b}/reject`, REFUS_APPROBATION, 'décliner un candidat', { reason: 'Motif du banc des routes.' })
+    await attendre(o, 'POST', `/api/candidatures/${refs.cand_b}/unlock`, REFUS_APPROBATION, 'dévoiler un candidat')
+    await attendre(o, 'POST', `/api/candidatures/${refs.cand_b}/pitch`, REFUS_APPROBATION, 'demander l’argumentaire d’un candidat')
+    await attendre(o, 'GET', '/api/publications', OK, 'lit encore SES annonces (une lecture n’est pas réservée)')
+  }
+  //  Le client A est approuvé : la garde le laisse passer — il bute ensuite sur la propriété de l'annonce (R4), pas sur elle.
+  await attendre('client_a', 'PATCH', `/api/publications/${refs.pub_b}`, REFUS_ANNONCE, 'approuvé : passe la garde, puis bute sur la propriété de l’annonce de B', { title: 'Annonce détournée par le client A' })
+  const apresR6 = empreinte()
+  banc.ok(Object.keys(avant).every((k) => avant[k] === apresR6[k]), 'la base relue après R6 : rien n’a changé')
+
   // ── R5. Les gardes transverses ──
   banc.section('R5. Le compte affiché, et l’écosystème de l’adresse')
   const autreCompte = await requete({ chemin: '/api/me/notifications', hote, jeton: jetons.expert_a, compte: refs.expert_b })

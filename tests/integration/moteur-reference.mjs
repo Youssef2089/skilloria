@@ -106,6 +106,8 @@ end $$;`)
   // L'organisation qui publie, et les annonces — par le chemin de publication.
   l.push(`insert into refs values ('client', pg_temp.fab_compte('entreprise')::text);`)
   l.push(`insert into refs select 'org', m.organization_id::text from public.organization_members m where m.user_id = (select valeur::uuid from refs where ref = 'client') and m.status = 'active' limit 1;`)
+  // Une annonce ne passe en ligne que pour une organisation approuvée (§D.52) : la voie de l'administration.
+  l.push(`select pg_temp.fab_approuver((select valeur::uuid from refs where ref = 'org'));`)
   for (const a of ANNONCES) {
     l.push(`insert into refs select 'pub_${a.ref}', pg_temp.fab_brouillon((select valeur::uuid from refs where ref = 'org'), ${lit(a.type)})::text;`)
     l.push(`update public.publications set

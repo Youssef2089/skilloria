@@ -2152,7 +2152,10 @@
         "description": "Enter a description",
         "branch_id": "Select a branch",
         "work_zone_ids": "Select at least one work area"
-      }
+      },
+      "org_non_approuvee_titre": "Organization being verified",
+      "org_non_approuvee_texte": "Until your organization is approved, a listing can be neither saved nor published. You will be notified by email as soon as it is approved.",
+      "org_non_approuvee_boutons": "Saving and publishing will be available once your organization is approved."
     },
     "gate": {
       "published_title": "Listing live ✓",
@@ -2180,7 +2183,8 @@
       "generic": "An error occurred. Please try again.",
       "missing_fields": "Some information is missing before publishing: {fields}.",
       "annonce_refusee_inchangee": "This posting was rejected and nothing in it has changed: correct what the reason (shown at the top of the page) asks for — any field, everything you edit is saved — before you submit it again. As soon as a field changes, it goes through the automatic check again, and this new submission does not count a second time towards your postings for the month.",
-      "type_immuable": "The type of a posting (mission or job offer) can no longer change once the draft is saved. For the other type, create a new posting."
+      "type_immuable": "The type of a posting (mission or job offer) can no longer change once the draft is saved. For the other type, create a new posting.",
+      "org_not_approved": "Your organization is being verified: you will be able to create and publish listings as soon as it is approved."
     },
     "refus": {
       "titre": "This posting was not approved",
@@ -2374,7 +2378,8 @@
       "error_unlock_limit_reached": "You have used every reveal included in your plan this month. The counter resets on the 1st of next month.",
       "error_generic": "An error occurred. Please try again.",
       "selected_section_label_sous_traitance": "Candidate accepted for this subcontracting need",
-      "select_confirm_body_sous_traitance": "This action is final: you're accepting this candidate for this subcontracting need. Other applications on this listing will remain available in your dashboard."
+      "select_confirm_body_sous_traitance": "This action is final: you're accepting this candidate for this subcontracting need. Other applications on this listing will remain available in your dashboard.",
+      "error_org_not_approved": "Your organization is being verified: you will be able to shortlist, decline or reveal a candidate as soon as it is approved."
     }
   },
   "messages": {
@@ -6369,7 +6374,9 @@
       "auteur_non_approuve": "The expert who posted this subcontracting need is no longer an approved expert (profile rejected, back under verification, or account deleted): the need cannot go live. You can reject it with a reason.",
       "profile_check_unavailable": "The profile of the expert who posted this need could not be read: nothing was put online. Try again in a moment.",
       "statut_illisible": "The approval could not be completed: the posting’s status cannot be read right now (a fault on our side). Nothing has been changed — try again.",
-      "reessayer": "Try again"
+      "reessayer": "Try again",
+      "org_not_approved": "The organization that submitted this listing is not approved: the listing cannot go live. Approve the organization first (Organizations screen), or reject the listing with a reason.",
+      "organisation_illisible": "The organization’s verification status could not be read: nothing went live. Try again in a moment."
     },
     "avis": {
       "cloche": {

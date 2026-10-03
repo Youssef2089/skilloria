@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { AuthError, requireAuth, requireOrgRole, type AuthContext } from '@/lib/auth-guard'
+import { AuthError, requireAuth, requireOrgRole, requireOrgApproved, type AuthContext } from '@/lib/auth-guard'
 import { activeEcosystemId } from '@/lib/ecosystem-scope'
 import { logAudit } from '@/lib/audit'
 import { markCandidatureViewedServerSide } from '@/lib/candidature-views'
@@ -63,6 +63,13 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
   }
   // D2 : refuser un candidat = gestion des candidatures → editor+ (viewer refusé).
   try { requireOrgRole(auth, 'editor') } catch (err) {
+    if (err instanceof AuthError) return err.toResponse()
+    throw err
+  }
+  // L'ORGANISATION APPROUVÉE (§D.52, checklist point 4) : décliner un candidat est réservé à une organisation dont la vérification
+  // est approuvée — refus nommé 403 `org_not_approved`, AVANT toute lecture de l'objet (rien n'est révélé, rien n'est écrit).
+  // L'organisation personnelle d'un expert naît approuvée (sous-traitance) : elle passe.
+  try { requireOrgApproved(auth) } catch (err) {
     if (err instanceof AuthError) return err.toResponse()
     throw err
   }

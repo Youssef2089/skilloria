@@ -2152,7 +2152,10 @@
         "description": "Introduce una descripción",
         "branch_id": "Selecciona una rama",
         "work_zone_ids": "Selecciona al menos una zona de trabajo"
-      }
+      },
+      "org_non_approuvee_titre": "Organización en proceso de verificación",
+      "org_non_approuvee_texte": "Mientras tu organización no esté aprobada, no se puede guardar ni publicar ningún anuncio. Te avisaremos por correo electrónico en cuanto sea aprobada.",
+      "org_non_approuvee_boutons": "Podrás guardar y publicar en cuanto tu organización sea aprobada."
     },
     "gate": {
       "published_title": "Anuncio en línea ✓",
@@ -2180,7 +2183,8 @@
       "generic": "Se produjo un error. Inténtalo de nuevo.",
       "missing_fields": "Falta información para publicar: {fields}.",
       "annonce_refusee_inchangee": "Este anuncio fue rechazado y no ha cambiado nada: corrige lo que pide el motivo (en la parte superior de la página) —cualquier campo; todo lo que modifiques se guarda— antes de volver a enviarlo. En cuanto cambia un campo, pasa de nuevo por la verificación automática, y este nuevo envío no cuenta por segunda vez en tus publicaciones del mes.",
-      "type_immuable": "El tipo de un anuncio (misión u oferta de empleo) ya no cambia una vez guardado el borrador. Para el otro tipo, crea un nuevo anuncio."
+      "type_immuable": "El tipo de un anuncio (misión u oferta de empleo) ya no cambia una vez guardado el borrador. Para el otro tipo, crea un nuevo anuncio.",
+      "org_not_approved": "Tu organización está en proceso de verificación: podrás crear y publicar anuncios en cuanto sea aprobada."
     },
     "refus": {
       "titre": "Este anuncio no ha sido validado",
@@ -2374,7 +2378,8 @@
       "error_unlock_limit_reached": "Has utilizado todas las revelaciones incluidas en tu plan este mes. El contador se reinicia el día 1 del mes próximo.",
       "error_generic": "Se produjo un error. Inténtalo de nuevo.",
       "selected_section_label_sous_traitance": "Candidato aceptado para esta necesidad de subcontratación",
-      "select_confirm_body_sous_traitance": "Esta acción es definitiva: aceptas a este candidato para esta necesidad de subcontratación. Las demás candidaturas de este anuncio seguirán disponibles en tu panel."
+      "select_confirm_body_sous_traitance": "Esta acción es definitiva: aceptas a este candidato para esta necesidad de subcontratación. Las demás candidaturas de este anuncio seguirán disponibles en tu panel.",
+      "error_org_not_approved": "Tu organización está en proceso de verificación: podrás seleccionar, rechazar o desvelar a un candidato en cuanto sea aprobada."
     }
   },
   "messages": {
@@ -6369,7 +6374,9 @@
       "auteur_non_approuve": "El experto que publicó esta necesidad de subcontratación ya no es un experto aprobado (perfil rechazado, de nuevo en verificación o cuenta eliminada): la necesidad no puede publicarse. Puede rechazarla con un motivo.",
       "profile_check_unavailable": "No se pudo leer el perfil del experto que publicó esta necesidad: no se ha publicado nada. Vuelva a intentarlo en un momento.",
       "statut_illisible": "La validación no ha podido completarse: el estado del anuncio no se puede leer por ahora (un fallo por nuestra parte). No se ha cambiado nada: inténtalo de nuevo.",
-      "reessayer": "Reintentar"
+      "reessayer": "Reintentar",
+      "org_not_approved": "La organización que envió este anuncio no está aprobada: el anuncio no puede publicarse. Apruebe primero la organización (pantalla Organizaciones) o rechace el anuncio con un motivo.",
+      "organisation_illisible": "No se pudo leer el estado de verificación de la organización: no se ha publicado nada. Inténtelo de nuevo en un momento."
     },
     "avis": {
       "cloche": {

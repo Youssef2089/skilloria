@@ -174,13 +174,41 @@ begin
   return v;
 end $$;
 
--- Une annonce PUBLIÉE, par le chemin de publication (sa propre pièce).
+-- Une organisation APPROUVÉE, par la voie de l'écran d'administration (`statuer_sur_organisation`, un administrateur
+-- fabriqué, sa propre pièce). Une annonce ne passe en ligne que pour une organisation approuvée (§D.52, déclencheur
+-- publications_organisation_approuvee) : la fabrique d'une annonce publiée l'appelle. Sans effet si elle l'est déjà.
+create or replace function pg_temp.fab_approuver(p_org uuid) returns void
+language plpgsql as $$
+declare
+  v_statut text;
+  v_r      jsonb;
+begin
+  select o.verification_status into v_statut from public.organizations o where o.id = p_org;
+  if v_statut = 'approved' then return; end if;
+  v_r := public.statuer_sur_organisation(gen_random_uuid(), null, 'administrateur', pg_temp.fab_admin(), 'admin',
+                                         p_org, v_statut, true, null);
+  if not exists (select 1 from public.organizations o where o.id = p_org and o.verification_status = 'approved') then
+    raise exception 'fabrique : l organisation % n a pas ete approuvee [%]', p_org, v_r;
+  end if;
+end $$;
+
+-- Une organisation née avec son siège, PUIS approuvée — pour les tests qui publient par `publier_annonce` directement.
+create or replace function pg_temp.fab_organisation_approuvee(p_admin uuid) returns uuid
+language plpgsql as $$
+declare v uuid := pg_temp.fab_organisation(p_admin);
+begin
+  perform pg_temp.fab_approuver(v);
+  return v;
+end $$;
+
+-- Une annonce PUBLIÉE, par le chemin de publication (sa propre pièce) — l'organisation approuvée d'abord.
 create or replace function pg_temp.fab_annonce_publiee(p_org uuid, p_admin uuid, p_type text default 'mission') returns uuid
 language plpgsql as $$
 declare
   v   uuid := pg_temp.fab_brouillon(p_org, p_type);
   v_r jsonb;
 begin
+  perform pg_temp.fab_approuver(p_org);
   v_r := public.publier_annonce(gen_random_uuid(), null, 'utilisateur', p_admin, 'client',
                                 v, pg_temp.fab_domaine(), p_org, array['draft'],
                                 'published', 8, 'sonde', '{}'::jsonb);

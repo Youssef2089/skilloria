@@ -2152,7 +2152,10 @@
         "description": "Geben Sie eine Beschreibung ein",
         "branch_id": "Wählen Sie einen Bereich",
         "work_zone_ids": "Wählen Sie mindestens ein Arbeitsgebiet"
-      }
+      },
+      "org_non_approuvee_titre": "Organisation wird überprüft",
+      "org_non_approuvee_texte": "Solange Ihre Organisation nicht freigegeben ist, kann eine Anzeige weder gespeichert noch veröffentlicht werden. Sie werden per E-Mail benachrichtigt, sobald sie freigegeben ist.",
+      "org_non_approuvee_boutons": "Speichern und Veröffentlichen sind möglich, sobald Ihre Organisation freigegeben ist."
     },
     "gate": {
       "published_title": "Anzeige live ✓",
@@ -2180,7 +2183,8 @@
       "generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "missing_fields": "Vor der Veröffentlichung fehlen noch Angaben: {fields}.",
       "annonce_refusee_inchangee": "Diese Anzeige wurde abgelehnt, und nichts daran wurde geändert: Korrigieren Sie, was die Begründung (oben auf der Seite) verlangt – jedes Feld, alles, was Sie ändern, wird gespeichert –, bevor Sie sie erneut einreichen. Sobald sich ein Feld ändert, durchläuft sie erneut die automatische Prüfung, und diese erneute Einreichung zählt nicht ein zweites Mal zu Ihren Veröffentlichungen des Monats.",
-      "type_immuable": "Der Typ einer Anzeige (Auftrag oder Stellenangebot) ändert sich nicht mehr, sobald der Entwurf gespeichert ist. Für den anderen Typ erstellen Sie eine neue Anzeige."
+      "type_immuable": "Der Typ einer Anzeige (Auftrag oder Stellenangebot) ändert sich nicht mehr, sobald der Entwurf gespeichert ist. Für den anderen Typ erstellen Sie eine neue Anzeige.",
+      "org_not_approved": "Ihre Organisation wird gerade überprüft: Sie können Anzeigen erstellen und veröffentlichen, sobald sie freigegeben ist."
     },
     "refus": {
       "titre": "Diese Anzeige wurde nicht freigegeben",
@@ -2374,7 +2378,8 @@
       "error_unlock_limit_reached": "Sie haben alle in Ihrem Tarif enthaltenen Freischaltungen diesen Monat genutzt. Der Zähler beginnt am 1. des nächsten Monats neu.",
       "error_generic": "Ein Fehler ist aufgetreten. Bitte erneut versuchen.",
       "selected_section_label_sous_traitance": "Für diesen Unterauftragsbedarf angenommener Kandidat",
-      "select_confirm_body_sous_traitance": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für diesen Unterauftragsbedarf an. Die anderen Bewerbungen zu dieser Anzeige bleiben in Ihrem Dashboard verfügbar."
+      "select_confirm_body_sous_traitance": "Diese Aktion ist endgültig: Sie nehmen diesen Kandidaten für diesen Unterauftragsbedarf an. Die anderen Bewerbungen zu dieser Anzeige bleiben in Ihrem Dashboard verfügbar.",
+      "error_org_not_approved": "Ihre Organisation wird gerade überprüft: Sie können Kandidaten auswählen, ablehnen oder aufdecken, sobald sie freigegeben ist."
     }
   },
   "messages": {
@@ -6369,7 +6374,9 @@
       "auteur_non_approuve": "Der Experte, der diesen Unterauftragsbedarf veröffentlicht hat, ist kein freigegebener Experte mehr (Profil abgelehnt, erneut in Prüfung oder Konto gelöscht): Der Bedarf kann nicht veröffentlicht werden. Sie können ihn mit einer Begründung ablehnen.",
       "profile_check_unavailable": "Das Profil des Experten, der diesen Bedarf veröffentlicht hat, konnte nicht gelesen werden: Nichts wurde veröffentlicht. Versuchen Sie es gleich noch einmal.",
       "statut_illisible": "Die Freigabe konnte nicht abgeschlossen werden: Der Status der Anzeige lässt sich gerade nicht lesen (eine Störung bei uns). Es wurde nichts geändert – versuchen Sie es erneut.",
-      "reessayer": "Erneut versuchen"
+      "reessayer": "Erneut versuchen",
+      "org_not_approved": "Die Organisation, die diese Anzeige eingereicht hat, ist nicht freigegeben: Die Anzeige kann nicht veröffentlicht werden. Geben Sie zuerst die Organisation frei (Bildschirm Organisationen) oder lehnen Sie die Anzeige mit einer Begründung ab.",
+      "organisation_illisible": "Der Prüfstatus der Organisation konnte nicht gelesen werden: Nichts wurde veröffentlicht. Versuchen Sie es gleich noch einmal."
     },
     "avis": {
       "cloche": {

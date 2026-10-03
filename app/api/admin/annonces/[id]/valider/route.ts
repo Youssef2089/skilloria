@@ -132,6 +132,26 @@ export async function POST(request: NextRequest, ctx: RouteContext): Promise<Res
     }
   }
 
+  // ── L'ORGANISATION EST-ELLE APPROUVÉE ? (§D.52) ─────────────────────────────────────────────────────────────
+  //  Une organisation non approuvée ne met rien en ligne — ni par /publish, ni par la voie administrateur. La base le
+  //  tient (déclencheur publications_organisation_approuvee, OA001) ; la route le dit AVANT, nommé, au lieu d'une
+  //  écriture refusée en 500. Une lecture impossible refuse aussi, et le dit (§E.22). L'organisation personnelle d'un
+  //  expert (sous-traitance) naît approuvée : elle passe.
+  {
+    const { data: orgLue, error: orgErr } = await auth.supabaseAdmin
+      .from('organizations')
+      .select('verification_status')
+      .eq('id', pub.organization_id as string)
+      .maybeSingle()
+    if (orgErr) {
+      console.error('[admin:annonces/valider] organisation illisible', orgErr.message)
+      return json({ error: 'Could not verify the organization', code: 'organisation_illisible' }, 503)
+    }
+    if ((orgLue as { verification_status?: string | null } | null)?.verification_status !== 'approved') {
+      return json({ error: 'The organization is not approved', code: 'org_not_approved' }, 409)
+    }
+  }
+
   // ── ① LA PLACE ACTIVE — la règle de la publication, fail-closed ─────────────────
   const orgId = pub.organization_id as string
   const ents = await getOrgEntitlements(auth.supabaseAdmin, orgId)

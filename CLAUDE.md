@@ -232,6 +232,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 - **D.49** — **Une annonce en revue ne sort que par un administrateur, et par le mécanisme de la publication** (S3) : `/admin/annonces` ; valider = `publier_annonce()` depuis `pending_review` (voie dérivée sous verrou, compteur non reconsommé, garde 42501 EN BASE) ; refuser = `refuser_annonce()`, motif sur la ligne métier, jamais au journal ; l'auteur prévenu dans sa langue ; le prédicat ENTIER de la publication s'applique. → [détail](docs/architecture.md#d49)
 - **D.50** — **Une annonce refusée se modifie et se soumet à nouveau ; elle ne compte pas deux fois** (regroupement, décision de Youssef, 03/10/2026) : l'auteur corrige N'IMPORTE QUEL champ, tout ce qu'il modifie est enregistré, et `PATCH` la repasse en brouillon dès qu'un champ a vraiment changé (contre-relecture de l'ARRÊT 28 : la restriction aux champs lus par l'IA est TOMBÉE) — rien de changé : 409 `annonce_refusee_inchangee`, rien d'écrit ; elle est jugée de nouveau (en ligne si la note atteint le minimum de `/admin/seuils`, sinon en revue) ; le marqueur est `review_reason` (seule `refuser_annonce()` le pose) et `/publish` ne recompte pas ; le motif servi à l'auteur, le refus le dit ×4. `diag-resoumission` BLOQUANT. → [détail](docs/architecture.md#d50)
 - **D.51** — **La construction s'arrête si un réglage obligatoire manque, en le nommant ; toute variable `TEST_…` est interdite en production** (décision de Youssef, 03/10/2026) : `barriereDeConstruction()` (`lib/configuration/variables.ts`), première commande de `npm run build`, imposée à Vercel par `vercel.json` ; sur Vercel (Production ET Preview) et dans GitHub Actions, jamais sur le poste ; Vercel sans `VERCEL_ENV` reste fermé. Le démarrage, lui, ne fait toujours que DIRE (§E.86) : il ne coupe pas un site en ligne. → [détail](docs/architecture.md#d51)
+- **D.52** — **Une organisation non approuvée ne crée, ne modifie, ne publie, ne retient, ne décline, ne dévoile rien** (décision de Youssef, 03/10/2026, checklist point 4) : `requireOrgApproved` après `requireOrgRole`, avant toute lecture (403 `org_not_approved`) ; en base, deux déclencheurs gardent les transitions vers `published`, `unlocked`, `selected` (OA001, migration APRÈS) ; l'écran remplace ses boutons par la raison. Lire, régler sa fiche et son équipe, clôturer restent ouverts. → [détail](docs/architecture.md#d52)
 
 ---
 
@@ -535,7 +536,7 @@ fichiers a cassé **55 liens** relatifs, et il les a tous nommés avant le commi
 > moitié des phrases, et aucune machine ne les aurait trouvées. Ce qui les a trouvées, c'est une
 > relecture contre le code — il n'y a pas de raccourci.
 
-**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (50 erreurs / 21 avertissements au 03/10/2026)
+**G.5 ter — LE LINT NE PEUT QUE DESCENDRE.** La base (49 erreurs / 19 avertissements au 03/10/2026, lot DevOps CI)
 vit dans [`diag-lint-cliquet`](scripts/diag-lint-cliquet.mjs), pas dans une consigne : rouge dès qu'un des
 deux comptes monte ; quand l'un descend, la base s'abaisse **dans le même commit**.
 

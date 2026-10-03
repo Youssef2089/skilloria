@@ -136,7 +136,39 @@ const EXCEPTIONS = {
 // { raison, ecrivains: [fichiers du code du lot qui écrivent ce qu'elle restreint], test: 'supabase/tests/…' }
 // Vide : ce lot n'a aucune migration APRÈS. (Épreuve : `--etat=journal_photo_et_cv` rejoue le lot B, et le contrôle
 // exige les déclarations de ses quatre migrations — c'est ce qu'il aurait demandé.)
-const SECOND_TEMPS = {}
+const SECOND_TEMPS = {
+  // ── Lot DevOps CI, partie A bis (03/10/2026) : une organisation non approuvée ne publie, ne retient, ne dévoile (§D.52). ──
+  'organisation_approuvee_en_base::trigger:publications': {
+    raison: 'LÉGITIME — le déclencheur ne refuse que la TRANSITION vers « published » pour une organisation non approuvée. Relus un par un : les deux seuls qui écrivent cette transition (publish et la validation administrateur, via publier_annonce) refusent AVANT la base (requireOrgApproved / la relecture de l’organisation, 403 ou 409 org_not_approved) ; POST et PATCH écrivent un brouillon (et refusent aussi) ; refuser, clôturer, expirer, les places et la trace du moteur écrivent un autre statut ou une autre colonne. L’organisation personnelle d’un expert naît approuvée.',
+    ecrivains: [
+      'app/api/admin/annonces/[id]/refuser/route.ts (via refuser_annonce)',
+      'app/api/admin/annonces/[id]/valider/route.ts (via liberer_place_annonce)',
+      'app/api/admin/annonces/[id]/valider/route.ts (via publier_annonce)',
+      'app/api/admin/annonces/[id]/valider/route.ts (via reserver_place_annonce)',
+      'app/api/cron/constats/route.ts (via constater_annonces_expirees)',
+      'app/api/publications/[id]/close/route.ts (via cloturer_annonce)',
+      'app/api/publications/[id]/publish/route.ts (via liberer_place_annonce)',
+      'app/api/publications/[id]/publish/route.ts (via publier_annonce)',
+      'app/api/publications/[id]/route.ts',
+      'app/api/publications/route.ts',
+      'lib/matching/index.ts',
+    ],
+    test: 'supabase/tests/database/organisations/organisation_approuvee.test.sql',
+  },
+  'organisation_approuvee_en_base::trigger:candidatures': {
+    raison: 'LÉGITIME — le déclencheur ne refuse que les TRANSITIONS vers « unlocked » et « selected » pour une organisation non approuvée. Relus un par un : retenir (select, via retenir_candidature) et dévoiler (unlock, via lib/unlock.ts → devoiler_candidature) refusent AVANT la base (requireOrgApproved) ; le dévoilement INCLUS au dépôt (lib/candidatures/depot.ts → performUnlock) est best-effort — un refus libère la place, la candidature reste reçue, le dépôt de l’expert tient ; décliner, l’insertion jugée (« received »), les places et la fermeture planifiée écrivent un autre statut.',
+    ecrivains: [
+      'app/api/candidatures/[id]/reject/route.ts (via decliner_candidature)',
+      'app/api/candidatures/[id]/select/route.ts (via retenir_candidature)',
+      'app/api/cron/constats/route.ts (via constater_devoilement_ferme)',
+      'lib/candidatures/depot.ts (via inserer_candidature_jugee)',
+      'lib/candidatures/depot.ts (via liberer_place_incluse)',
+      'lib/candidatures/depot.ts (via reserver_place_incluse)',
+      'lib/unlock.ts (via devoiler_candidature)',
+    ],
+    test: 'supabase/tests/database/organisations/organisation_approuvee.test.sql',
+  },
+}
 
 const argEtat = process.argv.find((a) => a.startsWith('--etat='))?.slice('--etat='.length) ?? null
 const dossier = 'supabase/migrations'

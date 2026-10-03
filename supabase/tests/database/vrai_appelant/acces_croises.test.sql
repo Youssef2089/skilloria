@@ -111,7 +111,7 @@ select pg_temp.compte('select 1 from public.users') as v_users,
        pg_temp.compte('select 1 from public.organizations') as v_orgs,
        pg_temp.compte('select 1 from public.notifications') as v_notifs,
        pg_temp.compte('select 1 from public.grand_livre') as v_journal \gset
-select pg_temp.tente(format('update public.users set firstname = %L where id = %L', 'Pirate', :'expert_a')) as v_maj_user,
+select pg_temp.tente(format('update public.users set first_name = %L where id = %L', 'Pirate', :'expert_a')) as v_maj_user,
        pg_temp.tente(format('insert into public.candidatures (publication_id, profile_id, domain_id, status, ai_match_score, ai_assessment, ai_model) values (%L, %L, %L, %L, 9, %L::jsonb, %L)',
                             :'pub_a', :'profil_cdi', :'dom', 'received', '{"reason":"x","pitch_org":"x","model":"x"}', 'x')) as v_ins_cand \gset
 reset role;
@@ -201,7 +201,7 @@ select pg_temp.compte(format('select 1 from public.organizations where id = %L',
        pg_temp.compte(format('select 1 from public.organization_members where organization_id = %L', :'org_b')) as ca_membres_b \gset
 select pg_temp.tente(format('update public.publications set title = %L where id = %L', 'Pirate', :'pub_b')) as ca_maj_pub_b,
        pg_temp.tente(format('update public.publications set title = %L where id = %L', 'Directe', :'pub_a')) as ca_maj_pub_soi,
-       pg_temp.tente(format('update public.organizations set name = %L where id = %L', 'Pirate', :'org_b')) as ca_maj_org_b,
+       pg_temp.tente(format('update public.organizations set company_name = %L where id = %L', 'Pirate', :'org_b')) as ca_maj_org_b,
        pg_temp.tente(format('insert into public.organization_members (organization_id, user_id, role_in_org, status) values (%L, %L, %L, %L)',
                             :'org_b', :'client_a', 'admin', 'active')) as ca_entree_org_b,
        pg_temp.tente(format('update public.candidatures set status = %L where id = %L', 'selected', :'cand_a')) as ca_maj_cand_b \gset
@@ -251,7 +251,7 @@ select pg_temp.compte(format('select 1 from public.organizations where id = %L',
        pg_temp.compte(format('select 1 from public.organizations where id <> %L', :'org_esn')) as esn_orgs_autres,
        pg_temp.compte('select 1 from public.publications') as esn_pubs,
        pg_temp.compte('select 1 from public.candidatures') as esn_cands \gset
-select pg_temp.tente(format('update public.organizations set name = %L where id = %L', 'Pirate', :'org_cab')) as esn_maj_cab \gset
+select pg_temp.tente(format('update public.organizations set company_name = %L where id = %L', 'Pirate', :'org_cab')) as esn_maj_cab \gset
 reset role;
 select is(:esn_org_soi::bigint, 1::bigint, 'ESN : lit SON organisation');
 select is(:esn_orgs_autres::bigint, 0::bigint, 'ESN : ne lit aucune autre organisation (le cabinet compris)');
@@ -269,19 +269,19 @@ select pg_temp.compte('select 1 from public.users') as ad_users,
        pg_temp.compte('select 1 from public.publications') as ad_pubs,
        pg_temp.compte('select 1 from public.grand_livre') as ad_journal \gset
 select pg_temp.tente(format('update public.users set status = %L where id = %L', 'suspended', :'expert_b')) as ad_suspend_b,
-       pg_temp.tente(format('update public.organizations set verification_status = %L where id = %L', 'approved', :'org_a')) as ad_approuve_a \gset
+       pg_temp.tente(format('update public.organizations set verification_status = %L where id = %L', 'approved', :'org_cab')) as ad_approuve_cab \gset
 reset role;
 select is(:ad_users::bigint, 1::bigint, 'administrateur, par l''API de données : ne lit que SON compte');
 select ok(:ad_profils = 0 and :ad_cands = 0 and :ad_pubs = 0, 'administrateur, par l''API de données : ni profil, ni candidature, ni annonce');
 select ok(:ad_journal <= 0, 'administrateur, par l''API de données : le grand livre ne se lit pas (l''écran passe par le serveur)');
 select ok(:'ad_suspend_b' not like 'ecrit%', 'administrateur, par l''API de données : suspendre est refusé — la route le fait (' || :'ad_suspend_b' || ')');
-select ok(:'ad_approuve_a' not like 'ecrit%', 'administrateur, par l''API de données : approuver une organisation est refusé (' || :'ad_approuve_a' || ')');
+select ok(:'ad_approuve_cab' not like 'ecrit%', 'administrateur, par l''API de données : approuver une organisation est refusé (' || :'ad_approuve_cab' || ')');
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- APRÈS COUP, en postgres : RIEN n'a changé
 -- ════════════════════════════════════════════════════════════════════════════
 select is((select u.user_type from public.users u where u.id = :'expert_a'), 'expert_freelance', 'après coup : l''expert A est toujours expert freelance');
-select ok((select u.firstname is distinct from 'Pirate' and u.status is distinct from 'suspended' from public.users u where u.id = :'expert_a'),
+select ok((select u.first_name is distinct from 'Pirate' and u.status is distinct from 'suspended' from public.users u where u.id = :'expert_a'),
           'après coup : le compte de l''expert A est intact');
 select is((select u.status from public.users u where u.id = :'expert_b'), (select u.status from public.users u where u.id = :'expert_a'),
           'après coup : l''expert B n''est pas suspendu');
@@ -295,11 +295,11 @@ select ok((select n.status from public.notifications n where n.id = :'notif_b') 
           and (select m.status from public.matches m where m.id = :'match_b') = 'notified',
           'après coup : la notification et le rapprochement de B sont intacts');
 select ok(not exists (select 1 from public.publications p where p.id in (:'pub_a', :'pub_b') and p.title in ('Pirate', 'Directe'))
-          and not exists (select 1 from public.organizations o where o.name = 'Pirate'),
+          and not exists (select 1 from public.organizations o where o.company_name = 'Pirate'),
           'après coup : aucune annonce ni organisation n''a été réécrite');
 select ok(not exists (select 1 from public.organization_members m where m.organization_id = :'org_b' and m.user_id = :'client_a')
-          and (select o.verification_status from public.organizations o where o.id = :'org_a') is distinct from 'approved',
-          'après coup : le client A n''est pas entré dans l''organisation B, et l''organisation A n''a pas été approuvée');
+          and (select o.verification_status from public.organizations o where o.id = :'org_cab') is distinct from 'approved',
+          'après coup : le client A n''est pas entré dans l''organisation B, et l''organisation du cabinet n''a pas été approuvée');
 
 select * from finish();
 rollback;

@@ -1,6 +1,6 @@
 'use client'
 
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useRelativeTime } from '@/lib/use-relative-time'
 import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
@@ -158,7 +158,6 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
   const tCommerce = useTranslations('commerce')
   // SITE DE RENDU 4/5 — libellé d'état par la RAISON dérivée, point de vue org.
   const lifecycleLabel = useCandidatureLifecycleLabel('org')
-  const locale = useLocale()
   const relTime = useRelativeTime()
   const secureFetch = useSecureFetch()
 
@@ -239,6 +238,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
         if (payload.code === 'candidature_archived') setError(t('error_candidature_archived'))
         else if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'org_not_approved') setError(t('error_org_not_approved'))
         else if (payload.code === 'unlock_limit_reached') {
           // Le serveur NOMME la cause (402) : l’organisation a épuisé ses
           // dévoilements inclus. Elle lisait « une erreur est survenue ».
@@ -283,6 +283,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'org_not_approved') setError(t('error_org_not_approved'))
         else setError(t('error_generic'))
         return
       }
@@ -315,6 +316,7 @@ export default function CandidatureCard({ candidature, publicationType, onMutate
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'org_not_approved') setError(t('error_org_not_approved'))
         else setError(t('error_generic'))
         return
       }

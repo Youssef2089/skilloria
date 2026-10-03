@@ -75,7 +75,11 @@ with
       ('fonction', 'mission_postulee'),
       -- validation_annonces (S3) : le refus d'une annonce en revue — publier_annonce() est redéfinie, signature
       -- inchangée, et n'est donc pas « créée ».
-      ('fonction', 'refuser_annonce')
+      ('fonction', 'refuser_annonce'),
+      -- organisation_approuvee_en_base (lot DevOps CI, APRÈS : second temps) — la règle et ses deux gardes (§D.52).
+      ('fonction', 'organisation_est_approuvee'),
+      ('fonction', 'garde_publication_organisation_approuvee'),
+      ('fonction', 'garde_candidature_organisation_approuvee')
     ) v(genre, nom)
   )
 

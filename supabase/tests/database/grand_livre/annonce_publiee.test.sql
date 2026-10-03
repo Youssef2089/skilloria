@@ -8,7 +8,7 @@ select plan(7);
 create or replace function pg_temp.essai() returns setof text language plpgsql as $$
 declare
   v_admin uuid := pg_temp.fab_compte('entreprise');
-  v_org   uuid := pg_temp.fab_organisation(v_admin);
+  v_org   uuid := pg_temp.fab_organisation_approuvee(v_admin);
   v_pub   uuid := pg_temp.fab_brouillon(v_org);
   v_revue uuid := pg_temp.fab_brouillon(v_org);
   v_dom   uuid := pg_temp.fab_domaine();

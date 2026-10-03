@@ -1,6 +1,6 @@
 'use client'
 
-import { useLocale, useTranslations } from 'next-intl'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Link } from '@/i18n/navigation'
 import { useSecureFetch } from '@/lib/secure-fetch'
@@ -111,7 +111,6 @@ export default function SpotlightCandidateCard({
   const tCdi = useTranslations('cdi_profile_view.status_badges')
   // SITE DE RENDU 5/5 — libellé d'état par la RAISON dérivée, point de vue org.
   const lifecycleLabel = useCandidatureLifecycleLabel('org')
-  const locale = useLocale()
   const secureFetch = useSecureFetch()
   const markViewed = useMarkCandidatureViewed()
 
@@ -230,6 +229,7 @@ export default function SpotlightCandidateCard({
         if (payload.code === 'candidature_archived') setError(t('error_candidature_archived'))
         else if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'org_not_approved') setError(t('error_org_not_approved'))
         else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         // ── Refus COMMERCE (402) ──────────────────────────────────────────
         //  Il manquait, et le serveur le nomme pourtant : l'organisation qui
@@ -259,6 +259,7 @@ export default function SpotlightCandidateCard({
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'org_not_approved') setError(t('error_org_not_approved'))
         else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         else setError(t('error_generic'))
         return
@@ -283,6 +284,7 @@ export default function SpotlightCandidateCard({
       if (!res.ok) {
         if (payload.code === 'invalid_transition') setError(t('error_invalid_transition'))
         else if (payload.code === 'not_found') setError(t('error_not_found'))
+        else if (payload.code === 'org_not_approved') setError(t('error_org_not_approved'))
         else if (payload.code === 'insufficient_role') setError(t('error_insufficient_role'))
         else setError(t('error_generic'))
         return

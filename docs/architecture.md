@@ -548,6 +548,15 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   soumises depuis l'audit de leur dernière soumission ; la fiche et l'onglet « En attente » la lisent au lieu
 >   d'`updated_at`. Test : `grand_livre/annonce_refusee.test.sql` (18). Écran `/admin/annonces`
 >   (§P2.4).
+> - **`organisation_approuvee_en_base`** (`…060000`, **APRÈS** — second temps, lot DevOps CI) — `organisation_est_approuvee(uuid)`
+>   (SQL, `stable`, fermée au navigateur) et deux déclencheurs BEFORE, `publications_organisation_approuvee` (la transition
+>   vers `published`) et `candidatures_organisation_approuvee` (vers `unlocked` ou `selected`) : une organisation non
+>   approuvée est refusée, SQLSTATE `OA001`, par n'importe quelle voie (§D.52). Seules les TRANSITIONS sont gardées : ce qui
+>   est déjà en ligne ou dévoilé le reste, clôturer et expirer passent. **Pourquoi APRÈS** : elle refuse ce que le code
+>   d'avant écrivait pour une organisation non approuvée ; le code du lot refuse ces gestes avant la base — déclarée dans
+>   `SECOND_TEMPS` (écrivains recalculés, relus un par un). À pousser après la seconde livraison (`05xxxx`). Les tests de
+>   base approuvent désormais l'organisation avant de publier (`fab_approuver`, par `statuer_sur_organisation`, la voie de
+>   l'écran). Test : `organisations/organisation_approuvee.test.sql` (11).
 >
 > **LE REGROUPEMENT (ARRÊT 28, 03/10/2026) — les quatre lots en UNE première livraison** : `annonce_criteres_communs`,
 > `zones_liste_des_pays`, `mission_postulee`, `validation_annonces`, toutes AVANT, aucune ne refuse ce que `e27fa56`
@@ -4405,6 +4414,34 @@ de configuration de `/admin/supervision` le dit), la prochaine construction de s
 Preview, GitHub Actions, poste, Vercel sans environnement), le branchement dans `package.json` et `vercel.json`, et le flux
 qui nourrit sa construction de chaque variable exigée. Éprouvé par mutation (5 sur 5).
 
+<a id="d52"></a>
+### D.52 — UNE ORGANISATION NON APPROUVÉE NE CRÉE, NE MODIFIE, NE PUBLIE, NE RETIENT, NE DÉCLINE, NE DÉVOILE RIEN (lot DevOps CI, partie A bis, décision de Youssef, 03/10/2026)
+
+**Le cas.** `requireOrgApproved` existait (lib/auth-guard.ts) et la documentation disait qu'il « garde les routes
+réservées » (§P1.2) — **aucune route ne l'appelait** (relevé du lot DevOps CI, partie A ; S1 l'a vu aussi). L'écran grisait
+« Publier », l'API acceptait tout : une organisation en cours de vérification publiait, retenait, dévoilait. Checklist V1,
+point 4 ; point 5 : la règle doit tenir au serveur ET en base, jamais seulement à l'écran.
+
+**La règle — ce qui est réservé à une organisation approuvée** (`organizations.verification_status = 'approved'`) :
+créer et modifier une annonce (`POST /api/publications` hors sous-traitance, `PATCH /api/publications/[id]`), la publier
+(`/publish`, et la validation administrateur d'une annonce en revue — 409 `org_not_approved`), retenir, décliner,
+dévoiler un candidat, demander l'argumentaire d'un candidat (un appel d'IA payé). **Pas réservé** : lire (son espace,
+ses annonces, ses candidatures), régler sa fiche et son équipe, clôturer une annonce (un geste qui retire), la messagerie
+d'une conversation déjà ouverte (elle naît d'un dévoilement, désormais refusé ; l'approbation retirée ne coupe pas un
+échange en cours). L'organisation personnelle d'un expert (sous-traitance) naît approuvée.
+
+**Au serveur** : `requireOrgApproved(auth)` juste après `requireOrgRole`, AVANT toute lecture de l'objet — 403
+`org_not_approved`, rien n'est révélé ni écrit. **En base** (migration `organisation_approuvee_en_base`, APRÈS) : deux
+déclencheurs refusent les TRANSITIONS vers `published`, `unlocked`, `selected` (OA001) — une route oubliée demain, un
+appel direct de RPC, la base tient. **À l'écran** : le formulaire d'annonce lit l'état de l'organisation et remplace ses
+boutons d'envoi par la raison (jamais grisés, §D.21) avec un avis fixe en tête ; les cartes de candidature traduisent le
+refus ; l'écran d'administration aussi. Quatre langues.
+
+**Prouvé par** : `organisations/organisation_approuvee.test.sql` (11 : refus OA001, passage approuvé, approbation retirée
+par `statuer_sur_organisation` → retenir et dévoiler refusés, ce qui est en ligne y reste, clôturer passe) ;
+`tests/integration/acces-routes.mjs` R6 (cabinet et ESN non approuvés × sept gestes : 403 `org_not_approved` ; le client
+approuvé passe la garde ; la base relue). `diag-deux-temps` vert (second temps déclaré).
+
 ---
 ---
 
@@ -4815,7 +4852,7 @@ Uniquement ce qui est établi depuis le code ou depuis un TODO réel.
   Ces deux réglages ont désormais leur écran (voir ci-dessus).
 
 **H.11 — CE QUE LE LOT DEVOPS CI (PARTIE A, 03/10/2026) LAISSE OUVERT, DIT.**
-- **`requireOrgApproved` n’est appelé par AUCUNE route** (relevé du lot, `lib/auth-guard.ts`) : une organisation dont la
+- ~~**`requireOrgApproved` n’est appelé par AUCUNE route**~~ — **FERMÉ le 03/10/2026 (partie A bis, §D.52)**. Le constat :- **`requireOrgApproved` n’est appelé par AUCUNE route** (relevé du lot, `lib/auth-guard.ts`) : une organisation dont la
   vérification n’est pas `approved` publie, retient, dévoile. Checklist V1, point 4 (« `is_verified` bloquant ») — **à
   arbitrer par Youssef** : bloquer change le parcours d’inscription d’une organisation (qui publierait après
   l’approbation seulement). Le banc des routes ne l’éprouve pas : il ne fige pas un comportement non arbitré.
