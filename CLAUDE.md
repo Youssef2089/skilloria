@@ -361,7 +361,7 @@ endroits, dans le même commit** : sa ligne ici, son détail là-bas.
 | [E.114](docs/pieges.md#e114) | UNE VÉRIFICATION QUI N'A PAS JUGÉ ÉCRIT LA MÊME FORME QU'UN VERDICT (note 0, message interne) — reconnue par une heuristique, dite. |
 | [E.115](docs/pieges.md#e115) | `verified_by` SURVIT À LA DÉCISION SUIVANTE : sa présence ne dit pas « validée par un administrateur ». |
 | [E.116](docs/pieges.md#e116) | UN PRÉDICAT PARTAGÉ QUI GAGNE UN CHAMP CASSE L'APPELANT QU'UNE AUTRE BRANCHE VIENT D'ÉCRIRE — fusion sans conflit, vu par `tsc` parce qu'aucun champ n'est facultatif. |
-| [E.117](docs/pieges.md#e117) | UN CHECK LAISSE PASSER NULL : « un nombre ET une unité » acceptait un nombre seul (`true and null` = NULL) — « les deux » commence par `a is not null and b is not null`. Et un `end $$;` perdu : 0 test joué. |
+| [E.118](docs/pieges.md#e118) | UN CHECK LAISSE PASSER NULL : « un nombre ET une unité » acceptait un nombre seul (`true and null` = NULL) — « les deux » commence par `a is not null and b is not null`. Et un `end $$;` perdu : 0 test joué. |
 | [E.9](docs/pieges.md#e9) | Autres pièges nommés dans le dépôt, à connaître. |
 
 ---

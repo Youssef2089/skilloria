@@ -483,7 +483,7 @@ les deux SAISIS dans l'administration et nés vides — le nettoyage, phase B 2.
 >   navigateur ; la reprise exécutée une fois dans son bloc (notices). Exception de `diag-deux-temps` : `colonnes_neuves`
 >   (preuve nouvelle — la migration crée chaque colonne, chaque contrainte en garde une, aucun écrivain en ligne de la
 >   table ne les nomme, le test les nomme). `work_mode` et `duration` gardées, commentées HÉRITÉES. §D.39.
->   Tests : `annonces/criteres_communs.test.sql` (29 — dont les moitiés manquantes, §E.117), `matching/specialites_recoupement.test.sql` (6).
+>   Tests : `annonces/criteres_communs.test.sql` (29 — dont les moitiés manquantes, §E.118), `matching/specialites_recoupement.test.sql` (6).
 > **LE LOT « FINITIONS ET PAYS » (S1, 02/10/2026, ARRÊT S1-2) — une migration, AVANT, dans la plage de S1
 > (`20261003010000`–`…015959`).** Décisions de Youssef : la liste des zones porte tous les pays (pas de régions).
 > - **`zones_liste_des_pays`** (`…010000`, AVANT) — **la liste des zones se détache de `countries`** : la clé étrangère

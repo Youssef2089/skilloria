@@ -4736,8 +4736,8 @@ prédicat partagé prend un type dont chaque champ est OBLIGATOIRE (`T | null`, 
 chaque appelant des fonctions que l'autre côté a changées. **Contrôle** : `tsc` ; et `diag-resoumission`/`diag-lot2-socle`
 pour les deux appelants nommés.
 
-<a id="e117"></a>
-### E.117 — UN CHECK LAISSE PASSER NULL : « UN NOMBRE ET UNE UNITÉ » ACCEPTAIT UN NOMBRE SEUL.
+<a id="e118"></a>
+### E.118 — UN CHECK LAISSE PASSER NULL : « UN NOMBRE ET UNE UNITÉ » ACCEPTAIT UN NOMBRE SEUL.
 
 **Le cas mesuré (03/10/2026, rejeu local de la première livraison par Youssef).** `publications_duree_check` disait
 `(valeur is null and unite is null) or (valeur between 1 and 999 and unite in (…))`. Avec `valeur = 6, unite = null`, le
