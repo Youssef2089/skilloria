@@ -5,7 +5,7 @@
 > et §H.3 de [architecture.md](architecture.md). Rien ici ne remplace le code : en cas de doute,
 > `node scripts/diag-grand-livre.mjs` compte ce qui est branché.
 
-**Dernière mise à jour : 03/10/2026 (ARRÊT 29 — lot DevOps CI, partie A : les contrôles sur GitHub Actions, le verrou, la barrière, les accès croisés, le jeu de référence du moteur ; à relire, puis à envoyer sur GitHub).** Branche `lot/devops-ci`, depuis `3b337a0`. Aucun `git push`, aucune écriture en base. — Avant lui : **03/10/2026 (ARRÊT 28 — le regroupement des quatre branches, puis la seconde livraison ; à relire avant tout déploiement).** Branches `lot/regroupement` (première livraison) et `lot/seconde-livraison` (seconde), depuis `e27fa56` (en ligne sur staging). Aucun `git push`, aucune écriture en base.
+**Dernière mise à jour : 03/10/2026 (ARRÊT 29 bis — lot DevOps CI, parties A et A bis : les contrôles sur GitHub Actions, le verrou, la barrière, les accès croisés, le jeu de référence du moteur ; à relire, puis à envoyer sur GitHub).** Branche `lot/devops-ci`, depuis `3b337a0`. Aucun `git push`, aucune écriture en base. — Avant lui : **03/10/2026 (ARRÊT 28 — le regroupement des quatre branches, puis la seconde livraison ; à relire avant tout déploiement).** Branches `lot/regroupement` (première livraison) et `lot/seconde-livraison` (seconde), depuis `e27fa56` (en ligne sur staging). Aucun `git push`, aucune écriture en base.
 
 ## ✅ OÙ EN EST LE LOT — LE GRAND LIVRE EST TERMINÉ ET DÉPLOYÉ (28/09/2026)
 
@@ -56,6 +56,67 @@ Paramètres du Contrôle intelligent des applications → Désactivé.
 | messagerie | `message_envoye` |
 
 **Compte : 71 / 71** (phase B, 28/09/2026) — chaque action a exactement un écrivain, contrôlé ; détail à l'ARRÊT 8.
+
+## ⛔ ARRÊT 29 bis — LOT DEVOPS CI, PARTIE A BIS : CINQ AJOUTS SUR `lot/devops-ci`, AVANT LA RELECTURE (03/10/2026)
+
+Même branche, à la suite de l’ARRÊT 29 (`0afac6c`). Un commit par point. Aucun `git push`, aucune écriture en base, ni Docker
+ni base sur le poste : tout ce qui touche la base tournera pour la première fois sur GitHub.
+
+**Lu** (en plus de l’ARRÊT 29) : `lib/auth-guard.ts` (`requireOrgApproved`), les sept routes des gestes réservés et la validation
+administrateur, `PublicationForm`, `CandidatureCard`, `SpotlightCandidateCard`, l’écran `/admin/annonces/[id]`, `lib/annonces/formulaire.ts` ;
+dans les migrations : `publier_annonce`, `retenir_candidature`, `devoiler_candidature`, `statuer_sur_organisation`, les contraintes
+de `publications` (statuts : pas de `closed`, c’est `archived`), `organizations` (`company_name`), `users` (`first_name`),
+`cron_run_log`, `matching_notes_partielles`, `rate_limit_hits`, `ai_model_tarifs`, l’index unique des téléphones vérifiés,
+`inscription_refus` (noms, téléphone, société) ; les douze tâches pg_cron et leurs fonctions ; `lib/missions/feed.ts`
+(`expertMissionsQuery`) ; `scripts/diag-deux-temps.mjs` (`SECOND_TEMPS`). **Non relu** : le reste des routes au-delà de leur garde.
+
+### Les points — ce qui est fait, et ce qui le prouve
+| # | Commit | Fait | Prouvé par |
+|---|---|---|---|
+| 1 | `2b83f40` | **Organisation non approuvée** (§D.52) : `requireOrgApproved` dans les sept gestes réservés (créer, modifier, publier ; retenir, décliner, dévoiler, l’argumentaire) avant toute lecture, 403 `org_not_approved` ; la validation administrateur 409 `org_not_approved` ; **en base**, migration **APRÈS** `organisation_approuvee_en_base` (deux déclencheurs, OA001, transitions seulement), déclarée dans `SECOND_TEMPS` ; à l’écran, le formulaire remplace ses boutons par la raison (jamais grisés), les cartes et l’administration traduisent ; quatre langues | `organisations/organisation_approuvee.test.sql` (11) ; banc des routes R6 ; `diag-deux-temps` vert ; `diag-integration-continue` C |
+| 2 | `f9dbde3` | **Refus homogène** (§D.53) : l’annonce d’une autre organisation rend partout 404 `not_found` | banc des routes R4 : la réponse comparée à celle d’un identifiant inventé, sur cinq routes ; `diag-integration-continue` C |
+| 3 | `c6e8899` | **Le moteur selon les réglages** : notes simulées fixes, cinq couples (filtre, palier) — l’affichage par la vraie requête du flux, l’alerte, l’étiquette ; au même filtre, trois paliers : affichage et alertes identiques | banc du moteur, phase 6 ; `diag-integration-continue` E |
+| 4 | `d137b67` | **Tâches planifiées** : les douze nommées avec la preuve de leur effet ; six trous comblés (`purge_cron_maintenance`, `reconcile_cron_run_log`, `purger_notes_partielles`, la commande de `rate_limit_hits_purge`, `next_unfinished_matching_run`, `cloturer_run_cron`) | `taches_planifiees/effets.test.sql` (18) ; `diag-integration-continue` F bis |
+| 5 | (ce commit) | **Le grand jeu de nuit** : `generateur-jeu.mjs` (Faker 10.6.0 épinglé, graine fixe : 1 000 experts, 200 organisations, 300 missions, par les vrais chemins), `nuit-matching.mjs` (IA simulée, le vrai moteur sur tout le jeu, les règles vérifiées en base, les temps, les alertes par note minimale, la facture d’IA), `.github/workflows/nuit-matching.yml` (la nuit, jamais sur une demande de fusion ; résumé chiffré et artefact) ; le générateur vise l’UAT, **jamais la production** (`cible-du-jeu.mjs`) | `diag-integration-continue` F ter (déterminisme, couverture des cas, garde de cible sur sept environnements fabriqués) |
+
+### Ce que la partie A bis a trouvé en chemin
+- **Trois colonnes écrites de mémoire dans mes propres tests de la partie A** (§E.88) : `organizations.name` (c’est `company_name`),
+  `users.firstname` (c’est `first_name`) dans `acces_croises`, et le statut `closed` (c’est `archived`) dans le test du point 1 —
+  chacune aurait fait tomber un fichier entier au premier passage. Corrigées, colonnes relues contre le schéma.
+- **`§G.9` m’a pris une fois** : des accents graves dans une commande `node -e` ont été exécutés par bash, un nom de migration a
+  disparu d’une phrase de `docs/pieges.md` ; vu en relisant, corrigé par un fichier, commit amendé (non poussé).
+- **Le tarif du reranker en base** (`ai_model_tarifs`, `rerank-v4.0-fast` : 0,000002 $ par unité) paraît mille fois sous le prix public
+  d’une recherche Cohere que je connais (~0,002 $) — **NON VÉRIFIÉ** (le prix du modèle v4 m’est inconnu) : le banc de nuit
+  rend les unités ET le coût au tarif réglé, pour que Youssef compare. À vérifier dans `/admin/tarifs-ia`.
+- `npm install` signale des vulnérabilités **préexistantes** dans l’arbre des dépendances : Dependabot (§5 du guide) les regroupera.
+- Deux avertissements de lint préexistants corrigés en passant ; cliquet abaissé à 49/19.
+
+### Les migrations nouvelles
+`organisation_approuvee_en_base` (`…060000`), **APRÈS** : à pousser une fois le code de ce lot en ligne, après la seconde livraison
+(`05xxxx`). La requête de staging liste ses trois fonctions dans « prochain push : créé ». `diag-deux-temps` : vert.
+
+### Le nombre de tests attendu — NON exécutés ici
+**859 tests pgTAP dans 73 fichiers** (830 + 11 + 18). Banc des routes : **89** contrôles. Banc du moteur : **31**. Grand jeu de nuit : **12**.
+
+### L’épreuve
+- `tsc` : 0 erreur. `npm run build` : vert. Lint : 49/19 (abaissé). Parité i18n : verte (5 157 clés). Série complète : **134 verts, 0 rouge, 0 n’a pas tourné, 6 écartés**.
+- **Mutations : 12 sur 12** pour les contrôles de la partie A bis (gardes d’approbation, refus nommé, 403 revenu, déclencheur retiré, réglages,
+  tâche sans preuve, nuit sur demande de fusion, générateur non déterministe, garde de cible ×2, notes hors issues) ; arbre identique.
+
+### Le coût, mis à jour
+Contrôles d’une demande de fusion : 23 à 32 min (inchangé à l’estimation). Grand jeu de nuit : 12 à 22 min, **360 à 660 min/mois**. Avec
+la nuit de S1 (hypothèse 600 à 900) : **1 860 à 2 460 min/mois au rythme calme** (Free ne suffit plus au haut de la fourchette,
+Pro oui) ; **4 360 à 4 960 au rythme actuel** (Pro : ~11 à 16 $ de plus, **15 à 20 $/mois** en tout) ; plafond de dépense conseillé
+relevé à **20 $**. Détail : `docs/integration-continue.md` §4.
+
+### Pour Youssef — ce qui change dans les étapes de l’ARRÊT 29
+- Étape 2 : plafond de dépense **20 $** (au lieu de 10).
+- Étape 5 : `base` attend **859** tests pgTAP ; `application`, **89** contrôles des routes ; `base`, **31** contrôles du moteur.
+- Après la première nuit : onglet **Actions** → *Nuit — moteur de mise en relation* → **Summary** (le tableau chiffré).
+- Le déploiement de ce lot a **deux temps** : le code (la fusion qui met staging en ligne) d’abord ; la migration
+  `organisation_approuvee_en_base` ensuite, avec ou après la seconde livraison (`db push`).
+
+---
 
 ## ⛔ ARRÊT 29 — LOT DEVOPS CI, PARTIE A : LES CONTRÔLES SUR GITHUB ACTIONS, LE VERROU, LA BARRIÈRE, LES ACCÈS CROISÉS, LE MOTEUR (03/10/2026)
 
@@ -129,7 +190,7 @@ vide ; le moteur, 14 contrôles ; les routes, 69 contrôles. **Tout cela tourner
 
 ### Pour Youssef — dans l’ordre
 1. **La relecture** de ce lot (skill `relecture-avant-deploiement`).
-2. **GitHub** (docs/integration-continue.md §3) : ① passer en **Pro** (4 $/mois) et poser un plafond de dépense de 10 $ ;
+2. **GitHub** (docs/integration-continue.md §3) : ① passer en **Pro** (4 $/mois) et poser un plafond de dépense de 20 $ (relevé par la partie A bis : le grand jeu de nuit) ;
    ② autoriser les actions créées par GitHub ; ③ (conseillé) branche par défaut = `feat/sprint-archi-orga`, puis vérifier
    chez Vercel que *Production Branch* vaut toujours `main` ; ⑤ Dependabot (graphe, alertes, mises à jour de sécurité,
    regroupées).

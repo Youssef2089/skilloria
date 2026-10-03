@@ -2623,6 +2623,16 @@ fabrique de comptes dans le dépôt (§E.20).
   puis, au même filtre, trois paliers : affichage et alertes identiques, étiquettes toutes différentes (§D.48 : le palier
   ne décide que de l'étiquette).
 
+**Le grand jeu de nuit** (partie A bis, point 5) : `.github/workflows/nuit-matching.yml` (chaque nuit, jamais sur une demande
+de fusion). `tests/integration/generateur-jeu.mjs` — Faker.js 10.6.0 (dépendance de développement, version épinglée), graine
+fixe : 1 000 experts, 200 organisations, 300 missions, par les fabriques (inscription signée, approbation par
+`statuer_sur_organisation`, publication par `publier_annonce`), le référentiel LU dans la base visée, téléphones dérivés du
+rang (l'index unique des téléphones vérifiés). `tests/integration/nuit-matching.mjs` : IA simulée (une note fixe par couple,
+un hachage), quatre passages du vrai moteur (filtre 0 à froid, filtre 3, rejoué, après 50 candidatures), les règles vérifiées
+EN BASE sur toutes les recommandations, les temps, les experts alertés par note minimale, la facture d'IA au tarif de
+`ai_model_tarifs`. **Jamais la production** : `tests/integration/cible-du-jeu.mjs` lit la barrière (§D.51) et exige, pour une
+base distante, son nom explicite et la production déclarée et différente. `diag-integration-continue` (F ter) l'éprouve.
+
 **Les tâches planifiées** (partie A bis, point 4) : les douze tâches de pg_cron sont NOMMÉES, chacune avec la preuve de
 son effet, dans `taches_planifiees/effets.test.sql` (18) — l'inventaire en base (`cron.job` : ces douze, elles seules, chacune
 appelant la fonction ou la route que son test éprouve) et les six qui n'avaient pas de test d'effet : `purge_cron_maintenance`

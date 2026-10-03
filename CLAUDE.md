@@ -662,7 +662,8 @@ sauf report décidé par Youssef.
 Une tâche = une branche = une demande de fusion = les contrôles = une revue = la fusion. Le flux
 `.github/workflows/controles.yml` (`statique` · `base` · `application`) rejoue, sur chaque demande de fusion vers
 `feat/sprint-archi-orga` et `main`, les étapes 1, 2, 3 et 5 de §G.4 ter sur une base JETABLE démarrée dans le runner,
-la série complète des diagnostics, les accès croisés (base et routes) et le jeu de référence du moteur. Les contrôles
+la série complète des diagnostics, les accès croisés (base et routes) et le jeu de référence du moteur ; chaque nuit,
+`nuit-matching.yml` fait tourner le vrai moteur sur un grand jeu généré (jamais sur une demande de fusion). Les contrôles
 exigés, et le moment où chacun le devient (après son premier passage vert) : `.github/controles-exiges.json` ; le verrou
 demande GitHub Pro sur un dépôt privé. **La requête de staging, `db push` et `git push` restent des gestes de Youssef
 jusqu'au lot DevOps 2.** **Principe, écrit dès maintenant : la production reçoit EXACTEMENT le commit validé sur

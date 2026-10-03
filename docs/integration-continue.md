@@ -77,6 +77,24 @@ experts, trois annonces, et le résultat attendu, sur **le vrai moteur** (`lib/m
   correspondances et l'étiquette **« Correspondance forte »**, dans les deux sens (expert → annonces, annonce → experts) ;
   un avis par correspondance fraîche, aucun au second passage ; un reranker en panne n'efface rien.
 
+**Selon les réglages** : le même jeu rejoué sous cinq couples (note minimale d'affichage, palier « Correspondance forte ») —
+la note minimale décide de l'affichage et de l'alerte, le palier de l'étiquette seule (§D.48).
+
+**Le grand jeu de nuit** — [.github/workflows/nuit-matching.yml](../.github/workflows/nuit-matching.yml), chaque nuit à
+02 h 17 UTC et à la main, **jamais sur une demande de fusion**. Un générateur déterministe
+([tests/integration/generateur-jeu.mjs](../tests/integration/generateur-jeu.mjs), Faker.js, graine fixe) crée 1 000 experts,
+200 organisations (clients, cabinets, ESN) et 300 missions par les vrais chemins (inscription, approbation, publication) ;
+une IA simulée rend une note fixe par couple ; le vrai moteur tourne sur tout le jeu
+([tests/integration/nuit-matching.mjs](../tests/integration/nuit-matching.mjs)). Il vérifie chaque recommandation (branche,
+spécialité commune ou « Autre » seule, pays commun, séniorité, public, aucun Occupé, aucun invisible), l'absence d'alerte en
+double, qu'une mission postulée ne revient pas ; il mesure le temps d'un passage complet et de l'affichage des
+recommandations, le nombre d'experts alertés pour chaque note minimale, et les appels d'IA (et leur coût au tarif réglé)
+qu'un passage réel coûterait. Le résultat chiffré : onglet **Actions** → *Nuit — moteur de mise en relation* → l'exécution
+→ **Summary**, et l'artefact `nuit-matching.json`. **Le même générateur remplira l'UAT** : il vise toute base locale, ou une
+base distante nommée par `JEU_CIBLE_AUTORISEE` et différente de la production déclarée par `SUPABASE_REF_PRODUCTION` —
+**jamais la production** : sous la barrière de production, sur la base de production, ou quand la production n'est pas
+déclarée, il refuse ([tests/integration/cible-du-jeu.mjs](../tests/integration/cible-du-jeu.mjs)).
+
 Pour **ajouter un cas** au jeu : un expert ou une annonce dans `jeu-de-reference.mjs`, sa note dans `NOTES`, le résultat
 dans `ATTENDU` avec la phrase qui dit pourquoi. `diag-integration-continue` vérifie la cohérence sans base.
 
@@ -118,7 +136,7 @@ de clés de GitHub reste hors d'atteinte d'un compte personnel : elle est rempla
 ### Les réglages, clic par clic
 
 **① Passer en Pro** (si ce n'est pas déjà le cas) : avatar en haut à droite → **Settings** → **Billing and licensing** →
-**Plans and usage** → **Upgrade** sur *Pro*. Puis, même écran : **Spending limit** (plafond de dépense) → posez **10 $**
+**Plans and usage** → **Upgrade** sur *Pro*. Puis, même écran : **Spending limit** (plafond de dépense) → posez **20 $**
 pour les minutes d'Actions — au-delà de 3 000 minutes, les contrôles continuent au lieu de s'arrêter (§4).
 
 **② Autoriser les actions du flux** : le dépôt → **Settings** → **Actions** → **General** →
@@ -165,19 +183,23 @@ le dépôt → **Settings** → **Rules** → **Rulesets** → **New ruleset** �
 **Les contrôles de ce lot : 23 à 32 minutes par exécution** (§1). Une exécution par envoi sur une demande de fusion
 ouverte ; un nouvel envoi annule l'exécution en cours (seul le dernier état compte).
 
+**Le grand jeu de nuit du moteur** (partie A bis) : **12 à 22 minutes par nuit** (estimé : installation et base 4 à 5 min,
+génération de 1 500 comptes et 300 annonces 2 à 4 min, quatre passages du moteur sur 300 missions 5 à 12 min, l'affichage
+quelques secondes), soit **360 à 660 minutes par mois**. Le premier passage donnera la vraie durée.
+
 **La campagne de nuit de S1 (Playwright, partie B)** : sa durée n'est pas connue de ce lot. Hypothèse : **20 à 30 minutes
 par nuit**, soit **600 à 900 minutes par mois**.
 
-| Rythme | Exécutions par mois | Minutes des contrôles | + nuit de S1 | Total | Free (2 000) | Pro (3 000) |
-|---|---|---|---|---|---|---|
-| calme : 1 demande de fusion par jour ouvré, 1,5 envoi chacune | ~33 | ~900 | 600–900 | **1 500–1 800** | suffit, de justesse | suffit |
-| actuel : 3 demandes par jour ouvré (principal, S1, S2, S3), 2 envois chacune | ~130 | ~3 400 | 600–900 | **4 000–4 300** | **ne suffit pas** | **ne suffit pas** : ~1 000 à 1 300 min de plus |
+| Rythme | Exécutions par mois | Minutes des contrôles | + nuit du moteur | + nuit de S1 | Total | Free (2 000) | Pro (3 000) |
+|---|---|---|---|---|---|---|---|
+| calme : 1 demande de fusion par jour ouvré, 1,5 envoi chacune | ~33 | ~900 | 360–660 | 600–900 | **1 860–2 460** | **ne suffit pas** au haut de la fourchette | suffit |
+| actuel : 3 demandes par jour ouvré (principal, S1, S2, S3), 2 envois chacune | ~130 | ~3 400 | 360–660 | 600–900 | **4 360–4 960** | **ne suffit pas** | **ne suffit pas** : ~1 400 à 2 000 min de plus |
 
 **Au-delà du forfait** : 0,008 $ la minute Linux (2 cœurs), au tarif que je connais — **GitHub a annoncé une baisse de
-ses tarifs pour 2026 : NON VÉRIFIÉ, la page de facturation fait foi**. Au rythme actuel sur Pro : **~8 à 11 $ par mois**
-de plus, soit **12 à 15 $ par mois en tout** (Pro compris). Sans plafond de dépense, les contrôles **s'arrêtent** une fois le
+ses tarifs pour 2026 : NON VÉRIFIÉ, la page de facturation fait foi**. Au rythme actuel sur Pro : **~11 à 16 $ par mois**
+de plus, soit **15 à 20 $ par mois en tout** (Pro compris). Sans plafond de dépense, les contrôles **s'arrêtent** une fois le
 forfait épuisé — et, avec des contrôles exigés, **plus aucune fusion n'est possible jusqu'au mois suivant**. D'où le plafond
-de 10 $ (§3, ①).
+de 20 $ (§3, ①).
 
 **Ce qui réduirait la note, sans rien retirer**, si un jour il le faut : ne lancer `base` et `application` que lorsque
 des fichiers de code ou de base changent (un filtre de chemins : une demande de fusion qui ne touche que `docs/` ne

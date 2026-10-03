@@ -124,6 +124,22 @@ ok([...PUBLIQUES.values()].every((r) => typeof r === 'string' && r.length >= 20)
 ok(routes.filter((r) => r.chemin.startsWith('admin/')).every((r) => /\brequireAdmin\(/.test(r.code)),
   'chaque route sous /api/admin appelle requireAdmin (le banc l’éprouve contre chaque rôle)')
 
+// Les gestes réservés à une organisation approuvée (§D.52) : la garde, APPELÉE, avant toute lecture de l'objet.
+const RESERVEES = [['publications', 'POST'], ['publications/[id]', 'PATCH'], ['publications/[id]/publish', 'POST'],
+  ['candidatures/[id]/select', 'POST'], ['candidatures/[id]/reject', 'POST'], ['candidatures/[id]/unlock', 'POST'], ['candidatures/[id]/pitch', 'POST']]
+const sansGardeApprobation = RESERVEES.filter(([ch, m]) => {
+  const r = routes.find((x) => x.chemin === ch && x.methode === m)
+  if (!r) return true
+  const corps = r.code.slice(r.code.search(new RegExp(`export\\s+(?:async\\s+)?function\\s+${m}\\b`)))
+  const iGarde = corps.search(/requireOrgApproved\(auth\)/)
+  const iLecture = corps.search(/\.from\('(publications|candidatures)'\)/)
+  return iGarde < 0 || (iLecture >= 0 && iLecture < iGarde)
+}).map(([ch, m]) => `${m} ${ch}`)
+ok(sansGardeApprobation.length === 0, `les ${RESERVEES.length} gestes réservés appellent requireOrgApproved avant de lire l’objet (§D.52)`, sansGardeApprobation.join(' · '))
+ok(/code: 'org_not_approved'/.test(parChemin.get('admin/annonces/[id]/valider') ?? ''), 'la validation administrateur refuse une organisation non approuvée, nommé (§D.52)')
+const revelent = [...parChemin].filter(([ch]) => ch.startsWith('publications/')).filter(([, c]) => /code: 'forbidden'/.test(c)).map(([ch]) => ch)
+ok(revelent.length === 0, 'aucune route à identifiant d’annonce ne rend 403 forbidden : l’annonce d’un autre est introuvable (§D.53)', revelent.join(', '))
+
 // ── D. LE TEST DE BASE DES ACCÈS CROISÉS ─────────────────────────────────────
 section('D. Le test de base des accès croisés')
 const CHEMIN_TEST = 'supabase/tests/database/vrai_appelant/acces_croises.test.sql'
@@ -175,7 +191,7 @@ const blocNpm = /package-ecosystem: npm[\s\S]*?(?=\n {2}- package-ecosystem|(?![
 ok(/open-pull-requests-limit: 0/.test(blocNpm) && /applies-to: security-updates/.test(blocNpm) && /patterns: \['\*'\]/.test(blocNpm),
   'npm : aucune mise à jour de version, les mises à jour de SÉCURITÉ regroupées en une demande de fusion')
 ok(/package-ecosystem: github-actions/.test(dependabot), 'les actions du flux sont tenues à jour')
-const tousLesFlux = ['.github/workflows/controles.yml'].map((p) => (existsSync(join(ROOT, p)) ? read(p) : '')).join('\n')
+const tousLesFlux = ['.github/workflows/controles.yml', '.github/workflows/nuit-matching.yml'].map((p) => (existsSync(join(ROOT, p)) ? read(p) : '')).join('\n')
 ok(!/auto-?merge|gh pr merge|enable-pull-request-automerge/i.test(sansCommentairesYaml(tousLesFlux)), 'aucune fusion automatique dans nos flux')
 
 // ── F bis. LES TÂCHES PLANIFIÉES ONT CHACUNE LEUR PREUVE ─────────────────────
@@ -196,6 +212,57 @@ section('F bis. Chaque tâche planifiée est nommée dans le test de ses effets'
   ok(planifiees.size >= 12 && sansPreuve.length === 0 && fantomes.length === 0,
     `les ${planifiees.size} tâches planifiées par les migrations sont exactement celles que nomme ${CHEMIN_EFFETS.split('/').slice(-2).join('/')}`,
     [...sansPreuve.map((n) => `${n} : sans preuve d’effet`), ...fantomes.map((n) => `${n} : nommée, jamais planifiée`)].join(' · '))
+}
+
+// ── F ter. LE GRAND JEU DE NUIT ───────────────────────────────────────────────
+section('F ter. Le grand jeu de nuit : un flux à part, un générateur déterministe, jamais la production')
+{
+  const CHEMIN_NUIT = '.github/workflows/nuit-matching.yml'
+  const nuit = existsSync(join(ROOT, CHEMIN_NUIT)) ? sansCommentairesYaml(read(CHEMIN_NUIT)) : ''
+  ok(/\non:\s*\n\s+schedule:\s*\n\s+- cron: '[0-9*/ ,-]+'\s*\n\s+workflow_dispatch:\s*\n/.test(nuit) && !/pull_request|\bpush:/.test(nuit),
+    'le flux de nuit se déclenche la nuit et à la main — jamais sur une demande de fusion ni un envoi')
+  ok(/\npermissions:\s*\n\s+contents: read/.test(nuit) && !/secrets\./.test(nuit)
+     && [...nuit.matchAll(/uses:\s*([^\s]+)/g)].every((m) => /@v\d+(\.\d+){0,2}$/.test(m[1])),
+    'flux de nuit : lecture seule, aucune clé, actions épinglées')
+  ok(/run: node --experimental-transform-types --no-warnings tests\/integration\/nuit-matching\.mjs/.test(nuit)
+     && /actions\/upload-artifact@v\d+/.test(nuit) && /path: nuit-matching\.json/.test(nuit),
+    'il lance le banc de nuit et garde son résultat chiffré (artefact)')
+  ok(!/nuit-matching|generateur-jeu/.test(flux), 'le grand jeu ne tourne JAMAIS dans les contrôles d’une demande de fusion')
+
+  const gen = await import(pathToFileURL(join(ROOT, 'tests/integration/generateur-jeu.mjs')).href)
+  const referentiel = { branches: [{ id: 'b1', specialites: ['s1', 's2', 's3'] }, { id: 'b2', specialites: ['s4'] }],
+    pays: ['FR', 'DE', 'MA', 'ES', 'IT'], continents: ['EU', 'AF'], monde: 'WORLD' }
+  const un = gen.genererJeu({ graine: 7, experts: 40, organisations: 6, missions: 12, referentiel })
+  const deux = gen.genererJeu({ graine: 7, experts: 40, organisations: 6, missions: 12, referentiel })
+  const autre = gen.genererJeu({ graine: 8, experts: 40, organisations: 6, missions: 12, referentiel })
+  ok(JSON.stringify(un) === JSON.stringify(deux) && JSON.stringify(un) !== JSON.stringify(autre)
+     && gen.sqlDuJeu(un) === gen.sqlDuJeu(deux) && gen.noteFixe('GEN-M001', 'GEN-E0001', 7) === gen.noteFixe('GEN-M001', 'GEN-E0001', 7),
+    'le générateur est déterministe : même graine, même jeu et même SQL ; autre graine, autre jeu ; une note fixe par couple')
+  const tel = new Set([...un.experts, ...un.organisations].map((x) => x.telephone))
+  ok(tel.size === un.experts.length + un.organisations.length && un.experts.every((e) => e.resume.length >= 200 && e.resume.length <= 800)
+     && un.experts.some((e) => e.specialites.length === 0) && un.experts.some((e) => e.occupe) && un.experts.some((e) => e.voie === 'cdi'),
+    'le jeu tient les règles d’inscription et couvre les cas : téléphones uniques, résumés de 200 à 800 caractères, « Autre » seule, Occupés, CDI')
+
+  const { cibleDuJeu } = await import(pathToFileURL(join(ROOT, 'tests/integration/cible-du-jeu.mjs')).href)
+  const { cibleDeConstruction } = await import(pathToFileURL(join(ROOT, 'lib/configuration/variables.ts')).href)
+  const LOCALE = 'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
+  const uat = 'abcdefghijklmnopqrst', prod = 'zyxwvutsrqponmlkjihg'
+  const DISTANTE = (ref) => `postgresql://postgres:x@db.${ref}.supabase.co:5432/postgres`
+  const motif = (env, url) => { const v = cibleDuJeu(env, url, cibleDeConstruction); return v.autorisee ? `ok:${v.cible}` : v.motif }
+  const cas = [
+    [{}, LOCALE, 'ok:locale'],
+    [{ VERCEL: '1', VERCEL_ENV: 'production' }, LOCALE, 'environnement_de_production'],
+    [{}, DISTANTE(uat), 'production_non_declaree'],
+    [{ SUPABASE_REF_PRODUCTION: prod, JEU_CIBLE_AUTORISEE: prod }, DISTANTE(prod), 'cible_de_production'],
+    [{ SUPABASE_REF_PRODUCTION: prod }, DISTANTE(uat), 'cible_non_autorisee_explicitement'],
+    [{ SUPABASE_REF_PRODUCTION: prod, JEU_CIBLE_AUTORISEE: uat }, DISTANTE(uat), 'ok:distante'],
+    [{}, 'postgresql://x@exemple.org/p', 'projet_non_identifie'],
+  ]
+  const fautes = cas.filter(([env, url, attendu]) => motif(env, url) !== attendu).map(([env, url, attendu]) => `${JSON.stringify(env)} ${url} → ${motif(env, url)} (attendu ${attendu})`)
+  ok(fautes.length === 0, 'le générateur n’écrit JAMAIS en production : refusé sous la barrière de production, sur la base déclarée de production, sur une base distante non nommée, ou quand la production n’est pas déclarée', fautes.join(' · '))
+  ok(/cibleDuJeu\(process\.env, db, cibleDeConstruction\)/.test(read('tests/integration/generateur-jeu.mjs'))
+     && /if \(!cible\.autorisee\) throw/.test(read('tests/integration/generateur-jeu.mjs')),
+    'le générateur pose cette garde AVANT toute lecture ou écriture de la base visée')
 }
 
 // ── G. LE MOTEUR SE CHARGE HORS DE NEXT ──────────────────────────────────────
